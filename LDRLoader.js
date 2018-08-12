@@ -6,12 +6,13 @@
  */
 THREE.LDRLoader = function(manager, onLoad, onProgress, onError) {
     this.manager = manager;
-    this.ldrPartTypes = []; // url => part. id can be "parts/3001.dat", "model.mpd", etc.
+    this.ldrPartTypes = []; // id => part. id can be "parts/3001.dat", "model.mpd", etc.
     this.unloadedFiles = 0;
     this.onLoad = onLoad;
     this.onProgress = onProgress;
     this.onError = onError;
     this.loader = new THREE.FileLoader(manager);
+    this.mainModel;
 }
 
 /*
@@ -19,41 +20,54 @@ THREE.LDRLoader = function(manager, onLoad, onProgress, onError) {
   For BFC parameters, see: http://www.ldraw.org/article/415.html
   This function follows the procedure from there to handle BFC.
 */
-THREE.LDRLoader.prototype.load = function(url) {
-    if(this.ldrPartTypes[url]) { // Already loaded
-	//console.log("Part already loaded or being loaded: " + url);
-	this.reportProgress(url);
+THREE.LDRLoader.prototype.load = function(id, top) {
+    id = id.toLowerCase(); // Sanitize id.
+
+    if(this.ldrPartTypes[id]) { // Already loaded
+	//console.log("Part already loaded or being loaded: " + id);
+	this.reportProgress(id);
 	return;
     }
     var self = this;
-    self.ldrPartTypes[url] = true;
+    self.ldrPartTypes[id] = true;
 
     var onFileLoaded = function(text) {
-	//console.log("File loaded! URL=" + url);
-	self.ldrPartTypes[url] = self.parse(text);
+	var mainModelLoaded = self.parse(text);
+	//if(self.isTopLevelModel(id))
+	   self.mainModel = mainModelLoaded;
 	self.unloadedFiles--; // Warning - might have concurrency issue when two threads simultaneously update this!
-	self.reportProgress(url);
+	self.reportProgress(id);
     }
     this.unloadedFiles++;
+    var url = this.idToUrl(id, top);
     this.loader.load(url, onFileLoaded, self.onProgress, self.onError);
 };
 
 /*
-  Invoke onProgress(url)
+  Invoke onProgress(id)
   Check if all subModels have loaded. If so, invoke onLoad()
 */
-THREE.LDRLoader.prototype.reportProgress = function(url) {
+THREE.LDRLoader.prototype.reportProgress = function(id) {
     //console.log("Reporting progress for unloaded files counter: " + this.unloadedFiles);
-    this.onProgress(url);
+    this.onProgress(id);
     if(this.unloadedFiles == 0) {
 	this.onLoad();
     }
 };
 
-THREE.LDRLoader.prototype.idToUrl = function(id) {
-    var url = "dat/" + id.toLowerCase();
-    // TODO: Add subfolders!
-    return url;
+THREE.LDRLoader.prototype.isTopLevelModel = function(id) {
+    return id.endsWith(".ldr") || id.endsWith(".mpd");
+}
+
+/*
+TODO FIXME: Remember to change this function to fit your own directory structure. 
+A real LDraw directory has files both under /parts and /p and requires you to search for the DAT file.
+*/
+THREE.LDRLoader.prototype.idToUrl = function(id, top) {
+    return id;
+    //if(this.isTopLevelModel(id))
+    //	return id;
+    //return "parts/" + id.toLowerCase();
 }
 
 THREE.LDRLoader.prototype.parse = function(data) {
@@ -63,9 +77,23 @@ THREE.LDRLoader.prototype.parse = function(data) {
 
     // Start parsing:
     var part = new THREE.LDRPartType();
+    var step = new THREE.LDRStep();
+    var extraSteps = {};
+    function closeStep() {
+	part.addStep(step);
+	step = new THREE.LDRStep();
+
+	for (var key in extraSteps) {
+	    part.addStep(extraSteps[key]);
+	}
+	extraSteps = {};
+    }
 
     // State information:
     var bufferLinePoints = null;
+    var previousComment = "";
+    var firstModel = true;
+    var firstModelName;
 
     var dataLines = data.split("\r\n");
     //console.log(dataLines.length + " lines to parse.");
@@ -79,16 +107,43 @@ THREE.LDRLoader.prototype.parse = function(data) {
 
 	// Close lines:
 	if(bufferLinePoints && lineType != 2) {
-	    part.addLine(bufferLinePoints);
+	    step.addLine(bufferLinePoints);
 	    bufferLinePoints = null;
 	}
 
 	switch(lineType) {
 	case 0: // TODO: Many commands from LDraw and various vendors.
-	    // Set name:
-	    if(parts.length == 3 && "Name:" === parts[1]) {
-		//console.log("Setting ID of part being loaded: " + parts[2]);
+	    if(parts.length == 3 && "FILE" === parts[1]) { // NOFILE command is not supported.
+		// MPD FILE Block found. Set name and start new part if not the first
+		if(!firstModel) {
+		    // Close model and start new:
+		    if(bufferLinePoints) {
+			step.addLine(bufferLinePoints);
+			bufferLinePoints = null;
+		    }
+		    closeStep();
+		    this.ldrPartTypes[part.ID] = part;
+		    part = new THREE.LDRPartType();
+		}
 		part.setID(parts[2]);
+		if(firstModel)
+		    firstModelName = part.ID;
+		firstModel = false;		
+	    }
+	    else if(parts.length == 3 && "Name:" === parts[1]) {
+		// LDR Name: line found. Set name and update data in case this is an ldr file (do not use file suffix to determine).
+		// Set name and model description:
+		part.setID(parts[2]);
+		if(!part.modelDescription)
+		    part.modelDescription = previousComment;
+		if(firstModel)
+		    firstModelName = part.ID;
+		firstModel = false;
+	    }
+	    if(parts.length >= 3 && "Author:" === parts[1]) {
+		part.author = line.substring(9).trim();
+		if(!part.modelDescription)
+		    part.modelDescription = previousComment;
 	    }
 	    else if(parts[1] === "BFC") {
 		// BFC documentation: http://www.ldraw.org/article/415
@@ -108,11 +163,20 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		else if(parts[parts.length-1] == "CW")
                     CCW = false;
 	    }
+	    else if(parts[1] === "STEP") {
+		closeStep();
+	    }
+	    else if(parts[1] === "ROTSTEP") {
+		if(parts.length == 6) {
+		    step.rotation = new THREE.LDRStepRotation(parts[2], parts[3], parts[4], parts[5]);
+		}
+		closeStep();
+	    }
 	    else {
 		invertNext = false;
+		previousComment = line.substring(2);
 	    }
 	    
-	    // TODO: STEP (And auto-step at the end of a model)
 	    // TODO: MLCad commands:
 	    // TODO: LSynth commands:
 	    break;
@@ -124,15 +188,32 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    rotation.set(parts[5],  parts[6],  parts[7], 
 			 parts[8],  parts[9],  parts[10], 
 			 parts[11], parts[12], parts[13]);
-	    var subModelUrl = this.idToUrl(parts[14]);
-	    //console.log("Sub model found: " + subModelUrl + ", invert: " + invertNext);
-	    var subModel = new THREE.LDRPartDescription(parseInt(parts[1]), 
+	    var subModelID = parts[14].toLowerCase();
+	    var subModelColorID = parseInt(parts[1]);
+	    var subModel = new THREE.LDRPartDescription(subModelColorID, 
 							position, 
 							rotation, 
-							parts[14], 
+							subModelID, 
 						        invertNext);
-	    part.addSubModel(subModel);
-	    this.load(subModelUrl); // Start loading the submodel immediately!
+	    var isLDR = subModelID.endsWith('.ldr');
+	    if(isLDR) {
+		var prevStep = extraSteps[subModelColorID + subModelID];
+		if(prevStep) {
+		    prevStep.addLDR(subModel); // Same color and type => add there.
+		}
+		else {
+		    var extraStep = new THREE.LDRStep();
+		    extraStep.addLDR(subModel);
+		    extraSteps[subModelColorID + subModelID] = extraStep;
+		}
+	    }
+	    else {
+		step.addDAT(subModel); // DAT part - no step.
+	    }
+	    /*if(!isLDR) {
+		// TODO FIXME: Comment in the next line to start loading files async. as soon as they are encountered:
+		this.load(subModelID, this.isTopLevelModel(part.ID)); // Start loading the separate file immediately!
+	    }*/
 	    invertNext = false;
 	    break;
 	case 2: // Line "2 <colour> x1 y1 z1 x2 y2 z2"
@@ -159,7 +240,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		    bufferLinePoints.push(p2);
 		}
 		else {
-		    part.addLine(bufferLinePoints);
+		    step.addLine(bufferLinePoints);
 		    bufferLinePoints = [p1, p2];		    
 		}
 	    }
@@ -181,14 +262,14 @@ THREE.LDRLoader.prototype.parse = function(data) {
 				       parseFloat(parts[idx++]),
 				       parseFloat(parts[idx++]));
 	    if(CCW == invertNext) {
-		part.addTrianglePoint(p3);
-		part.addTrianglePoint(p2);
-		part.addTrianglePoint(p1);
+		step.addTrianglePoint(p3);
+		step.addTrianglePoint(p2);
+		step.addTrianglePoint(p1);
 	    }
 	    else {
-		part.addTrianglePoint(p1);
-		part.addTrianglePoint(p2);
-		part.addTrianglePoint(p3);
+		step.addTrianglePoint(p1);
+		step.addTrianglePoint(p2);
+		step.addTrianglePoint(p3);
 	    }
 	    invertNext = false;
 	    break;
@@ -212,22 +293,22 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    var p4 = new THREE.Vector3(x4, y4, z4);
 
 	    if(CCW == invertNext) {
-		part.addTrianglePoint(p4);
-		part.addTrianglePoint(p2);
-		part.addTrianglePoint(p1);
+		step.addTrianglePoint(p4);
+		step.addTrianglePoint(p2);
+		step.addTrianglePoint(p1);
 
-		part.addTrianglePoint(p4);
-		part.addTrianglePoint(p3);
-		part.addTrianglePoint(p2);
+		step.addTrianglePoint(p4);
+		step.addTrianglePoint(p3);
+		step.addTrianglePoint(p2);
 	    }
 	    else {
-		part.addTrianglePoint(p1);
-		part.addTrianglePoint(p2);
-		part.addTrianglePoint(p4);
+		step.addTrianglePoint(p1);
+		step.addTrianglePoint(p2);
+		step.addTrianglePoint(p4);
 
-		part.addTrianglePoint(p2);
-		part.addTrianglePoint(p3);
-		part.addTrianglePoint(p4);
+		step.addTrianglePoint(p2);
+		step.addTrianglePoint(p3);
+		step.addTrianglePoint(p4);
 	    }
 
 	    invertNext = false;
@@ -241,56 +322,91 @@ THREE.LDRLoader.prototype.parse = function(data) {
 
     // Close lines:
     if(bufferLinePoints) {
-	part.addLine(bufferLinePoints);
+	step.addLine(bufferLinePoints);
 	bufferLinePoints = null;
     }
+    part.addStep(step);
+    this.ldrPartTypes[part.ID] = part;
 
-    return part;
+    return firstModelName;
 };
 
+/*
+Part description: a part (ID) placed (position, rotation) with a given color (16/24 allowed) and invertCCW to allow for sub-parts in DAT-parts.
+*/
 THREE.LDRPartDescription = function(colorID, position, rotation, ID, invertCCW) {
     this.colorID = colorID; // LDraw ID
     this.position = position; // Vector3
     this.rotation = rotation; // Matrix3
-    this.ID = ID; // part.dat lowercase
+    this.ID = ID.toLowerCase(); // part.dat lowercase
     this.invertCCW = invertCCW;
 }
 
-THREE.LDRPartType = function() {
-    this.ID = null;
-    this.subModels = [];
+THREE.LDRPartDescription.prototype.placeAt = function(pd) {
+    // Compute augmented colorID, position, rotation, ID
+    var colorID = this.colorID == 16 ? pd.colorID : this.colorID;
+    
+    var position = new THREE.Vector3();
+    position.copy(this.position);
+    position.applyMatrix3(pd.rotation);
+    position.add(pd.position);
+
+    var rotation = new THREE.Matrix3();
+    rotation.multiplyMatrices(pd.rotation, this.rotation);
+
+    var i = this.invertCCW == pd.invertCCW;
+
+    return new THREE.LDRPartDescription(colorID, position, rotation, this.ID, i);
+}
+
+THREE.LDRStepRotation = function(x, y, z, type) {
+    this.x = parseFloat(x);
+    this.y = parseFloat(y);
+    this.z = parseFloat(z);
+    this.type = type.toUpperCase();
+}
+
+THREE.LDRStep = function() {
+    this.empty = true;
+    this.ldrs = [];
+    this.dats = [];
     this.lines = [];
     this.trianglePoints = [];
-    this.optionalLines = [];
 
     this.addLine = function(line) {
-	this.lines.push(line);
+	this.empty = false;
+    	this.lines.push(line);
     }
 
     this.addTrianglePoint = function(p) {
+	this.empty = false;
 	this.trianglePoints.push(p);
     }
 
-    this.setID = function(id) {
-	this.ID = id.toLowerCase();
+    this.addLDR = function(ldr) {
+	this.empty = false;
+	this.ldrs.push(ldr);
     }
-    
-    this.addSubModel = function(subModel) {
-	this.subModels.push(subModel);
+    this.addDAT = function(dat) {
+	this.empty = false;
+	this.dats.push(dat);
     }
 
     this.generateThreePart = function(loader, colorID, position, rotation, invertCCW, threePart) {
-	//console.log("Generating three part for " + this.ID + " in color " + colorID + ", invertion: " + invertCCW);
+	//console.log("Creating three part for " + this.ldrs.length + " sub models and " + this.dats.length + " DAT parts in color " + colorID + ", invertion: " + invertCCW);
 	var ownInvertion = (rotation.determinant() < 0) != invertCCW; // Adjust for inversed matrix!
-
-	var ret = threePart || new THREE.Group();
 
 	// Materials:
 	var lineColor = colorID == 0 ? 15 : 0;
 	var lineMaterial = new THREE.LineBasicMaterial({ 
 	    color: ldraw_colors[lineColor] 
 	});
-	var triangleMaterial = new THREE.MeshBasicMaterial( { color: ldraw_colors[colorID] } );
+	var trans = ldraw_transparent.includes(colorID);
+	var triangleMaterial = new THREE.MeshBasicMaterial( { 
+	    color: ldraw_colors[colorID],
+	    transparent: trans,
+	    opacity: trans ? 0.5 : 1
+	} );
 
 	var transformPoint = function(p) {
 	    var ret = new THREE.Vector3();
@@ -314,7 +430,7 @@ THREE.LDRPartType = function() {
 	    }
 
 	    lineGeometry.addAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-	    ret.add(new THREE.Line(lineGeometry, lineMaterial));
+	    threePart.add(new THREE.Line(lineGeometry, lineMaterial));
 	}
 
 	// Add triangles:
@@ -334,13 +450,10 @@ THREE.LDRPartType = function() {
 	    }
 	    var triangleGeometry = new THREE.BufferGeometry();
 	    triangleGeometry.addAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(positions), 3));
-	    ret.add(new THREE.Mesh(triangleGeometry, triangleMaterial));
+	    threePart.add(new THREE.Mesh(triangleGeometry, triangleMaterial));
 	}
 
-	// Add submodels:
-	for(var i = 0; i < this.subModels.length; i++) {
-	    var subModelDesc = this.subModels[i];
-	    var subModelUrl = loader.idToUrl(subModelDesc.ID);
+	function handleSubModel(subModelDesc) {
 	    var subModelInversion = invertCCW != subModelDesc.invertCCW;
 	    var subModelColor = subModelDesc.colorID;
 
@@ -351,20 +464,48 @@ THREE.LDRPartType = function() {
 		subModelColor = colorID;
 	    }
 
-	    var subModel = loader.ldrPartTypes[subModelUrl];
-	    if(!subModel || (subModel === true)) {
-		console.log("Sub model not yet loaded. Skipping: " + subModelDesc.ID);
-		continue;
+	    var subModel = loader.ldrPartTypes[subModelDesc.ID];
+	    if(subModel == undefined) {
+		throw "Unloaded sub model: " + subModelDesc.ID;
 	    }
-
 	    var nextPosition = transformPoint(subModelDesc.position);
 	    var nextRotation = new THREE.Matrix3();
 	    nextRotation.multiplyMatrices(rotation, subModelDesc.rotation);
-	    subModel.generateThreePart(loader, subModelColor, nextPosition, nextRotation, subModelInversion, ret);
+	    subModel.generateThreePart(loader, subModelColor, nextPosition, nextRotation, subModelInversion, threePart);
+	}
+
+	// Add submodels:
+	for(var i = 0; i < this.ldrs.length; i++) {
+	    var subModelDesc = this.ldrs[i];
+	    handleSubModel(subModelDesc);
+	}
+	for(var i = 0; i < this.dats.length; i++) {
+	    var subModelDesc = this.dats[i];
+	    handleSubModel(subModelDesc);
 	}
 
 	// TODO: optional lines
+    }
+}
 
-	return ret;
+THREE.LDRPartType = function() {
+    this.ID = null;
+    this.modelDescription;
+    this.author;
+    this.steps = [];
+
+    this.addStep = function(step) {
+	if(!step.empty)
+	    this.steps.push(step);
+    }
+
+    this.setID = function(id) {
+	this.ID = id.toLowerCase();
+    }
+
+    this.generateThreePart = function(loader, c, p, r, inv, threePart) {
+	for(var i = 0; i < this.steps.length; i++) {
+	    this.steps[i].generateThreePart(loader, c, p, r, inv, threePart);
+	}
     }
 }

@@ -14,7 +14,7 @@ ldraw_colors[11] = 0x55a5af;
 ldraw_colors[12] = 0xf2705e;
 ldraw_colors[13] = 0xfc97ac;
 ldraw_colors[14] = 0xf2cd37;
-ldraw_colors[15] = 0xffffff;
+ldraw_colors[15] = 0xf6f6f6;
 ldraw_colors[17] = 0xc2dab8;
 ldraw_colors[18] = 0xfbe696;
 ldraw_colors[19] = 0xe4cd9e;
@@ -124,3 +124,5 @@ ldraw_colors[450] = 0xb67b50;
 ldraw_colors[462] = 0xffa70b;
 ldraw_colors[484] = 0xa95500;
 ldraw_colors[503] = 0xe6e3da;
+
+var ldraw_transparent = [33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,52,54,57,114,117,129,231,284,293,294,302,339];
