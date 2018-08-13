@@ -24,7 +24,6 @@ THREE.LDRLoader.prototype.load = function(id, top) {
     id = id.toLowerCase(); // Sanitize id.
 
     if(this.ldrPartTypes[id]) { // Already loaded
-	//console.log("Part already loaded or being loaded: " + id);
 	this.reportProgress(id);
 	return;
     }
@@ -48,7 +47,6 @@ THREE.LDRLoader.prototype.load = function(id, top) {
   Check if all subModels have loaded. If so, invoke onLoad()
 */
 THREE.LDRLoader.prototype.reportProgress = function(id) {
-    //console.log("Reporting progress for unloaded files counter: " + this.unloadedFiles);
     this.onProgress(id);
     if(this.unloadedFiles == 0) {
 	this.onLoad();
@@ -81,10 +79,14 @@ THREE.LDRLoader.prototype.parse = function(data) {
     var extraSteps = {};
     function closeStep() {
 	part.addStep(step);
+	var rot = step.rotation;
 	step = new THREE.LDRStep();
+	step.rotation = rot;
 
 	for (var key in extraSteps) {
-	    part.addStep(extraSteps[key]);
+	    var extraStep = extraSteps[key];
+	    extraStep.rotation = rot;
+	    part.addStep(extraStep);
 	}
 	extraSteps = {};
     }
@@ -167,8 +169,13 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		closeStep();
 	    }
 	    else if(parts[1] === "ROTSTEP") {
-		if(parts.length == 6) {
-		    step.rotation = new THREE.LDRStepRotation(parts[2], parts[3], parts[4], parts[5]);
+		if(parts.length >= 5) {
+		    //console.log("Rotation! " + parts[2] + " " + parts[3] + " " + parts[4] + " " + parts[5]);
+		    step.rotation = new THREE.LDRStepRotation(parts[2], parts[3], parts[4], (parts.length == 5 ? "REL" : parts[5]));
+		}
+		else if(parts.length == 3 && parts[2] === "END") {
+		    //console.log("Rotation END! ");
+		    step.rotation = null;
 		}
 		closeStep();
 	    }
@@ -366,23 +373,77 @@ THREE.LDRStepRotation = function(x, y, z, type) {
     this.type = type.toUpperCase();
 }
 
+THREE.LDRStepRotation.equals = function(a, b) {
+    var aNull = a === null;
+    var bNull = b === null;
+    if(aNull && bNull)
+	return true;
+    if(aNull != bNull)
+	return false;
+    return (a.x === b.x) && (a.y === b.y) && (a.z === b.z) && (a.type === b.type);
+}
+
+/* 
+   Specification: https://www.lm-software.com/mlcad/Specification_V2.0.pdf (page 7 and 8)
+*/
+THREE.LDRStepRotation.prototype.getRotationMatrix = function(defaultMatrix, currentMatrix) {
+    console.log("Rotating for " + this.x + ", " + this.y + ", " + this.z);
+    var wx = this.x / 180.0 * Math.PI;
+    var wy = this.y / 180.0 * Math.PI;
+    var wz = this.z / 180.0 * Math.PI;
+
+    var s1 = Math.sin(wx);
+    var s2 = Math.sin(wy);
+    var s3 = Math.sin(wz);
+    var c1 = Math.cos(wx);
+    var c2 = Math.cos(wy);
+    var c3 = Math.cos(wz);
+
+    var a = c2 * c3;
+    var b = -c2 * s3;
+    var c = s2;
+    var d = c1 * s3 + s1 * s2 * c3;
+    var e = c1 * c3 - s1 * s2 * s3;
+    var f = -s1 * c2;
+    var g = s1 * s3 - c1 * s2 * c3;
+    var h = s1 * c3 + c1 * s2 * s3;
+    var i = c1 * c2;
+
+    var rotationMatrix = new THREE.Matrix4();
+    rotationMatrix.set(a, b, c, 0,
+		       d, e, f, 0,
+		       g, h, i, 0,
+		       0, 0, 0, 1);
+    var ret = new THREE.Matrix4();
+    if(this.type === "REL") {
+	console.log("Applying REL rotation");
+	ret.copy(defaultMatrix).multiply(rotationMatrix);
+    }
+    else if(this.type === "ADD") {
+	ret.copy(currentMatrix).multiply(rotationMatrix);
+    }
+    else { // this.type === ABS
+	ret.copy(rotationMatrix);
+    }
+    return ret;
+}
+
 THREE.LDRStep = function() {
     this.empty = true;
     this.ldrs = [];
     this.dats = [];
     this.lines = [];
     this.trianglePoints = [];
+    this.rotation = null;
 
     this.addLine = function(line) {
 	this.empty = false;
     	this.lines.push(line);
     }
-
     this.addTrianglePoint = function(p) {
 	this.empty = false;
 	this.trianglePoints.push(p);
     }
-
     this.addLDR = function(ldr) {
 	this.empty = false;
 	this.ldrs.push(ldr);
@@ -416,10 +477,20 @@ THREE.LDRStep = function() {
 	    return ret;
 	}
 
+	var boundingBox;
+	function expandBB(b) {
+	    if(!boundingBox) {
+		boundingBox = new THREE.Box3(b.min, b.max); 
+	    }
+	    else {
+		boundingBox.expandByPoint(b.min);
+		boundingBox.expandByPoint(b.max);
+	    }
+	}
+
 	// Add lines:
 	for(var i = 0; i < this.lines.length; i++) {
 	    var line = this.lines[i];
-	    //console.log(line);
 	    
 	    var lineGeometry = new THREE.BufferGeometry();
 
@@ -430,7 +501,9 @@ THREE.LDRStep = function() {
 	    }
 
 	    lineGeometry.addAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-	    threePart.add(new THREE.Line(lineGeometry, lineMaterial));
+	    lineGeometry.computeBoundingBox();
+	    expandBB(lineGeometry.boundingBox);
+	    threePart.add(new THREE.Line(lineGeometry, lineMaterial));	    
 	}
 
 	// Add triangles:
@@ -471,7 +544,10 @@ THREE.LDRStep = function() {
 	    var nextPosition = transformPoint(subModelDesc.position);
 	    var nextRotation = new THREE.Matrix3();
 	    nextRotation.multiplyMatrices(rotation, subModelDesc.rotation);
-	    subModel.generateThreePart(loader, subModelColor, nextPosition, nextRotation, subModelInversion, threePart);
+	    var b = subModel.generateThreePart(loader, subModelColor, nextPosition, nextRotation, subModelInversion, threePart);
+	    if(b) {
+		expandBB(b);
+	    }
 	}
 
 	// Add submodels:
@@ -485,6 +561,7 @@ THREE.LDRStep = function() {
 	}
 
 	// TODO: optional lines
+	return boundingBox;
     }
 }
 
@@ -493,10 +570,25 @@ THREE.LDRPartType = function() {
     this.modelDescription;
     this.author;
     this.steps = [];
+    this.lastRotation = null;
 
     this.addStep = function(step) {
-	if(!step.empty)
-	    this.steps.push(step);
+	if(step.empty && this.steps.length === 0)
+	    return; // Totally illegal step.
+	var sameRotation = THREE.LDRStepRotation.equals(step.rotation, this.lastRotation);
+	if(step.empty && sameRotation) {
+	    return; // No change.
+	}
+	if(this.steps.length > 0) {
+	    var prevStep = this.steps[this.steps.length-1];
+	    if(prevStep.empty && sameRotation) {
+		// Special case: Merge into previous step:
+		this.steps[this.steps.length-1] = step;
+		return;
+	    }
+	}
+	this.steps.push(step);
+	this.lastRotation = step.rotation;
     }
 
     this.setID = function(id) {
@@ -504,8 +596,15 @@ THREE.LDRPartType = function() {
     }
 
     this.generateThreePart = function(loader, c, p, r, inv, threePart) {
-	for(var i = 0; i < this.steps.length; i++) {
-	    this.steps[i].generateThreePart(loader, c, p, r, inv, threePart);
+	if(this.steps.length === 0)
+	    throw "Invalid three part!";
+
+	var boundingBox = this.steps[0].generateThreePart(loader, c, p, r, inv, threePart);
+	for(var i = 1; i < this.steps.length; i++) {
+	    var b = this.steps[i].generateThreePart(loader, c, p, r, inv, threePart);
+	    boundingBox.expandByPoint(b.min);
+	    boundingBox.expandByPoint(b.max);
 	}
+	return boundingBox;
     }
 }
