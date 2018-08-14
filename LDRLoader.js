@@ -77,11 +77,12 @@ THREE.LDRLoader.prototype.parse = function(data) {
     var part = new THREE.LDRPartType();
     var step = new THREE.LDRStep();
     var extraSteps = {};
-    function closeStep() {
+    function closeStep(keepRoration) {
 	part.addStep(step);
 	var rot = step.rotation;
 	step = new THREE.LDRStep();
-	step.rotation = rot;
+	if(keepRoration)
+	    step.rotation = rot;
 
 	for (var key in extraSteps) {
 	    var extraStep = extraSteps[key];
@@ -123,7 +124,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 			step.addLine(bufferLinePoints);
 			bufferLinePoints = null;
 		    }
-		    closeStep();
+		    closeStep(false);
 		    this.ldrPartTypes[part.ID] = part;
 		    part = new THREE.LDRPartType();
 		}
@@ -166,7 +167,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
                     CCW = false;
 	    }
 	    else if(parts[1] === "STEP") {
-		closeStep();
+		closeStep(true);
 	    }
 	    else if(parts[1] === "ROTSTEP") {
 		if(parts.length >= 5) {
@@ -177,7 +178,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		    //console.log("Rotation END! ");
 		    step.rotation = null;
 		}
-		closeStep();
+		closeStep(true);
 	    }
 	    else {
 		invertNext = false;
