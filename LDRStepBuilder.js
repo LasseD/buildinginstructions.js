@@ -61,7 +61,6 @@ THREE.LDRStepBuilder.prototype.repositionForCamera = function(world, defaultMatr
 	return subBuilder.repositionForCamera(world, defaultMatrix, currentRotationMatrix); // Delegate to subBuilder.
     }
 
-    console.log("Part: " + this.part.ID);
     var stepRotation = this.part.steps[this.current].rotation;
 
     // Get the current model rotation matrix:
@@ -118,7 +117,7 @@ THREE.LDRStepBuilder.prototype.nextStep = function(scene) {
 
     // Special case: Step to placement step.
     if((this.current === this.subBuilders.length-1) && willStep) { 
-	this.drawExtras();
+	this.drawExtras(scene);
 	this.current++;
 	return;
     }
@@ -137,7 +136,7 @@ THREE.LDRStepBuilder.prototype.nextStep = function(scene) {
             threePart = new THREE.Group();
 	    var step = this.part.steps[this.current];
 	    var b = step.generateThreePart(this.ldrLoader, pd.colorID, pd.position, pd.rotation, false, threePart);
-	    threePart.add(new THREE.Box3Helper(b, 0xffff00));
+	    //threePart.add(new THREE.Box3Helper(b, 0xffff00));
 
 	    this.setCurrentBounds(b);
 	    this.threeParts[this.current] = threePart;
@@ -148,7 +147,6 @@ THREE.LDRStepBuilder.prototype.nextStep = function(scene) {
 	}
     }
     else { // LDR sub-models:
-	console.log("Adding sub-model step " + this.current);
 	if(subBuilder.current == -1) {
 	    // We have just stepped into this sub-model: Set all previous steps to invisible:
 	    this.setVisibleUpTo(false, this.current);
@@ -193,14 +191,14 @@ THREE.LDRStepBuilder.prototype.drawExtras = function(scene) {
 
     if(this.extraThreeParts === true) { // Not already loaded
 	this.extraThreeParts = new THREE.Group();
-	var prevBounds = this.bounds[this.subModels.length-1];
-	this.bounds[this.subModels.length] = new THREE.Box3(prevBounds.min, prevBounds.max);
+	var prevBounds = this.bounds[this.subBuilders.length-1];
+	this.bounds[this.subBuilders.length] = new THREE.Box3(prevBounds.min, prevBounds.max);
 	for(var i = 1; i < this.partDescs.length; i++) {
 	    var pd = this.partDescs[i];
-	    var b = pd.generateThreePart(this.ldrLoader, pd.colorID, pc.position, pd.rotation, false, this.extraThreeParts);
+	    var b = this.part.generateThreePart(this.ldrLoader, pd.colorID, pd.position, pd.rotation, false, this.extraThreeParts);
 	    if(this.subBuilders.length >= 2) {
-		this.bounds[this.subModels.length].expandByPoint(b.min);
-		this.bounds[this.subModels.length].expandByPoint(b.max);
+		this.bounds[this.subBuilders.length].expandByPoint(b.min);
+		this.bounds[this.subBuilders.length].expandByPoint(b.max);
 	    }
 	}
 	scene.add(this.extraThreeParts);

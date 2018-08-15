@@ -390,7 +390,7 @@ THREE.LDRStepRotation.equals = function(a, b) {
 THREE.LDRStepRotation.prototype.getRotationMatrix = function(defaultMatrix, currentMatrix) {
     console.log("Rotating for " + this.x + ", " + this.y + ", " + this.z);
     var wx = this.x / 180.0 * Math.PI;
-    var wy = this.y / 180.0 * Math.PI;
+    var wy = -this.y / 180.0 * Math.PI;
     var wz = this.z / 180.0 * Math.PI;
 
     var s1 = Math.sin(wx);
@@ -417,7 +417,6 @@ THREE.LDRStepRotation.prototype.getRotationMatrix = function(defaultMatrix, curr
 		       0, 0, 0, 1);
     var ret = new THREE.Matrix4();
     if(this.type === "REL") {
-	console.log("Applying REL rotation");
 	ret.copy(defaultMatrix).multiply(rotationMatrix);
     }
     else if(this.type === "ADD") {
