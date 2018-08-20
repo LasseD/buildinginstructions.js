@@ -21,7 +21,8 @@ THREE.LDRLoader = function(manager, onLoad, onProgress, onError) {
   This function follows the procedure from there to handle BFC.
 */
 THREE.LDRLoader.prototype.load = function(id, top) {
-    id = id.toLowerCase(); // Sanitize id.
+    if(!top)
+      id = id.toLowerCase(); // Sanitize id. 
 
     if(this.ldrPartTypes[id]) { // Already loaded
 	this.reportProgress(id);
@@ -388,7 +389,7 @@ THREE.LDRStepRotation.equals = function(a, b) {
    Specification: https://www.lm-software.com/mlcad/Specification_V2.0.pdf (page 7 and 8)
 */
 THREE.LDRStepRotation.prototype.getRotationMatrix = function(defaultMatrix, currentMatrix) {
-    console.log("Rotating for " + this.x + ", " + this.y + ", " + this.z);
+    //console.log("Rotating for " + this.x + ", " + this.y + ", " + this.z);
     var wx = this.x / 180.0 * Math.PI;
     var wy = -this.y / 180.0 * Math.PI;
     var wz = this.z / 180.0 * Math.PI;
@@ -423,6 +424,7 @@ THREE.LDRStepRotation.prototype.getRotationMatrix = function(defaultMatrix, curr
 	ret.copy(currentMatrix).multiply(rotationMatrix);
     }
     else { // this.type === ABS
+	// TODO: Make an "ABS" default rotation matrix.
 	ret.copy(rotationMatrix);
     }
     return ret;
@@ -539,6 +541,7 @@ THREE.LDRStep = function() {
 
 	    var subModel = loader.ldrPartTypes[subModelDesc.ID];
 	    if(subModel == undefined) {
+		console.dir(loader.ldrPartTypes);
 		throw "Unloaded sub model: " + subModelDesc.ID;
 	    }
 	    var nextPosition = transformPoint(subModelDesc.position);

@@ -164,6 +164,13 @@ THREE.LDRStepBuilder.prototype.nextStep = function(scene) {
     }
 }
 
+THREE.LDRStepBuilder.prototype.getLargestBounds = function() {
+    var b = this.bounds[this.current];
+    if(b)
+	return b;
+    return this.subBuilders[this.current].getLargestBounds();
+}
+
 THREE.LDRStepBuilder.prototype.setCurrentBounds = function(b) {
     if(this.current === 0) {
 	if(!b)
