@@ -189,6 +189,23 @@ THREE.LDRStepBuilder.prototype.setCurrentBounds = function(b) {
     }
 }
 
+THREE.LDRStepBuilder.prototype.getMultiplierOfCurrentStep = function() {
+    var subBuilder = this.subBuilders[this.current];
+    if(!subBuilder || subBuilder.isAtPlacementStep())
+	return this.partDescs.length; // If a subBuilder is not active (or at placement step), then return the number of parts this subBuilder returns. 
+    return subBuilder.getMultiplierOfCurrentStep();
+}
+THREE.LDRBackgroundColors = Array("ffffff", "FFFF88", "CCFFCC", "FFBB99", "99AAFF", "FF99FF", "D9FF99", "FFC299");
+THREE.LDRStepBuilder.prototype.getBackgroundColorOfCurrentStep = function() {
+    return THREE.LDRBackgroundColors[this.getLevelOfCurrentStep()%THREE.LDRBackgroundColors.length];
+}
+THREE.LDRStepBuilder.prototype.getLevelOfCurrentStep = function() {
+    var subBuilder = this.subBuilders[this.current];
+    if(!subBuilder || subBuilder.isAtPlacementStep())
+	return 0;
+    return 1+subBuilder.getLevelOfCurrentStep();
+}
+
 THREE.LDRStepBuilder.prototype.drawExtras = function(scene) {
     if(!this.extraThreeParts) {
 	if(this.bounds[this.subBuilders.length] === null) {

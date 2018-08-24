@@ -111,12 +111,14 @@ THREE.LDRButtons.prototype.makeFF = function () {
 // Home button:
 THREE.LDRButtons.prototype.makeHome = function () {
     var ret = document.createElementNS(this.svgNS, 'svg');
-    var roofPoints = "50,20 80,50 70,50 70,40 60,40 60,30 40,30 40,40 30,40 30,50 20,50 50,20 50,30";
+    /*var roofPoints = "50,20 80,50 70,50 70,40 60,40 60,30 40,30 40,40 30,40 30,50 20,50 50,20 50,30";
     ret.appendChild(this.makePolygon(roofPoints));
     var wallPoints = "25,50 25,80 75,80, 75,50";
-    ret.appendChild(this.makePolyLine(wallPoints));
-    ret.appendChild(this.makeRect(30, 55, 18, 25)); // Door
-    ret.appendChild(this.makeRect(53, 55, 16, 16)); // Window
+    ret.appendChild(this.makePolyLine(wallPoints));*/
+    var edgePoints = "50,20 80,50 75,50 75,80 25,80 25,50 20,50";
+    ret.appendChild(this.makePolygon(edgePoints));
+    ret.appendChild(this.makeRect(30, 50, 18, 30)); // Door
+    ret.appendChild(this.makeRect(53, 50, 16, 16)); // Window
     return ret;
 }
 

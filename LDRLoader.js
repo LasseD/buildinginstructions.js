@@ -392,7 +392,7 @@ THREE.LDRStepRotation.prototype.getRotationMatrix = function(defaultMatrix, curr
     //console.log("Rotating for " + this.x + ", " + this.y + ", " + this.z);
     var wx = this.x / 180.0 * Math.PI;
     var wy = -this.y / 180.0 * Math.PI;
-    var wz = this.z / 180.0 * Math.PI;
+    var wz = -this.z / 180.0 * Math.PI;
 
     var s1 = Math.sin(wx);
     var s2 = Math.sin(wy);
