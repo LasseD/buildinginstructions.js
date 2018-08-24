@@ -13,8 +13,8 @@ If more than one placed part, the color and ID are assumed to be the same as it 
 The builder supports the operations:
 - nextStep: Single step forward (if possible)
 - prevStep: Single step back (if possible)
-- nextSubModel: Go to first step of next model. TODO
-- prevSubModel (If at first step of submodel: go to first step of prev. Else: goes to first step) TODO
+- fastForward: Go to last step of currently-active model. Unless at placement-step, then do it for next model.
+- fastReverse: Go to first step of currently-active model. Unless at placement-step, then do it for next model.
 - goToStep: Go to a specific step. TODO
 */
 THREE.LDRStepBuilder = function(ldrLoader, partDescs) {
@@ -42,8 +42,6 @@ THREE.LDRStepBuilder = function(ldrLoader, partDescs) {
 	    this.subBuilders.push(subStepBuilder);	    
 	}
 	else {
-	    // Replace dats:
-	    
 	    this.subBuilders.push(null);
 	}
 	this.threeParts.push(null);
@@ -164,11 +162,14 @@ THREE.LDRStepBuilder.prototype.nextStep = function(scene) {
     }
 }
 
-THREE.LDRStepBuilder.prototype.getLargestBounds = function() {
-    var b = this.bounds[this.current];
-    if(b)
-	return b;
-    return this.subBuilders[this.current].getLargestBounds();
+THREE.LDRStepBuilder.prototype.getBounds = function() {
+    var subBuilder = this.subBuilders[this.current];
+    if(subBuilder && !subBuilder.isAtPlacementStep()) {
+	var ret = subBuilder.getBounds();
+	if(ret)
+	    return ret;
+    }
+    return this.bounds[this.current];
 }
 
 THREE.LDRStepBuilder.prototype.setCurrentBounds = function(b) {
@@ -179,8 +180,9 @@ THREE.LDRStepBuilder.prototype.setCurrentBounds = function(b) {
 	return;
     }
 
-    var prevBounds = this.bounds[this.current-1];
-    this.bounds[this.current] = new THREE.Box3(prevBounds.min, prevBounds.max);
+    var prevBounds = new THREE.Box3();
+    prevBounds.copy(this.bounds[this.current-1]);
+    this.bounds[this.current] = prevBounds;
     if(b) {
 	this.bounds[this.current].expandByPoint(b.min);
 	this.bounds[this.current].expandByPoint(b.max);
@@ -198,8 +200,9 @@ THREE.LDRStepBuilder.prototype.drawExtras = function(scene) {
 
     if(this.extraThreeParts === true) { // Not already loaded
 	this.extraThreeParts = new THREE.Group();
-	var prevBounds = this.bounds[this.subBuilders.length-1];
-	this.bounds[this.subBuilders.length] = new THREE.Box3(prevBounds.min, prevBounds.max);
+	var prevBounds = new THREE.Box3();
+	prevBounds.copy(this.bounds[this.subBuilders.length-1]);
+	this.bounds[this.subBuilders.length] = prevBounds;
 	for(var i = 1; i < this.partDescs.length; i++) {
 	    var pd = this.partDescs[i];
 	    var b = this.part.generateThreePart(this.ldrLoader, pd.colorID, pd.position, pd.rotation, false, this.extraThreeParts);
@@ -249,6 +252,43 @@ THREE.LDRStepBuilder.prototype.prevStep = function(scene) {
     }
 }
 
+THREE.LDRStepBuilder.prototype.fastForward = function(scene) {
+    // Find active builder:
+    var b = this;
+    while(b.current < b.subBuilders.length && b.subBuilders[b.current] !== null) {
+	b = b.subBuilders[b.current];
+    }
+    // Step if at last step of builder:
+    if(b.isAtLastStep()) {
+	this.nextStep(scene);
+	// Find active builder now:
+	b = this;
+	while(b.current < b.subBuilders.length && b.subBuilders[b.current] !== null) {
+	    b = b.subBuilders[b.current];
+	}
+    }
+    while(!b.isAtLastStep())
+	this.nextStep(scene);
+}
+THREE.LDRStepBuilder.prototype.fastReverse = function(scene) {
+    // Find active builder:
+    var b = this;
+    while(b.current < b.subBuilders.length && 
+       b.subBuilders[b.current] !== null) {
+	b = b.subBuilders[b.current];
+    }
+    // Step if at last step of builder:
+    if(b.isAtFirstStep()) {
+	this.prevStep(scene);
+	b = this;
+	while(b.current < b.subBuilders.length && b.subBuilders[b.current] !== null) {
+	    b = b.subBuilders[b.current];
+	}
+    }
+    while(!b.isAtFirstStep())
+	this.prevStep(scene);
+}
+
 THREE.LDRStepBuilder.prototype.isAtPreStep = function() {
     return this.current === -1;
 }
@@ -265,8 +305,10 @@ THREE.LDRStepBuilder.prototype.isAtLastStep = function() {
     if(this.current < this.subBuilders.length-1)
 	return false;
     var subBuilder = this.subBuilders[this.current];
-    var subDone = (subBuilder === null) || subBuilder.isAtPlacementStep();    
-    return subDone && !this.extraThreeParts;
+    return (subBuilder === null) || subBuilder.isAtPlacementStep();    
+}
+THREE.LDRStepBuilder.prototype.isAtVeryLastStep = function() {
+    return this.isAtLastStep() && !this.extraThreeParts;
 }
 
 THREE.LDRStepBuilder.prototype.setVisibleUpTo = function(v, idx) {
