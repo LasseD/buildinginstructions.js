@@ -10,7 +10,7 @@ THREE.LDRButtons = function(element) {
 
     var lowerDiv = this.createDiv('camera_buttons');
     this.resetCameraButton = this.createDiv('reset_camera_button', 'resetCameraPosition();');
-    this.resetCameraButton.appendChild(this.makeCamera(50, 50, 80));
+    this.resetCameraButton.appendChild(this.makeCamera(50, 45, 80));
     lowerDiv.appendChild(this.resetCameraButton);
     this.zoomInButton = this.createDiv('zoom_in_button', 'zoomIn();');
     this.zoomInButton.appendChild(this.makeZoom(true));
@@ -34,6 +34,14 @@ THREE.LDRButtons = function(element) {
     this.homeButton.appendChild(this.makeHome());
     this.topButtons.appendChild(this.homeButton);
 
+    this.stepToButton = this.createDiv('stepToContainer');
+    this.stepToButton.appendChild(this.makeStepTo());
+    this.topButtons.appendChild(this.stepToButton);
+
+    this.optionsButton = this.createDiv('optionsButton');
+    this.optionsButton.appendChild(this.makeOptions());
+    this.topButtons.appendChild(this.optionsButton);
+
     this.ffButton = this.createDiv('ffButton', 'nextStep(true);');
     this.ffButton.appendChild(this.makeFF());
     this.topButtons.appendChild(this.ffButton);
@@ -54,7 +62,6 @@ THREE.LDRButtons.prototype.makeLeftArrow = function() {
 // Right arrow used to step forward one step. 
 // Double size because it is the primarily-used button:
 THREE.LDRButtons.prototype.makeRightArrow = function () {
-    //var pts = "80,50 50,20 50,35 20,35 20,65 50,65 50,80 80,50";
     var pts = "160,100 100,40 100,70 40,70 40,130 100,130 100,160 160,100";
     var ret = document.createElementNS(this.svgNS, 'svg');
     var poly = this.makePolygon(pts);
@@ -73,23 +80,21 @@ THREE.LDRButtons.prototype.makeZoom = function(verticalLine) {
 THREE.LDRButtons.prototype.makeCamera = function(x, y, w) {
     var ret = document.createElementNS(this.svgNS, 'svg');
 
-    var w2 = parseInt(w/2);
-    var w3 = parseInt(w/3);
-    var w4 = parseInt(w/4);
-    var w5 = parseInt(w/5);
-    var w6 = parseInt(w/6);
-    var w8 = parseInt(w/8);	
-    var w10 = parseInt(w/10);
-    ret.appendChild(this.makeRect(x-w3, y-w6, w2, w3));
+    ret.appendChild(this.makeRect(x-w/3, y-w/6, w/2, w/3));
     
-    var pts = (x-w3+w2) + "," + (y-w10) + " " + 
-	(x+w3) + "," + (y-w6) + " " + 
-	(x+w3) + "," + (y+w6) + " " + 
-	(x-w3+w2) + "," + (y+w10);	    
+    var pts = (x-w/3+w/2) + "," + (y-w/10) + " " + 
+	(x+w/3) + "," + (y-w/6) + " " + 
+	(x+w/3) + "," + (y+w/6) + " " + 
+	(x-w/3+w/2) + "," + (y+w/10);	    
     ret.appendChild(this.makePolygon(pts));
     
-    ret.appendChild(this.makeLine(x-w8, y+w6, x-w4, y+w2));
-    ret.appendChild(this.makeLine(x, y+w6, x+w8, y+w2));
+    // Leg:
+    ret.appendChild(this.makeRect(x-w/8, y+w/6, w/10, w/4));
+    
+    // Tape:
+    ret.appendChild(this.makeCircle(x-w/5, y, w/14));    
+    ret.appendChild(this.makeCircle(x+w/24, y, w/14));
+    ret.appendChild(this.makeLine(x-w/5, y-w/14, x+w/24, y-w/15));
     
     return ret;
 }
@@ -111,15 +116,33 @@ THREE.LDRButtons.prototype.makeFF = function () {
 // Home button:
 THREE.LDRButtons.prototype.makeHome = function () {
     var ret = document.createElementNS(this.svgNS, 'svg');
-    /*var roofPoints = "50,20 80,50 70,50 70,40 60,40 60,30 40,30 40,40 30,40 30,50 20,50 50,20 50,30";
-    ret.appendChild(this.makePolygon(roofPoints));
-    var wallPoints = "25,50 25,80 75,80, 75,50";
-    ret.appendChild(this.makePolyLine(wallPoints));*/
     var edgePoints = "50,20 80,50 75,50 75,80 25,80 25,50 20,50";
     ret.appendChild(this.makePolygon(edgePoints));
     ret.appendChild(this.makeRect(30, 50, 18, 30)); // Door
     ret.appendChild(this.makeRect(53, 50, 16, 16)); // Window
     return ret;
+}
+THREE.LDRButtons.prototype.makeOptions = function () {
+    var ret = document.createElement('a');
+    ret.setAttribute('href', '#options');
+
+    var svg = document.createElementNS(this.svgNS, 'svg');
+    ret.appendChild(svg);
+
+    this.makeGear(58, 43, 22, 18, svg);
+    this.makeGear(35, 66, 14, 12, svg);
+
+    //svg.appendChild(this.makeRect(20, 20, 60, 60)); // Frame
+
+    return ret;
+}
+
+// Step to input field:
+THREE.LDRButtons.prototype.makeStepTo = function() {
+    this.stepInput = document.createElement("input");
+    this.stepInput.setAttribute("id", "pageNumber");
+    this.stepInput.setAttribute("onClick", "this.select();");
+    return this.stepInput;
 }
 
 // Primitive helper methods for creating elements for buttons:
@@ -162,6 +185,54 @@ THREE.LDRButtons.prototype.makeRect = function(x, y, w, h) {
     ret.setAttribute('fill', 'none');
     return ret;
 }
+THREE.LDRButtons.prototype.makeCircle = function(x, y, r) {
+    var ret = document.createElementNS(this.svgNS, 'circle');
+    ret.setAttribute('cx', x);
+    ret.setAttribute('cy', y);
+    ret.setAttribute('r', r);
+    ret.setAttribute('fill', 'none');
+    return ret;
+}
+THREE.LDRButtons.prototype.makeGear = function(x, y, r, t, svg) {
+    // Crown:
+    svg.appendChild(this.makeGearCrown(x, y, r, r-4.5, 0.1, 0.1, t));
+    // Cross axle:
+    svg.appendChild(this.makeCrossAxleHole(x, y));
+    // Circle if big enough:
+    if(r > 20)
+	svg.appendChild(this.makeCircle(x, y, r*0.55));
+}
+THREE.LDRButtons.prototype.makeGearCrown = function(x, y, ro, ri, ao, ai, t) {
+    var a = (2*Math.PI/t - ai - ao)/2;
+    var pts = "M" + (x+ro) + " " + y + " ";
+    var angles = [a, ai, a, ao];
+    var radii = [ri, ri, ro, ro];
+    for(var i = 0; i < t; i++) {
+	var A = Math.PI*2/t*i;
+	for(var j = 0; j < 4; j++) {
+	    A += angles[j];
+	    pts += "L" + (x+radii[j]*Math.cos(A)) + " " + (y+radii[j]*Math.sin(A)) + " ";
+	}
+    }
+    pts += "Z";
+    var ret = document.createElementNS(this.svgNS, 'path');
+    ret.setAttribute('d', pts);
+    ret.setAttribute('fill', 'none');    
+    return ret;
+}
+THREE.LDRButtons.prototype.makeCrossAxleHole = function(x, y) {
+    var d = 3;
+    var D = 1.5*d;
+    var pts = "M" + (x+d) + " " + (y-d-D/2) +
+	" v"  + d + " h"  + d + " v"  + D +
+	" h-" + d + " v"  + d + " h-" + D + 
+	" v-" + d + " h-" + d + " v-" + D + 
+	" h"  + d + " v-" + d + " Z";
+    var ret = document.createElementNS(this.svgNS, 'path');
+    ret.setAttribute('d', pts);
+    ret.setAttribute('fill', 'none');    
+    return ret;
+}
 
 // Functions for hiding next/prev buttons:
 THREE.LDRButtons.prototype.atFirstStep = function() {
@@ -175,4 +246,7 @@ THREE.LDRButtons.prototype.atLastStep = function() {
 THREE.LDRButtons.prototype.atAnyOtherStep = function() {
     this.backButton.style.visibility = this.nextButton.style.visibility = 'visible';
     this.ffButton.style.visibility = this.frButton.style.visibility = 'visible';
+}
+THREE.LDRButtons.prototype.setShownStep = function(step) {
+    this.stepInput.value = ""+step;
 }

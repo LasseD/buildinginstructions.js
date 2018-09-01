@@ -15,11 +15,15 @@ The builder supports the operations:
 - prevStep: Single step back (if possible)
 - fastForward: Go to last step of currently-active model. Unless at placement-step, then do it for next model.
 - fastReverse: Go to first step of currently-active model. Unless at placement-step, then do it for next model.
-- goToStep: Go to a specific step. TODO
+- moveSteps: Go forward/back a specific number of steps.
 */
-THREE.LDRStepBuilder = function(ldrLoader, partDescs) {
+THREE.changeBufferSize = 0;
+THREE.changeBufferLimit = 5;
+
+THREE.LDRStepBuilder = function(ldrLoader, partDescs, onProgress, isForMainModel) {
     this.ldrLoader = ldrLoader;
     this.partDescs = partDescs;
+    this.onProgress = onProgress;
 
     this.threeParts = []; // One for each step. null to represent non-built obejcts
     this.subBuilders = []; // One for each step. null to represent no step builder.
@@ -28,8 +32,8 @@ THREE.LDRStepBuilder = function(ldrLoader, partDescs) {
     this.bounds = []; // Bounds for each step
     
     var partDesc = partDescs[0];
-    //console.log("Builder for " + partDesc.ID);
     this.part = ldrLoader.ldrPartTypes[partDesc.ID];
+    this.totalNumberOfSteps = this.part.steps.length;
     for(var i = 0; i < this.part.steps.length; i++) {
 	var step = this.part.steps[i];
 	if(step.ldrs.length > 0) {
@@ -38,8 +42,9 @@ THREE.LDRStepBuilder = function(ldrLoader, partDescs) {
 		var placed = step.ldrs[j].placeAt(partDesc);
 		subDescs.push(placed);
 	    }
-	    var subStepBuilder = new THREE.LDRStepBuilder(ldrLoader, subDescs);
-	    this.subBuilders.push(subStepBuilder);	    
+	    var subStepBuilder = new THREE.LDRStepBuilder(ldrLoader, subDescs, false);
+	    this.subBuilders.push(subStepBuilder);
+	    this.totalNumberOfSteps += subStepBuilder.totalNumberOfSteps; 
 	}
 	else {
 	    this.subBuilders.push(null);
@@ -48,12 +53,14 @@ THREE.LDRStepBuilder = function(ldrLoader, partDescs) {
 	this.bounds.push(null);
     }
     this.bounds.push(null); // One more for placement step.
+    if(isForMainModel && partDescs.length > 1)
+	this.totalNumberOfSteps++;
+    //console.log("Builder for " + partDesc.ID + " with " + this.part.steps.length + " normal steps. Total: " + this.totalNumberOfSteps);
 }
 
-// TODO: Zoom.
 THREE.LDRStepBuilder.prototype.repositionForCamera = function(world, defaultMatrix, currentRotationMatrix) {
     if(this.current == -1 || this.current == this.subBuilders.length)
-	throw "Can't reposition in void! " + this.current;
+	throw "Can't reposition in void for step " + this.current + " in " + this.part.ID;
     var subBuilder = this.subBuilders[this.current];
     if((subBuilder !== null) && !subBuilder.isAtPlacementStep()) {
 	return subBuilder.repositionForCamera(world, defaultMatrix, currentRotationMatrix); // Delegate to subBuilder.
@@ -106,9 +113,9 @@ THREE.LDRStepBuilder.prototype.repositionForCamera = function(world, defaultMatr
  If stepping into a sub model: 
   - Ghost everything earlier (show again once sub-model is done)
 */
-THREE.LDRStepBuilder.prototype.nextStep = function(scene) {
+THREE.LDRStepBuilder.prototype.nextStep = function(scene, doNotEraseForSubModels) {
     if(this.isAtPlacementStep()) {
-	return; // Dont walk past placement step.
+	return false; // Dont walk past placement step.
     }
     var subBuilder = this.current == -1 ? null : this.subBuilders[this.current];
     var willStep = (subBuilder === null) || subBuilder.isAtPlacementStep();
@@ -116,8 +123,9 @@ THREE.LDRStepBuilder.prototype.nextStep = function(scene) {
     // Special case: Step to placement step.
     if((this.current === this.subBuilders.length-1) && willStep) { 
 	this.drawExtras(scene);
+	THREE.changeBufferSize += 1;
 	this.current++;
-	return;
+	return true;
     }
 
     // Step to next:
@@ -143,13 +151,15 @@ THREE.LDRStepBuilder.prototype.nextStep = function(scene) {
 	else {
 	    threePart.visible = true;
 	}
+	THREE.changeBufferSize += 1;
     }
     else { // LDR sub-models:
 	if(subBuilder.current == -1) {
 	    // We have just stepped into this sub-model: Set all previous steps to invisible:
-	    this.setVisibleUpTo(false, this.current);
+	    if(!doNotEraseForSubModels)
+		this.setVisibleUpTo(false, this.current);
 	}
-	subBuilder.nextStep(scene);
+	subBuilder.nextStep(scene, doNotEraseForSubModels);
 	if(subBuilder.isAtPlacementStep()) {
 	    // Add bounds:
 	    if(this.bounds[this.current] === null) {
@@ -157,7 +167,53 @@ THREE.LDRStepBuilder.prototype.nextStep = function(scene) {
 		this.setCurrentBounds(b);
 	    }
 
-	    this.setVisibleUpTo(true, this.current); // Show the invisible steps again.
+	    if(!doNotEraseForSubModels)
+		this.setVisibleUpTo(true, this.current); // Show the invisible steps again.
+	}
+    }
+    return true;
+}
+
+/*
+This function is for setting correct visibility after having stepped without updating visibilities:
+*/
+THREE.LDRStepBuilder.prototype.cleanUpAfterWalking = function() {
+    var subBuilder = this.current == -1 ? null : this.subBuilders[this.current];
+    if(subBuilder) {
+	subBuilder.cleanUpAfterWalking();
+    }
+
+    if(subBuilder && !subBuilder.isAtPlacementStep()) {
+	// Currently showing a subBuilder not at its placement step: Clear everything else!
+	for(var i = 0; i < this.subBuilders.length; i++) {
+	    var t = this.threeParts[i];
+	    if(t !== null && t.visible) {
+		t.visible = false;
+	    }
+	    var s = this.subBuilders[i];
+	    if(s && i != this.current) {
+		s.setVisible(false);
+	    }
+	}
+	if(this.extraThreeParts) {
+	    this.extraThreeParts.visible = false;
+	}
+    }
+    else {
+	// Currently in a three step or placement step: Clear all after this step:
+	for(var i = 0; i < this.subBuilders.length; i++) {
+	    var t = this.threeParts[i];
+	    var v = i <= this.current; // Make everything up to current step visible.
+	    if(t !== null && t.visible != v) {
+		t.visible = v;
+	    }
+	    var s = this.subBuilders[i];
+	    if(s) {
+		s.setVisible(v);
+	    }
+	}	
+	if(this.extraThreeParts) {
+	    this.extraThreeParts.visible = this.isAtPlacementStep();
 	}
     }
 }
@@ -238,56 +294,77 @@ THREE.LDRStepBuilder.prototype.drawExtras = function(scene) {
 /*
  takes a step back in the building instructions (see nextStep()).
 */
-THREE.LDRStepBuilder.prototype.prevStep = function(scene) {
+THREE.LDRStepBuilder.prototype.prevStep = function(scene, doNotEraseForSubModels) {
     if(this.isAtPreStep()) {
-	return; // Can't move further. Fallback.
+	return false; // Can't move further. Fallback.
     }
 
     // Step down from placement step:
     if(this.isAtPlacementStep()) {
-	if(this.extraThreeParts)
+	if(this.extraThreeParts && !doNotEraseForSubModels) {
 	    this.extraThreeParts.visible = false;
+	    THREE.changeBufferSize += 1;
+	}
 	this.current--;
-	return;
+	return true;
     }
 
     var subBuilder = this.subBuilders[this.current];
     if(subBuilder === null) { // Remove standard step:
     	var threePart = this.threeParts[this.current];
-	threePart.visible = false;
+	if(!doNotEraseForSubModels)
+	    threePart.visible = false;
+	THREE.changeBufferSize += 1;
 	this.current--;
     }
     else { // There is a subBuilder, so we have to step inside of it:
-	if(subBuilder.isAtPlacementStep()) {
+	if(subBuilder.isAtPlacementStep() && !doNotEraseForSubModels) {
 	    this.setVisibleUpTo(false, this.current);
 	}
-	subBuilder.prevStep(scene);
-	if(subBuilder.isAtPreStep()) {
+	subBuilder.prevStep(scene, doNotEraseForSubModels);
+	if(subBuilder.isAtPreStep() && !doNotEraseForSubModels) {
 	    this.setVisibleUpTo(true, this.current);
 	    this.current--;
 	}
     }
+    return true;
 }
 
-THREE.LDRStepBuilder.prototype.fastForward = function(scene) {
+THREE.LDRStepBuilder.prototype.fastForward = function(scene, onDone) {    
     // Find active builder:
     var b = this;
     while(b.current < b.subBuilders.length && b.subBuilders[b.current] !== null) {
 	b = b.subBuilders[b.current];
     }
-    // Step if at last step of builder:
+    var walkedAlready = 0;
+    // Step if at last step of builder:    
     if(b.isAtLastStep()) {
-	this.nextStep(scene);
+	this.nextStep(scene, true);
+	walkedAlready++;
 	// Find active builder now:
 	b = this;
 	while(b.current < b.subBuilders.length && b.subBuilders[b.current] !== null) {
 	    b = b.subBuilders[b.current];
 	}
     }
-    while(!b.isAtLastStep())
-	this.nextStep(scene);
+
+    var walk = function(walked, baseBuilder, builderToComplete, od, op) {
+	while(!builderToComplete.isAtLastStep()) {
+	    baseBuilder.nextStep(scene, true);
+	    walked++;
+	    if(THREE.changeBufferSize >= THREE.changeBufferLimit) {
+		op();
+		THREE.changeBufferSize = 0;
+		setTimeout(function(){walk(walked, baseBuilder, builderToComplete, od, op)}, 50);
+		return;
+	    }
+	}
+	baseBuilder.cleanUpAfterWalking();
+	od(walked);
+    }
+    walk(walkedAlready, this, b, onDone, this.onProgress);
 }
-THREE.LDRStepBuilder.prototype.fastReverse = function(scene) {
+THREE.LDRStepBuilder.prototype.fastReverse = function(scene, onDone) {
     // Find active builder:
     var b = this;
     while(b.current < b.subBuilders.length && 
@@ -295,15 +372,64 @@ THREE.LDRStepBuilder.prototype.fastReverse = function(scene) {
 	b = b.subBuilders[b.current];
     }
     // Step if at last step of builder:
+    var walkedAlready = 0;
     if(b.isAtFirstStep()) {
-	this.prevStep(scene);
+	this.prevStep(scene, true);
+	walkedAlready--;
 	b = this;
 	while(b.current < b.subBuilders.length && b.subBuilders[b.current] !== null) {
 	    b = b.subBuilders[b.current];
 	}
     }
-    while(!b.isAtFirstStep())
-	this.prevStep(scene);
+
+    var walk = function(walked, baseBuilder, builderToComplete, od, op) {
+	while(!builderToComplete.isAtFirstStep()) {
+	    baseBuilder.prevStep(scene, true);
+	    walked--;
+	    if(THREE.changeBufferSize >= THREE.changeBufferLimit) {
+		op();
+		THREE.changeBufferSize = 0;
+		setTimeout(function(){walk(walked, baseBuilder, builderToComplete, od, op)}, 50);
+		return;
+	    }
+	}
+	baseBuilder.cleanUpAfterWalking();
+	od(walked);
+    }
+    walk(walkedAlready, this, b, onDone, this.onProgress);
+}
+
+THREE.LDRStepBuilder.prototype.moveSteps = function(steps, scene, onDone) {
+    var walked = 0;
+    if(steps == 0) {
+	this.cleanUpAfterWalking();
+	onDone(walked);
+	return;
+    }
+    while(true) {
+	// Try to walk:
+	if(!(steps > 0 ? this.nextStep(scene, true) : this.prevStep(scene, true))) {
+	    this.cleanUpAfterWalking();
+	    onDone(walked);
+	    return;
+	}
+	walked += (steps > 0) ? 1 : -1;
+	if(walked == steps) {
+	    this.cleanUpAfterWalking();
+	    onDone(walked);
+	    return;
+	}
+	else if(THREE.changeBufferSize >= THREE.changeBufferLimit) {
+	    this.onProgress();
+	    THREE.changeBufferSize = 0;
+	    var nextOnDone = function(d) {onDone(walked + d)};
+	    var builder = this;
+	    var toMove = steps - walked;
+	    //console.log("Recursing after " + walked + " of " + steps + " => " + toMove);
+	    setTimeout(function(){builder.moveSteps(toMove, scene, nextOnDone)}, 50);
+	    return; // Done here.
+	}
+    }
 }
 
 THREE.LDRStepBuilder.prototype.isAtPreStep = function() {
@@ -331,15 +457,22 @@ THREE.LDRStepBuilder.prototype.isAtVeryLastStep = function() {
 THREE.LDRStepBuilder.prototype.setVisibleUpTo = function(v, idx) {
     for(var i = 0; i < idx; i++) {
 	var t = this.threeParts[i];
-	if(t !== null)
-	    t.visible = v;
+	if(t !== null) {
+	    if(t.visible != v) {
+		t.visible = v;
+		THREE.changeBufferSize += 1;
+	    }
+	}
 	var s = this.subBuilders[i];
-	if(s)
+	if(s) {
 	    s.setVisible(v);
+	}
     }
 }
 THREE.LDRStepBuilder.prototype.setVisible = function(v) {
     this.setVisibleUpTo(v, this.subBuilders.length);
-    if(this.extraThreeParts)
+    if(this.extraThreeParts && this.extraThreeParts != v) {
+	THREE.changeBufferSize += 1;
 	this.extraThreeParts.visible = v;
+    }
 }
