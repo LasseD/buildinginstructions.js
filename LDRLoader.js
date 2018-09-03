@@ -460,13 +460,17 @@ THREE.LDRStep = function() {
 	var ownInvertion = (rotation.determinant() < 0) != invertCCW; // Adjust for inversed matrix!
 
 	// Materials:
-	var lineColor = colorID == 0 ? 15 : 0;
-	var lineMaterial = new THREE.LineBasicMaterial({ 
-	    color: ldraw_colors[lineColor] 
-	});
+	var lineColor = ldraw_colors[colorID == 0 ? 15 : 0];
+	var lineMaterial = new THREE.LineBasicMaterial({color: lineColor});
+
 	var trans = ldraw_transparent.includes(colorID);
+	var triangleColor = ldraw_colors[colorID];
+	if(triangleColor == undefined) {
+	    console.warn("Unknown LDraw color '" + colorID + "', defaulting to black.");
+	    triangleColor = ldraw_colors[0];
+	}
 	var triangleMaterial = new THREE.MeshBasicMaterial( { 
-	    color: ldraw_colors[colorID],
+	    color: triangleColor,
 	    transparent: trans,
 	    opacity: trans ? 0.5 : 1
 	} );

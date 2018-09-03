@@ -17,10 +17,11 @@ The builder supports the operations:
 - fastReverse: Go to first step of currently-active model. Unless at placement-step, then do it for next model.
 - moveSteps: Go forward/back a specific number of steps.
 */
-THREE.changeBufferSize = 0;
-THREE.changeBufferLimit = 5;
+var LDR = LDR || {};
+LDR.changeBufferSize = 0;
+LDR.changeBufferLimit = 5;
 
-THREE.LDRStepBuilder = function(ldrLoader, partDescs, onProgress, isForMainModel) {
+LDR.StepBuilder = function(ldrLoader, partDescs, onProgress, isForMainModel) {
     this.ldrLoader = ldrLoader;
     this.partDescs = partDescs;
     this.onProgress = onProgress;
@@ -42,7 +43,7 @@ THREE.LDRStepBuilder = function(ldrLoader, partDescs, onProgress, isForMainModel
 		var placed = step.ldrs[j].placeAt(partDesc);
 		subDescs.push(placed);
 	    }
-	    var subStepBuilder = new THREE.LDRStepBuilder(ldrLoader, subDescs, false);
+	    var subStepBuilder = new LDR.StepBuilder(ldrLoader, subDescs, false);
 	    this.subBuilders.push(subStepBuilder);
 	    this.totalNumberOfSteps += subStepBuilder.totalNumberOfSteps; 
 	}
@@ -58,7 +59,7 @@ THREE.LDRStepBuilder = function(ldrLoader, partDescs, onProgress, isForMainModel
     //console.log("Builder for " + partDesc.ID + " with " + this.part.steps.length + " normal steps. Total: " + this.totalNumberOfSteps);
 }
 
-THREE.LDRStepBuilder.prototype.repositionForCamera = function(world, defaultMatrix, currentRotationMatrix) {
+LDR.StepBuilder.prototype.repositionForCamera = function(world, defaultMatrix, currentRotationMatrix) {
     if(this.current == -1 || this.current == this.subBuilders.length)
 	throw "Can't reposition in void for step " + this.current + " in " + this.part.ID;
     var subBuilder = this.subBuilders[this.current];
@@ -95,7 +96,7 @@ THREE.LDRStepBuilder.prototype.repositionForCamera = function(world, defaultMatr
     world.setRotationFromMatrix(currentRotationMatrix);
 
     var modelCenter = new THREE.Vector3(); 
-    modelCenter.copy(this.bounds[this.current].getCenter());
+    this.bounds[this.current].getCenter(modelCenter);
     modelCenter.applyMatrix4(invM4);
     modelCenter.applyMatrix4(invY);
     if(rotationMatrix)
@@ -113,7 +114,7 @@ THREE.LDRStepBuilder.prototype.repositionForCamera = function(world, defaultMatr
  If stepping into a sub model: 
   - Ghost everything earlier (show again once sub-model is done)
 */
-THREE.LDRStepBuilder.prototype.nextStep = function(scene, doNotEraseForSubModels) {
+LDR.StepBuilder.prototype.nextStep = function(scene, doNotEraseForSubModels) {
     if(this.isAtPlacementStep()) {
 	return false; // Dont walk past placement step.
     }
@@ -123,7 +124,7 @@ THREE.LDRStepBuilder.prototype.nextStep = function(scene, doNotEraseForSubModels
     // Special case: Step to placement step.
     if((this.current === this.subBuilders.length-1) && willStep) { 
 	this.drawExtras(scene);
-	THREE.changeBufferSize += 1;
+	LDR.changeBufferSize += 1;
 	this.current++;
 	return true;
     }
@@ -151,7 +152,7 @@ THREE.LDRStepBuilder.prototype.nextStep = function(scene, doNotEraseForSubModels
 	else {
 	    threePart.visible = true;
 	}
-	THREE.changeBufferSize += 1;
+	LDR.changeBufferSize += 1;
     }
     else { // LDR sub-models:
 	if(subBuilder.current == -1) {
@@ -177,7 +178,7 @@ THREE.LDRStepBuilder.prototype.nextStep = function(scene, doNotEraseForSubModels
 /*
 This function is for setting correct visibility after having stepped without updating visibilities:
 */
-THREE.LDRStepBuilder.prototype.cleanUpAfterWalking = function() {
+LDR.StepBuilder.prototype.cleanUpAfterWalking = function() {
     var subBuilder = this.current == -1 ? null : this.subBuilders[this.current];
     if(subBuilder) {
 	subBuilder.cleanUpAfterWalking();
@@ -218,7 +219,7 @@ THREE.LDRStepBuilder.prototype.cleanUpAfterWalking = function() {
     }
 }
 
-THREE.LDRStepBuilder.prototype.getBounds = function() {
+LDR.StepBuilder.prototype.getBounds = function() {
     var subBuilder = this.subBuilders[this.current];
     if(subBuilder && !subBuilder.isAtPlacementStep()) {
 	var ret = subBuilder.getBounds();
@@ -228,7 +229,7 @@ THREE.LDRStepBuilder.prototype.getBounds = function() {
     return this.bounds[this.current];
 }
 
-THREE.LDRStepBuilder.prototype.setCurrentBounds = function(b) {
+LDR.StepBuilder.prototype.setCurrentBounds = function(b) {
     if(this.current === 0) {
 	if(!b)
 	    throw "Illegal state: Empty first step!";
@@ -245,24 +246,25 @@ THREE.LDRStepBuilder.prototype.setCurrentBounds = function(b) {
     }
 }
 
-THREE.LDRStepBuilder.prototype.getMultiplierOfCurrentStep = function() {
+LDR.StepBuilder.prototype.getMultiplierOfCurrentStep = function() {
     var subBuilder = this.subBuilders[this.current];
+    var ret = this.partDescs.length;
     if(!subBuilder || subBuilder.isAtPlacementStep())
-	return this.partDescs.length; // If a subBuilder is not active (or at placement step), then return the number of parts this subBuilder returns. 
-    return subBuilder.getMultiplierOfCurrentStep();
+	return ret; // If a subBuilder is not active (or at placement step), then return the number of parts this subBuilder returns. 
+    return ret * subBuilder.getMultiplierOfCurrentStep();
 }
-THREE.LDRBackgroundColors = Array("ffffff", "FFFF88", "CCFFCC", "FFBB99", "99AAFF", "FF99FF", "D9FF99", "FFC299");
-THREE.LDRStepBuilder.prototype.getBackgroundColorOfCurrentStep = function() {
-    return THREE.LDRBackgroundColors[this.getLevelOfCurrentStep()%THREE.LDRBackgroundColors.length];
+LDR.BackgroundColors = Array("ffffff", "FFFF88", "CCFFCC", "FFBB99", "99AAFF", "FF99FF", "D9FF99", "FFC299");
+LDR.StepBuilder.prototype.getBackgroundColorOfCurrentStep = function() {
+    return LDR.BackgroundColors[this.getLevelOfCurrentStep()%LDR.BackgroundColors.length];
 }
-THREE.LDRStepBuilder.prototype.getLevelOfCurrentStep = function() {
+LDR.StepBuilder.prototype.getLevelOfCurrentStep = function() {
     var subBuilder = this.subBuilders[this.current];
     if(!subBuilder || subBuilder.isAtPlacementStep())
 	return 0;
     return 1+subBuilder.getLevelOfCurrentStep();
 }
 
-THREE.LDRStepBuilder.prototype.drawExtras = function(scene) {
+LDR.StepBuilder.prototype.drawExtras = function(scene) {
     if(!this.extraThreeParts) {
 	if(this.bounds[this.subBuilders.length] === null) {
 	    var b = this.bounds[this.subBuilders.length-1];
@@ -294,7 +296,7 @@ THREE.LDRStepBuilder.prototype.drawExtras = function(scene) {
 /*
  takes a step back in the building instructions (see nextStep()).
 */
-THREE.LDRStepBuilder.prototype.prevStep = function(scene, doNotEraseForSubModels) {
+LDR.StepBuilder.prototype.prevStep = function(scene, doNotEraseForSubModels) {
     if(this.isAtPreStep()) {
 	return false; // Can't move further. Fallback.
     }
@@ -303,7 +305,7 @@ THREE.LDRStepBuilder.prototype.prevStep = function(scene, doNotEraseForSubModels
     if(this.isAtPlacementStep()) {
 	if(this.extraThreeParts && !doNotEraseForSubModels) {
 	    this.extraThreeParts.visible = false;
-	    THREE.changeBufferSize += 1;
+	    LDR.changeBufferSize += 1;
 	}
 	this.current--;
 	return true;
@@ -312,9 +314,10 @@ THREE.LDRStepBuilder.prototype.prevStep = function(scene, doNotEraseForSubModels
     var subBuilder = this.subBuilders[this.current];
     if(subBuilder === null) { // Remove standard step:
     	var threePart = this.threeParts[this.current];
-	if(!doNotEraseForSubModels)
+	if(!doNotEraseForSubModels) {
 	    threePart.visible = false;
-	THREE.changeBufferSize += 1;
+	    LDR.changeBufferSize += 1;
+	}
 	this.current--;
     }
     else { // There is a subBuilder, so we have to step inside of it:
@@ -322,15 +325,16 @@ THREE.LDRStepBuilder.prototype.prevStep = function(scene, doNotEraseForSubModels
 	    this.setVisibleUpTo(false, this.current);
 	}
 	subBuilder.prevStep(scene, doNotEraseForSubModels);
-	if(subBuilder.isAtPreStep() && !doNotEraseForSubModels) {
-	    this.setVisibleUpTo(true, this.current);
+	if(subBuilder.isAtPreStep()) {
+	    if(!doNotEraseForSubModels)
+		this.setVisibleUpTo(true, this.current);
 	    this.current--;
 	}
     }
     return true;
 }
 
-THREE.LDRStepBuilder.prototype.fastForward = function(scene, onDone) {    
+LDR.StepBuilder.prototype.fastForward = function(scene, onDone) {    
     // Find active builder:
     var b = this;
     while(b.current < b.subBuilders.length && b.subBuilders[b.current] !== null) {
@@ -352,9 +356,9 @@ THREE.LDRStepBuilder.prototype.fastForward = function(scene, onDone) {
 	while(!builderToComplete.isAtLastStep()) {
 	    baseBuilder.nextStep(scene, true);
 	    walked++;
-	    if(THREE.changeBufferSize >= THREE.changeBufferLimit) {
+	    if(LDR.changeBufferSize >= THREE.changeBufferLimit) {
 		op();
-		THREE.changeBufferSize = 0;
+		LDR.changeBufferSize = 0;
 		setTimeout(function(){walk(walked, baseBuilder, builderToComplete, od, op)}, 50);
 		return;
 	    }
@@ -364,11 +368,10 @@ THREE.LDRStepBuilder.prototype.fastForward = function(scene, onDone) {
     }
     walk(walkedAlready, this, b, onDone, this.onProgress);
 }
-THREE.LDRStepBuilder.prototype.fastReverse = function(scene, onDone) {
+LDR.StepBuilder.prototype.fastReverse = function(scene, onDone) {
     // Find active builder:
     var b = this;
-    while(b.current < b.subBuilders.length && 
-       b.subBuilders[b.current] !== null) {
+    while(b.current < b.subBuilders.length && b.subBuilders[b.current] !== null) {
 	b = b.subBuilders[b.current];
     }
     // Step if at last step of builder:
@@ -378,6 +381,7 @@ THREE.LDRStepBuilder.prototype.fastReverse = function(scene, onDone) {
 	walkedAlready--;
 	b = this;
 	while(b.current < b.subBuilders.length && b.subBuilders[b.current] !== null) {
+	    console.log("Stepping into " + b.current);
 	    b = b.subBuilders[b.current];
 	}
     }
@@ -386,9 +390,9 @@ THREE.LDRStepBuilder.prototype.fastReverse = function(scene, onDone) {
 	while(!builderToComplete.isAtFirstStep()) {
 	    baseBuilder.prevStep(scene, true);
 	    walked--;
-	    if(THREE.changeBufferSize >= THREE.changeBufferLimit) {
+	    if(LDR.changeBufferSize >= THREE.changeBufferLimit) {
 		op();
-		THREE.changeBufferSize = 0;
+		LDR.changeBufferSize = 0;
 		setTimeout(function(){walk(walked, baseBuilder, builderToComplete, od, op)}, 50);
 		return;
 	    }
@@ -399,7 +403,7 @@ THREE.LDRStepBuilder.prototype.fastReverse = function(scene, onDone) {
     walk(walkedAlready, this, b, onDone, this.onProgress);
 }
 
-THREE.LDRStepBuilder.prototype.moveSteps = function(steps, scene, onDone) {
+LDR.StepBuilder.prototype.moveSteps = function(steps, scene, onDone) {
     var walked = 0;
     if(steps == 0) {
 	this.cleanUpAfterWalking();
@@ -419,9 +423,9 @@ THREE.LDRStepBuilder.prototype.moveSteps = function(steps, scene, onDone) {
 	    onDone(walked);
 	    return;
 	}
-	else if(THREE.changeBufferSize >= THREE.changeBufferLimit) {
+	else if(LDR.changeBufferSize >= THREE.changeBufferLimit) {
 	    this.onProgress();
-	    THREE.changeBufferSize = 0;
+	    LDR.changeBufferSize = 0;
 	    var nextOnDone = function(d) {onDone(walked + d)};
 	    var builder = this;
 	    var toMove = steps - walked;
@@ -432,17 +436,17 @@ THREE.LDRStepBuilder.prototype.moveSteps = function(steps, scene, onDone) {
     }
 }
 
-THREE.LDRStepBuilder.prototype.isAtPreStep = function() {
+LDR.StepBuilder.prototype.isAtPreStep = function() {
     return this.current === -1;
 }
-THREE.LDRStepBuilder.prototype.isAtFirstStep = function() {
+LDR.StepBuilder.prototype.isAtFirstStep = function() {
     var subBuilder = this.subBuilders[0];
     return this.current === 0 && ((subBuilder === null) || subBuilder.isAtFirstStep());
 }
-THREE.LDRStepBuilder.prototype.isAtPlacementStep = function() {
+LDR.StepBuilder.prototype.isAtPlacementStep = function() {
     return this.current == this.subBuilders.length;
 }
-THREE.LDRStepBuilder.prototype.isAtLastStep = function() {
+LDR.StepBuilder.prototype.isAtLastStep = function() {
     if(this.isAtPlacementStep())
 	return true;
     if(this.current < this.subBuilders.length-1)
@@ -450,17 +454,17 @@ THREE.LDRStepBuilder.prototype.isAtLastStep = function() {
     var subBuilder = this.subBuilders[this.current];
     return (subBuilder === null) || subBuilder.isAtPlacementStep();    
 }
-THREE.LDRStepBuilder.prototype.isAtVeryLastStep = function() {
+LDR.StepBuilder.prototype.isAtVeryLastStep = function() {
     return this.isAtLastStep() && !this.extraThreeParts;
 }
 
-THREE.LDRStepBuilder.prototype.setVisibleUpTo = function(v, idx) {
+LDR.StepBuilder.prototype.setVisibleUpTo = function(v, idx) {
     for(var i = 0; i < idx; i++) {
 	var t = this.threeParts[i];
 	if(t !== null) {
 	    if(t.visible != v) {
 		t.visible = v;
-		THREE.changeBufferSize += 1;
+		LDR.changeBufferSize += 1;
 	    }
 	}
 	var s = this.subBuilders[i];
@@ -469,10 +473,10 @@ THREE.LDRStepBuilder.prototype.setVisibleUpTo = function(v, idx) {
 	}
     }
 }
-THREE.LDRStepBuilder.prototype.setVisible = function(v) {
+LDR.StepBuilder.prototype.setVisible = function(v) {
     this.setVisibleUpTo(v, this.subBuilders.length);
     if(this.extraThreeParts && this.extraThreeParts != v) {
-	THREE.changeBufferSize += 1;
+	LDR.changeBufferSize += 1;
 	this.extraThreeParts.visible = v;
     }
 }
