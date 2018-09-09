@@ -1,5 +1,4 @@
-LDR.Buttons = function(element) {
-    
+LDR.Buttons = function(element) {    
     // Add buttons to element:
     
     // Lower buttons:
@@ -7,20 +6,29 @@ LDR.Buttons = function(element) {
     this.backButton.appendChild(LDR.SVG.makeLeftArrow());
     element.appendChild(this.backButton);
 
-    var lowerDiv = this.createDiv('camera_buttons');
+    this.cameraButtons = this.createDiv('camera_buttons');
+    this.zoomOutButtonLarge = this.createDiv('zoom_out_button_large', 'zoomOut();');
+    this.zoomOutButtonLarge.appendChild(LDR.SVG.makeZoom(false, 2));
+    this.cameraButtons.appendChild(this.zoomOutButtonLarge);
     this.resetCameraButton = this.createDiv('reset_camera_button', 'resetCameraPosition();');
     this.resetCameraButton.appendChild(LDR.SVG.makeCamera(50, 45, 80));
-    lowerDiv.appendChild(this.resetCameraButton);
+    this.cameraButtons.appendChild(this.resetCameraButton);
     this.zoomInButton = this.createDiv('zoom_in_button', 'zoomIn();');
-    this.zoomInButton.appendChild(LDR.SVG.makeZoom(true));
-    lowerDiv.appendChild(this.zoomInButton);
+    this.zoomInButton.appendChild(LDR.SVG.makeZoom(true, 1));
+    this.cameraButtons.appendChild(this.zoomInButton);
     this.zoomOutButton = this.createDiv('zoom_out_button', 'zoomOut();');
-    this.zoomOutButton.appendChild(LDR.SVG.makeZoom(false));
-    lowerDiv.appendChild(this.zoomOutButton);
-    element.appendChild(lowerDiv);
+    this.zoomOutButton.appendChild(LDR.SVG.makeZoom(false, 1));
+    this.cameraButtons.appendChild(this.zoomOutButton);
+    this.zoomInButtonLarge = this.createDiv('zoom_in_button_large', 'zoomIn();');
+    this.zoomInButtonLarge.appendChild(LDR.SVG.makeZoom(true, 2));
+    this.cameraButtons.appendChild(this.zoomInButtonLarge);
+    element.appendChild(this.cameraButtons);
 
     this.nextButton = this.createDiv('next_button', 'nextStep(false);');
-    this.nextButton.appendChild(LDR.SVG.makeRightArrow(2));
+    this.rightArrowLarge = LDR.SVG.makeRightArrowLarge();
+    this.rightArrowNormal = LDR.SVG.makeRightArrow();
+    this.nextButton.appendChild(this.rightArrowLarge);
+    this.nextButton.appendChild(this.rightArrowNormal);
     element.appendChild(this.nextButton);
 
     // Upper row of buttons (added last due to their absolute position):    
@@ -46,6 +54,34 @@ LDR.Buttons = function(element) {
     this.topButtons.appendChild(this.ffButton);
 
     element.appendChild(this.topButtons);
+
+    // Hide elements according to options:
+    // FF/FR buttons:
+    if(!ldrOptions.showFFFRButtons) {
+	this.ffButton.style.display = this.frButton.style.display = 'none';
+    }
+    // LR Buttons:
+    if(ldrOptions.showLRButtons === 2) {
+	this.backButton.style.display = this.nextButton.style.display = 'none';
+    }
+    else if(ldrOptions.showLRButtons === 0) {
+	this.rightArrowNormal.style.display = 'none';
+    }
+    else {
+	this.rightArrowLarge.style.display = 'none';
+    }
+    // Camera Buttons:
+    if(ldrOptions.showCameraButtons === 2) {
+	this.cameraButtons.style.display = 'none';
+    }
+    else if(ldrOptions.showCameraButtons === 0) {
+	this.zoomInButtonLarge.style.display = 'none';
+	this.zoomOutButtonLarge.style.display = 'none';
+    }
+    else {
+	this.zoomInButton.style.display = 'none';
+	this.zoomOutButton.style.display = 'none';
+    }
 }
 
 // Step to input field:
