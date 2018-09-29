@@ -1,4 +1,4 @@
-LDR.Buttons = function(element) {    
+LDR.Buttons = function(element, addTopButtons) {    
     // Add buttons to element:
     
     // Lower buttons:
@@ -31,6 +31,14 @@ LDR.Buttons = function(element) {
     this.nextButton.appendChild(this.rightArrowNormal);
     element.appendChild(this.nextButton);
 
+    this.addTopButtonElements(element, addTopButtons);
+    this.hideElementsAccordingToOptions(addTopButtons);
+}
+
+LDR.Buttons.prototype.addTopButtonElements = function(element, addTopButtons) {
+    if(!addTopButtons)
+	return;
+
     // Upper row of buttons (added last due to their absolute position):    
     this.topButtons = this.createDiv('top_buttons');
     this.frButton = this.createDiv('frButton', 'prevStep(true);');
@@ -54,12 +62,17 @@ LDR.Buttons = function(element) {
     this.topButtons.appendChild(this.ffButton);
 
     element.appendChild(this.topButtons);
+}
 
+LDR.Buttons.prototype.hideElementsAccordingToOptions = function(addTopButtons) {
     // Hide elements according to options:
-    // FF/FR buttons:
-    if(!ldrOptions.showFFFRButtons) {
-	this.ffButton.style.display = this.frButton.style.display = 'none';
+    if(addTopButtons) {
+	// FF/FR buttons:
+	if(!ldrOptions.showFFFRButtons) {
+	    this.ffButton.style.display = this.frButton.style.display = 'none';
+	}
     }
+
     // LR Buttons:
     if(ldrOptions.showLRButtons === 2) {
 	this.backButton.style.display = this.nextButton.style.display = 'none';
@@ -103,16 +116,25 @@ LDR.Buttons.prototype.createDiv = function(id, onclick) {
 
 // Functions for hiding next/prev buttons:
 LDR.Buttons.prototype.atFirstStep = function() {
-    this.backButton.style.visibility = this.frButton.style.visibility = 'hidden';    
-    this.nextButton.style.visibility = this.ffButton.style.visibility = 'visible';
+    this.backButton.style.visibility = 'hidden';
+    this.nextButton.style.visibility = 'visible';
+    if(this.ffButton) {
+	this.frButton.style.visibility = 'hidden';
+	this.ffButton.style.visibility = 'visible';
+    }
 }
 LDR.Buttons.prototype.atLastStep = function() {
-    this.backButton.style.visibility = this.frButton.style.visibility = 'visible';
-    this.nextButton.style.visibility = this.ffButton.style.visibility = 'hidden';
+    this.backButton.style.visibility = 'visible';
+    this.nextButton.style.visibility = 'hidden';
+    if(this.ffButton) {
+	this.ffButton.style.visibility = 'hidden';
+	this.frButton.style.visibility = 'visible';
+    }
 }
 LDR.Buttons.prototype.atAnyOtherStep = function() {
     this.backButton.style.visibility = this.nextButton.style.visibility = 'visible';
-    this.ffButton.style.visibility = this.frButton.style.visibility = 'visible';
+    if(this.ffButton)
+	this.ffButton.style.visibility = this.frButton.style.visibility = 'visible';
 }
 LDR.Buttons.prototype.setShownStep = function(step) {
     this.stepInput.value = ""+step;
