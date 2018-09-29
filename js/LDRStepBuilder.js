@@ -147,7 +147,7 @@ LDR.StepBuilder.prototype.nextStep = function(baseObject, doNotEraseForSubModels
 	    var pd = this.partDescs[0];
             meshCollector = new THREE.LDRMeshCollector();
 	    var step = this.part.steps[this.current];
-	    var b = step.generateThreePart(this.ldrLoader, pd.colorID, pd.position, pd.rotation, false, meshCollector);
+	    step.generateThreePart(this.ldrLoader, pd.colorID, pd.position, pd.rotation, false, meshCollector);
 	    //baseObject.add(new THREE.Box3Helper(b, 0xffff00));
 
 	    this.meshCollectors[this.current] = meshCollector;

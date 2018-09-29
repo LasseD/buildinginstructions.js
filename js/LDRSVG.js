@@ -119,6 +119,32 @@ LDR.SVG.makeHome = function () {
     ret.appendChild(LDR.SVG.makeRect(53, 50, 16, 16)); // Window
     return ret;
 }
+
+// List view:
+LDR.SVG.makeListIcon = function () {
+    var ret = document.createElementNS(LDR.SVG.NS, 'svg');
+    var startY = 19;
+    for(var i = 0; i < 5; i++) {
+	var line = LDR.SVG.makeLine(10, startY+i*16, 90, startY+i*16);
+	ret.appendChild(line);
+    }
+    return ret;
+}
+// Icon view:
+LDR.SVG.makeBigIconsIcon = function () {
+    var ret = document.createElementNS(LDR.SVG.NS, 'svg');
+    for(var x = 0; x < 2; x++) {
+      for(var y = 0; y < 2; y++) {
+	  var rect = LDR.SVG.makeRect(x*46 + 7, y*46 + 7, 40, 40);
+	  rect.setAttribute('rx', '4');
+	  rect.setAttribute('ry', '4');
+	  ret.appendChild(rect);
+      }
+    }
+    return ret;
+}
+
+// Options gears:
 LDR.SVG.makeOptions = function () {
     var ret = document.createElement('a');
     ret.setAttribute('href', '#options');

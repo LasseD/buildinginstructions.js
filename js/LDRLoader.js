@@ -115,9 +115,14 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    bufferLinePoints = null;
 	}
 
+	var l3 = parts.length >= 3;
+	function is(type) {
+	    return l3 && type === parts[1];
+	}
+
 	switch(lineType) {
 	case 0: // TODO: Many commands from LDraw and various vendors.
-	    if(parts.length == 3 && "FILE" === parts[1]) { // NOFILE command is not supported.
+	    if(is("FILE")) { // NOFILE command is not supported.
 		// MPD FILE Block found. Set name and start new part if not the first
 		if(!firstModel) {
 		    // Close model and start new:
@@ -129,25 +134,28 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		    this.ldrPartTypes[part.ID] = part;
 		    part = new THREE.LDRPartType();
 		}
-		part.setID(parts[2]);
+		part.setID(parts.slice(2).join(" ")); // Trim "0 FILE ".
 		if(firstModel)
 		    firstModelName = part.ID;
 		firstModel = false;		
 	    }
-	    else if(parts.length == 3 && "Name:" === parts[1]) {
+	    else if(is("Name:")) {
 		// LDR Name: line found. Set name and update data in case this is an ldr file (do not use file suffix to determine).
 		// Set name and model description:
-		part.setID(parts[2]);
+		part.setID(parts.slice(2).join(" "));
 		if(!part.modelDescription)
 		    part.modelDescription = previousComment;
 		if(firstModel)
 		    firstModelName = part.ID;
 		firstModel = false;
 	    }
-	    if(parts.length >= 3 && "Author:" === parts[1]) {
-		part.author = line.substring(9).trim();
+	    else if(is("Author:")) {
+		part.author = parts.slice(2).join(" ");
 		if(!part.modelDescription)
 		    part.modelDescription = previousComment;
+	    }
+	    else if(is("!LICENSE")) {
+		part.license = parts.slice(2).join(" ");
 	    }
 	    else if(parts[1] === "BFC") {
 		// BFC documentation: http://www.ldraw.org/article/415
@@ -197,7 +205,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    rotation.set(parts[5],  parts[6],  parts[7], 
 			 parts[8],  parts[9],  parts[10], 
 			 parts[11], parts[12], parts[13]);
-	    var subModelID = parts[14].toLowerCase();
+	    var subModelID = parts.slice(14).join(" ").toLowerCase();
 	    var subModelColorID = parseInt(parts[1]);
 	    var subModel = new THREE.LDRPartDescription(subModelColorID, 
 							position, 
@@ -456,7 +464,8 @@ THREE.LDRStep = function() {
     }
 
     this.generateThreePart = function(loader, colorID, position, rotation, invertCCW, meshCollector) {
-	//console.log("Creating three part for " + this.ldrs.length + " sub models and " + this.dats.length + " DAT parts in color " + colorID + ", invertion: " + invertCCW);
+	//console.log("Creating three part for " + this.ldrs.length + " sub models and " + this.dats.length + " DAT parts in color " + colorID + ", invertion: " + invertCCW + ". rotation: ");
+	//console.dir(rotation);
 	var ownInvertion = (rotation.determinant() < 0) != invertCCW; // Adjust for inversed matrix!
 
 	var transformPoint = function(p) {
@@ -542,6 +551,7 @@ THREE.LDRPartType = function() {
     this.ID = null;
     this.modelDescription;
     this.author;
+    this.license;
     this.steps = [];
     this.lastRotation = null;
 

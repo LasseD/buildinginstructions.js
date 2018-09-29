@@ -7,13 +7,14 @@ LDR.Options = function() {
     this.showOldColors = 0; // 0 = all colors. 1 = single color old. 2 = dulled old.
     this.showLines = 1; // 0 = all lines. 1 = normal lines. 2 = no lines.
     this.lineColor = 0x000000;
-    this.blackLineColor = 0xf6f6f6;
+    this.blackLineColor = 0x777777;
     this.oldColor = 0xffff6f;
     this.showFFFRButtons = 0; // 0=off, 1=on
     this.showLRButtons = 0; // 0=right big, 1=right normal, 2=both off
     this.showCameraButtons = 0; // 0=+- on right, 1=+- on sides, 2=off
-    // TODO: Make buttons vv
     this.showStepRotationAnimations = 0; // 0=on, 1=off
+    this.partsListType = 0; // 0=icons, 1=list
+    // TODO: Make buttons vv
     this.showPartsCallouts = 0; // 0=left, 1=top, 2=right, 3=bottom, 4=off
 
     // Read values that might be in cookie:
@@ -59,6 +60,7 @@ LDR.Options.prototype.saveOptionsToCookie = function() {
     addToKv("showCameraButtons");
     addToKv("showFFFRButtons");
     addToKv("showLRButtons");
+    addToKv("partsListType");
 }
 
 LDR.Colors = LDR.Colors || {};
