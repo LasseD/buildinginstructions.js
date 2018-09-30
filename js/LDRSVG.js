@@ -204,7 +204,9 @@ LDR.SVG.makeCircle = function(x, y, r, forceStroke) {
 }
 LDR.SVG.appendRotationCircle = function(x, y, r, svg) {
     var d = r/3;
-    svg.appendChild(LDR.SVG.makeCircle(x, y, r, true));
+    var circle = LDR.SVG.makeCircle(x, y, r, true);
+    circle.setAttribute('stroke-dasharray', "0,10,45,10,50");
+    svg.appendChild(circle);
     svg.appendChild(LDR.SVG.makeLine(x-r, y, x-r-d, y+d, true));
     svg.appendChild(LDR.SVG.makeLine(x-r, y, x-r+d, y+d, true));
     svg.appendChild(LDR.SVG.makeLine(x+r, y, x+r-d, y-d, true));

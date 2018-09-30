@@ -273,6 +273,18 @@ LDR.StepBuilder.prototype.getMultiplierOfCurrentStep = function() {
     return ret * subBuilder.getMultiplierOfCurrentStep();
 }
 
+LDR.StepBuilder.prototype.getRotationOfCurrentStep = function() {
+    var subBuilder = this.subBuilders[this.current];
+    if(!subBuilder || subBuilder.isAtPlacementStep()) {
+	if(this.current == 0 || this.part.steps[this.current].rotation ==
+	                        this.part.steps[this.current-1].rotation)
+	    return false;
+	return this.part.steps[this.current].rotation || 
+	       this.part.steps[this.current-1].rotation;
+    }
+    return subBuilder.getRotationOfCurrentStep();
+}
+
 LDR.BackgroundColors = Array("ffffff", "FFFF88", "CCFFCC", "FFBB99", "99AAFF", "FF99FF", "D9FF99", "FFC299");
 LDR.StepBuilder.prototype.getBackgroundColorOfCurrentStep = function() {
     var level = this.getLevelOfCurrentStep();

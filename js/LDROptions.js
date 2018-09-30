@@ -348,7 +348,7 @@ LDR.Options.prototype.appendColorOptions = function(optionsBlock) {
 }
 
 LDR.Options.prototype.appendAnimationOptions = function(optionsBlock) {
-    var group = this.addOptionsGroup(optionsBlock, 2, "Aminations");
+    var group = this.addOptionsGroup(optionsBlock, 2, "Animations");
     var options = this;
     var onAnimationChange = function(idx) {
 	options.showStepRotationAnimations = idx;
@@ -371,7 +371,7 @@ LDR.Options.prototype.appendAnimationOptions = function(optionsBlock) {
 	buttons[0].appendChild(svg);
 	this.createSvgBlock(-50, 0, true, red, lineColor, svg);
 
-	// Arrow:
+	// Circular arrow:
 	var g1 = document.createElementNS(LDR.SVG.NS, 'g');
 	svg.appendChild(g1);
 	LDR.SVG.appendRotationCircle(0, 0, 18, g1);
