@@ -4,7 +4,7 @@
  * @author Lasse Deleuran / http://c-mt.dk
  * LDR Specification: http://www.ldraw.org/documentation/ldraw-org-file-format-standards.html
  */
-THREE.LDRLoader = function(manager, onLoad, onProgress, onError) {
+THREE.LDRLoader = function(manager, onLoad, onProgress, onError, loadRelatedFilesImmediately) {
     this.manager = manager;
     this.ldrPartTypes = []; // id => part. id can be "parts/3001.dat", "model.mpd", etc.
     this.unloadedFiles = 0;
@@ -13,6 +13,7 @@ THREE.LDRLoader = function(manager, onLoad, onProgress, onError) {
     this.onError = onError;
     this.loader = new THREE.FileLoader(manager);
     this.mainModel;
+    this.loadRelatedFilesImmediately = loadRelatedFilesImmediately || false;
 }
 
 /*
@@ -32,9 +33,7 @@ THREE.LDRLoader.prototype.load = function(id, top) {
     self.ldrPartTypes[id] = true;
 
     var onFileLoaded = function(text) {
-	var mainModelLoaded = self.parse(text);
-	//if(self.isTopLevelModel(id))
-	   self.mainModel = mainModelLoaded;
+	self.parse(text);
 	self.unloadedFiles--; // Warning - might have concurrency issue when two threads simultaneously update this!
 	self.reportProgress(id);
     }
@@ -70,6 +69,8 @@ THREE.LDRLoader.prototype.idToUrl = function(id, top) {
 }
 
 THREE.LDRLoader.prototype.parse = function(data) {
+    var parseStartTime = new Date();
+
     // BFC Parameters:
     var CCW = true; // Assume CCW as default
     var invertNext = false; // Don't assume that first line needs inverted.
@@ -97,7 +98,6 @@ THREE.LDRLoader.prototype.parse = function(data) {
     var bufferLinePoints = null;
     var previousComment = "";
     var firstModel = true;
-    var firstModelName;
 
     var dataLines = data.split("\r\n");
     //console.log(dataLines.length + " lines to parse.");
@@ -132,12 +132,16 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		    }
 		    closeStep(false);
 		    this.ldrPartTypes[part.ID] = part;
+		    this.onProgress(part.ID);
 		    part = new THREE.LDRPartType();
 		}
-		part.setID(parts.slice(2).join(" ")); // Trim "0 FILE ".
-		if(firstModel)
-		    firstModelName = part.ID;
-		firstModel = false;		
+		var fileName = parts.slice(2).join(" "); // Trim "0 FILE ".
+		part.setID(fileName);
+		if(firstModel) {
+		    if(!this.mainModel)
+			this.mainModel = part.ID;
+		    firstModel = false;		
+		}
 	    }
 	    else if(is("Name:")) {
 		// LDR Name: line found. Set name and update data in case this is an ldr file (do not use file suffix to determine).
@@ -145,9 +149,11 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		part.setID(parts.slice(2).join(" "));
 		if(!part.modelDescription)
 		    part.modelDescription = previousComment;
-		if(firstModel)
-		    firstModelName = part.ID;
-		firstModel = false;
+		if(firstModel) {
+		    if(!this.mainModel)
+			this.mainModel = part.ID;
+		    firstModel = false;
+		}
 	    }
 	    else if(is("Author:")) {
 		part.author = parts.slice(2).join(" ");
@@ -227,10 +233,11 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    else {
 		step.addDAT(subModel); // DAT part - no step.
 	    }
-	    /*if(!isLDR) {
-		// TODO FIXME: Comment in the next line to start loading files async. as soon as they are encountered:
-		this.load(subModelID, this.isTopLevelModel(part.ID)); // Start loading the separate file immediately!
-	    }*/
+	    if(!isLDR) {
+		if(this.loadRelatedFilesImmediately) {
+		  this.load(subModelID, this.isTopLevelModel(part.ID)); // Start loading the separate file immediately!
+		}
+	    }
 	    invertNext = false;
 	    break;
 	case 2: // Line "2 <colour> x1 y1 z1 x2 y2 z2"
@@ -345,7 +352,8 @@ THREE.LDRLoader.prototype.parse = function(data) {
     part.addStep(step);
     this.ldrPartTypes[part.ID] = part;
 
-    return firstModelName;
+    var parseEndTime = new Date();
+    console.log("LDraw file read in " + (parseEndTime-parseStartTime) + "ms.");
 };
 
 /*
@@ -524,8 +532,13 @@ THREE.LDRStep = function() {
 
 	    var subModel = loader.ldrPartTypes[subModelDesc.ID];
 	    if(subModel == undefined) {
-		console.dir(loader.ldrPartTypes);
-		throw "Unloaded sub model: " + subModelDesc.ID;
+		throw { 
+		    name:        "UnloadedSubmodelException", 
+		    level:       "Severe", 
+		    message:     "Unloaded sub model: " + subModelDesc.ID,
+		    htmlMessage: "Unloaded sub model: " + subModelDesc.ID,
+		    toString:    function(){return this.name + ": " + this.message;} 
+		}; 
 	    }
 	    var nextPosition = transformPoint(subModelDesc.position);
 	    var nextRotation = new THREE.Matrix3();
@@ -596,6 +609,9 @@ THREE.LDRMeshCollector = function() {
     this.isMeshCollector = true;
     this.lineMaterial = new THREE.LineBasicMaterial({color: ldrOptions.lineColor});
     this.blackLineMaterial = new THREE.LineBasicMaterial({color: ldrOptions.blackLineColor});
+    this.triangleMeshes;
+    this.lines;
+    this.blackLines;
 }
 
 THREE.LDRMeshCollector.prototype.getTrianglePointPositions = function(colorID) {
@@ -824,4 +840,36 @@ THREE.LDRMeshCollector.prototype.setVisible = function(v) {
     for(var i = 0; i < this.triangleMeshes.length; i++) {
 	this.triangleMeshes[i].visible = v;
     }
+}
+THREE.LDRMeshCollector.prototype.destroy = function(v) {
+    // Handle lines:
+    this.lineMaterial.dispose();
+    this.blackLineMaterial.dispose();
+    for(var i = 0; i < this.lines.length; i++) {
+	var mesh = this.lines[i];
+	mesh.geometry.dispose();
+	this.lines[i] = undefined;
+    }
+    for(var i = 0; i < this.blackLines.length; i++) {
+	var mesh = this.blackLines[i];
+	mesh.geometry.dispose();
+	this.blackLines[i] = undefined;
+    }
+    this.lines = undefined;
+    this.blackLines = undefined;
+
+    // Handle triangles:
+    for(var i = 0; i < this.triangleMeshes.length; i++) {
+	var mesh = this.triangleMeshes[i];
+	mesh.geometry.dispose();
+	mesh.material.dispose();
+	this.triangleMeshes[i] = undefined;
+    }
+    this.triangleMeshes = undefined;    
+
+    // Handle non-THREE geometry:
+    this.linePositions = undefined;
+    this.blackLinePositions = undefined;
+    this.t = undefined;
+    this.tColors = undefined;
 }

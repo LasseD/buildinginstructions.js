@@ -21,7 +21,7 @@ var LDR = LDR || {};
 LDR.changeBufferSize = 0;
 LDR.changeBufferLimit = 5;
 
-LDR.StepBuilder = function(ldrLoader, partDescs, onProgress, isForMainModel) {
+LDR.StepBuilder = function(ldrLoader, partDescs, onProgress, isForMainModel, onlyLoadFirstStep) {
     this.ldrLoader = ldrLoader;
     this.partDescs = partDescs;
     this.onProgress = onProgress;
@@ -31,9 +31,16 @@ LDR.StepBuilder = function(ldrLoader, partDescs, onProgress, isForMainModel) {
     this.current = -1; // Índex of currently-shown step (call nextStep() to initialize)
     this.extraParts = partDescs.length > 1; // Replace with actual mesh builder once loaded.
     this.bounds = []; // Bounds for each step
+    this.firstStepLoaded = true;
     
     var partDesc = partDescs[0];
     this.part = ldrLoader.ldrPartTypes[partDesc.ID];
+    if(!this.part || this.part === true) {
+	// Unloaded model. Stop immediately.
+	this.firstStepLoaded = false;
+	return;
+    }
+
     this.totalNumberOfSteps = this.part.steps.length;
     for(var i = 0; i < this.part.steps.length; i++) {
 	var step = this.part.steps[i];
@@ -43,7 +50,11 @@ LDR.StepBuilder = function(ldrLoader, partDescs, onProgress, isForMainModel) {
 		var placed = step.ldrs[j].placeAt(partDesc);
 		subDescs.push(placed);
 	    }
-	    var subStepBuilder = new LDR.StepBuilder(ldrLoader, subDescs, false);
+	    var subStepBuilder = new LDR.StepBuilder(ldrLoader, subDescs, false, onlyLoadFirstStep);
+	    if(!subStepBuilder.firstStepLoaded) {
+		this.firstStepLoaded = false;
+		return; // Break early.
+	    }
 	    this.subBuilders.push(subStepBuilder);
 	    this.totalNumberOfSteps += subStepBuilder.totalNumberOfSteps; 
 	}
@@ -52,6 +63,8 @@ LDR.StepBuilder = function(ldrLoader, partDescs, onProgress, isForMainModel) {
 	}
 	this.meshCollectors.push(null);
 	this.bounds.push(null);
+	if(onlyLoadFirstStep)
+	    break; // First step loaded
     }
     this.bounds.push(null); // One more for placement step.
     if(isForMainModel && partDescs.length > 1)
@@ -262,7 +275,8 @@ LDR.StepBuilder.prototype.getMultiplierOfCurrentStep = function() {
 
 LDR.BackgroundColors = Array("ffffff", "FFFF88", "CCFFCC", "FFBB99", "99AAFF", "FF99FF", "D9FF99", "FFC299");
 LDR.StepBuilder.prototype.getBackgroundColorOfCurrentStep = function() {
-    return LDR.BackgroundColors[this.getLevelOfCurrentStep()%LDR.BackgroundColors.length];
+    var level = this.getLevelOfCurrentStep();
+    return LDR.BackgroundColors[level%LDR.BackgroundColors.length];
 }
 
 LDR.StepBuilder.prototype.getLevelOfCurrentStep = function() {
@@ -531,4 +545,17 @@ LDR.StepBuilder.prototype.updateMeshCollectors = function(baseObject, old) {
     if(this.extraParts && this.extraParts.isMeshCollector) {
 	this.extraParts.draw(baseObject, old);
     }
+}
+
+LDR.StepBuilder.prototype.destroy = function() {
+    for(var i = 0; i < this.subBuilders.length; i++) {
+	var t = this.meshCollectors[i];
+	if(t !== null) {
+	    t.destroy();
+	}
+	var s = this.subBuilders[i];
+	if(s) {
+	    s.destroy();
+	}
+    }  
 }
