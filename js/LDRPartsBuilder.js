@@ -13,6 +13,7 @@ LDR.PartsBulder = function(ldrLoader, mainModelID, mainModelColor) {
     
     var pcs = this.pcs;
     var pcKeys = this.pcKeys;
+    console.dir(ldrLoader);
     function build(multiplier, partID, colorID) {
 	var model = ldrLoader.ldrPartTypes[partID];
 	for(var i = 0; i < model.steps.length; i++) {
@@ -24,7 +25,6 @@ LDR.PartsBulder = function(ldrLoader, mainModelID, mainModelColor) {
 	    else if(step.dats.length > 0) {		
 		for(var j = 0; j < step.dats.length; j++) {
 		    var dat = step.dats[j];
-		    //console.log("Found " + multiplier + " " + dat.ID);
 		    var datColorID = (colorID === 16) ? colorID : dat.colorID;
 		    var key = dat.ID + '_' + datColorID;
 		    var pc = pcs[key];
@@ -49,6 +49,9 @@ LDR.PartAndColor = function(partID, colorID, ldrLoader) {
     this.meshCollector = new THREE.LDRMeshCollector();
     this.amount = 0;
     var partType = ldrLoader.ldrPartTypes[partID];
+    if(partType.replacement) { // Use replacement part
+	partType= ldrLoader.ldrPartTypes[partType.replacement];
+    }
     this.partDesc = partType.modelDescription;
 
     // Build meshCollector (lines and triangles for part in color):

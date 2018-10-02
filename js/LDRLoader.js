@@ -4,13 +4,15 @@
  * @author Lasse Deleuran / http://c-mt.dk
  * LDR Specification: http://www.ldraw.org/documentation/ldraw-org-file-format-standards.html
  */
-THREE.LDRLoader = function(manager, onLoad, onProgress, onError, loadRelatedFilesImmediately) {
+THREE.LDRLoader = function(manager, onLoad, onProgress, onError, onWarning, loadRelatedFilesImmediately) {
+    var nop = function(){};
     this.manager = manager;
     this.ldrPartTypes = []; // id => part. id can be "parts/3001.dat", "model.mpd", etc.
     this.unloadedFiles = 0;
     this.onLoad = onLoad;
     this.onProgress = onProgress;
     this.onError = onError;
+    this.onWarning = onWarning || nop;
     this.loader = new THREE.FileLoader(manager);
     this.mainModel;
     this.loadRelatedFilesImmediately = loadRelatedFilesImmediately || false;
@@ -120,6 +122,24 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    return l3 && type === parts[1];
 	}
 
+	var self = this;
+	function setModelDescription() {
+	    if(part.modelDescription) 
+		return;
+	    part.modelDescription = previousComment;
+	    //console.log(previousComment);
+	    if(previousComment.startsWith("~Moved to ")) {
+		var newID = previousComment.substring("~Moved to ".length).toLowerCase();
+		if(!newID.endsWith(".dat"))
+		    newID += ".dat";
+		self.onWarning({message:'The part "' + part.ID + '" has been moved to "' + newID + '". Instructions and parts lists will show "' + newID + '".', line:i, subModel:part});
+		part.replacement = newID;
+	    }
+	    else if(previousComment.startsWith("~Unknown part ")) {
+		self.onError({message:'Unknown part "' + part.ID + '" will be shown as a cube.', line:i, subModel:part});
+	    }
+	}
+
 	switch(lineType) {
 	case 0: // TODO: Many commands from LDraw and various vendors.
 	    if(is("FILE")) { // NOFILE command is not supported.
@@ -147,8 +167,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		// LDR Name: line found. Set name and update data in case this is an ldr file (do not use file suffix to determine).
 		// Set name and model description:
 		part.setID(parts.slice(2).join(" "));
-		if(!part.modelDescription)
-		    part.modelDescription = previousComment;
+		setModelDescription();
 		if(firstModel) {
 		    if(!this.mainModel)
 			this.mainModel = part.ID;
@@ -157,8 +176,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    }
 	    else if(is("Author:")) {
 		part.author = parts.slice(2).join(" ");
-		if(!part.modelDescription)
-		    part.modelDescription = previousComment;
+		setModelDescription();
 	    }
 	    else if(is("!LICENSE")) {
 		part.license = parts.slice(2).join(" ");
@@ -186,11 +204,13 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    }
 	    else if(parts[1] === "ROTSTEP") {
 		if(parts.length >= 5) {
+		    if(parts.length == 6 && parts[5] === "ABS") {
+			this.onWarning({message:'Rotation type "ABS" is not yet supported. This will appear as a normal step.', line:i, subModel:part});
+		    }
 		    //console.log("Rotation! " + parts[2] + " " + parts[3] + " " + parts[4] + " " + parts[5]);
 		    step.rotation = new THREE.LDRStepRotation(parts[2], parts[3], parts[4], (parts.length == 5 ? "REL" : parts[5]));
 		}
 		else if(parts.length == 3 && parts[2] === "END") {
-		    //console.log("Rotation END! ");
 		    step.rotation = null;
 		}
 		closeStep(true);
@@ -533,12 +553,25 @@ THREE.LDRStep = function() {
 	    var subModel = loader.ldrPartTypes[subModelDesc.ID];
 	    if(subModel == undefined) {
 		throw { 
-		    name:        "UnloadedSubmodelException", 
-		    level:       "Severe", 
-		    message:     "Unloaded sub model: " + subModelDesc.ID,
+		    name: "UnloadedSubmodelException", 
+		    level: "Severe", 
+		    message: "Unloaded sub model: " + subModelDesc.ID,
 		    htmlMessage: "Unloaded sub model: " + subModelDesc.ID,
 		    toString:    function(){return this.name + ": " + this.message;} 
 		}; 
+	    }
+	    if(subModel.replacement) {
+		var replacementSubModel = loader.ldrPartTypes[subModel.replacement];
+		if(replacementSubModel == undefined) {
+		    throw { 
+			name: "UnloadedSubmodelException", 
+			level: "Severe",
+			message: "Unloaded replaced sub model: " + subModel.replacement + " replacing " + subModelDesc.ID,
+			htmlMessage: "Unloaded replaced sub model: " + subModel.replacement + " replacing " + subModelDesc.ID,
+			toString:    function(){return this.name + ": " + this.message;} 
+		    }; 
+		}
+		subModel = replacementSubModel;
 	    }
 	    var nextPosition = transformPoint(subModelDesc.position);
 	    var nextRotation = new THREE.Matrix3();
@@ -567,6 +600,7 @@ THREE.LDRPartType = function() {
     this.license;
     this.steps = [];
     this.lastRotation = null;
+    this.replacement;
 
     this.addStep = function(step) {
 	if(step.empty && this.steps.length === 0)
