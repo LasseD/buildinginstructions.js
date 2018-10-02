@@ -13,7 +13,7 @@ LDR.PartsBulder = function(ldrLoader, mainModelID, mainModelColor) {
     
     var pcs = this.pcs;
     var pcKeys = this.pcKeys;
-    console.dir(ldrLoader);
+
     function build(multiplier, partID, colorID) {
 	var model = ldrLoader.ldrPartTypes[partID];
 	for(var i = 0; i < model.steps.length; i++) {
@@ -42,35 +42,55 @@ LDR.PartsBulder = function(ldrLoader, mainModelID, mainModelColor) {
     build(1, mainModelID, mainModelColor);
 }
 
+LDR.PartsBulder.prototype.onOptionsChanged = function() {
+    for(var i = 0; i < this.pcKeys.length; i++) {
+	var pc = this.pcs[this.pcKeys[i]];
+	if(pc.mesh) {
+	    pc.draw(pc.mesh);
+	}
+    }
+}
+
 LDR.PartAndColor = function(partID, colorID, ldrLoader) {
     this.partID = partID;
     this.colorID = colorID;
     this.key = partID + '_' + colorID;
-    this.meshCollector = new THREE.LDRMeshCollector();
+    this.meshCollector;
     this.amount = 0;
-    var partType = ldrLoader.ldrPartTypes[partID];
-    if(partType.replacement) { // Use replacement part
-	partType= ldrLoader.ldrPartTypes[partType.replacement];
+    this.mesh; // Optional use.
+    this.ldrLoader = ldrLoader;
+
+    this.partType = ldrLoader.ldrPartTypes[partID];
+    if(this.partType.replacement) { // Use replacement part
+	this.partType= ldrLoader.ldrPartTypes[this.partType.replacement];
     }
-    this.partDesc = partType.modelDescription;
+    this.partDesc = this.partType.modelDescription;
+}
 
-    // Build meshCollector (lines and triangles for part in color):
-    var p = new THREE.Vector3();
-    var r = new THREE.Matrix3(); 
-    r.set(1,0,0, 0,-1,0, 0,0,-1);
+LDR.PartAndColor.prototype.ensureMeshCollector = function() {
+    if(!this.meshCollector) {
+	this.meshCollector = new THREE.LDRMeshCollector();
 
-    partType.generateThreePart(ldrLoader, colorID, p, r, false, this.meshCollector);
+	// Build meshCollector (lines and triangles for part in color):
+	var p = new THREE.Vector3();
+	var r = new THREE.Matrix3(); 
+	r.set(1,0,0, 0,-1,0, 0,0,-1);
 
-    //this.author = author;
+	this.partType.generateThreePart(this.ldrLoader, this.colorID, p, r, false, this.meshCollector);
+	this.partType = undefined; // No use for it anymore.
+	this.ldrLoader = undefined;
+    }
 }
 
 LDR.PartAndColor.prototype.getBounds = function() {
+    this.ensureMeshCollector();
     return this.meshCollector.boundingBox;
 }
-
 LDR.PartAndColor.prototype.draw = function(scene) {
+    this.ensureMeshCollector();
     this.meshCollector.draw(scene, false);
 }
 LDR.PartAndColor.prototype.setVisible = function(v) {
+    this.ensureMeshCollector();
     this.meshCollector.setVisible(v);
 }

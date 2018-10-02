@@ -466,7 +466,9 @@ THREE.LDRStepRotation.prototype.getRotationMatrix = function(defaultMatrix, curr
     return ret;
 }
 
+THREE.LDRStepIdx = 0;
 THREE.LDRStep = function() {
+    this.idx = THREE.LDRStepIdx++;
     this.empty = true;
     this.ldrs = [];
     this.dats = [];

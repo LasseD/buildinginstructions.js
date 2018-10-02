@@ -161,10 +161,13 @@ LDR.StepBuilder.prototype.nextStep = function(baseObject, doNotEraseForSubModels
             meshCollector = new THREE.LDRMeshCollector();
 	    var step = this.part.steps[this.current];
 	    step.generateThreePart(this.ldrLoader, pd.colorID, pd.position, pd.rotation, false, meshCollector);
-	    //baseObject.add(new THREE.Box3Helper(b, 0xffff00));
 
 	    this.meshCollectors[this.current] = meshCollector;
 	    meshCollector.draw(baseObject, false); // New part is not 'old'.
+
+	    // Helper:
+	    //baseObject.add(new THREE.Box3Helper(meshCollector.boundingBox, 0xff0000));
+
 	    this.setCurrentBounds(meshCollector.boundingBox);
 	}
 	else {
@@ -263,6 +266,14 @@ LDR.StepBuilder.prototype.setCurrentBounds = function(b) {
 	this.bounds[this.current].expandByPoint(b.min);
 	this.bounds[this.current].expandByPoint(b.max);
     }
+}
+
+LDR.StepBuilder.prototype.getCurrentStep = function() {
+    var subBuilder = this.subBuilders[this.current];
+    var ret = this.partDescs.length;
+    if(!subBuilder || subBuilder.isAtPlacementStep())
+	return this.part.steps[this.current];
+    return subBuilder.getCurrentStep();
 }
 
 LDR.StepBuilder.prototype.getMultiplierOfCurrentStep = function() {
