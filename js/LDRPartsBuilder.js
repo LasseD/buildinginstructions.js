@@ -1,3 +1,5 @@
+'use strict';
+
 /*
 The LDRPartsBulder is used for displaying parts for LEGO models.
 */
@@ -76,7 +78,7 @@ LDR.PartAndColor.prototype.ensureMeshCollector = function() {
 	var r = new THREE.Matrix3(); 
 	r.set(1,0,0, 0,-1,0, 0,0,-1);
 
-	this.partType.generateThreePart(this.ldrLoader, this.colorID, p, r, false, this.meshCollector);
+	this.partType.generateThreePart(this.ldrLoader, this.colorID, p, r, true, false, this.meshCollector);
 	this.partType = undefined; // No use for it anymore.
 	this.ldrLoader = undefined;
     }
@@ -90,7 +92,7 @@ LDR.PartAndColor.prototype.draw = function(scene) {
     this.ensureMeshCollector();
     this.meshCollector.draw(scene, false);
 }
-LDR.PartAndColor.prototype.setVisible = function(v) {
+LDR.PartAndColor.prototype.setVisible = function(v, camera) {
     this.ensureMeshCollector();
-    this.meshCollector.setVisible(v);
+    this.meshCollector.setVisible(v, camera);
 }

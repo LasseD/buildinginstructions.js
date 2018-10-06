@@ -1,4 +1,6 @@
-LDR.Buttons = function(element, addTopButtons) {    
+'use strict';
+
+LDR.Buttons = function(element, addTopButtons, mainImage) {
     // Add buttons to element:
     
     // Lower buttons:
@@ -31,14 +33,12 @@ LDR.Buttons = function(element, addTopButtons) {
     this.nextButton.appendChild(this.rightArrowNormal);
     element.appendChild(this.nextButton);
 
-    this.addTopButtonElements(element, addTopButtons);
+    if(addTopButtons)
+	this.addTopButtonElements(element, mainImage);
     this.hideElementsAccordingToOptions(addTopButtons);
 }
 
-LDR.Buttons.prototype.addTopButtonElements = function(element, addTopButtons) {
-    if(!addTopButtons)
-	return;
-
+LDR.Buttons.prototype.addTopButtonElements = function(element, mainImage) {
     // Upper row of buttons (added last due to their absolute position):    
     this.topButtons = this.createDiv('top_buttons');
     this.frButton = this.createDiv('frButton', 'prevStep(true);');
@@ -46,7 +46,14 @@ LDR.Buttons.prototype.addTopButtonElements = function(element, addTopButtons) {
     this.topButtons.appendChild(this.frButton);
 
     this.homeButton = this.createDiv('homeButton', 'home();');
-    this.homeButton.appendChild(LDR.SVG.makeHome());
+    if(mainImage) {
+	var img = document.createElement('img');
+	img.setAttribute('src', mainImage);
+	this.homeButton.appendChild(img);
+    }
+    else {
+	this.homeButton.appendChild(LDR.SVG.makeHome());
+    }
     this.topButtons.appendChild(this.homeButton);
 
     this.stepToButton = this.createDiv('stepToContainer');

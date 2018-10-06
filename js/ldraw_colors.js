@@ -1,128 +1,239 @@
-var ldraw_colors = [];
-ldraw_colors[0] = 0x000000;
-ldraw_colors[1] = 0x0055bf;
-ldraw_colors[2] = 0x237841;
-ldraw_colors[3] = 0x008f9b;
-ldraw_colors[4] = 0xc91a09;
-ldraw_colors[5] = 0xc870a0;
-ldraw_colors[6] = 0x583927;
-ldraw_colors[7] = 0x9ba19d;
-ldraw_colors[8] = 0x6d6e5c;
-ldraw_colors[9] = 0xb4d2e3;
-ldraw_colors[10] = 0x4b9f4a;
-ldraw_colors[11] = 0x55a5af;
-ldraw_colors[12] = 0xf2705e;
-ldraw_colors[13] = 0xfc97ac;
-ldraw_colors[14] = 0xf2cd37;
-ldraw_colors[15] = 0xf6f6f6;
-ldraw_colors[17] = 0xc2dab8;
-ldraw_colors[18] = 0xfbe696;
-ldraw_colors[19] = 0xe4cd9e;
-ldraw_colors[20] = 0xc9cae2;
-ldraw_colors[21] = 0xd4d5c9;
-ldraw_colors[22] = 0x81007b;
-ldraw_colors[23] = 0x2032b0;
-ldraw_colors[25] = 0xfe8a18;
-ldraw_colors[26] = 0x923978;
-ldraw_colors[27] = 0xbbe90b;
-ldraw_colors[28] = 0x958a73;
-ldraw_colors[29] = 0xe4adc8;
-ldraw_colors[30] = 0xac78ba;
-ldraw_colors[31] = 0xe1d5ed;
-ldraw_colors[32] = 0x635f52;
-ldraw_colors[33] = 0x0020a0;
-ldraw_colors[34] = 0x84b68d;
-ldraw_colors[35] = 0xd9e4a7;
-ldraw_colors[36] = 0xc91a09;
-ldraw_colors[37] = 0xdf6695;
-ldraw_colors[38] = 0xff800d;
-ldraw_colors[39] = 0xc1dff0;
-ldraw_colors[40] = 0x635f52;
-ldraw_colors[41] = 0xcfe2f7;
-ldraw_colors[42] = 0xf8f184;
-ldraw_colors[43] = 0xaeefec;
-ldraw_colors[44] = 0x96709f;
-ldraw_colors[45] = 0xe4adc8;
-ldraw_colors[46] = 0xf5cd2f;
-ldraw_colors[47] = 0xfcfcfc;
-ldraw_colors[52] = 0xa5a5cb;
-ldraw_colors[54] = 0xdab000;
-ldraw_colors[57] = 0xf08f1c;
-ldraw_colors[60] = 0x645a4c;
-ldraw_colors[61] = 0x6c96bf;
-ldraw_colors[62] = 0x3cb371;
-ldraw_colors[63] = 0xaa4d8e;
-ldraw_colors[64] = 0x1b2a34;
-ldraw_colors[68] = 0xf3cf9b;
-ldraw_colors[69] = 0xcd6298;
-ldraw_colors[70] = 0x582a12;
-ldraw_colors[71] = 0xa0a5a9;
-ldraw_colors[72] = 0x6c6e68;
-ldraw_colors[73] = 0x5a93db;
-ldraw_colors[74] = 0x73dca1;
-ldraw_colors[75] = 0x000000;
-ldraw_colors[76] = 0x635f61;
-ldraw_colors[77] = 0xfecccf;
-ldraw_colors[78] = 0xf6d7b3;
-ldraw_colors[79] = 0xffffff;
-ldraw_colors[80] = 0xa5a9b4;
-ldraw_colors[81] = 0x899b5f;
-ldraw_colors[82] = 0xdbac34;
-ldraw_colors[83] = 0x575857;
-ldraw_colors[84] = 0xcc702a;
-ldraw_colors[85] = 0x3f3691;
-ldraw_colors[86] = 0x7c503a;
-ldraw_colors[89] = 0x4c61db;
-ldraw_colors[92] = 0xd09168;
-ldraw_colors[100] = 0xfebabd;
-ldraw_colors[110] = 0x4354a3;
-ldraw_colors[112] = 0x6874ca;
-ldraw_colors[114] = 0xdf6695;
-ldraw_colors[115] = 0xc7d23c;
-ldraw_colors[117] = 0xffffff;
-ldraw_colors[118] = 0xb3d7d1;
-ldraw_colors[120] = 0xd9e4a7;
-ldraw_colors[125] = 0xf9ba61;
-ldraw_colors[129] = 0xa5a5cb;
-ldraw_colors[132] = 0x000000;
-ldraw_colors[133] = 0x000000;
-ldraw_colors[134] = 0xae7a59;
-ldraw_colors[135] = 0x9ca3a8;
-ldraw_colors[137] = 0x7988a1;
-ldraw_colors[142] = 0xdcbc81;
-ldraw_colors[148] = 0x575857;
-ldraw_colors[150] = 0xabadac;
-ldraw_colors[151] = 0xe6e3e0;
-ldraw_colors[178] = 0xb48455;
-ldraw_colors[179] = 0x898788;
-ldraw_colors[183] = 0xf2f3f2;
-ldraw_colors[191] = 0xf8bb3d;
-ldraw_colors[212] = 0x9fc3e9;
-ldraw_colors[216] = 0xb31004;
-ldraw_colors[226] = 0xfff03a;
-ldraw_colors[232] = 0x7dbfdd;
-ldraw_colors[272] = 0x0a3463;
-ldraw_colors[288] = 0x184632;
-ldraw_colors[294] = 0xbdc6ad;
-ldraw_colors[297] = 0xaa7f2e;
-ldraw_colors[308] = 0x352100;
-ldraw_colors[313] = 0x3592c3;
-ldraw_colors[320] = 0x720e0f;
-ldraw_colors[321] = 0x078bc9;
-ldraw_colors[322] = 0x36aebf;
-ldraw_colors[323] = 0xadc3c0;
-ldraw_colors[326] = 0x9b9a5a;
-ldraw_colors[334] = 0xbba53d;
-ldraw_colors[335] = 0xd67572;
-ldraw_colors[351] = 0xf785b1;
-ldraw_colors[366] = 0xfa9c1c;
-ldraw_colors[373] = 0x845e84;
-ldraw_colors[378] = 0xa0bcac;
-ldraw_colors[379] = 0x6074a1;
-ldraw_colors[383] = 0xe0e0e0;
-ldraw_colors[450] = 0xb67b50;
-ldraw_colors[462] = 0xffa70b;
-ldraw_colors[484] = 0xa95500;
-ldraw_colors[503] = 0xe6e3da;
+'use strict';
+
+var LDR = {};
+LDR.Colors = {};
+
+LDR.Colors = [];
+LDR.Colors[0] = {value:0x000000};
+LDR.Colors[1] = {value:0x0055bf};
+LDR.Colors[2] = {value:0x237841};
+LDR.Colors[3] = {value:0x008f9b};
+LDR.Colors[4] = {value:0xc91a09};
+LDR.Colors[5] = {value:0xc870a0};
+LDR.Colors[6] = {value:0x583927};
+LDR.Colors[7] = {value:0x9ba19d};
+LDR.Colors[8] = {value:0x6d6e5c};
+LDR.Colors[9] = {value:0xb4d2e3};
+LDR.Colors[10] = {value:0x4b9f4a};
+LDR.Colors[11] = {value:0x55a5af};
+LDR.Colors[12] = {value:0xf2705e};
+LDR.Colors[13] = {value:0xfc97ac};
+LDR.Colors[14] = {value:0xf2cd37};
+LDR.Colors[15] = {value:0xf6f6f6};
+LDR.Colors[16] = {value:0xFFFF80};
+LDR.Colors[17] = {value:0xc2dab8};
+LDR.Colors[18] = {value:0xfbe696};
+LDR.Colors[19] = {value:0xe4cd9e};
+LDR.Colors[20] = {value:0xc9cae2};
+LDR.Colors[21] = {value:0xd4d5c9};
+LDR.Colors[22] = {value:0x81007b};
+LDR.Colors[23] = {value:0x2032b0};
+LDR.Colors[24] = {value:0x7F7F7F};
+LDR.Colors[25] = {value:0xfe8a18};
+LDR.Colors[26] = {value:0x923978};
+LDR.Colors[27] = {value:0xbbe90b};
+LDR.Colors[28] = {value:0x958a73};
+LDR.Colors[29] = {value:0xe4adc8};
+LDR.Colors[30] = {value:0xac78ba};
+LDR.Colors[31] = {value:0xe1d5ed};
+LDR.Colors[32] = {value:0x635f52};
+LDR.Colors[33] = {value:0x0020a0};
+LDR.Colors[34] = {value:0x84b68d};
+LDR.Colors[35] = {value:0xd9e4a7};
+LDR.Colors[36] = {value:0xc91a09};
+LDR.Colors[37] = {value:0xdf6695};
+LDR.Colors[38] = {value:0xff800d};
+LDR.Colors[39] = {value:0xc1dff0};
+LDR.Colors[40] = {value:0x635f52};
+LDR.Colors[41] = {value:0xcfe2f7};
+LDR.Colors[42] = {value:0xf8f184};
+LDR.Colors[43] = {value:0xaeefec};
+LDR.Colors[44] = {value:0x96709f};
+LDR.Colors[45] = {value:0xe4adc8};
+LDR.Colors[46] = {value:0xf5cd2f};
+LDR.Colors[47] = {value:0xfcfcfc};
+LDR.Colors[52] = {value:0xa5a5cb};
+LDR.Colors[54] = {value:0xdab000};
+LDR.Colors[57] = {value:0xf08f1c};
+LDR.Colors[60] = {value:0x645a4c};
+LDR.Colors[61] = {value:0x6c96bf};
+LDR.Colors[62] = {value:0x3cb371};
+LDR.Colors[63] = {value:0xaa4d8e};
+LDR.Colors[64] = {value:0x1b2a34};
+LDR.Colors[68] = {value:0xf3cf9b};
+LDR.Colors[69] = {value:0xcd6298};
+LDR.Colors[70] = {value:0x582a12};
+LDR.Colors[71] = {value:0xa0a5a9};
+LDR.Colors[72] = {value:0x6c6e68};
+LDR.Colors[73] = {value:0x5a93db};
+LDR.Colors[74] = {value:0x73dca1};
+LDR.Colors[75] = {value:0x000000};
+LDR.Colors[76] = {value:0x635f61};
+LDR.Colors[77] = {value:0xfecccf};
+LDR.Colors[78] = {value:0xf6d7b3};
+LDR.Colors[79] = {value:0xffffff};
+LDR.Colors[80] = {value:0xa5a9b4};
+LDR.Colors[81] = {value:0x899b5f};
+LDR.Colors[82] = {value:0xdbac34};
+LDR.Colors[83] = {value:0x575857};
+LDR.Colors[84] = {value:0xcc702a};
+LDR.Colors[85] = {value:0x3f3691};
+LDR.Colors[86] = {value:0x7c503a};
+LDR.Colors[89] = {value:0x4c61db};
+LDR.Colors[92] = {value:0xd09168};
+LDR.Colors[100] = {value:0xfebabd};
+LDR.Colors[110] = {value:0x4354a3};
+LDR.Colors[112] = {value:0x6874ca};
+LDR.Colors[114] = {value:0xdf6695};
+LDR.Colors[115] = {value:0xc7d23c};
+LDR.Colors[117] = {value:0xffffff};
+LDR.Colors[118] = {value:0xb3d7d1};
+LDR.Colors[120] = {value:0xd9e4a7};
+LDR.Colors[125] = {value:0xf9ba61};
+LDR.Colors[129] = {value:0xa5a5cb};
+LDR.Colors[132] = {value:0x000000};
+LDR.Colors[133] = {value:0x000000};
+LDR.Colors[134] = {value:0xae7a59};
+LDR.Colors[135] = {value:0x9ca3a8};
+LDR.Colors[137] = {value:0x7988a1};
+LDR.Colors[142] = {value:0xdcbc81};
+LDR.Colors[148] = {value:0x575857};
+LDR.Colors[150] = {value:0xabadac};
+LDR.Colors[151] = {value:0xe6e3e0};
+LDR.Colors[178] = {value:0xb48455};
+LDR.Colors[179] = {value:0x898788};
+LDR.Colors[183] = {value:0xf2f3f2};
+LDR.Colors[191] = {value:0xf8bb3d};
+LDR.Colors[212] = {value:0x9fc3e9};
+LDR.Colors[216] = {value:0xb31004};
+LDR.Colors[226] = {value:0xfff03a};
+LDR.Colors[231] = {value:0xFCB76D};
+LDR.Colors[232] = {value:0x7dbfdd};
+LDR.Colors[272] = {value:0x0a3463};
+LDR.Colors[284] = {value:0xC281A5};
+LDR.Colors[288] = {value:0x184632};
+LDR.Colors[293] = {value:0x6BABE4};
+LDR.Colors[294] = {value:0xbdc6ad};
+LDR.Colors[297] = {value:0xaa7f2e};
+LDR.Colors[302] = {value:0xAEE9EF};
+LDR.Colors[308] = {value:0x352100};
+LDR.Colors[313] = {value:0x3592c3};
+LDR.Colors[320] = {value:0x720e0f};
+LDR.Colors[321] = {value:0x078bc9};
+LDR.Colors[322] = {value:0x36aebf};
+LDR.Colors[323] = {value:0xadc3c0};
+LDR.Colors[326] = {value:0x9b9a5a};
+LDR.Colors[334] = {value:0xbba53d};
+LDR.Colors[335] = {value:0xd67572};
+LDR.Colors[339] = {value:0xC0FF00};
+LDR.Colors[351] = {value:0xf785b1};
+LDR.Colors[366] = {value:0xfa9c1c};
+LDR.Colors[373] = {value:0x845e84};
+LDR.Colors[378] = {value:0xa0bcac};
+LDR.Colors[379] = {value:0x6074a1};
+LDR.Colors[383] = {value:0xe0e0e0};
+LDR.Colors[450] = {value:0xb67b50};
+LDR.Colors[462] = {value:0xffa70b};
+LDR.Colors[484] = {value:0xa95500};
+LDR.Colors[503] = {value:0xe6e3da};
 
 var ldraw_transparent = [33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,52,54,57,114,117,129,231,284,293,294,302,339];
+for(var i = 0; i < ldraw_transparent.length; i++) {
+    var colorID = ldraw_transparent[i];
+    LDR.Colors[colorID]["alpha"] = 128;
+}
+LDR.Colors[0]["edge"] = 0x595959;
+LDR.Colors[6]["edge"] = 0x1E1E1E;
+LDR.Colors[23]["edge"] = 0x1E1E1E;
+LDR.Colors[70]["edge"] = 0x595959;
+LDR.Colors[85]["edge"] = 0x1E1E1E;
+LDR.Colors[272]["edge"] = 0x1E1E1E;
+LDR.Colors[288]["edge"] = 0x595959;
+LDR.Colors[308]["edge"] = 0x595959;
+
+/*
+  Functions for creating Three.js materials:
+ */
+LDR.Colors.getTriangleMaterial = function(colorID) {
+    var colorObject = LDR.Colors[colorID];
+    if(!colorObject)
+	throw "Unknown color: " + colorID;
+    if(!colorObject.triangleMaterial) {
+	colorObject.triangleMaterial = new THREE.MeshBasicMaterial( { 
+	    color: colorObject.value,
+	    transparent: colorObject.alpha ? true : false,
+	    opacity: colorObject.alpha ? colorObject.alpha/256.0 : 1,
+	} );
+    }
+    return colorObject.triangleMaterial;
+}
+LDR.Colors.getDesaturatedTriangleMaterial = function(colorID) {
+    var colorObject = LDR.Colors[colorID];
+    if(!colorObject)
+	throw "Unknown color: " + colorID;
+    if(!colorObject.desaturatedTriangleMaterial) {
+	colorObject.desaturatedTriangleMaterial = new THREE.MeshBasicMaterial( { 
+	    color: LDR.Colors.desaturateColor(colorObject.value),
+	    transparent: colorObject.alpha ? true : false,
+	    opacity: colorObject.alpha ? colorObject.alpha/256.0 : 1,
+	} );
+    }
+    return colorObject.desaturatedTriangleMaterial;
+}
+LDR.Colors.getLineMaterial = function(colorID) {
+    var colorObject = LDR.Colors[colorID];
+    if(!colorObject)
+	throw "Unknown color: " + colorID;
+    if(!colorObject.lineMaterial) {
+	colorObject.lineMaterial = new THREE.LineBasicMaterial( { 
+	    color: colorObject.value,
+	} );
+    }
+    return colorObject.lineMaterial;
+}
+LDR.Colors.getEdgeLineMaterial = function(colorID) {
+    var colorObject = LDR.Colors[colorID];
+    if(!colorObject)
+	throw "Unknown color: " + colorID;
+    if(!colorObject.lineMaterial) {
+	colorObject.lineMaterial = new THREE.LineBasicMaterial( { 
+	    color: colorObject.edge ? colorObject.edge : 0x333333,
+	} );
+    }
+    return colorObject.lineMaterial;
+}
+
+LDR.Colors.int2RGB = function(i) {
+    var b = (i & 0xff);
+    i = i >> 8;
+    var g = (i & 0xff);
+    i = i >> 8;
+    var r = i;
+    return [r, g, b];
+}
+
+LDR.Colors.int2Hex = function(i) {
+    var rgb = LDR.Colors.int2RGB(i);
+    var ret = '#';
+    for(var j = 0; j < 3; j++) {
+	rgb[j] = Number(rgb[j]).toString(16);
+	if(rgb[j].length == 1)
+	    ret += '0';
+	ret += rgb[j];
+    }
+    return ret;
+}
+
+LDR.Colors.desaturateColor = function(hex) {
+    var threeColor = new THREE.Color(hex);
+    var hsl = {};
+    threeColor.getHSL(hsl);
+
+    if(hsl.l == 0)
+	hsl.l = 0.3;
+    else
+	hsl.l *= 0.7;
+
+    threeColor.setHSL(hsl.h, hsl.s, hsl.l);
+    return threeColor.getHex();
+}

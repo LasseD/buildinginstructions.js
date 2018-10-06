@@ -1,3 +1,5 @@
+'use strict';
+
 var LDR = LDR || {};
 LDR.SVG = LDR.SVG || {};
 
@@ -190,6 +192,12 @@ LDR.SVG.makeRect = function(x, y, w, h) {
     ret.setAttribute('width', w);
     ret.setAttribute('height', h);
     ret.setAttribute('fill', 'none');
+    return ret;
+}
+LDR.SVG.makeRoundRect = function(x, y, w, h, r) {
+    var ret = LDR.SVG.makeRect(x, y, w, h);
+    ret.setAttribute('rx', r);
+    ret.setAttribute('ry', r);
     return ret;
 }
 LDR.SVG.makeCircle = function(x, y, r, forceStroke) {

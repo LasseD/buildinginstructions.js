@@ -1,3 +1,5 @@
+'use strict';
+
 var LDR = LDR || {};
 
 LDR.Options = function() {
@@ -14,8 +16,7 @@ LDR.Options = function() {
     this.showCameraButtons = 0; // 0=+- on right, 1=+- on sides, 2=off
     this.showStepRotationAnimations = 0; // 0=on, 1=off
     this.partsListType = 0; // 0=icons, 1=list
-    // TODO: Make buttons vv
-    this.showPartsCallouts = 0; // 0=left, 1=top, 2=right, 3=bottom, 4=off
+    this.showPLI = 1; // 0=off, 1=on
 
     // Read values that might be in cookie:
     this.readOptionsFromCookie();
@@ -61,43 +62,7 @@ LDR.Options.prototype.saveOptionsToCookie = function() {
     addToKv("showFFFRButtons");
     addToKv("showLRButtons");
     addToKv("partsListType");
-}
-
-LDR.Colors = LDR.Colors || {};
-
-LDR.Colors.int2RGB = function(i) {
-    var b = (i & 0xff);
-    i = i >> 8;
-    var g = (i & 0xff);
-    i = i >> 8;
-    var r = i;
-    return [r, g, b];
-}
-
-LDR.Colors.int2Hex = function(i) {
-    var rgb = LDR.Colors.int2RGB(i);
-    var ret = '#';
-    for(var j = 0; j < 3; j++) {
-	rgb[j] = Number(rgb[j]).toString(16);
-	if(rgb[j].length == 1)
-	    ret += '0';
-	ret += rgb[j];
-    }
-    return ret;
-}
-
-LDR.Colors.desaturateColor = function(hex) {
-    var threeColor = new THREE.Color(hex);
-    var hsl = {};
-    threeColor.getHSL(hsl);
-
-    if(hsl.l == 0)
-	hsl.l = 0.3;
-    else
-	hsl.l *= 0.7;
-
-    threeColor.setHSL(hsl.h, hsl.s, hsl.l);
-    return threeColor.getHex();
+    addToKv("showPLI");
 }
 
 LDR.Options.setOptionsSelected = function(node, callback) {
@@ -415,6 +380,56 @@ LDR.Options.prototype.appendAnimationOptions = function(optionsBlock) {
 	svg.appendChild(g);
 	g.setAttribute('transform', 'rotate(90 0 0) translate(-50 -55)');
 	var turned = this.createSvgBlock(50, 0, true, red, lineColor, g);
+    }
+}
+
+LDR.Options.prototype.appendShowPLIOptions = function(optionsBlock) {
+    var group = this.addOptionsGroup(optionsBlock, 2, "Parts List");
+    var options = this;
+    var onPLIChange = function(idx) {
+	options.showPLI = idx;
+	options.onChange();
+    };
+    var buttons = this.createButtons(group, 2, this.showPLI, onPLIChange);
+    
+    // Colors:
+    var red = function(){return '#FF0000';};
+        var lineColor = function(options){
+	return LDR.Colors.int2Hex(options.lineColor);
+    };
+
+    /* 
+       OFF:
+    */
+    {
+	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	svg.setAttribute('viewBox', '-100 -40 200 80');
+	buttons[0].appendChild(svg);
+	for(var xx = -1; xx <= 1; xx++) {
+	    this.createSvgBlock(xx*LDR.Options.svgBlockWidth, 
+				0, true, red, lineColor, svg);
+	}
+    }
+    /* 
+       ON:
+    */
+    {
+	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	svg.setAttribute('viewBox', '-100 -40 200 80');
+	buttons[1].appendChild(svg);
+	svg.appendChild(LDR.SVG.makeRoundRect(-90, -30, 60, 60, 2));
+	var txt = document.createElementNS(LDR.SVG.NS, 'text');
+	txt.setAttribute('x', '-87');
+	txt.setAttribute('y', '24');
+	txt.setAttribute('fill', 'black');
+	txt.innerHTML = "3x";
+	svg.appendChild(txt);
+	this.createSvgBlock(-2*LDR.Options.svgBlockWidth, 
+			    -5, true, red, lineColor, svg);
+	for(var xx = 0; xx <= 2; xx++) {
+	    this.createSvgBlock(xx*LDR.Options.svgBlockWidth, 
+				0, true, red, lineColor, svg);
+	}
     }
 }
 
