@@ -690,8 +690,8 @@ THREE.LDRMeshCollector = function() {
     this.lineColors = []; // [] -> used color (only for non-conditional lines)
 
     this.triangleMeshes; // [] -> meshes
-    this.lineMeshes = []; // [] -> Meshes (non-conditional lines)
-    this.conditionalLineMeshes = []; // [] -> Meshes (one for each line).
+    this.lineMeshes; // [] -> Meshes (non-conditional lines)
+    this.conditionalLineMeshes; // [] -> Meshes (one for each line).
 
     this.isMeshCollector = true;
     this.old = false;
@@ -725,39 +725,77 @@ THREE.LDRMeshCollector.prototype.removeThreeObject = function(obj, baseObject) {
     baseObject.remove(obj);
 }
 
+THREE.LDRMeshCollector.prototype.updateNormalLines = function(baseObject) {
+    // First determine if lines already exist and if they need to be updated:
+    if(ldrOptions.showLines === 2) { // Don't show lines:
+	if(!this.lineMeshes)
+	    return;
+	for(var i = 0; i < this.lineMeshes.length; i++) {
+	    this.removeThreeObject(this.lineMeshes[i], baseObject);
+	}
+	this.lineMeshes = null;
+	return;
+    }
+    // Show lines:
+    if(!this.lineMeshes) {
+	this.createNormalLines(baseObject);
+	if(!this.visible) {
+	    for(var i = 0; i < this.lineMeshes.length; i++) {
+		this.lineMeshes[i].visible = false;
+	    }
+	}
+    }
+}
+
 /*
  * See 'http://www.ldraw.org/article/218.html' for specification of 'optional'/'conditional' lines.
- * A conditional line should be draw when the camera sees p3 and p4 on same side.
+ * A conditional line should be draw when the camera sees p3 and p4 on same side of line p1 p2.
  *
  * TODO: Try to use ConditionalLineEvaluator for performance boost.
  */
-THREE.LDRMeshCollector.prototype.updateConditionalLines = function(camera) {
+THREE.LDRMeshCollector.prototype.updateConditionalLines = function(baseObject, camera) {
     if(!camera)
 	throw "Camera is undefined!";
+    if(ldrOptions.showLines > 0) { // Don't show conditional lines:
+	if(!this.conditionalLineMeshes)
+	    return;
+	for(var i = 0; i < this.conditionalLineMeshes.length; i++) {
+	    this.removeThreeObject(this.conditionalLineMeshes[i], baseObject);
+	}
+	this.conditionalLineMeshes = null;
+	return;
+    }
+    // Show conditional lines:
+    if(!this.conditionalLineMeshes) {
+	this.createConditionalLines(baseObject);
+    }
     if(!this.visible) {
 	for(var i = 0; i < this.conditionalLineMeshes.length; i++) {
 	    this.conditionalLineMeshes[i].visible = false;
 	}
 	return;
     }
-
-    function leftTurn(lineStart, lineEnd, p) {
-	return (lineEnd.x-lineStart.x)*(p.y-lineStart.y) - (lineEnd.y-lineStart.y)*(p.x-lineStart.x) > 0;
-    }
+    //console.log("SLOW UPDATE " + this.conditionalLines.length);
 
     function toScreenCoordinates(p) {
 	var v = new THREE.Vector3();
 	p.getWorldPosition(v);
 	return v.project(camera);
     }
-
-    for(var i = 0; i < this.conditionalLines.length; i++) {
+    for(var i = 0; i < this.conditionalLineMeshes.length; i++) {
 	var c = this.conditionalLines[i]; // {color, p1, p2, p3, p4}
-	var p1 = toScreenCoordinates(c.p1);
-	var p2 = toScreenCoordinates(c.p2);
-	var p3 = toScreenCoordinates(c.p3);
-	var p4 = toScreenCoordinates(c.p4);
-	var v = leftTurn(p1, p2, p3) == leftTurn(p1, p2, p4);
+	var p1 = toScreenCoordinates(c.wp1);
+	var p2 = toScreenCoordinates(c.wp2);
+	var p3 = toScreenCoordinates(c.wp3);
+	var p4 = toScreenCoordinates(c.wp4);
+
+	var dx12 = p2.x-p1.x;
+	var dy12 = p2.y-p1.y;
+	var dx13 = p3.x-p1.x;
+	var dy13 = p3.y-p1.y;
+	var dx14 = p4.x-p1.x;
+	var dy14 = p4.y-p1.y;
+	var v = (dx12*dy13 - dy12*dx13 > 0) == (dx12*dy14 - dy12*dx14 > 0);
 	this.conditionalLineMeshes[i].visible = v;
     }
 }
@@ -765,8 +803,9 @@ THREE.LDRMeshCollector.prototype.updateConditionalLines = function(camera) {
 /*
   Create both normal and conditional lines:
 */
-THREE.LDRMeshCollector.prototype.createLines = function(baseObject) {
-    // First handle normal (nont-conditional) lines:
+THREE.LDRMeshCollector.prototype.createNormalLines = function(baseObject) {
+    this.lineMeshes = [];
+
     for(var i = 0; i < this.lineColors.length; i++) {
 	var lineColor = this.lineColors[i];
 	var lineMaterial = lineColor < 10000 ? 
@@ -782,6 +821,10 @@ THREE.LDRMeshCollector.prototype.createLines = function(baseObject) {
 	    baseObject.add(line);
 	}
     }
+}
+
+THREE.LDRMeshCollector.prototype.createConditionalLines = function(baseObject) {
+    this.conditionalLineMeshes = [];
 
     // Now handle conditional lines:
     function createPoint(p) { // This function creates a THREE.Object3D in order to identify screen coordinates.
@@ -805,12 +848,15 @@ THREE.LDRMeshCollector.prototype.createLines = function(baseObject) {
 	lineGeometry.addAttribute('position', new THREE.Float32BufferAttribute(
 	    [c.p1.x, c.p1.y, c.p1.z, c.p2.x, c.p2.y, c.p2.z], 3));
 	var line = new THREE.Line(lineGeometry, lineMaterial);
+	//console.log(c.p1.x + "," + c.p1.y + "," + c.p1.z + " -> " + c.p2.x + "," + c.p2.y + c.p2.z);
 
 	// Add points:
-	c.p1 = createPoint(c.p1);
-	c.p2 = createPoint(c.p2);
-	c.p3 = createPoint(c.p3);
-	c.p4 = createPoint(c.p4);
+	if(!c.wp1) {
+	    c.wp1 = createPoint(c.p1);
+	    c.wp2 = createPoint(c.p2);
+	    c.wp3 = createPoint(c.p3);
+	    c.wp4 = createPoint(c.p4);
+	}
 
 	this.conditionalLineMeshes.push(line);
 	baseObject.add(line);
@@ -953,15 +999,24 @@ THREE.LDRMeshCollector.prototype.createOrUpdateTriangles = function(old, baseObj
     return false;
 }
 
-THREE.LDRMeshCollector.prototype.draw = function(baseObject, old) {
+THREE.LDRMeshCollector.prototype.draw = function(baseObject, camera, old) {
     if(old == undefined)
 	throw "'old' is undefined!";
 
     var created = this.createOrUpdateTriangles(old, baseObject);
     if(created) {
-	this.createLines(baseObject);
+	if(ldrOptions.showLines < 2) {
+	    this.createNormalLines(baseObject);
+	    if(ldrOptions.showLines < 1) {
+		this.updateConditionalLines(baseObject, camera);
+	    }
+	}
 	this.computeBoundingBox();
 	this.visible = true;
+    }
+    else {
+	this.updateNormalLines(baseObject);
+	this.updateConditionalLines(baseObject, camera);
     }
 }
 
@@ -972,18 +1027,17 @@ THREE.LDRMeshCollector.prototype.isVisible = function(v) {
 /*
   Update meshes and set own visibility indicator.
 */
-THREE.LDRMeshCollector.prototype.setVisible = function(v, camera) {
+THREE.LDRMeshCollector.prototype.setVisible = function(v, baseObject, camera) {
     if(this.visible === v)
 	return;
     for(var i = 0; i < this.triangleMeshes.length; i++) {
 	this.triangleMeshes[i].visible = v;
     }
-    for(var i = 0; i < this.lineMeshes.length; i++) {
-	this.lineMeshes[i].visible = v;
-    }
-    for(var i = 0; i < this.conditionalLineMeshes.length; i++) {
-	this.conditionalLineMeshes[i].visible = v;
+    if(this.lineMeshes) {
+	for(var i = 0; i < this.lineMeshes.length; i++) {
+	    this.lineMeshes[i].visible = v;
+	}
     }
     this.visible = v;
-    this.updateConditionalLines(camera);
+    this.updateConditionalLines(baseObject, camera);
 }

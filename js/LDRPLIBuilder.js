@@ -12,7 +12,6 @@ LDR.PLIBuilder = function(ldrLoader, mainModelID, mainModelColor, pliElement, pl
     // Register for options changes:
     var self = this;
     ldrOptions.listeners.push(function() {
-	self.partsBuilder.onOptionsChanged();
 	if(self.lastStep) {
 	    self.drawPLIForStep(self.fillHeight, self.lastStep, 
 				self.lastMaxWidth, self.lastMaxHeight, true);
@@ -47,7 +46,7 @@ LDR.PLIBuilder.prototype.render = function(key, w, h) {
     var b;
     if(!pc.mesh) {
 	pc.mesh = new THREE.Group();
-	pc.draw(pc.mesh);
+	pc.draw(pc.mesh, this.camera);
 	b = pc.getBounds();
 	var elementCenter = new THREE.Vector3();
 	b.getCenter(elementCenter);
@@ -56,6 +55,7 @@ LDR.PLIBuilder.prototype.render = function(key, w, h) {
 	pc.mesh.position.z = -elementCenter.z;
     }
     else {
+	pc.meshCollector.draw(pc.mesh, this.camera, false);
 	b = pc.getBounds();
     }
     
@@ -66,7 +66,7 @@ LDR.PLIBuilder.prototype.render = function(key, w, h) {
     this.renderer.setSize(w, h);
     this.updateCamera(w, h, zoom);
     this.renderer.render(this.scene, this.camera);
-    pc.meshCollector.updateConditionalLines(this.camera);
+    pc.meshCollector.updateConditionalLines(pc.mesh, this.camera);
     this.renderer.render(this.scene, this.camera);
     this.scene.remove(pc.mesh);
 }

@@ -23,7 +23,8 @@ var LDR = LDR || {};
 LDR.changeBufferSize = 0;
 LDR.changeBufferLimit = 5;
 
-LDR.StepBuilder = function(camera, ldrLoader, partDescs, onProgress, isForMainModel, onlyLoadFirstStep) {
+LDR.StepBuilder = function(baseObject, camera, ldrLoader, partDescs, onProgress, isForMainModel, onlyLoadFirstStep) {    
+    this.baseObject = baseObject;
     this.camera = camera;
     this.ldrLoader = ldrLoader;
     this.partDescs = partDescs;
@@ -129,7 +130,7 @@ LDR.StepBuilder.prototype.computeCameraPositionRotation = function(defaultMatrix
  If stepping into a sub model: 
   - Ghost everything earlier (show again once sub-model is done)
 */
-LDR.StepBuilder.prototype.nextStep = function(baseObject, doNotEraseForSubModels) {
+LDR.StepBuilder.prototype.nextStep = function(doNotEraseForSubModels) {
     if(this.isAtPlacementStep()) {
 	return false; // Dont walk past placement step.
     }
@@ -139,8 +140,8 @@ LDR.StepBuilder.prototype.nextStep = function(baseObject, doNotEraseForSubModels
 
     // Special case: Step to placement step.
     if((this.current === this.subBuilders.length-1) && willStep) { 
-	this.updateMeshCollectors(baseObject, false); // Make whole subBuilder new (for placement):
-	this.drawExtras(baseObject);
+	this.updateMeshCollectors(this.baseObject, false); // Make whole subBuilder new (for placement):
+	this.drawExtras(this.baseObject);
 	LDR.changeBufferSize += 1;
 	this.current++;
 	return true;
@@ -149,9 +150,9 @@ LDR.StepBuilder.prototype.nextStep = function(baseObject, doNotEraseForSubModels
     // Step to next:
     if(willStep) {
 	if(subBuilder)
-	    subBuilder.updateMeshCollectors(baseObject, true); // Make previous step 'old'.
+	    subBuilder.updateMeshCollectors(this.baseObject, true); // Make previous step 'old'.
 	else if(meshCollector)
-	    meshCollector.draw(baseObject, true); // Make previous step 'old'.
+	    meshCollector.draw(this.baseObject, this.camera, true); // Make previous step 'old'.
 	this.current++; // Point to next step.
 	subBuilder = this.subBuilders[this.current];
     }
@@ -166,16 +167,16 @@ LDR.StepBuilder.prototype.nextStep = function(baseObject, doNotEraseForSubModels
 	    step.generateThreePart(this.ldrLoader, pd.colorID, pd.position, pd.rotation, true, false, meshCollector);
 
 	    this.meshCollectors[this.current] = meshCollector;
-	    meshCollector.draw(baseObject, false); // New part is not 'old'.
+	    meshCollector.draw(this.baseObject, this.camera, false); // New part is not 'old'.
 
 	    // Helper:
-	    //baseObject.add(new THREE.Box3Helper(meshCollector.boundingBox, 0xff0000));
+	    //this.baseObject.add(new THREE.Box3Helper(meshCollector.boundingBox, 0xff0000));
 
 	    this.setCurrentBounds(meshCollector.boundingBox);
 	}
 	else {
-	    meshCollector.draw(baseObject, false); // New part is not 'old'.
-	    meshCollector.setVisible(true, this.camera);
+	    meshCollector.draw(this.baseObject, this.camera, false); // New part is not 'old'.
+	    meshCollector.setVisible(true, this.baseObject, this.camera);
 	}
 	LDR.changeBufferSize += 1;
     }
@@ -185,7 +186,7 @@ LDR.StepBuilder.prototype.nextStep = function(baseObject, doNotEraseForSubModels
 	    if(!doNotEraseForSubModels)
 		this.setVisibleUpTo(false, this.current);
 	}
-	subBuilder.nextStep(baseObject, doNotEraseForSubModels);
+	subBuilder.nextStep(this.baseObject, doNotEraseForSubModels);
 	if(subBuilder.isAtPlacementStep()) {
 	    // Add bounds:
 	    if(this.bounds[this.current] === null) {
@@ -214,7 +215,7 @@ LDR.StepBuilder.prototype.cleanUpAfterWalking = function() {
 	for(var i = 0; i < this.subBuilders.length; i++) {
 	    var t = this.meshCollectors[i];
 	    if(t !== null && t.isVisible()) {
-		t.setVisible(false, this.camera);
+		t.setVisible(false, this.baseObject, this.camera);
 	    }
 	    var s = this.subBuilders[i];
 	    if(s && i != this.current) {
@@ -222,7 +223,7 @@ LDR.StepBuilder.prototype.cleanUpAfterWalking = function() {
 	    }
 	}
 	if(this.extraParts && this.extraParts.isMeshCollector) {
-	    this.extraParts.setVisible(false, this.camera);
+	    this.extraParts.setVisible(false, this.baseObject, this.camera);
 	}
     }
     else {
@@ -231,7 +232,7 @@ LDR.StepBuilder.prototype.cleanUpAfterWalking = function() {
 	    var t = this.meshCollectors[i];
 	    var v = i <= this.current; // Make everything up to current step visible.
 	    if(t !== null && t.isVisible() !== v) {
-		t.setVisible(v, this.camera);
+		t.setVisible(v, this.baseObject, this.camera);
 	    }
 	    var s = this.subBuilders[i];
 	    if(s) {
@@ -239,7 +240,7 @@ LDR.StepBuilder.prototype.cleanUpAfterWalking = function() {
 	    }
 	}
 	if(this.extraParts && this.extraParts.isMeshCollector) {
-	    this.extraParts.setVisible(this.isAtPlacementStep(), this.camera);
+	    this.extraParts.setVisible(this.isAtPlacementStep(), this.baseObject, this.camera);
 	}
     }
 }
@@ -312,7 +313,7 @@ LDR.StepBuilder.prototype.getLevelOfCurrentStep = function() {
     return 1+subBuilder.getLevelOfCurrentStep();
 }
 
-LDR.StepBuilder.prototype.drawExtras = function(baseObject) {
+LDR.StepBuilder.prototype.drawExtras = function() {
     if(!this.extraParts) { // No extra parts to draw:
 	if(this.bounds[this.subBuilders.length] === null) {
 	    var b = this.bounds[this.subBuilders.length-1];
@@ -332,7 +333,7 @@ LDR.StepBuilder.prototype.drawExtras = function(baseObject) {
 	    var pd = this.partDescs[i];
 	    this.part.generateThreePart(this.ldrLoader, pd.colorID, pd.position, pd.rotation, true, false, this.extraParts);
 	}
-	this.extraParts.draw(baseObject, this.extraParts.old);
+	this.extraParts.draw(this.baseObject, this.camera, this.extraParts.old);
 	if(this.subBuilders.length >= 2) {
 	    var b = this.extraParts.boundingBox;
 	    this.bounds[this.subBuilders.length].expandByPoint(b.min);
@@ -340,14 +341,14 @@ LDR.StepBuilder.prototype.drawExtras = function(baseObject) {
 	}
     }
     else {
-	this.extraParts.setVisible(true, this.camera);
+	this.extraParts.setVisible(true, this.baseObject, this.camera);
     }
 }
 
 /*
  takes a step back in the building instructions (see nextStep()).
 */
-LDR.StepBuilder.prototype.prevStep = function(baseObject, doNotEraseForSubModels) {
+LDR.StepBuilder.prototype.prevStep = function(doNotEraseForSubModels) {
     if(this.isAtPreStep()) {
 	return false; // Can't move further. Fallback.
     }
@@ -355,18 +356,18 @@ LDR.StepBuilder.prototype.prevStep = function(baseObject, doNotEraseForSubModels
     // Step down from placement step:
     if(this.isAtPlacementStep()) {
 	if(this.extraParts) {
-	    this.extraParts.setVisible(false, this.camera);
+	    this.extraParts.setVisible(false, this.baseObject, this.camera);
 	    LDR.changeBufferSize += 1;
 	}
 	// Update all previous steps to be old:
 	for(var i = 0; i < this.subBuilders.length-1; i++) {
 	    var t = this.meshCollectors[i];
 	    if(t !== null) {
-		t.draw(baseObject, true);
+		t.draw(this.baseObject, this.camera, true);
 	    }
 	    var s = this.subBuilders[i];
 	    if(s) {
-		s.updateMeshCollectors(baseObject, true);
+		s.updateMeshCollectors(this.baseObject, true);
 	    }
 	}
 	
@@ -377,39 +378,39 @@ LDR.StepBuilder.prototype.prevStep = function(baseObject, doNotEraseForSubModels
     var subBuilder = this.subBuilders[this.current];
     if(subBuilder === null) { // Remove standard step:
     	var meshCollector = this.meshCollectors[this.current];
-	meshCollector.setVisible(false, this.camera);
+	meshCollector.setVisible(false, this.baseObject, this.camera);
 	LDR.changeBufferSize += 1;
-	this.stepBack(baseObject);
+	this.stepBack(this.baseObject);
     }
     else { // There is a subBuilder, so we have to step inside of it:
 	if(subBuilder.isAtPlacementStep() && !doNotEraseForSubModels) {
 	    this.setVisibleUpTo(false, this.current);
 	}
-	subBuilder.prevStep(baseObject, doNotEraseForSubModels);
+	subBuilder.prevStep(this.baseObject, doNotEraseForSubModels);
 	if(subBuilder.isAtPreStep()) {
 	    if(!doNotEraseForSubModels)
 		this.setVisibleUpTo(true, this.current);
-	    this.stepBack(baseObject);
+	    this.stepBack(this.baseObject);
 	}
     }
     return true;
 }
 
-LDR.StepBuilder.prototype.stepBack = function(baseObject) {    
+LDR.StepBuilder.prototype.stepBack = function() {    
     this.current--;
     if(this.current == -1)
 	return;
     var t = this.meshCollectors[this.current];
     if(t !== null) {
-	t.draw(baseObject, false);
+	t.draw(this.baseObject, this.camera, false);
     }
     var s = this.subBuilders[this.current];
     if(s) {
-	s.updateMeshCollectors(baseObject, false);
+	s.updateMeshCollectors(this.baseObject, false);
     }
 }
 
-LDR.StepBuilder.prototype.fastForward = function(baseObject, onDone) {    
+LDR.StepBuilder.prototype.fastForward = function(onDone) {    
     // Find active builder:
     var b = this;
     while(b.current < b.subBuilders.length && b.subBuilders[b.current] !== null) {
@@ -418,7 +419,7 @@ LDR.StepBuilder.prototype.fastForward = function(baseObject, onDone) {
     var walkedAlready = 0;
     // Step if at last step of builder:    
     if(b.isAtLastStep()) {
-	this.nextStep(baseObject, true);
+	this.nextStep(this.baseObject, true);
 	walkedAlready++;
 	// Find active builder now:
 	b = this;
@@ -429,7 +430,7 @@ LDR.StepBuilder.prototype.fastForward = function(baseObject, onDone) {
 
     var walk = function(walked, baseBuilder, builderToComplete, od, op) {
 	while(!builderToComplete.isAtLastStep()) {
-	    baseBuilder.nextStep(baseObject, true);
+	    baseBuilder.nextStep(this.baseObject, true);
 	    walked++;
 	    if(LDR.changeBufferSize >= THREE.changeBufferLimit) {
 		op();
@@ -438,13 +439,13 @@ LDR.StepBuilder.prototype.fastForward = function(baseObject, onDone) {
 		return;
 	    }
 	}
-	baseBuilder.cleanUpAfterWalking(baseObject);
+	baseBuilder.cleanUpAfterWalking(this.baseObject);
 	od(walked, true);
     }
     walk(walkedAlready, this, b, onDone, this.onProgress);
 }
 
-LDR.StepBuilder.prototype.fastReverse = function(baseObject, onDone) {
+LDR.StepBuilder.prototype.fastReverse = function(onDone) {
     // Find active builder:
     var b = this;
     while(b.current < b.subBuilders.length && b.subBuilders[b.current] !== null) {
@@ -453,7 +454,7 @@ LDR.StepBuilder.prototype.fastReverse = function(baseObject, onDone) {
     // Step if at last step of builder:
     var walkedAlready = 0;
     if(b.isAtFirstStep()) {
-	this.prevStep(baseObject, true);
+	this.prevStep(this.baseObject, true);
 	walkedAlready--;
 	b = this;
 	while(b.current < b.subBuilders.length && b.subBuilders[b.current] !== null) {
@@ -464,7 +465,7 @@ LDR.StepBuilder.prototype.fastReverse = function(baseObject, onDone) {
 
     var walk = function(walked, baseBuilder, builderToComplete, od, op) {
 	while(!builderToComplete.isAtFirstStep()) {
-	    baseBuilder.prevStep(baseObject, true);
+	    baseBuilder.prevStep(this.baseObject, true);
 	    walked--;
 	    if(LDR.changeBufferSize >= THREE.changeBufferLimit) {
 		op();
@@ -473,13 +474,13 @@ LDR.StepBuilder.prototype.fastReverse = function(baseObject, onDone) {
 		return;
 	    }
 	}
-	baseBuilder.cleanUpAfterWalking(baseObject);
+	baseBuilder.cleanUpAfterWalking(this.baseObject);
 	od(walked, true);
     }
     walk(walkedAlready, this, b, onDone, this.onProgress);
 }
 
-LDR.StepBuilder.prototype.moveSteps = function(steps, baseObject, onDone) {
+LDR.StepBuilder.prototype.moveSteps = function(steps, onDone) {
     var walked = 0;
     if(steps === 0) {
 	this.cleanUpAfterWalking();
@@ -488,7 +489,7 @@ LDR.StepBuilder.prototype.moveSteps = function(steps, baseObject, onDone) {
     }
     while(true) {
 	// Try to walk:
-	if(!(steps > 0 ? this.nextStep(baseObject, true) : this.prevStep(baseObject, true))) {
+	if(!(steps > 0 ? this.nextStep(this.baseObject, true) : this.prevStep(this.baseObject, true))) {
 	    this.cleanUpAfterWalking();
 	    onDone(walked);
 	    return;
@@ -506,7 +507,7 @@ LDR.StepBuilder.prototype.moveSteps = function(steps, baseObject, onDone) {
 	    var builder = this;
 	    var toMove = steps - walked;
 	    //console.log("Recursing after " + walked + " of " + steps + " => " + toMove);
-	    setTimeout(function(){builder.moveSteps(toMove, baseObject, nextOnDone)}, 50);
+	    setTimeout(function(){builder.moveSteps(toMove, this.baseObject, nextOnDone)}, 50);
 	    return; // Done here.
 	}
     }
@@ -539,10 +540,10 @@ LDR.StepBuilder.prototype.setVisibleUpTo = function(v, idx) {
 	var t = this.meshCollectors[i];
 	if(t !== null) {
 	    if(t.isVisible() != v) {
-		t.setVisible(v, this.camera);
+		t.setVisible(v, this.baseObject, this.camera);
 		LDR.changeBufferSize += 1;
 		if(v)
-		    t.updateConditionalLines(this.camera);
+		    t.updateConditionalLines(this.baseObject, this.camera);
 	    }
 	}
 	var s = this.subBuilders[i];
@@ -555,31 +556,31 @@ LDR.StepBuilder.prototype.setVisible = function(v) {
     this.setVisibleUpTo(v, this.subBuilders.length);
     if(this.extraParts && this.extraParts.isMeshCollector && this.extraParts.isVisible() !== v) {
 	LDR.changeBufferSize += 1;
-	this.extraParts.setVisible(v, this.camera);
+	this.extraParts.setVisible(v, this.baseObject, this.camera);
     }
 }
 
-LDR.StepBuilder.prototype.updateMeshCollectors = function(baseObject, old) {
+LDR.StepBuilder.prototype.updateMeshCollectors = function(old) {
     for(var i = 0; i < this.subBuilders.length; i++) {
 	var t = this.meshCollectors[i];
 	if(t !== null) {
 	    var tOld = old;
 	    if(tOld == undefined)
 		tOld = t.old;
-	    t.draw(baseObject, tOld);
-	    t.updateConditionalLines(this.camera);	    
+	    t.draw(this.baseObject, this.camera, tOld);
+	    t.updateConditionalLines(this.baseObject, this.camera);	    
 	}
 	var s = this.subBuilders[i];
 	if(s) {
-	    s.updateMeshCollectors(baseObject, old);
+	    s.updateMeshCollectors(this.baseObject, old);
 	}
     }
     if(this.extraParts && this.extraParts.isMeshCollector) {
 	var tOld = old;
 	if(tOld == undefined)
 	    tOld = this.extraParts.old;
-	this.extraParts.draw(baseObject, tOld);
-	this.extraParts.updateConditionalLines(this.camera);
+	this.extraParts.draw(this.baseObject, this.camera, tOld);
+	this.extraParts.updateConditionalLines(this.baseObject, this.camera);
     }
 }
 

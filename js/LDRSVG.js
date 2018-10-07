@@ -196,6 +196,7 @@ LDR.SVG.makeRect = function(x, y, w, h) {
 }
 LDR.SVG.makeRoundRect = function(x, y, w, h, r) {
     var ret = LDR.SVG.makeRect(x, y, w, h);
+    ret.setAttribute('class', 'show');
     ret.setAttribute('rx', r);
     ret.setAttribute('ry', r);
     return ret;
