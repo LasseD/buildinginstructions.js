@@ -54,7 +54,7 @@ LDR.StepBuilder = function(baseObject, camera, ldrLoader, partDescs, onProgress,
 		var placed = step.ldrs[j].placeAt(partDesc);
 		subDescs.push(placed);
 	    }
-	    var subStepBuilder = new LDR.StepBuilder(camera, ldrLoader, subDescs, false, onlyLoadFirstStep);
+	    var subStepBuilder = new LDR.StepBuilder(baseObject, camera, ldrLoader, subDescs, false, onlyLoadFirstStep);
 	    if(!subStepBuilder.firstStepLoaded) {
 		this.firstStepLoaded = false;
 		return; // Break early.
@@ -140,8 +140,8 @@ LDR.StepBuilder.prototype.nextStep = function(doNotEraseForSubModels) {
 
     // Special case: Step to placement step.
     if((this.current === this.subBuilders.length-1) && willStep) { 
-	this.updateMeshCollectors(this.baseObject, false); // Make whole subBuilder new (for placement):
-	this.drawExtras(this.baseObject);
+	this.updateMeshCollectors(false); // Make whole subBuilder new (for placement):
+	this.drawExtras();
 	LDR.changeBufferSize += 1;
 	this.current++;
 	return true;
@@ -150,7 +150,7 @@ LDR.StepBuilder.prototype.nextStep = function(doNotEraseForSubModels) {
     // Step to next:
     if(willStep) {
 	if(subBuilder)
-	    subBuilder.updateMeshCollectors(this.baseObject, true); // Make previous step 'old'.
+	    subBuilder.updateMeshCollectors(true); // Make previous step 'old'.
 	else if(meshCollector)
 	    meshCollector.draw(this.baseObject, this.camera, true); // Make previous step 'old'.
 	this.current++; // Point to next step.
@@ -186,7 +186,7 @@ LDR.StepBuilder.prototype.nextStep = function(doNotEraseForSubModels) {
 	    if(!doNotEraseForSubModels)
 		this.setVisibleUpTo(false, this.current);
 	}
-	subBuilder.nextStep(this.baseObject, doNotEraseForSubModels);
+	subBuilder.nextStep(doNotEraseForSubModels);
 	if(subBuilder.isAtPlacementStep()) {
 	    // Add bounds:
 	    if(this.bounds[this.current] === null) {
@@ -367,7 +367,7 @@ LDR.StepBuilder.prototype.prevStep = function(doNotEraseForSubModels) {
 	    }
 	    var s = this.subBuilders[i];
 	    if(s) {
-		s.updateMeshCollectors(this.baseObject, true);
+		s.updateMeshCollectors(true);
 	    }
 	}
 	
@@ -380,17 +380,17 @@ LDR.StepBuilder.prototype.prevStep = function(doNotEraseForSubModels) {
     	var meshCollector = this.meshCollectors[this.current];
 	meshCollector.setVisible(false, this.baseObject, this.camera);
 	LDR.changeBufferSize += 1;
-	this.stepBack(this.baseObject);
+	this.stepBack();
     }
     else { // There is a subBuilder, so we have to step inside of it:
 	if(subBuilder.isAtPlacementStep() && !doNotEraseForSubModels) {
 	    this.setVisibleUpTo(false, this.current);
 	}
-	subBuilder.prevStep(this.baseObject, doNotEraseForSubModels);
+	subBuilder.prevStep(doNotEraseForSubModels);
 	if(subBuilder.isAtPreStep()) {
 	    if(!doNotEraseForSubModels)
 		this.setVisibleUpTo(true, this.current);
-	    this.stepBack(this.baseObject);
+	    this.stepBack();
 	}
     }
     return true;
@@ -406,7 +406,7 @@ LDR.StepBuilder.prototype.stepBack = function() {
     }
     var s = this.subBuilders[this.current];
     if(s) {
-	s.updateMeshCollectors(this.baseObject, false);
+	s.updateMeshCollectors(false);
     }
 }
 
@@ -419,7 +419,7 @@ LDR.StepBuilder.prototype.fastForward = function(onDone) {
     var walkedAlready = 0;
     // Step if at last step of builder:    
     if(b.isAtLastStep()) {
-	this.nextStep(this.baseObject, true);
+	this.nextStep(true);
 	walkedAlready++;
 	// Find active builder now:
 	b = this;
@@ -430,7 +430,7 @@ LDR.StepBuilder.prototype.fastForward = function(onDone) {
 
     var walk = function(walked, baseBuilder, builderToComplete, od, op) {
 	while(!builderToComplete.isAtLastStep()) {
-	    baseBuilder.nextStep(this.baseObject, true);
+	    baseBuilder.nextStep(true);
 	    walked++;
 	    if(LDR.changeBufferSize >= THREE.changeBufferLimit) {
 		op();
@@ -439,7 +439,7 @@ LDR.StepBuilder.prototype.fastForward = function(onDone) {
 		return;
 	    }
 	}
-	baseBuilder.cleanUpAfterWalking(this.baseObject);
+	baseBuilder.cleanUpAfterWalking();
 	od(walked, true);
     }
     walk(walkedAlready, this, b, onDone, this.onProgress);
@@ -454,7 +454,7 @@ LDR.StepBuilder.prototype.fastReverse = function(onDone) {
     // Step if at last step of builder:
     var walkedAlready = 0;
     if(b.isAtFirstStep()) {
-	this.prevStep(this.baseObject, true);
+	this.prevStep(true);
 	walkedAlready--;
 	b = this;
 	while(b.current < b.subBuilders.length && b.subBuilders[b.current] !== null) {
@@ -465,7 +465,7 @@ LDR.StepBuilder.prototype.fastReverse = function(onDone) {
 
     var walk = function(walked, baseBuilder, builderToComplete, od, op) {
 	while(!builderToComplete.isAtFirstStep()) {
-	    baseBuilder.prevStep(this.baseObject, true);
+	    baseBuilder.prevStep(true);
 	    walked--;
 	    if(LDR.changeBufferSize >= THREE.changeBufferLimit) {
 		op();
@@ -474,7 +474,7 @@ LDR.StepBuilder.prototype.fastReverse = function(onDone) {
 		return;
 	    }
 	}
-	baseBuilder.cleanUpAfterWalking(this.baseObject);
+	baseBuilder.cleanUpAfterWalking();
 	od(walked, true);
     }
     walk(walkedAlready, this, b, onDone, this.onProgress);
@@ -489,7 +489,7 @@ LDR.StepBuilder.prototype.moveSteps = function(steps, onDone) {
     }
     while(true) {
 	// Try to walk:
-	if(!(steps > 0 ? this.nextStep(this.baseObject, true) : this.prevStep(this.baseObject, true))) {
+	if(!(steps > 0 ? this.nextStep(true) : this.prevStep(true))) {
 	    this.cleanUpAfterWalking();
 	    onDone(walked);
 	    return;
@@ -507,7 +507,7 @@ LDR.StepBuilder.prototype.moveSteps = function(steps, onDone) {
 	    var builder = this;
 	    var toMove = steps - walked;
 	    //console.log("Recursing after " + walked + " of " + steps + " => " + toMove);
-	    setTimeout(function(){builder.moveSteps(toMove, this.baseObject, nextOnDone)}, 50);
+	    setTimeout(function(){builder.moveSteps(toMove, nextOnDone)}, 50);
 	    return; // Done here.
 	}
     }
@@ -572,7 +572,7 @@ LDR.StepBuilder.prototype.updateMeshCollectors = function(old) {
 	}
 	var s = this.subBuilders[i];
 	if(s) {
-	    s.updateMeshCollectors(this.baseObject, old);
+	    s.updateMeshCollectors(old);
 	}
     }
     if(this.extraParts && this.extraParts.isMeshCollector) {

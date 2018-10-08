@@ -191,7 +191,8 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    else if(is("Name:")) {
 		// LDR Name: line found. Set name and update data in case this is an ldr file (do not use file suffix to determine).
 		// Set name and model description:
-		part.setID(parts.slice(2).join(" "));
+		if(!part.ID)
+		    part.setID(parts.slice(2).join(" "));
 		setModelDescription();
 		if(firstModel) {
 		    if(!this.mainModel)
@@ -812,14 +813,24 @@ THREE.LDRMeshCollector.prototype.createNormalLines = function(baseObject) {
 	    LDR.Colors.getLineMaterial(lineColor) : 
 	    LDR.Colors.getEdgeLineMaterial(lineColor - 10000);
 	var linesInColor = this.lines[lineColor];
+
+	// Build lines and indices:
+	var positions = new Float32Array(linesInColor.length * 6);
+	var indices = [];
 	for(var j = 0; j < linesInColor.length; j++) {
-	    // Create the three.js lines:
-	    var lineGeometry = new THREE.BufferGeometry();
-	    lineGeometry.addAttribute('position', new THREE.Float32BufferAttribute(linesInColor[j], 3));
-	    var line = new THREE.Line(lineGeometry, lineMaterial);
-	    this.lineMeshes.push(line);
-	    baseObject.add(line);
+	    var lineInColor = linesInColor[j];
+	    for(var k = 0; k < 6; k++)
+		positions[6*j+k] = lineInColor[k];
+	    indices.push(2*j);
+	    indices.push(2*j+1);
 	}
+	// Create the three.js line:
+	var lineGeometry = new THREE.BufferGeometry();
+	lineGeometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
+	lineGeometry.setIndex(new THREE.BufferAttribute(new Uint16Array(indices), 1));
+	var line = new THREE.LineSegments(lineGeometry, lineMaterial);
+	this.lineMeshes.push(line);
+	baseObject.add(line);
     }
 }
 

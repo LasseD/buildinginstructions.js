@@ -18,6 +18,8 @@ LDR.PartsBulder = function(ldrLoader, mainModelID, mainModelColor) {
 
     function build(multiplier, partID, colorID) {
 	var model = ldrLoader.ldrPartTypes[partID];
+	if(!model)
+	    throw "model not loaded: " + partID;
 	for(var i = 0; i < model.steps.length; i++) {
 	    var step = model.steps[i];
 	    if(step.ldrs.length > 0) {
