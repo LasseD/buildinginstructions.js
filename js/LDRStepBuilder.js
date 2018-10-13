@@ -164,7 +164,7 @@ LDR.StepBuilder.prototype.nextStep = function(doNotEraseForSubModels) {
 	    var pd = this.partDescs[0];
             meshCollector = new THREE.LDRMeshCollector();
 	    var step = this.part.steps[this.current];
-	    step.generateThreePart(this.ldrLoader, pd.colorID, pd.position, pd.rotation, true, false, meshCollector);
+	    step.generateThreePart(this.ldrLoader, pd.colorID, pd.position, pd.rotation, true, false, meshCollector, false, true);
 
 	    this.meshCollectors[this.current] = meshCollector;
 	    meshCollector.draw(this.baseObject, this.camera, false); // New part is not 'old'.
@@ -331,7 +331,7 @@ LDR.StepBuilder.prototype.drawExtras = function() {
 
 	for(var i = 1; i < this.partDescs.length; i++) {
 	    var pd = this.partDescs[i];
-	    this.part.generateThreePart(this.ldrLoader, pd.colorID, pd.position, pd.rotation, true, false, this.extraParts);
+	    this.part.generateThreePart(this.ldrLoader, pd.colorID, pd.position, pd.rotation, true, false, this.extraParts, false);
 	}
 	this.extraParts.draw(this.baseObject, this.camera, this.extraParts.old);
 	if(this.subBuilders.length >= 2) {

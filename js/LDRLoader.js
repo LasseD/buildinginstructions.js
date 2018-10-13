@@ -156,7 +156,6 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    if(part.modelDescription) 
 		return;
 	    part.modelDescription = previousComment;
-	    //console.log(previousComment);
 	    if(previousComment.startsWith("~Moved to ")) {
 		var newID = previousComment.substring("~Moved to ".length).toLowerCase();
 		if(!newID.endsWith(".dat"))
@@ -247,6 +246,9 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		}
 		closeStep(true);
 	    }
+	    else if(parts[1] === "!INLINED") {
+		part.inlined = true;
+	    }
 	    else {
 		invertNext = false;
 		previousComment = line.substring(2);
@@ -299,16 +301,9 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    invertNext = false;
 	    break;
 	case 3: // 3 <colour> x1 y1 z1 x2 y2 z2 x3 y3 z3
-	    var idx = 2;
-	    var p1 = new THREE.Vector3(parseFloat(parts[idx++]), 
-		 		       parseFloat(parts[idx++]),
-		 		       parseFloat(parts[idx++]));
-	    var p2 = new THREE.Vector3(parseFloat(parts[idx++]), 
-				       parseFloat(parts[idx++]),
-				       parseFloat(parts[idx++]));
-	    var p3 = new THREE.Vector3(parseFloat(parts[idx++]), 
-				       parseFloat(parts[idx++]),
-				       parseFloat(parts[idx++]));
+	    var p1 = new THREE.Vector3(parseFloat(parts[2]), parseFloat(parts[3]), parseFloat(parts[4]));
+	    var p2 = new THREE.Vector3(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
+	    var p3 = new THREE.Vector3(parseFloat(parts[8]), parseFloat(parts[9]), parseFloat(parts[10]));
 	    if(CCW == invertNext) {
 		step.addTrianglePoints(colorID, p3, p2, p1);
 	    }
@@ -322,24 +317,10 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    invertNext = false;
 	    break;
 	case 4: // 4 <colour> x1 y1 z1 x2 y2 z2 x3 y3 z3 x4 y4 z4
-	    var idx = 2;
-	    var x1 = parseFloat(parts[idx++]);
-	    var y1 = parseFloat(parts[idx++]);
-	    var z1 = parseFloat(parts[idx++]);
-	    var x2 = parseFloat(parts[idx++]);
-	    var y2 = parseFloat(parts[idx++]);
-	    var z2 = parseFloat(parts[idx++]);
-	    var x3 = parseFloat(parts[idx++]);
-	    var y3 = parseFloat(parts[idx++]);
-	    var z3 = parseFloat(parts[idx++]);
-	    var x4 = parseFloat(parts[idx++]);
-	    var y4 = parseFloat(parts[idx++]);
-	    var z4 = parseFloat(parts[idx++]);
-	    var p1 = new THREE.Vector3(x1, y1, z1);
-	    var p2 = new THREE.Vector3(x2, y2, z2);
-	    var p3 = new THREE.Vector3(x3, y3, z3);
-	    var p4 = new THREE.Vector3(x4, y4, z4);
-
+	    var p1 = new THREE.Vector3(parseFloat(parts[2]), parseFloat(parts[3]), parseFloat(parts[4]));
+	    var p2 = new THREE.Vector3(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
+	    var p3 = new THREE.Vector3(parseFloat(parts[8]), parseFloat(parts[9]), parseFloat(parts[10]));
+	    var p4 = new THREE.Vector3(parseFloat(parts[11]), parseFloat(parts[12]), parseFloat(parts[13]));
 	    if(CCW == invertNext) {
 		step.addTrianglePoints(colorID, p4, p2, p1);
 		step.addTrianglePoints(colorID, p4, p3, p2);
@@ -498,11 +479,10 @@ THREE.LDRStep = function() {
     /*
      * Enrich the meshCollector.
      */
-    this.generateThreePart = function(loader, colorID, position, rotation, cull, invertCCW, meshCollector) {
+    this.generateThreePart = function(loader, colorID, position, rotation, cull, invertCCW, meshCollector, parentIsDat, selfIsDat) {
 	//console.log("Creating three part for " + this.ldrs.length + " sub models and " + this.dats.length + " DAT parts in color " + colorID + ", cull: " + cull + ", invertion: " + invertCCW);
 	if(!meshCollector)
 	    throw "Fatal: Missing mesh collector!";
-	//console.dir(rotation);
 	var ownInversion = (rotation.determinant() < 0) != invertCCW; // Adjust for inversed matrix!
 	var ownCull = cull && this.cull;
 
@@ -525,29 +505,22 @@ THREE.LDRStep = function() {
 	    var line = this.lines[i]; // {colorID, p1, p2}
 	    var p1 = transformPoint(line.p1);
 	    var p2 = transformPoint(line.p2);
-	    var linePositions = [p1.x, p1.y, p1.z, p2.x, p2.y, p2.z];
 	    var lineColor = transformColor(line.colorID);
-	    meshCollector.getLinesForColor(lineColor).push(linePositions);
+	    meshCollector.addLine(lineColor, p1, p2);
 	}
 
 	// Add triangles:
-	function addPointToPositions(positions, point) {
-	    var p = transformPoint(point);
-	    positions.push(p.x, p.y, p.z);
-	}
 	for(var i = 0; i < this.triangles.length; i++) {
 	    var triangle = this.triangles[i]; // {colorID, p1, p2, p3}
 	    var triangleColor = transformColor(triangle.colorID);
-	    var positions = meshCollector.getTrianglePointPositionsForColor(triangleColor);
+	    var p1 = transformPoint(triangle.p1);
+	    var p2 = transformPoint(triangle.p2);
+	    var p3 = transformPoint(triangle.p3);
 	    if(!ownInversion || !ownCull) {
-		addPointToPositions(positions, triangle.p1);
-		addPointToPositions(positions, triangle.p2);
-		addPointToPositions(positions, triangle.p3);
+	        meshCollector.addTriangle(triangleColor, p1, p2, p3);
 	    }
 	    if(ownInversion || !ownCull) { // Use 'if' instead of 'else' to add triangles when there is no culling.
-		addPointToPositions(positions, triangle.p3);
-		addPointToPositions(positions, triangle.p2);
-		addPointToPositions(positions, triangle.p1);
+	        meshCollector.addTriangle(triangleColor, p3, p2, p1);
 	    }
 	}
 
@@ -593,7 +566,7 @@ THREE.LDRStep = function() {
 	    var nextPosition = transformPoint(subModelDesc.position);
 	    var nextRotation = new THREE.Matrix3();
 	    nextRotation.multiplyMatrices(rotation, subModelDesc.rotation);
-	    subModel.generateThreePart(loader, subModelColor, nextPosition, nextRotation, subModelCull, subModelInversion, meshCollector);
+	    subModel.generateThreePart(loader, subModelColor, nextPosition, nextRotation, subModelCull, subModelInversion, meshCollector, selfIsDat);
 	}
 
 	// Add submodels:
@@ -605,8 +578,9 @@ THREE.LDRStep = function() {
 	    var subModelDesc = this.dats[i];
 	    handleSubModel(subModelDesc);
 	}
-
-	// TODO: optional lines
+	// Bake:
+	if(!parentIsDat && selfIsDat)
+	    meshCollector.bakeVertices();
     }
 }
 
@@ -618,6 +592,7 @@ THREE.LDRPartType = function() {
     this.steps = [];
     this.lastRotation = null;
     this.replacement;
+    this.inlined = false;
 
     this.addStep = function(step) {
 	if(step.empty && this.steps.length === 0)
@@ -642,37 +617,183 @@ THREE.LDRPartType = function() {
 	this.ID = id.toLowerCase();
     }
 
-    this.generateThreePart = function(loader, c, p, r, cull, inv, meshCollector) {
+    this.generateThreePart = function(loader, c, p, r, cull, inv, meshCollector, parentIsDat) {
 	for(var i = 0; i < this.steps.length; i++) {
-	    this.steps[i].generateThreePart(loader, c, p, r, cull, inv, meshCollector);
+	    this.steps[i].generateThreePart(loader, c, p, r, cull, inv, meshCollector, parentIsDat, this.ID.endsWith('dat'));
 	}
     }
 }
 
+THREE.ConditionalLineEvaluator = function(baseObject, lines) {
+    if(!baseObject)
+	throw "No base object!";
+    if(!lines)
+	throw "No lines!";
+
+    this.baseObject = baseObject;
+    this.groups = []; // [] -> {representativeLine, visible}
+
+    // handle lines and set up groups:
+    /*
+      Sweep line algorithm:
+      - First sort the a-values by 'x'.
+      - Sweep the values using a window.
+      - Combine values within window.
+    */
+    // First decorate with a,b,c:
+    for(var i = 0; i < lines.length; i++) {
+	var [a,b,c] = this.getNormalizedABC(lines[i]);
+	lines[i].a = a;
+	lines[i].b = b;
+	lines[i].c = c;
+    }
+    // Sort lines by 'x' of a-values:
+    lines.sort(function(l1, l2) {
+	if(l1.a.x != l2.a.x) 
+	    return l1.a.x - l2.a.x; 
+	if(l1.a.y != l2.a.y) 
+	    return l1.a.y - l2.a.y; 
+	return l1.a.z - l2.a.z;
+    });
+    // Checks if vectors are 'almost' equal by comparing their distance (squared)
+    function vectorsAlmostEqual(v1, v2) {
+	return v1.manhattanDistanceTo(v2) < 0.0001;
+    }
+    function linesABCAlmostEqual(l1, l2) {
+	return vectorsAlmostEqual(l1.a, l2.a) && vectorsAlmostEqual(l1.b, l2.b) && vectorsAlmostEqual(l1.c, l2.c);
+    }
+    // Sweep lines by a.x:
+    for(var i = 0; i < lines.length; i++) {
+	var line = lines[i];
+	var windowStart = Math.max(0, i-50); // TODO: Find proper window size
+	var matched = false;
+	for(var j = windowStart; j < i; j++) {
+	    var oldLine = lines[j];
+	    if(linesABCAlmostEqual(line, oldLine)) {
+		line.group = oldLine.group;
+		matched = true;
+		break;
+	    }
+	}
+	if(!matched) {
+	    this.prepareLine(line);
+	    var group = {representativeLine:line, visible:false};
+	    this.groups.push(group);
+	    line.group = group;
+	}
+    }
+    console.log("Optimized conditional lines: " + lines.length + " -> " + this.groups.length);
+}
+
+THREE.ConditionalLineEvaluator.prototype.getNormalizedABC = function(line) {
+    var b = new THREE.Vector3(line.p3.x, line.p3.y, line.p3.z);
+    var c = new THREE.Vector3(line.p4.x, line.p4.y, line.p4.z);
+
+    var det = new THREE.Vector3(); det.subVectors(b, c);
+    if(det.x < 0 || (det.x == 0 && det.y < 0) || (det.x == 0 && det.y == 0 && det.z < 0)) {
+	// Swap the control points id the determinant (their diff) is negative.
+	var tmp = b;
+	b = c;
+	c = tmp;
+    }
+
+    // Choose a, so distance to b is minimized:
+    var a = new THREE.Vector3();
+    if(line.p1.distanceToSquared(b) < line.p2.distanceToSquared(b)) {
+	a.subVectors(line.p1, line.p2);
+	b.sub(line.p1); c.sub(line.p1);
+    }
+    else {
+	a.subVectors(line.p2, line.p1);
+	b.sub(line.p2); c.sub(line.p2);
+    }
+
+    // Negate a if 'negative':
+    if(a.x < 0 || (a.x == 0 && a.y < 0) || (a.x == 0 && a.y == 0 && a.z < 0)) {
+	a.negate();
+    }
+    // Same with control points:
+    if(b.x < 0 || (b.x == 0 && b.y < 0) || (b.x == 0 && b.y == 0 && b.z < 0)) {
+	b.negate();
+	c.negate();
+    }
+    a.normalize();
+    b.normalize();
+    c.normalize();
+    return [a,b,c];
+}
+
 /*
  * Group conditional lines by the relationships between their points.
- * Define: a=(p2-p1), b=(p2-pr) and c=(p2-p4)
- * M is some multiplier to ensule grouping matches properly. Currently M=100.000.
+ * Define: a=(p2-p1), b=(p2-p3) and c=(p2-p4)
+ * M is some multiplier to ensule grouping matches properly.
  * F(n) = parseInt(multiplier*n).
  * G(p) = F(p.x)+'_'+F(p.y)+'_'+F(p.z)
  * ID = G(a)+'|'+G(b)+'|'+G(c)
+ *
+ * Unfortunately this doesn't work. Vectors get too scrambled during transformations :(
  */
-THREE.ConditionalLineEvaluator = function() {
-    this.M = 100000;
-    this.groupIDs = [];
-    this.groups = {}; // ID -> {representativeLine, visible}
+/*THREE.ConditionalLineEvaluator.prototype.lineToID = function(line) {
+    var [a,b,c] = this.getNormalizedABC(line);
+
+    function F(n) {
+	return ''+Math.round(1000*n);
+    }
+    function G(p) {
+	return F(p.x)+'_'+F(p.y)+'_'+F(p.z);
+    }
+    return G(a)+'|'+G(b)+'|'+G(c);
+}*/
+
+/*
+  Input line: {p1, p2, p3, p4} - all THREE.Vector3's.
+  Computes and sets .wp2, .wp2, .wp3, .wp4 if htye are not already set on input line.
+ */
+THREE.ConditionalLineEvaluator.prototype.prepareLine = function(line) {
+    var self = this;
+    function createPoint(p) { // This function creates a THREE.Object3D in order to identify screen coordinates.
+	var ret = new THREE.Object3D();
+	ret.position.x = p.x;
+	ret.position.y = p.y;
+	ret.position.z = p.z;
+	self.baseObject.add(ret);
+	ret.updateMatrixWorld();
+	return ret;
+    }
+    if(!line.wp1) {
+	line.wp1 = createPoint(line.p1);
+	line.wp2 = createPoint(line.p2);
+	line.wp3 = createPoint(line.p3);
+	line.wp4 = createPoint(line.p4);
+    }
 }
 
-THREE.ConditionalLineEvaluator.prototype.getIdFromLine = function(line) {
-    // TODO!
-}
+THREE.ConditionalLineEvaluator.prototype.update = function(camera) {
+    function toScreenCoordinates(p) {
+	var v = new THREE.Vector3();
+	p.getWorldPosition(v);
+	return v.project(camera);
+    }
 
-THREE.ConditionalLineEvaluator.prototype.addLine = function(line) {
-    // TODO!
-}
+    for(var i = 0; i < this.groups.length; i++) {
+	var group = this.groups[i];
 
-THREE.ConditionalLineEvaluator.prototype.updateGroups = function(line) {
-    // TODO!
+	var c = group.representativeLine;
+
+	var p1 = toScreenCoordinates(c.wp1);
+	var p2 = toScreenCoordinates(c.wp2);
+	var p3 = toScreenCoordinates(c.wp3);
+	var p4 = toScreenCoordinates(c.wp4);
+
+	var dx12 = p2.x-p1.x;
+	var dy12 = p2.y-p1.y;
+	var dx13 = p3.x-p1.x;
+	var dy13 = p3.y-p1.y;
+	var dx14 = p4.x-p1.x;
+	var dy14 = p4.y-p1.y;
+	var v = (dx12*dy13 - dy12*dx13 > 0) == (dx12*dy14 - dy12*dx14 > 0);
+	group.visible = v;
+    }
 }
 
 /*
@@ -683,13 +804,21 @@ THREE.ConditionalLineEvaluator.prototype.updateGroups = function(line) {
   (See LDROptions.js)
 */
 THREE.LDRMeshCollector = function() {
-    this.triangles = []; // Color ID -> triangles. Use getTrianglePointPositionsForColor()
-    this.lines = []; // Color ID -> lines. Notice: Use getLinesForColor(). Colors 10000+ are for edge colors!.
+    // Vertices (shared among both triangles and lines):
+    this.unbakedVertices = []; // Points {x,y,z,id,t,c} // t = true for triangles, c=colorID
+    this.vertices = []; // 'baked' vertices shared by triangles and normal lines.
+    this.sizeVertices = 0;
+    this.conditionalLineEvaluator;
+
+    // Temporary geometries:
+    this.triangles = []; // Color ID -> triangle indices. Notice: Colors 10000+ are for edge colors!
+    this.lines = []; // Color ID -> lines. Notice: Colors 10000+ are for edge colors!
     this.conditionalLines = []; // [] -> {colorID, p1, p2, p3, p4}. Direct access. Notice: Colors 10000+ are for edge colors.
 
     this.triangleColors = []; // [] -> used color
     this.lineColors = []; // [] -> used color (only for non-conditional lines)
 
+    // Final three.js geometries:
     this.triangleMeshes; // [] -> meshes
     this.lineMeshes; // [] -> Meshes (non-conditional lines)
     this.conditionalLineMeshes; // [] -> Meshes (one for each line).
@@ -699,20 +828,31 @@ THREE.LDRMeshCollector = function() {
     this.visible = false;
 }
 
-THREE.LDRMeshCollector.prototype.getTrianglePointPositionsForColor = function(colorID) {
+THREE.LDRMeshCollector.prototype.addTriangle = function(colorID, p1, p2, p3) {
     if(!this.triangles[colorID]) {
 	this.triangles[colorID] = [];
 	this.triangleColors.push(colorID);
     }
-    return this.triangles[colorID];
+    var t = this.triangles[colorID];
+    var size = t.length;
+    t.push(-1, -1, -1);
+
+    this.unbakedVertices.push({x:p1.x, y:p1.y, z:p1.z, id:size,   t:true, c:colorID},
+			      {x:p2.x, y:p2.y, z:p2.z, id:size+1, t:true, c:colorID}, 
+			      {x:p3.x, y:p3.y, z:p3.z, id:size+2, t:true, c:colorID});
 }
 
-THREE.LDRMeshCollector.prototype.getLinesForColor = function(colorID) {
+THREE.LDRMeshCollector.prototype.addLine = function(colorID, p1, p2) {
     if(!this.lines[colorID]) {
 	this.lines[colorID] = [];
 	this.lineColors.push(colorID);
     }
-    return this.lines[colorID];
+    var t = this.lines[colorID];
+    var size = t.length;
+    t.push(-1, -1);
+
+    this.unbakedVertices.push({x:p1.x, y:p1.y, z:p1.z, id:size,   t:false, c:colorID},
+			      {x:p2.x, y:p2.y, z:p2.z, id:size+1, t:false, c:colorID});
 }
 
 /*
@@ -752,11 +892,11 @@ THREE.LDRMeshCollector.prototype.updateNormalLines = function(baseObject) {
  * See 'http://www.ldraw.org/article/218.html' for specification of 'optional'/'conditional' lines.
  * A conditional line should be draw when the camera sees p3 and p4 on same side of line p1 p2.
  *
- * TODO: Try to use ConditionalLineEvaluator for performance boost.
+ * Uses ConditionalLineEvaluator for performance boost.
  */
 THREE.LDRMeshCollector.prototype.updateConditionalLines = function(baseObject, camera) {
-    if(!camera)
-	throw "Camera is undefined!";
+    if(!camera || !camera.isCamera)
+	throw "Camera error!";
     if(ldrOptions.showLines > 0) { // Don't show conditional lines:
 	if(!this.conditionalLineMeshes)
 	    return;
@@ -770,34 +910,19 @@ THREE.LDRMeshCollector.prototype.updateConditionalLines = function(baseObject, c
     if(!this.conditionalLineMeshes) {
 	this.createConditionalLines(baseObject);
     }
+
     if(!this.visible) {
 	for(var i = 0; i < this.conditionalLineMeshes.length; i++) {
 	    this.conditionalLineMeshes[i].visible = false;
 	}
 	return;
     }
-    //console.log("SLOW UPDATE " + this.conditionalLines.length);
 
-    function toScreenCoordinates(p) {
-	var v = new THREE.Vector3();
-	p.getWorldPosition(v);
-	return v.project(camera);
-    }
+    this.conditionalLineEvaluator.update(camera);
     for(var i = 0; i < this.conditionalLineMeshes.length; i++) {
-	var c = this.conditionalLines[i]; // {color, p1, p2, p3, p4}
-	var p1 = toScreenCoordinates(c.wp1);
-	var p2 = toScreenCoordinates(c.wp2);
-	var p3 = toScreenCoordinates(c.wp3);
-	var p4 = toScreenCoordinates(c.wp4);
-
-	var dx12 = p2.x-p1.x;
-	var dy12 = p2.y-p1.y;
-	var dx13 = p3.x-p1.x;
-	var dy13 = p3.y-p1.y;
-	var dx14 = p4.x-p1.x;
-	var dy14 = p4.y-p1.y;
-	var v = (dx12*dy13 - dy12*dx13 > 0) == (dx12*dy14 - dy12*dx14 > 0);
-	this.conditionalLineMeshes[i].visible = v;
+	var mesh = this.conditionalLineMeshes[i];
+	var c = this.conditionalLines[i];
+	mesh.visible = c.group.visible;
     }
 }
 
@@ -812,22 +937,10 @@ THREE.LDRMeshCollector.prototype.createNormalLines = function(baseObject) {
 	var lineMaterial = lineColor < 10000 ? 
 	    LDR.Colors.getLineMaterial(lineColor) : 
 	    LDR.Colors.getEdgeLineMaterial(lineColor - 10000);
-	var linesInColor = this.lines[lineColor];
-
-	// Build lines and indices:
-	var positions = new Float32Array(linesInColor.length * 6);
-	var indices = [];
-	for(var j = 0; j < linesInColor.length; j++) {
-	    var lineInColor = linesInColor[j];
-	    for(var k = 0; k < 6; k++)
-		positions[6*j+k] = lineInColor[k];
-	    indices.push(2*j);
-	    indices.push(2*j+1);
-	}
 	// Create the three.js line:
 	var lineGeometry = new THREE.BufferGeometry();
-	lineGeometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
-	lineGeometry.setIndex(new THREE.BufferAttribute(new Uint16Array(indices), 1));
+	lineGeometry.setIndex(this.lines[lineColor]);
+	lineGeometry.addAttribute('position', this.vertexAttribute);
 	var line = new THREE.LineSegments(lineGeometry, lineMaterial);
 	this.lineMeshes.push(line);
 	baseObject.add(line);
@@ -838,15 +951,6 @@ THREE.LDRMeshCollector.prototype.createConditionalLines = function(baseObject) {
     this.conditionalLineMeshes = [];
 
     // Now handle conditional lines:
-    function createPoint(p) { // This function creates a THREE.Object3D in order to identify screen coordinates.
-	var ret = new THREE.Object3D();
-	ret.position.x = p.x;
-	ret.position.y = p.y;
-	ret.position.z = p.z;
-	baseObject.add(ret);
-	ret.updateMatrixWorld();
-	return ret;
-    }
     for(var i = 0; i < this.conditionalLines.length; i++) {
 	var c = this.conditionalLines[i]; // [color, p1, p2, p3, p4]
 	var lineColor = c.colorID;
@@ -859,15 +963,6 @@ THREE.LDRMeshCollector.prototype.createConditionalLines = function(baseObject) {
 	lineGeometry.addAttribute('position', new THREE.Float32BufferAttribute(
 	    [c.p1.x, c.p1.y, c.p1.z, c.p2.x, c.p2.y, c.p2.z], 3));
 	var line = new THREE.Line(lineGeometry, lineMaterial);
-	//console.log(c.p1.x + "," + c.p1.y + "," + c.p1.z + " -> " + c.p2.x + "," + c.p2.y + c.p2.z);
-
-	// Add points:
-	if(!c.wp1) {
-	    c.wp1 = createPoint(c.p1);
-	    c.wp2 = createPoint(c.p2);
-	    c.wp3 = createPoint(c.p3);
-	    c.wp4 = createPoint(c.p4);
-	}
 
 	this.conditionalLineMeshes.push(line);
 	baseObject.add(line);
@@ -893,6 +988,44 @@ THREE.LDRMeshCollector.prototype.computeBoundingBox = function() {
     }
 }
 
+var orig = 0;
+var reduced = 0;
+THREE.LDRMeshCollector.prototype.bakeVertices = function() {
+    // Sort and reduce the vertices:
+    var len = this.unbakedVertices.length;
+    orig += len;
+    //console.log("Baking " + len + " vertices.");
+    this.unbakedVertices.sort(function(a, b){
+	if(a.x != b.x)
+	    return a.x-b.x;
+	if(a.y != b.y)
+	    return a.y-b.y;
+	return a.z-b.z;
+    });
+    
+    var prev = {x:-123456, y:-123456, z:-123456};
+    //var cnt = 0;
+    for(var i = 0; i < len; i++) {
+	var p = this.unbakedVertices[i];
+	if(p.z != prev.z || p.y != prev.y || p.x != prev.x) {
+	    // New vertex:
+	    this.vertices.push(p.x, p.y, p.z);
+	    reduced++;
+	    this.sizeVertices++;
+	    prev = p;
+	    //cnt++;
+	}
+	if(p.t) { // Triangle vertex:
+	    this.triangles[p.c][p.id] = this.sizeVertices -1;
+	}
+	else {
+	    this.lines[p.c][p.id] = this.sizeVertices -1;
+	}
+    }
+    this.unbakedVertices = [];
+    //console.log("Compacted to " + reduced + " vertices / " + orig);
+}
+
 /*
   Relevant options:
   - showOldColors 0 = all colors. 1 = single color old. 2 = dulled old.
@@ -900,6 +1033,9 @@ THREE.LDRMeshCollector.prototype.computeBoundingBox = function() {
 */
 THREE.LDRMeshCollector.prototype.buildTriangles = function(old, baseObject) {
     this.triangleMeshes = []; // colorID -> mesh.
+    this.vertexAttribute = new THREE.Float32BufferAttribute(this.vertices, 3); // to be reused
+    this.vertices = undefined;
+
     for(var i = 0; i < this.triangleColors.length; i++) {
 	var triangleColor = this.triangleColors[i];
 	var triangleMaterial;
@@ -921,8 +1057,9 @@ THREE.LDRMeshCollector.prototype.buildTriangles = function(old, baseObject) {
 	}
 
 	var triangleGeometry = new THREE.BufferGeometry();
-	triangleGeometry.addAttribute('position', new THREE.Float32BufferAttribute(
-	    new Float32Array(this.triangles[triangleColor]), 3));
+	triangleGeometry.setIndex(this.triangles[triangleColor]);
+	triangleGeometry.addAttribute('position', this.vertexAttribute);
+	
 	triangleGeometry.computeBoundingBox();
 	var mesh = new THREE.Mesh(triangleGeometry, triangleMaterial);
 	this.triangleMeshes.push(mesh);
@@ -1013,6 +1150,9 @@ THREE.LDRMeshCollector.prototype.createOrUpdateTriangles = function(old, baseObj
 THREE.LDRMeshCollector.prototype.draw = function(baseObject, camera, old) {
     if(old == undefined)
 	throw "'old' is undefined!";
+
+    if(!this.conditionalLineEvaluator)
+	this.conditionalLineEvaluator = new THREE.ConditionalLineEvaluator(baseObject, this.conditionalLines);
 
     var created = this.createOrUpdateTriangles(old, baseObject);
     if(created) {

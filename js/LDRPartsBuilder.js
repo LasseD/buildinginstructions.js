@@ -102,7 +102,7 @@ LDR.PartAndColor.prototype.ensureMeshCollector = function() {
 	var r = new THREE.Matrix3(); 
 	r.set(1,0,0, 0,-1,0, 0,0,-1);
 
-	this.partType.generateThreePart(this.ldrLoader, this.colorID, p, r, true, false, this.meshCollector);
+	this.partType.generateThreePart(this.ldrLoader, this.colorID, p, r, true, false, this.meshCollector, false);
 	this.partType = undefined; // No use for it anymore.
 	this.ldrLoader = undefined;
     }

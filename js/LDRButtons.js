@@ -46,6 +46,8 @@ LDR.Buttons.prototype.addTopButtonElements = function(element, homeLink, mainIma
     this.topButtons.appendChild(this.frButton);
 
     this.homeButton = this.createDiv('homeButton');
+    if(mainImage)
+	this.homeButton.setAttribute('class', 'image');
     var homeA = document.createElement('a');
     homeA.setAttribute('href', homeLink);
     homeA.setAttribute('class', 'homeAnchor');

@@ -66,7 +66,7 @@ LDR.PLIBuilder.prototype.render = function(key, w, h) {
     this.renderer.setSize(w, h);
     this.updateCamera(w, h, zoom);
     this.renderer.render(this.scene, this.camera);
-    pc.meshCollector.updateConditionalLines(pc.mesh, this.camera);
+    pc.meshCollector.updateConditionalLines(this.scene, this.camera);
     this.renderer.render(this.scene, this.camera);
     this.scene.remove(pc.mesh);
 }
