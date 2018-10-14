@@ -978,6 +978,7 @@ THREE.LDRMeshCollector.prototype.createConditionalLines = function(baseObject) {
 	    LDR.Colors.getEdgeLineMaterial(lineColor - 10000);
 	// Create the three.js line:
 	var lineGeometry = new THREE.BufferGeometry();
+	lineGeometry.setIndex([]);
 	lineGeometry.addAttribute('position', this.vertexAttribute);
 	var line = new THREE.LineSegments(lineGeometry, lineMaterial);
 	this.conditionalLineMeshes[lineColor] = line;
