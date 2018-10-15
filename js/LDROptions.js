@@ -100,15 +100,29 @@ LDR.Options.prototype.appendFooter = function(optionsBlock) {
     a.appendChild(LDR.SVG.makeUpArrow());
 }
 LDR.Options.prototype.appendDescriptionBar = function(optionsBlock, columns, description) {
-    var span = document.createElement('tr');
+    var tr = document.createElement('tr');
+    tr.setAttribute('class', 'options_description_header');
 
     var td = document.createElement('td');
     td.setAttribute('class', 'options_description');
     td.setAttribute('colspan', ""+columns);
-    td.innerHTML = description;
 
-    span.appendChild(td);
-    optionsBlock.appendChild(span);
+    var desc = document.createElement('span');
+    desc.innerHTML = description;
+
+    var aHolder = document.createElement('span');
+    var a = document.createElement('a');
+    a.setAttribute('href', '#top');
+    var svg = LDR.SVG.makeUpArrow();
+    svg.setAttribute('viewBox', '20 20 60 60');
+    a.appendChild(svg);
+    aHolder.appendChild(a);
+
+    td.appendChild(desc);
+    td.appendChild(aHolder);
+
+    tr.appendChild(td);
+    optionsBlock.appendChild(tr);
 }
 
 LDR.Options.prototype.appendOldBrickColorOptions = function(optionsBlock) {
