@@ -73,11 +73,13 @@ THREE.LDRLoader.prototype.reportProgress = function(id) {
 
 /*
  * .mpd and .ldr files are considered to be 'top level'.
+ * Additionally. Files without suffixes should also be considered 'top level', since stud.io 2.0 outputs these.
+ * All in all, anything but .dat files should be considered 'top level'.
  *
  * id is the id/name of the (sub)file.
  */
 THREE.LDRLoader.prototype.isTopLevelModel = function(id) {
-    return id.endsWith("ldr") || id.endsWith("mpd");
+    return !id.endsWith(".dat");
 }
 
 /*
@@ -127,7 +129,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
     }
 
     // State information:
-    var previousComment = "";
+    var previousComment;
     var firstModel = true;
 
     var dataLines = data.split("\r\n");
@@ -153,7 +155,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 
 	var self = this;
 	function setModelDescription() {
-	    if(part.modelDescription) 
+	    if(part.modelDescription || !previousComment)
 		return;
 	    part.modelDescription = previousComment;
 	    if(previousComment.startsWith("~Moved to ")) {
@@ -166,38 +168,35 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    else if(previousComment.startsWith("~Unknown part ")) {
 		self.onError({message:'Unknown part "' + part.ID + '" will be shown as a cube.', line:i, subModel:part});
 	    }
+	    previousComment = undefined;
+	}
+
+	function handleFileStart(fileName) {
+	    fileName = fileName.toLowerCase().replace('\\', '/');
+	    if(part.ID === fileName) {
+		setModelDescription();
+		return; // Consistent 'FILE' and 'Name:' lines.
+	    }
+	    if(!firstModel) {
+		// Close model and start new:
+		closeStep(false);
+		self.ldrPartTypes[part.ID] = part;
+		self.onProgress(part.ID);
+		part = new THREE.LDRPartType();
+	    }
+	    part.ID = fileName;
+	    if(firstModel) {
+		if(!self.mainModel)
+		    self.mainModel = part.ID;
+		firstModel = false;		
+	    }
 	}
 
 	switch(lineType) {
 	case 0: // TODO: Many commands from LDraw and various vendors.
-	    if(is("FILE")) { // NOFILE command is not supported.
-		// MPD FILE Block found. Set name and start new part if not the first
-		if(!firstModel) {
-		    // Close model and start new:
-		    closeStep(false);
-		    this.ldrPartTypes[part.ID] = part;
-		    this.onProgress(part.ID);
-		    part = new THREE.LDRPartType();
-		}
-		var fileName = parts.slice(2).join(" "); // Trim "0 FILE ".
-		part.setID(fileName);
-		if(firstModel) {
-		    if(!this.mainModel)
-			this.mainModel = part.ID;
-		    firstModel = false;		
-		}
-	    }
-	    else if(is("Name:")) {
-		// LDR Name: line found. Set name and update data in case this is an ldr file (do not use file suffix to determine).
-		// Set name and model description:
-		if(!part.ID)
-		    part.setID(parts.slice(2).join(" "));
-		setModelDescription();
-		if(firstModel) {
-		    if(!this.mainModel)
-			this.mainModel = part.ID;
-		    firstModel = false;
-		}
+	    if(is("FILE") || is("Name:")) {
+		// LDR FILE or 'Name:' line found. Set name and update data in case this is a new ldr file (do not use file suffix to determine).
+		handleFileStart(parts.slice(2).join(" "));
 	    }
 	    else if(is("Author:")) {
 		part.author = parts.slice(2).join(" ");
@@ -248,6 +247,10 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    }
 	    else if(parts[1] === "!INLINED") {
 		part.inlined = true;
+	    }
+	    else if(parts[1][0] === "!") {
+		invertNext = false;
+		self.onWarning({message:'Unknown LDraw command "' + parts[1] + '" is ignored.', line:i, subModel:part});
 	    }
 	    else {
 		invertNext = false;
@@ -613,10 +616,6 @@ THREE.LDRPartType = function() {
 	this.lastRotation = step.rotation;
     }
 
-    this.setID = function(id) {
-	this.ID = id.toLowerCase();
-    }
-
     this.generateThreePart = function(loader, c, p, r, cull, inv, meshCollector, parentIsDat) {
 	for(var i = 0; i < this.steps.length; i++) {
 	    this.steps[i].generateThreePart(loader, c, p, r, cull, inv, meshCollector, parentIsDat, this.ID.endsWith('dat'));
@@ -688,7 +687,7 @@ THREE.ConditionalLineEvaluator = function(baseObject, indices, lines) {
 	    line.group = group;
 	}
     }
-    console.log("Optimized conditional lines: " + lines.length + " -> " + this.groups.length);
+    //console.log("Optimized conditional lines: " + lines.length + " -> " + this.groups.length);
 }
 
 THREE.ConditionalLineEvaluator.prototype.getNormalizedABC = function(line) {
@@ -903,7 +902,6 @@ THREE.LDRMeshCollector.prototype.updateConditionalLines = function(baseObject, c
     if(!camera || !camera.isCamera)
 	throw "Camera error!";
     if(ldrOptions.showLines > 0) { // Don't show conditional lines:
-	console.log("NO SHOW COND LINES");
 	if(!this.conditionalLineMeshes)
 	    return;
 	for(var i = 0; i < this.conditionalLineMeshes.length; i++) {

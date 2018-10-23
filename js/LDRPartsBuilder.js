@@ -56,6 +56,10 @@ LDR.PartAndColor = function(partID, colorID, ldrLoader) {
     this.ldrLoader = ldrLoader;
 
     this.partType = ldrLoader.ldrPartTypes[partID];
+    if(!this.partType) {
+	console.dir(ldrLoader);
+	throw "Unknown part type: " + partID;
+    }
     // Use replacement part:
     if(this.partType.replacement) {
 	//console.log("Replacing: " + partID + " -> " + this.partType.replacement);
@@ -104,12 +108,16 @@ LDR.PartAndColor.prototype.ensureMeshCollector = function() {
 
 	this.partType.generateThreePart(this.ldrLoader, this.colorID, p, r, true, false, this.meshCollector, false);
 	this.partType = undefined; // No use for it anymore.
-	this.ldrLoader = undefined;
+	//this.ldrLoader = undefined;
     }
 }
 
 LDR.PartAndColor.prototype.getBounds = function() {
     this.ensureMeshCollector();
+    if(!this.meshCollector.boundingBox) {
+	console.dir(this.ldrLoader);
+	throw "No bounding box for " + this.partID + " / " + this.partDesc;
+    }
     return this.meshCollector.boundingBox;
 }
 LDR.PartAndColor.prototype.draw = function(baseObject, camera) {
