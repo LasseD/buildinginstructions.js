@@ -18,8 +18,10 @@ LDR.PartsBulder = function(ldrLoader, mainModelID, mainModelColor) {
 
     function build(multiplier, partID, colorID) {
 	var model = ldrLoader.ldrPartTypes[partID];
-	if(!model)
+	if(!model) {
+	    console.dir(ldrLoader);
 	    throw "model not loaded: " + partID;
+	}
 	for(var i = 0; i < model.steps.length; i++) {
 	    var step = model.steps[i];
 	    if(step.ldrs.length > 0) {
@@ -108,14 +110,13 @@ LDR.PartAndColor.prototype.ensureMeshCollector = function() {
 
 	this.partType.generateThreePart(this.ldrLoader, this.colorID, p, r, true, false, this.meshCollector, false);
 	this.partType = undefined; // No use for it anymore.
-	//this.ldrLoader = undefined;
+	this.ldrLoader = undefined;
     }
 }
 
 LDR.PartAndColor.prototype.getBounds = function() {
     this.ensureMeshCollector();
     if(!this.meshCollector.boundingBox) {
-	console.dir(this.ldrLoader);
 	throw "No bounding box for " + this.partID + " / " + this.partDesc;
     }
     return this.meshCollector.boundingBox;

@@ -130,7 +130,6 @@ THREE.LDRLoader.prototype.parse = function(data) {
 
     // State information:
     var previousComment;
-    var firstModel = true;
 
     var dataLines = data.split("\r\n");
     for(var i = 0; i < dataLines.length; i++) {
@@ -171,32 +170,34 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    previousComment = undefined;
 	}
 
-	function handleFileStart(fileName) {
+	function handlePotentialFileStart(fileName) {
+	    // Normalize the name by bringing to lower case and replacing backslashes:
 	    fileName = fileName.toLowerCase().replace('\\', '/');
-	    if(part.ID === fileName) {
+
+	    if(part.ID === fileName) { // Consistent 'FILE' and 'Name:' lines.
 		setModelDescription();
-		return; // Consistent 'FILE' and 'Name:' lines.
 	    }
-	    if(!firstModel) {
-		// Close model and start new:
+	    else if(!self.mainModel) { // First model
+		self.mainModel = part.ID = fileName;
+	    }
+	    else if(part.steps.length == 0 && self.mainModel === part.ID) {
+		// Special case: Main model is empty, but a new model name is ancountered!
+		self.mainModel = part.ID = fileName;		
+	    }
+	    else { // Close model and start new:
 		closeStep(false);
 		self.ldrPartTypes[part.ID] = part;
 		self.onProgress(part.ID);
 		part = new THREE.LDRPartType();
-	    }
-	    part.ID = fileName;
-	    if(firstModel) {
-		if(!self.mainModel)
-		    self.mainModel = part.ID;
-		firstModel = false;		
+		part.ID = fileName;
 	    }
 	}
 
 	switch(lineType) {
 	case 0: // TODO: Many commands from LDraw and various vendors.
-	    if(is("FILE") || is("Name:")) {
+	    if(is("FILE") || is("file") || is("Name:")) {
 		// LDR FILE or 'Name:' line found. Set name and update data in case this is a new ldr file (do not use file suffix to determine).
-		handleFileStart(parts.slice(2).join(" "));
+		handlePotentialFileStart(parts.slice(2).join(" "));
 	    }
 	    else if(is("Author:")) {
 		part.author = parts.slice(2).join(" ");
