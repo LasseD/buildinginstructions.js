@@ -26,6 +26,8 @@ LDR.PartsBulder = function(ldrLoader, mainModelID, mainModelColor) {
 	    var step = model.steps[i];
 	    if(step.ldrs.length > 0) {
 		var ldr = step.ldrs[0];
+		if(ldr.ID === partID)
+		    throw "Error: recursive model: " + partID + " in step " + i;
 		build(multiplier*step.ldrs.length, ldr.ID, colorID == 16 ? ldr.colorID : colorID);
 	    }
 	    else if(step.dats.length > 0) {		

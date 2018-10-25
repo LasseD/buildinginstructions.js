@@ -180,9 +180,10 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    else if(!self.mainModel) { // First model
 		self.mainModel = part.ID = fileName;
 	    }
-	    else if(part.steps.length == 0 && self.mainModel === part.ID) {
-		// Special case: Main model is empty, but a new model name is ancountered!
-		self.mainModel = part.ID = fileName;		
+	    else if(part.steps.length == 0 && step.empty && 
+		    Object.keys(extraSteps).length == 0 && self.mainModel === part.ID) {
+		console.log("Special case: Main model ID change from " + part.ID + " to " + fileName);
+		self.mainModel = part.ID = fileName;
 	    }
 	    else { // Close model and start new:
 		closeStep(false);
@@ -235,10 +236,6 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    }
 	    else if(parts[1] === "ROTSTEP") {
 		if(parts.length >= 5) {
-		    if(parts.length == 6 && parts[5] === "ABS") {
-			this.onWarning({message:'Rotation type "ABS" is not yet supported. This will appear as a normal step.', line:i, subModel:part});
-		    }
-		    //console.log("Rotation! " + parts[2] + " " + parts[3] + " " + parts[4] + " " + parts[5]);
 		    step.rotation = new THREE.LDRStepRotation(parts[2], parts[3], parts[4], (parts.length == 5 ? "REL" : parts[5]));
 		}
 		else if(parts.length == 3 && parts[2] === "END") {
@@ -402,6 +399,20 @@ THREE.LDRStepRotation.equals = function(a, b) {
     return (a.x === b.x) && (a.y === b.y) && (a.z === b.z) && (a.type === b.type);
 }
 
+// Get the rotation matrix by looking at the default camera position:
+THREE.LDRStepRotation.getAbsRotationMatrix = function() {
+    var looker = new THREE.Object3D();
+    looker.position.x = -10000;
+    looker.position.y = -7000;
+    looker.position.z = -10000;
+    looker.lookAt(new THREE.Vector3());
+    looker.updateMatrix();
+    var m0 = new THREE.Matrix4();
+    m0.extractRotation(looker.matrix);
+    return m0;
+}
+THREE.LDRStepRotation.ABS = THREE.LDRStepRotation.getAbsRotationMatrix();
+
 /* 
    Specification: https://www.lm-software.com/mlcad/Specification_V2.0.pdf (page 7 and 8)
 */
@@ -441,8 +452,7 @@ THREE.LDRStepRotation.prototype.getRotationMatrix = function(defaultMatrix, curr
 	ret.copy(currentMatrix).multiply(rotationMatrix);
     }
     else { // this.type === ABS
-	// TODO: Make an "ABS" default rotation matrix.
-	ret.copy(rotationMatrix);
+	ret.copy(THREE.LDRStepRotation.ABS).multiply(rotationMatrix);
     }
     return ret;
 }
