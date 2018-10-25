@@ -13,7 +13,7 @@ LDR.PLIBuilder = function(ldrLoader, mainModelID, mainModelColor, pliElement, pl
     var self = this;
     ldrOptions.listeners.push(function() {
 	if(self.lastStep) {
-	    self.drawPLIForStep(self.fillHeight, self.lastStep, 
+	    self.drawPLIForStep(self.fillHeight, self.lastStep, self.lastColorID,
 				self.lastMaxWidth, self.lastMaxHeight, true);
 	}
     });
@@ -43,6 +43,10 @@ LDR.PLIBuilder.prototype.updateCamera = function(w, h, zoom) {
 
 LDR.PLIBuilder.prototype.render = function(key, w, h) {
     var pc = this.partsBuilder.pcs[key];
+    if(!pc) {
+	console.dir(this.partsBuilder.pcs);
+	throw "Unknown key: " + key;
+    }
     var b;
     if(!pc.mesh) {
 	pc.mesh = new THREE.Group();
@@ -71,13 +75,13 @@ LDR.PLIBuilder.prototype.render = function(key, w, h) {
     this.scene.remove(pc.mesh);
 }
 
-LDR.PLIBuilder.prototype.createSortedIcons = function(step) {
+LDR.PLIBuilder.prototype.createSortedIcons = function(step, stepColorID) {
     var icons = {}; // key -> {key, partID, colorID, mult, desc}, key='part_id'_'color_id'
     var sortedIcons = [];
     for(var i = 0; i < step.dats.length; i++) {
 	var dat = step.dats[i];
 	var partID = dat.ID;
-	var colorID = dat.colorID;
+	var colorID = dat.colorID == 16 ? stepColorID : dat.colorID;
 	var key = partID + '_' + colorID;
 	var icon = icons[key];
 	if(icon) {
@@ -108,19 +112,22 @@ LDR.PLIBuilder.prototype.createSortedIcons = function(step) {
     return sortedIcons;
 }
 
-LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, maxHeight, force) {
-    if(!force && this.lastStep && this.lastStep.idx === step.idx && 
+LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, maxWidth, maxHeight, force) {
+    if(!force && this.lastStep && 
+       this.lastStep.idx === step.idx && 
+       this.lastColorID === colorID &&
        this.lastMaxWidth == maxWidth && this.lastMaxHeight == maxHeight &&
        this.fillHeight == fillHeight) {
 	return;
     }
     this.lastStep = step;
+    this.lastColorID = colorID;
     this.lastMaxWidth = maxWidth;
     this.lastMaxHeight = maxHeight;
     this.fillHeight = fillHeight;
 
     // Find, sort and set up icons to show:
-    var sortedIcons = this.createSortedIcons(step);
+    var sortedIcons = this.createSortedIcons(step, colorID);
     var [W,H] = Algorithm.PackSquares(fillHeight, maxWidth, maxHeight, sortedIcons, 200);
     var iconSize = sortedIcons[0].width;
 

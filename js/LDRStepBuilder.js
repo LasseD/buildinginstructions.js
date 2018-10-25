@@ -23,7 +23,7 @@ var LDR = LDR || {};
 LDR.changeBufferSize = 0;
 LDR.changeBufferLimit = 5;
 
-LDR.StepBuilder = function(baseObject, camera, ldrLoader, partDescs, onProgress, isForMainModel, onlyLoadFirstStep) {    
+LDR.StepBuilder = function(baseObject, camera, ldrLoader, partDescs, onProgress, isForMainModel) {    
     this.baseObject = baseObject;
     this.camera = camera;
     this.ldrLoader = ldrLoader;
@@ -35,15 +35,9 @@ LDR.StepBuilder = function(baseObject, camera, ldrLoader, partDescs, onProgress,
     this.current = -1; // Índex of currently-shown step (call nextStep() to initialize)
     this.extraParts = partDescs.length > 1; // Replace with actual mesh builder once loaded.
     this.bounds = []; // Bounds for each step
-    this.firstStepLoaded = true;
     
     var partDesc = partDescs[0];
     this.part = ldrLoader.ldrPartTypes[partDesc.ID];
-    if(!this.part || this.part === true) {
-	// Unloaded model. Stop immediately.
-	this.firstStepLoaded = false;
-	return;
-    }
 
     this.totalNumberOfSteps = this.part.steps.length;
     for(var i = 0; i < this.part.steps.length; i++) {
@@ -54,11 +48,7 @@ LDR.StepBuilder = function(baseObject, camera, ldrLoader, partDescs, onProgress,
 		var placed = step.ldrs[j].placeAt(partDesc);
 		subDescs.push(placed);
 	    }
-	    var subStepBuilder = new LDR.StepBuilder(baseObject, camera, ldrLoader, subDescs, false, onlyLoadFirstStep);
-	    if(!subStepBuilder.firstStepLoaded) {
-		this.firstStepLoaded = false;
-		return; // Break early.
-	    }
+	    var subStepBuilder = new LDR.StepBuilder(baseObject, camera, ldrLoader, subDescs, false);
 	    this.subBuilders.push(subStepBuilder);
 	    this.totalNumberOfSteps += subStepBuilder.totalNumberOfSteps; 
 	}
@@ -67,8 +57,6 @@ LDR.StepBuilder = function(baseObject, camera, ldrLoader, partDescs, onProgress,
 	}
 	this.meshCollectors.push(null);
 	this.bounds.push(null);
-	if(onlyLoadFirstStep)
-	    break; // First step loaded
     }
     this.bounds.push(null); // One more for placement step.
     if(isForMainModel && partDescs.length > 1)
@@ -272,12 +260,11 @@ LDR.StepBuilder.prototype.setCurrentBounds = function(b) {
     }
 }
 
-LDR.StepBuilder.prototype.getCurrentStep = function() {
+LDR.StepBuilder.prototype.getCurrentStepAndColor = function() {
     var subBuilder = this.subBuilders[this.current];
-    var ret = this.partDescs.length;
     if(!subBuilder || subBuilder.isAtPlacementStep())
-	return this.part.steps[this.current];
-    return subBuilder.getCurrentStep();
+	return [this.part.steps[this.current], this.partDescs[0].colorID];
+    return subBuilder.getCurrentStepAndColor();
 }
 
 LDR.StepBuilder.prototype.getMultiplierOfCurrentStep = function() {

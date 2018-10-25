@@ -367,7 +367,7 @@ THREE.LDRPartDescription = function(colorID, position, rotation, ID, cull, inver
 
 THREE.LDRPartDescription.prototype.placeAt = function(pd) {
     // Compute augmented colorID, position, rotation, ID
-    var colorID = (this.colorID === 16 || this.colorID === 24) ? pd.colorID : this.colorID;
+    var colorID = (this.colorID == 16 || this.colorID == 24) ? pd.colorID : this.colorID;
     
     var position = new THREE.Vector3();
     position.copy(this.position);

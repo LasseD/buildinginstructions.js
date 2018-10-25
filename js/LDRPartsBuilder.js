@@ -17,6 +17,8 @@ LDR.PartsBulder = function(ldrLoader, mainModelID, mainModelColor) {
     var pcKeys = this.pcKeys;
 
     function build(multiplier, partID, colorID) {
+	if(colorID == 16)
+	    throw "Building with default color not allowed! Part ID: " + partID;
 	var model = ldrLoader.ldrPartTypes[partID];
 	if(!model) {
 	    console.dir(ldrLoader);
@@ -28,12 +30,12 @@ LDR.PartsBulder = function(ldrLoader, mainModelID, mainModelColor) {
 		var ldr = step.ldrs[0];
 		if(ldr.ID === partID)
 		    throw "Error: recursive model: " + partID + " in step " + i;
-		build(multiplier*step.ldrs.length, ldr.ID, colorID == 16 ? ldr.colorID : colorID);
+		build(multiplier*step.ldrs.length, ldr.ID, ldr.colorID == 16 ? colorID : ldr.colorID);
 	    }
-	    else if(step.dats.length > 0) {		
+	    else if(step.dats.length > 0) {	
 		for(var j = 0; j < step.dats.length; j++) {
 		    var dat = step.dats[j];
-		    var datColorID = (colorID === 16) ? colorID : dat.colorID;
+		    var datColorID = dat.colorID == 16 ? colorID : dat.colorID;
 		    var key = dat.ID + '_' + datColorID;
 		    var pc = pcs[key];
 		    if(!pc) {
