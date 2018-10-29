@@ -98,7 +98,11 @@ LDR.Buttons.prototype.hideElementsAccordingToOptions = function(addTopButtons) {
     }
     // Camera Buttons:
     if(ldrOptions.showCameraButtons === 2) {
-	this.cameraButtons.style.display = 'none';
+	this.zoomInButtonLarge.style.display = 'none';
+	this.zoomOutButtonLarge.style.display = 'none';
+	this.zoomInButton.style.display = 'none';
+	this.zoomOutButton.style.display = 'none';
+	this.resetCameraButton.style.visibility = 'hidden';
     }
     else if(ldrOptions.showCameraButtons === 0) {
 	this.zoomInButtonLarge.style.display = 'none';

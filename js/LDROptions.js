@@ -547,19 +547,27 @@ LDR.Options.prototype.appendCameraOptions = function(optionsBlock) {
 	options.showCameraButtons = idx;
 	options.onChange();
 
-	ldrButtons.cameraButtons.style.display = (idx === 2) ? 'none' : 'block';
-	if(idx === 1) {
-	    ldrButtons.zoomInButtonLarge.style.display = 'block';
-	    ldrButtons.zoomInButton.style.display = 'none';
-	    ldrButtons.zoomOutButtonLarge.style.display = 'block';
-	    ldrButtons.zoomOutButton.style.display = 'none';
-	}
-	else if(idx === 0) {
+	if(idx === 0) {
 	    ldrButtons.zoomInButtonLarge.style.display = 'none';
 	    ldrButtons.zoomInButton.style.display = 'block';
 	    ldrButtons.zoomOutButtonLarge.style.display = 'none';
 	    ldrButtons.zoomOutButton.style.display = 'block';
+	    ldrButtons.resetCameraButton.style.visibility = 'visible';
 	}
+	else if(idx === 1) {
+	    ldrButtons.zoomInButtonLarge.style.display = 'block';
+	    ldrButtons.zoomInButton.style.display = 'none';
+	    ldrButtons.zoomOutButtonLarge.style.display = 'block';
+	    ldrButtons.zoomOutButton.style.display = 'none';
+	    ldrButtons.resetCameraButton.style.visibility = 'visible';
+	}
+        else {
+            ldrButtons.zoomInButtonLarge.style.display = 'none';
+	    ldrButtons.zoomOutButtonLarge.style.display = 'none';
+	    ldrButtons.zoomInButton.style.display = 'none';
+	    ldrButtons.zoomOutButton.style.display = 'none';
+	    ldrButtons.resetCameraButton.style.visibility = 'hidden';
+        }
     };
     var buttons = this.createButtons(group, 3, this.showCameraButtons, onCameraChange);
     
