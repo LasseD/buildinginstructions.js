@@ -322,19 +322,6 @@
         }
       }
 
-      var windowStepCauseByHistoryManipulation = false;
-      var baseURL = "r.php?model=1&color=0&step=";
-
-      // Ensure mobile users can swipe right for next step:
-      var ensureSwipeForwardWorks = function() {
-			  window.history.replaceState(currentStep, null, baseURL + currentStep);
-        if(currentStep != builder.totalNumberOfSteps) {
-          window.history.pushState(currentStep+1, null, baseURL + (currentStep+1));
-          windowStepCauseByHistoryManipulation = true;
-          window.history.go(-1); // Go back again.
-	}
-      }
-
       function clampStep(s) {
         if(s < 1)
 	  return 1;
@@ -345,7 +332,6 @@
 
       var handleStepsWalked = function(walkedSteps) {
         currentStep = clampStep(currentStep + walkedSteps);
-        ensureSwipeForwardWorks();
         realignModel(0);
 	updateUIComponents();
 	render();
@@ -431,43 +417,7 @@
 	realignModel(0);
 	updateUIComponents();
 	render(); // Updates background color.
-
         console.log("Render done after " + (new Date()-pageStartTime) + "ms.");
-
-	// Go to step indicated by parameter:
-	var stepFromParameters = 1;
-	stepFromParameters = clampStep(stepFromParameters);
-	if(stepFromParameters > 1)
-	  builder.moveSteps(stepFromParameters-1, handleStepsWalked);
-	  else
-	    ensureSwipeForwardWorks();
-
-	    // Register location changes:
-	    window.addEventListener('popstate', function(e) {
-					        var step = e.state;
-						  if(windowStepCauseByHistoryManipulation || step === null) {
-						      //console.log("Ignoring history manipulating step to: " + step);
-						          windowStepCauseByHistoryManipulation = false;
-            return;
-	      }
-	        var diff = step - currentStep;
-		  //console.log("Step from window: " + step + ", diff: " + diff);
-		    if(diff === 1) {
-		          nextStep(false);
-			    }
-			      else if(diff === -1) {
-			            prevStep(false);
-				      }
-				        else {
-            var handleStepsWalkedNoHistoryChange = function(walkedSteps){
-	          currentStep = clampStep(currentStep + walkedSteps);
-		        ensureSwipeForwardWorks();
-			      realignModel(0);
-			            updateUIComponents();
-            };
-	        builder.moveSteps(diff, handleStepsWalkedNoHistoryChange);
-		  }
-        });
       }
       var onProgress = function(part) {
         // Ignore progress. // TODO: Quick load step 1

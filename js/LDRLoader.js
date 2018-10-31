@@ -124,7 +124,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
     // State information:
     var previousComment;
 
-    var dataLines = data.split("\r\n");
+    var dataLines = data.split(/(\r\n)|\n/);
     for(var i = 0; i < dataLines.length; i++) {
 	var line = dataLines[i];
 	var parts = line.split(" ").filter(x => x !== ''); // Remove empty strings.
