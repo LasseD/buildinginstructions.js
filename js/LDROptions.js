@@ -7,7 +7,7 @@ LDR.Options = function() {
     
     // Default values for options (in case of first visit or no cookies:
     this.showOldColors = 0; // 0 = all colors. 1 = single color old. 2 = dulled old.
-    this.showLines = 1; // 0 = all lines. 1 = normal lines. 2 = no lines.
+    this.showLines = 0; // 0 = all lines. 1 = normal lines. 2 = no lines.
     this.lineColor = 0x000000;
     this.blackLineColor = 0x777777;
     this.oldColor = 0xffff6f;

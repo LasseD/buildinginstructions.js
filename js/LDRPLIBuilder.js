@@ -50,7 +50,7 @@ LDR.PLIBuilder.prototype.render = function(key, w, h) {
     var b;
     if(!pc.mesh) {
 	pc.mesh = new THREE.Group();
-	pc.draw(pc.mesh, this.camera);
+	pc.draw(pc.mesh);
 	b = pc.getBounds();
 	var elementCenter = new THREE.Vector3();
 	b.getCenter(elementCenter);
@@ -59,7 +59,7 @@ LDR.PLIBuilder.prototype.render = function(key, w, h) {
 	pc.mesh.position.z = -elementCenter.z;
     }
     else {
-	pc.meshCollector.draw(pc.mesh, this.camera, false);
+	pc.meshCollector.draw(pc.mesh, false);
 	b = pc.getBounds();
     }
     
@@ -69,8 +69,6 @@ LDR.PLIBuilder.prototype.render = function(key, w, h) {
     var zoom = Math.min(w, h) / size;
     this.renderer.setSize(w, h);
     this.updateCamera(w, h, zoom);
-    this.renderer.render(this.scene, this.camera);
-    pc.meshCollector.updateConditionalLines(this.scene, this.camera);
     this.renderer.render(this.scene, this.camera);
     this.scene.remove(pc.mesh);
 }

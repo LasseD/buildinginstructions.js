@@ -52,6 +52,13 @@ LDR.PartsBulder = function(ldrLoader, mainModelID, mainModelColor) {
     build(1, mainModelID, mainModelColor);
 }
 
+LDR.PartsBulder.prototype.updateMeshCollectors = function(baseObject, camera) {
+    for(var i = 0; i < this.pcKeys.length; i++) {
+	var pcInfo = builder.pcs[builder.pcKeys[i]];
+	pcInfo.draw(baseObject, false);
+    }
+}
+
 LDR.PartAndColor = function(partID, colorID, ldrLoader) {
     this.partID = partID;
     this.colorID = colorID;
@@ -127,9 +134,9 @@ LDR.PartAndColor.prototype.getBounds = function() {
 }
 LDR.PartAndColor.prototype.draw = function(baseObject, camera) {
     this.ensureMeshCollector();
-    this.meshCollector.draw(baseObject, camera, false);
+    this.meshCollector.draw(baseObject, false);
 }
-LDR.PartAndColor.prototype.setVisible = function(v, baseObject, camera) {
+LDR.PartAndColor.prototype.setVisible = function(v, baseObject) {
     this.ensureMeshCollector();
-    this.meshCollector.setVisible(v, baseObject, camera);
+    this.meshCollector.setVisible(v);
 }

@@ -634,186 +634,23 @@ THREE.LDRPartType = function() {
     }
 }
 
-THREE.ConditionalLineEvaluator = function(baseObject, indices, lines) {
-    if(!baseObject)
-	throw "No base object!";
-    if(!lines)
-	throw "No lines!";
-
-    this.baseObject = baseObject;
-    this.groups = []; // [] -> {representativeLine, visible}
-
-    // handle lines and set up groups:
-    /*
-      Sweep line algorithm:
-      - First sort the a-values by 'x'.
-      - Sweep the values using a window.
-      - Combine values within window.
-    */
-    // First decorate with a,b,c:
-    for(var i = 0; i < lines.length; i++) {
-	var [a,b,c] = this.getNormalizedABC(lines[i]);
-	lines[i].a = a;
-	lines[i].b = b;
-	lines[i].c = c;
-    }
-    // Sort lines by 'x' of a-values:
-    lines.sort(function(l1, l2) {
-	if(l1.a.x != l2.a.x) 
-	    return l1.a.x - l2.a.x; 
-	if(l1.a.y != l2.a.y) 
-	    return l1.a.y - l2.a.y; 
-	if(l1.a.z != l2.a.z) 
-	    return l1.a.z - l2.a.z; 
-	if(l1.b.x != l2.b.x) 
-	    return l1.b.x - l2.b.x; 
-	if(l1.b.y != l2.b.y) 
-	    return l1.b.y - l2.b.y; 
-	return l1.b.z - l2.b.z; 
-    });
-    // Checks if vectors are 'almost' equal by comparing their distance (squared)
-    function vectorsAlmostEqual(v1, v2) {
-	return v1.manhattanDistanceTo(v2) < 0.0001;
-    }
-    function linesABCAlmostEqual(l1, l2) {
-	return vectorsAlmostEqual(l1.a, l2.a) && vectorsAlmostEqual(l1.b, l2.b) && vectorsAlmostEqual(l1.c, l2.c);
-    }
-    // Sweep lines by a.x:
-    for(var i = 0; i < lines.length; i++) {
-	var line = lines[i];
-	var windowStart = Math.max(0, i-50); // TODO: Find proper window size
-	var matched = false;
-	for(var j = windowStart; j < i; j++) {
-	    var oldLine = lines[j];
-	    if(linesABCAlmostEqual(line, oldLine)) {
-		line.group = oldLine.group;
-		matched = true;
-		break;
-	    }
-	}
-	if(!matched) {
-	    this.prepareLine(line);
-	    var group = {representativeLine:line, visible:false};
-	    this.groups.push(group);
-	    line.group = group;
-	}
-    }
-    //console.log("Optimized conditional lines: " + lines.length + " -> " + this.groups.length);
-}
-
-THREE.ConditionalLineEvaluator.prototype.getNormalizedABC = function(line) {
-    var b = new THREE.Vector3(line.p3.x, line.p3.y, line.p3.z);
-    var c = new THREE.Vector3(line.p4.x, line.p4.y, line.p4.z);
-
-    var det = new THREE.Vector3(); det.subVectors(b, c);
-    if(det.x < 0 || (det.x == 0 && det.y < 0) || (det.x == 0 && det.y == 0 && det.z < 0)) {
-	// Swap the control points id the determinant (their diff) is negative.
-	var tmp = b;
-	b = c;
-	c = tmp;
-    }
-
-    // Choose a, so distance to b is minimized:
-    var a = new THREE.Vector3();
-    if(line.p1.distanceToSquared(b) < line.p2.distanceToSquared(b)) {
-	a.subVectors(line.p1, line.p2);
-	b.sub(line.p1); c.sub(line.p1);
-    }
-    else {
-	a.subVectors(line.p2, line.p1);
-	b.sub(line.p2); c.sub(line.p2);
-    }
-
-    // Negate a if 'negative':
-    if(a.x < 0 || (a.x == 0 && a.y < 0) || (a.x == 0 && a.y == 0 && a.z < 0)) {
-	a.negate();
-    }
-    // Same with control points:
-    if(b.x < 0 || (b.x == 0 && b.y < 0) || (b.x == 0 && b.y == 0 && b.z < 0)) {
-	b.negate();
-	c.negate();
-    }
-    a.normalize();
-    b.normalize();
-    c.normalize();
-    return [a,b,c];
-}
-
-/*
-  Input line: {p1, p2, p3, p4} - all THREE.Vector3's.
-  Computes and sets .wp2, .wp2, .wp3, .wp4 if htye are not already set on input line.
- */
-THREE.ConditionalLineEvaluator.prototype.prepareLine = function(line) {
-    var self = this;
-    function createPoint(p) { // This function creates a THREE.Object3D in order to identify screen coordinates.
-	var ret = new THREE.Object3D();
-	ret.position.x = p.x;
-	ret.position.y = p.y;
-	ret.position.z = p.z;
-	self.baseObject.add(ret);
-	ret.updateMatrixWorld();
-	return ret;
-    }
-    if(!line.wp1) {
-	line.wp1 = createPoint(line.p1);
-	line.wp2 = createPoint(line.p2);
-	line.wp3 = createPoint(line.p3);
-	line.wp4 = createPoint(line.p4);
-    }
-}
-
-THREE.ConditionalLineEvaluator.prototype.update = function(camera) {
-    function toScreenCoordinates(p) {
-	var v = new THREE.Vector3();
-	p.getWorldPosition(v);
-	return v.project(camera);
-    }
-
-    var changed = false;
-    for(var i = 0; i < this.groups.length; i++) {
-	var group = this.groups[i];
-
-	var c = group.representativeLine;
-
-	var p1 = toScreenCoordinates(c.wp1);
-	var p2 = toScreenCoordinates(c.wp2);
-	var p3 = toScreenCoordinates(c.wp3);
-	var p4 = toScreenCoordinates(c.wp4);
-
-	var dx12 = p2.x-p1.x;
-	var dy12 = p2.y-p1.y;
-	var dx13 = p3.x-p1.x;
-	var dy13 = p3.y-p1.y;
-	var dx14 = p4.x-p1.x;
-	var dy14 = p4.y-p1.y;
-	var v = (dx12*dy13 - dy12*dx13 > 0) == (dx12*dy14 - dy12*dx14 > 0);
-	if(group.visible != v) {
-	    group.visible = v;
-	    changed = true;
-	}
-    }
-    return changed;
-}
-
 /*
   LDRMeshCollector handles drawing and updates of displayed meshes (triangles and lines).
   This is the class you have to update in order to improve the 3D renderer (such as with materials, luminance, etc.)
 
-  THREE.LDRMeshCollector assumes ldrOptions is anLDR.Options object in global scope.
+  THREE.LDRMeshCollector assumes ldrOptions is an LDR.Options object in global scope.
   (See LDROptions.js)
 */
 THREE.LDRMeshCollector = function() {
     // Vertices (shared among both triangles and lines):
-    this.unbakedVertices = []; // Points {x,y,z,id,t,c} // t = true for triangles, c=colorID
+    this.unbakedVertices = []; // Points {x,y,z,id,t,c} // t = 0 for triangles, c=colorID
     this.vertices = []; // 'baked' vertices shared by triangles and normal lines.
     this.sizeVertices = 0;
-    this.conditionalLineEvaluator;
 
     // Temporary geometries. Notice: Colors 10000+ are for edge colors.
     this.triangleIndices = []; // Color ID -> indices.
     this.lineIndices = []; // Color ID -> indices.
-    this.conditionalLineIndices = []; // Color ID -> indices.
-    this.conditionalLineInfo = []; // [] -> {p1, p2, p3, p4, group, colorID, index}
+    this.conditionalLines = []; // [colorID] -> {p1, p2, p3, p4}
 
     this.triangleColors = []; // [] -> used color
     this.lineColors = []; // [] -> used color
@@ -857,115 +694,49 @@ THREE.LDRMeshCollector.prototype.addLine = function(colorID, p1, p2) {
 }
 
 THREE.LDRMeshCollector.prototype.addConditionalLine = function(colorID, p1, p2, p3, p4) {
-    if(!this.conditionalLineIndices[colorID]) {
-	this.conditionalLineIndices[colorID] = [];
+    if(!this.conditionalLines[colorID]) {
+	this.conditionalLines[colorID] = [];
 	this.conditionalLineColors.push(colorID);
     }
-    var t = this.conditionalLineIndices[colorID];
-    var size = t.length;
-    t.push(-1, -1);
-    this.conditionalLineInfo.push({p1:p1, p2:p2, p3:p3, p4:p4, group:null, colorID:colorID, index:size});
-
-    this.unbakedVertices.push({x:p1.x, y:p1.y, z:p1.z, id:size,   t:2, c:colorID},
-			      {x:p2.x, y:p2.y, z:p2.z, id:size+1, t:2, c:colorID});
+    this.conditionalLines[colorID].push({p1:p1, p2:p2, p3:p3, p4:p4});
 }
 
 /*
-  'static' method for disposing ab object and removing it from mesh (baseObject).
-*/
-THREE.LDRMeshCollector.prototype.removeThreeObject = function(obj, baseObject) {
-    if(!obj)
-	return;
-    obj.geometry.dispose();
-    //Do not call: obj.material.dispose(); // Materials are always reused.
-    baseObject.remove(obj);
-}
-
-THREE.LDRMeshCollector.prototype.updateNormalLines = function(baseObject) {
-    // First determine if lines already exist and if they need to be updated:
-    if(ldrOptions.showLines === 2) { // Don't show lines:
-	if(!this.lineMeshes)
-	    return;
-	for(var i = 0; i < this.lineMeshes.length; i++) {
-	    this.removeThreeObject(this.lineMeshes[i], baseObject);
-	}
-	this.lineMeshes = null;
-	return;
-    }
-    // Show lines:
-    if(!this.lineMeshes) {
-	this.createNormalLines(baseObject);
-	if(!this.visible) {
-	    for(var i = 0; i < this.lineMeshes.length; i++) {
-		this.lineMeshes[i].visible = false;
-	    }
-	}
-    }
-}
-
-/*
- * See 'http://www.ldraw.org/article/218.html' for specification of 'optional'/'conditional' lines.
- * A conditional line should be draw when the camera sees p3 and p4 on same side of line p1 p2.
- *
- * Uses ConditionalLineEvaluator for performance boost.
+  Sets '.visible' on all meshes according to ldrOptions and 
+  visibility of this meshCollector.
  */
-THREE.LDRMeshCollector.prototype.updateConditionalLines = function(baseObject, camera) {
-    if(!camera || !camera.isCamera)
-	throw "Camera error!";
-    if(ldrOptions.showLines > 0) { // Don't show conditional lines:
-	if(!this.conditionalLineMeshes)
-	    return;
-	for(var i = 0; i < this.conditionalLineMeshes.length; i++) {
-	    this.removeThreeObject(this.conditionalLineMeshes[i], baseObject);
-	}
-	this.conditionalLineMeshes = null;
-	return;
+THREE.LDRMeshCollector.prototype.updateMeshVisibility = function() {
+    var v = this.visible;
+    for(var i = 0; i < this.triangleMeshes.length; i++) {
+	this.triangleMeshes[i].visible = v;
     }
-    // Show conditional lines:
-    if(!this.conditionalLineMeshes) {
-	this.createConditionalLines(baseObject);
+    v = ldrOptions.showLines < 2 && this.visible;
+    for(var i = 0; i < this.lineMeshes.length; i++) {
+	this.lineMeshes[i].visible = v;
     }
-
-    for(var i = 0; i < this.conditionalLineColors.length; i++) {
-	var colorID = this.conditionalLineColors[i];
-	this.conditionalLineMeshes[colorID].visible = this.visible;
-    }
-    if(!this.visible)
-	return;
-
-    var changed = this.conditionalLineEvaluator.update(camera);
-    if(!changed)
-	return;
-
-    var indices = []; // colorID -> indices.
-    for(var i = 0; i < this.conditionalLineColors.length; i++) {
-	indices[this.conditionalLineColors[i]] = [];
-    }
-    for(var i = 0; i < this.conditionalLineInfo.length; i++) {
-	var info = this.conditionalLineInfo[i];
-	if(info.group.visible) {
-	    var originalIndices = this.conditionalLineIndices[info.colorID];
-	    indices[info.colorID].push(originalIndices[info.index], originalIndices[info.index+1]);
-	}
-    }
-    for(var i = 0; i < this.conditionalLineColors.length; i++) {
-	var colorID = this.conditionalLineColors[i];
-	var mesh = this.conditionalLineMeshes[colorID];
-	mesh.geometry.setIndex(indices[colorID]);
+    v = ldrOptions.showLines < 1 && this.visible;
+    for(var i = 0; i < this.conditionalLineMeshes.length; i++) {
+	this.conditionalLineMeshes[i].visible = v;
     }
 }
 
 /*
-  Create both normal and conditional lines:
+  Create both normal lines.
 */
 THREE.LDRMeshCollector.prototype.createNormalLines = function(baseObject) {
     this.lineMeshes = [];
 
     for(var i = 0; i < this.lineColors.length; i++) {
 	var lineColor = this.lineColors[i];
-	var lineMaterial = lineColor < 10000 ? 
-	    LDR.Colors.getLineMaterial(lineColor) : 
-	    LDR.Colors.getEdgeLineMaterial(lineColor - 10000);
+	var lineMaterial = new THREE.RawShaderMaterial( {
+	    uniforms: {
+		color: { value: LDR.Colors.getColor4(lineColor) }
+	    },
+	    vertexShader: LDR.LineVertexShader,
+	    fragmentShader: LDR.SimpleFragmentShader,
+	    transparent: true
+	});
+
 	// Create the three.js line:
 	var lineGeometry = new THREE.BufferGeometry();
 	lineGeometry.setIndex(this.lineIndices[lineColor]);
@@ -973,26 +744,52 @@ THREE.LDRMeshCollector.prototype.createNormalLines = function(baseObject) {
 	var line = new THREE.LineSegments(lineGeometry, lineMaterial);
 	this.lineMeshes.push(line);
 	baseObject.add(line);
+	this.lineIndices[lineColor] = undefined;
     }
+    this.lineIndices = undefined;
 }
 
+/*
+  Create conditional lines.
+*/
 THREE.LDRMeshCollector.prototype.createConditionalLines = function(baseObject) {
     this.conditionalLineMeshes = [];
 
     // Now handle conditional lines:
     for(var i = 0; i < this.conditionalLineColors.length; i++) {
 	var lineColor = this.conditionalLineColors[i];
-	var lineMaterial = lineColor < 10000 ?
-	    LDR.Colors.getLineMaterial(lineColor) :
-	    LDR.Colors.getEdgeLineMaterial(lineColor - 10000);
+	var lineMaterial = new THREE.RawShaderMaterial( {
+	    uniforms: {
+		color: { value: LDR.Colors.getColor4(lineColor) }
+	    },
+	    vertexShader: LDR.ConditionalLineVertexShader,
+	    fragmentShader: LDR.AlphaTestFragmentShader,
+	    transparent: true
+	});
+
 	// Create the three.js line:
 	var lineGeometry = new THREE.BufferGeometry();
-	lineGeometry.setIndex([]);
-	lineGeometry.addAttribute('position', this.vertexAttribute);
+	var conditionalLine = this.conditionalLines[lineColor]; // {p1, p2, p3, p4}
+	var p1s = [], p2s = [], p3s = [], p4s = [];
+	for(var j = 0; j < conditionalLine.length; j++) {
+	    var line = conditionalLine[j];
+	    p1s.push(line.p1.x, line.p1.y, line.p1.z, line.p2.x, line.p2.y, line.p2.z);
+	    p2s.push(line.p2.x, line.p2.y, line.p2.z, line.p1.x, line.p1.y, line.p1.z);
+	    p3s.push(line.p3.x, line.p3.y, line.p3.z, line.p3.x, line.p3.y, line.p3.z);
+	    p4s.push(line.p4.x, line.p4.y, line.p4.z, line.p4.x, line.p4.y, line.p4.z);
+	}
+	this.conditionalLines[lineColor] = undefined;
+
+	lineGeometry.addAttribute('position', new THREE.BufferAttribute(new Float32Array(p1s), 3));
+	lineGeometry.addAttribute('p2', new THREE.BufferAttribute(new Float32Array(p2s), 3));
+	lineGeometry.addAttribute('p3', new THREE.BufferAttribute(new Float32Array(p3s), 3));
+	lineGeometry.addAttribute('p4', new THREE.BufferAttribute(new Float32Array(p4s), 3)); // TODO: Use mat3 instead!
+
 	var line = new THREE.LineSegments(lineGeometry, lineMaterial);
-	this.conditionalLineMeshes[lineColor] = line;
+	this.conditionalLineMeshes.push(line);
 	baseObject.add(line);
     }
+    this.conditionalLines = undefined;
 }
 
 THREE.LDRMeshCollector.prototype.computeBoundingBox = function() {
@@ -1044,11 +841,8 @@ THREE.LDRMeshCollector.prototype.bakeVertices = function() {
 	if(p.t == 0) { // Triangle vertex:
 	    this.triangleIndices[p.c][p.id] = this.sizeVertices -1;
 	}
-	else if(p.t == 1) {
-	    this.lineIndices[p.c][p.id] = this.sizeVertices -1;
-	}
 	else {
-	    this.conditionalLineIndices[p.c][p.id] = this.sizeVertices -1;
+	    this.lineIndices[p.c][p.id] = this.sizeVertices -1;
 	}
     }
     this.unbakedVertices = [];
@@ -1069,21 +863,31 @@ THREE.LDRMeshCollector.prototype.buildTriangles = function(old, baseObject) {
 	var triangleColor = this.triangleColors[i];
 	var triangleMaterial;
 
+	var colorValue;
 	if(old && ldrOptions.showOldColors === 1) { // Show dulled!
-	    triangleMaterial = LDR.Colors.getTriangleMaterial(16);
+	    colorValue = LDR.Colors.getColor4(16);
 	}
 	else {
 	    if(LDR.Colors[triangleColor] == undefined) {
 		console.warn("Unknown LDraw color '" + triangleColor + "', defaulting to black.");
-		triangleMaterial = LDR.Colors.getTriangleMaterial(0);
+		colorValue = LDR.Colors.getColor4(0);
 	    }
 	    else if(old && ldrOptions.showOldColors === 2) {
-		triangleMaterial = LDR.Colors.getDesaturatedTriangleMaterial(triangleColor);
+		colorValue = LDR.Colors.getDesaturatedColor4(0);
 	    }
 	    else {
-		triangleMaterial = LDR.Colors.getTriangleMaterial(triangleColor);
+		colorValue = LDR.Colors.getColor4(triangleColor);
 	    }
 	}
+	triangleMaterial = new THREE.RawShaderMaterial( {
+	    uniforms: {
+		color: { value: colorValue }
+	    },
+	    vertexShader: LDR.TriangleVertexShader,
+	    fragmentShader: LDR.SimpleFragmentShader,
+	    //side: THREE.DoubleSide,
+	    transparent: true
+	});
 
 	var triangleGeometry = new THREE.BufferGeometry();
 	triangleGeometry.setIndex(this.triangleIndices[triangleColor]);
@@ -1093,13 +897,15 @@ THREE.LDRMeshCollector.prototype.buildTriangles = function(old, baseObject) {
 	var mesh = new THREE.Mesh(triangleGeometry, triangleMaterial);
 	this.triangleMeshes.push(mesh);
 	baseObject.add(mesh);
+	this.triangleIndices[triangleColor] = undefined;
     }
+    this.triangleIndices = undefined;
 }
 
 THREE.LDRMeshCollector.prototype.colorTrianglesOldSingleColor = function() {
     for(var i = 0; i < this.triangleColors.length; i++) {
 	var mesh = this.triangleMeshes[i];
-	mesh.material = LDR.Colors.getTriangleMaterial(16);
+	mesh.material.uniforms.color.value = LDR.Colors.getColor4(16);
     }
 }
 
@@ -1107,7 +913,7 @@ THREE.LDRMeshCollector.prototype.colorTrianglesDulled = function() {
     for(var i = 0; i < this.triangleColors.length; i++) {
 	var triangleColor = this.triangleColors[i];
 	var mesh = this.triangleMeshes[i];
-	mesh.material = LDR.Colors.getDesaturatedTriangleMaterial(triangleColor);
+	mesh.material.uniforms.color.value = LDR.Colors.getDesaturatedColor4(triangleColor);
     }
 }
 
@@ -1115,7 +921,7 @@ THREE.LDRMeshCollector.prototype.colorTrianglesNormal = function() {
     for(var i = 0; i < this.triangleColors.length; i++) {
 	var triangleColor = this.triangleColors[i];
 	var mesh = this.triangleMeshes[i];
-	mesh.material = LDR.Colors.getTriangleMaterial(triangleColor);
+	mesh.material.uniforms.color.value = LDR.Colors.getColor4(triangleColor);
     }
 }
 
@@ -1173,28 +979,18 @@ THREE.LDRMeshCollector.prototype.createOrUpdateTriangles = function(old, baseObj
     return false;
 }
 
-THREE.LDRMeshCollector.prototype.draw = function(baseObject, camera, old) {
+THREE.LDRMeshCollector.prototype.draw = function(baseObject, old) {
     if(old == undefined)
 	throw "'old' is undefined!";
-
-    if(!this.conditionalLineEvaluator)
-	this.conditionalLineEvaluator = new THREE.ConditionalLineEvaluator(baseObject, this.conditionalLineIndices, this.conditionalLineInfo);
 
     var created = this.createOrUpdateTriangles(old, baseObject);
     if(created) {
 	this.visible = true;
-	if(ldrOptions.showLines < 2) {
-	    this.createNormalLines(baseObject);
-	    if(ldrOptions.showLines < 1) {
-		this.updateConditionalLines(baseObject, camera);
-	    }
-	}
+	this.createNormalLines(baseObject);
+	this.createConditionalLines(baseObject);
 	this.computeBoundingBox();
     }
-    else {
-	this.updateNormalLines(baseObject);
-	this.updateConditionalLines(baseObject, camera);
-    }
+    this.updateMeshVisibility();
 }
 
 THREE.LDRMeshCollector.prototype.isVisible = function(v) {
@@ -1204,17 +1000,9 @@ THREE.LDRMeshCollector.prototype.isVisible = function(v) {
 /*
   Update meshes and set own visibility indicator.
 */
-THREE.LDRMeshCollector.prototype.setVisible = function(v, baseObject, camera) {
+THREE.LDRMeshCollector.prototype.setVisible = function(v) {
     if(this.visible === v)
 	return;
-    for(var i = 0; i < this.triangleMeshes.length; i++) {
-	this.triangleMeshes[i].visible = v;
-    }
-    if(this.lineMeshes) {
-	for(var i = 0; i < this.lineMeshes.length; i++) {
-	    this.lineMeshes[i].visible = v;
-	}
-    }
     this.visible = v;
-    this.updateConditionalLines(baseObject, camera);
+    this.updateMeshVisibility();
 }
