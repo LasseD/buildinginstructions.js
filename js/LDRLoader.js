@@ -12,20 +12,24 @@
  * onWarning and loadRelatedFilesImmediately are optional:
  * onWarning(warningObj) is called when non-breaking errors are encountered, such as unknown colors and unsupported META commands.
  * loadRelatedFilesImmediately can be set to true in order to start loading dat files as soon as they are encountered. This options makes the loader handle these related files automatically.
+ * idToUrl is used to translate an id into a file location. Remember to change this function to fit your own directory structure if needed. A normal LDraw directory has files both under /parts and /p and requires you to search for dat files. You can choose to combine the directories, but this is not considered good practice. The function takes two parameters:
+ * - id is the part id to be translated.
+ * - top is true for top-level ids, such as .ldr and .mpd.
  */
-THREE.LDRLoader = function(manager, onLoad, onProgress, onError, onWarning, loadRelatedFilesImmediately) {
+THREE.LDRLoader = function(manager, onLoad, onProgress, onError, onWarning, loadRelatedFilesImmediately, idToUrl) {
     this.manager = manager;
     this.ldrPartTypes = []; // id => part. id can be "parts/3001.dat", "model.mpd", etc.
     this.unloadedFiles = 0;
     this.onLoad = onLoad;
     this.onProgress = onProgress;
     this.onError = onError;
-
     var nop = function(){};
     this.onWarning = onWarning || nop;
     this.loader = new THREE.FileLoader(manager);
     this.mainModel;
     this.loadRelatedFilesImmediately = loadRelatedFilesImmediately || false;
+    var self = this;
+    this.idToUrl = idToUrl || function(id, top) {if(self.isTopLevelModel(id)){return id;}return "ldraw_parts/"+id.toLowerCase();};
 }
 
 /*
@@ -37,8 +41,12 @@ THREE.LDRLoader = function(manager, onLoad, onProgress, onError, onWarning, load
  * top should be set to 'true' for top level model files, such as .ldr and .mpd files.
  */
 THREE.LDRLoader.prototype.load = function(id, top) {
+    if(!id)
+	throw "Missing id for LDRLoader::load";
     if(!top)
-	id = id.toLowerCase(); // Sanitize id. 
+	id = id.toLowerCase();
+    var url = this.idToUrl(id, top);
+    id = id.replace('\\', '/'); // Sanitize id. 
 
     if(this.ldrPartTypes[id]) { // Already loaded
 	this.reportProgress(id);
@@ -53,7 +61,6 @@ THREE.LDRLoader.prototype.load = function(id, top) {
 	self.reportProgress(id);
     }
     this.unloadedFiles++;
-    var url = this.idToUrl(id, top);
     this.loader.load(url, onFileLoaded, self.onProgress, self.onError);
 };
 
@@ -80,20 +87,6 @@ THREE.LDRLoader.prototype.reportProgress = function(id) {
  */
 THREE.LDRLoader.prototype.isTopLevelModel = function(id) {
     return !id.endsWith(".dat");
-}
-
-/*
- * This function is used to translate an id into a file location.
- * TODO FIXME: Remember to change this function to fit your own directory structure!
- * A normal LDraw directory has files both under /parts and /p and requires you to search for dat files. You can choose to combine the directories, but this is not considered good practice. 
- * 
- * id is the part id to be translated.
- * top is true for top-level ids, such as .ldr and .mpd.
- */
-THREE.LDRLoader.prototype.idToUrl = function(id, top) {
-    if(this.isTopLevelModel(id))
-    	return id;
-    return "parts/" + id.toLowerCase();
 }
 
 /*
@@ -131,7 +124,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
     // State information:
     var previousComment;
 
-    var dataLines = data.split("\r\n");
+    var dataLines = data.split(/(\r\n)|\n/);
     for(var i = 0; i < dataLines.length; i++) {
 	var line = dataLines[i];
 	var parts = line.split(" ").filter(x => x !== ''); // Remove empty strings.
@@ -187,8 +180,10 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    }
 	    else { // Close model and start new:
 		closeStep(false);
-		self.ldrPartTypes[part.ID] = part;
-		self.onProgress(part.ID);
+		if(part.ID) {
+		    self.ldrPartTypes[part.ID] = part;
+		    self.onProgress(part.ID);
+		}
 		part = new THREE.LDRPartType();
 		part.ID = fileName;
 	    }
@@ -266,7 +261,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    rotation.set(parts[5],  parts[6],  parts[7], 
 			 parts[8],  parts[9],  parts[10], 
 			 parts[11], parts[12], parts[13]);
-	    var subModelID = parts.slice(14).join(" ").toLowerCase();
+	    var subModelID = parts.slice(14).join(" ").toLowerCase().replace('\\', '/');
 	    var subModel = new THREE.LDRPartDescription(colorID, 
 							position, 
 							rotation, 
