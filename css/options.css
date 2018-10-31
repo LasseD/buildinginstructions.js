@@ -1,0 +1,79 @@
+#options_header, #options_footer {
+    height: 100px;
+    display: block;
+    width: 100%;
+    background-color: black;
+}
+#options_header svg, #options_footer svg {
+    stroke: white;
+    margin: auto;
+    display: block;
+    width: 100px;
+    height: 100px;
+}
+#options_footer svg polygon, #options_footer svg circle {
+    stroke: white;
+}
+#options {
+    padding-left: 1em;
+    padding-right: 1em;
+    background-color: black;
+}
+#options rect.show {
+    stroke: black;
+}
+#options text {
+    font-family: sans-serif;
+    font-weight: bold;
+    font-size: 16px;
+}
+.options {
+  display: table;
+  table-layout: fixed;
+  width: 100%;
+  border-spacing: 2em;
+  background-color: white;
+}
+.options_description_header {
+    padding: 0;
+}
+.options_description {
+  background-color: black;
+  color: white;
+  text-align: center;
+  font-family: sans-serif;
+  font-weight: bold;
+  font-size: 2em;
+  padding: 0.5em;
+}
+.options_description a {
+    float: left;
+    width: 40px;
+    height: 40px;
+    margin-right: -40px;
+}
+.options_description a svg {
+    stroke: white;
+    width: 40px;
+    height: 40px;
+}
+.option_selected, .option {
+  border: 2px solid black;
+  padding: 0.5em;
+  cursor: pointer;
+}
+.option_selected {
+  border: 2px solid #008A00;
+  background-color: #DDFFDD;
+}
+.option:hover, .option_selected:hover {
+    background-color: #99EE99;
+}
+.option_selected svg, .option svg {
+    display: block;
+    width: 100%;
+    opacity: 0.75;
+}
+.option_selected svg {
+    opacity: 1;
+}

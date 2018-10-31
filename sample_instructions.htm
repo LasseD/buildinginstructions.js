@@ -1,3 +1,524 @@
-<html>
 
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <title>Sample Building Instructions</title>
+    <link href="css/r.css" rel="stylesheet" type="text/css">
+    <link href="css/buttons.css" rel="stylesheet" type="text/css">
+    <link href="css/options.css" rel="stylesheet" type="text/css">
+  </head>
+  <body>
+    <div id="pli_render_canvas"></div>
+    <script src="js/jquery.min.js"></script>
+    <script src="js/three.min.js"></script>
+    <script src="js/OrbitControls.js"></script>
+    <script src="js/colors.js"></script>
+    <script src="js/LDRColorMaterials.js"></script>
+    <script src="js/pli.js"></script>
+    <script src="js/LDRSVG.js"></script>
+    <script src="js/LDROptions.js"></script>
+    <script src="js/LDRLoader.js"></script>
+    <script src="js/LDRStepBuilder.js"></script>
+    <script src="js/LDRPartsBuilder.js"></script>
+    <script src="js/SquarePacking.js"></script>
+    <script src="js/LDRPLIBuilder.js"></script>
+    <script src="js/LDRButtons.js"></script>
+    <script>
+      var pageStartTime = new Date();
+      var modelTypeUrl = 'models/tristack.ldr';
+      var scene = new THREE.Scene(); // To add stuff to
+      scene.background = new THREE.Color( 0xffffff );
+
+      var defaultZoom = 1; // Will be overwritten.
+      var currentZoom = 1;
+      var currentStep = 1;
+      var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000 ); // Orthographics for LEGO
+      var pliW = 0, pliH = 0;
+
+      function resetCameraPosition() {
+        currentZoom = 1;
+        camera.position.x = 10000;
+        camera.position.y = 7000;
+        camera.position.z = 10000;
+      camera.lookAt(new THREE.Vector3());
+        updateCameraSize();
+        render();
+      }
+      function zoomIn() {
+        currentZoom *= 1.2;
+        updateCameraZoom();
+        render();
+      }
+      function zoomOut() {
+        currentZoom /= 1.2;
+        updateCameraZoom();
+        render();
+      }
+      function setBackgroundColor(c) {
+        scene.background = new THREE.Color( parseInt("0x" + c) );
+        document.body.style.backgroundColor = '#' + c;
+      }
+
+      var renderer = new THREE.WebGLRenderer({antialias: true});
+      function render() {
+        builder && baseObject && updateConditionalLines && builder.updateMeshCollectors();
+        renderer.render(scene, camera);
+      }
+      resetCameraPosition();
+
+      document.body.appendChild(renderer.domElement);
+      var ldrOptions = new LDR.Options();
+      var ldrButtons = new LDR.Buttons(document.body, true, '1', null);
+      var controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.keys = {
+        LEFT: 65, // A
+        UP: 87, // W
+        RIGHT: 68, // D
+        BOTTOM: 83 // S
+      }
+      controls.addEventListener('change',render);
+
+      window.addEventListener('resize', onWindowResize, false);
+
+      function updateCameraSize() {
+        camera.left   = -window.innerWidth;
+        camera.right  =  window.innerWidth;
+        camera.top    =  window.innerHeight;
+        camera.bottom = -window.innerHeight;
+      if(!pliBuilder || pliBuilder.fillHeight)
+        renderer.setViewport(pliW/2, 0, window.innerWidth, window.innerHeight);
+      else
+        renderer.setViewport(0, pliH/2, window.innerWidth, window.innerHeight);
+      updateCameraZoom();
+      }
+      function updateCameraZoom(zoom) {
+        zoom = zoom || defaultZoom;
+      camera.zoom = zoom * currentZoom;
+      camera.updateProjectionMatrix();
+      }
+      function onWindowResize(){
+      renderer.setSize(window.innerWidth-20, window.innerHeight);
+        updateCameraSize();
+      render();
+      }
+      onWindowResize();
+
+      var currentRotationMatrix = new THREE.Matrix4(); 
+      currentRotationMatrix.set(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
+      var defaultMatrix = new THREE.Matrix4();
+      defaultMatrix.set(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
+      /*var m0 = new THREE.Matrix3();
+      m0.set(-0.693437,  0.0132227, -0.720396, 
+            0.292766,  0.918744, -0.264947, 
+            0.658357, -0.394631, -0.640962);
+      currentRotationMatrix.multiply(m0);*/
+
+      var ldrLoader;
+      var builder = null;
+      var pliElement;
+      var pliBuilder;
+
+      var baseObject = new THREE.Group();
+      var updateConditionalLines = true;
+      scene.add(baseObject);
+
+      var showPLI = false;
+      function updateUIComponents() {
+        currentMultiplier = builder.getMultiplierOfCurrentStep();
+        currentRotation = builder.getRotationOfCurrentStep();
+        updateMultiplier && updateMultiplier();
+        updateRotator && updateRotator();
+        setBackgroundColor(builder.getBackgroundColorOfCurrentStep());
+        if(builder.isAtVeryLastStep()) {
+          ldrButtons.atLastStep();
+        }
+        else if(builder.isAtFirstStep()) {
+          ldrButtons.atFirstStep();
+        }
+        else {
+          ldrButtons.atAnyOtherStep();
+        }
+        ldrButtons.setShownStep(currentStep);
+        updatePLI();
+      }
+      function updatePLI() {
+        var [step,stepColorID] = builder.getCurrentStepAndColor();
+        showPLI = ldrOptions.showPLI && step.dats.length > 0;
+        if(!showPLI) {
+          pliBuilder.pliElement.style.visibility = 'hidden';
+          pliW = pliH = 0;
+          return;
+        }
+        pliBuilder.pliElement.style.visibility = 'visible';
+
+        var maxWidth = renderer.getSize().width;
+        var maxHeight = renderer.getSize().height - 320; // icons, mult and rotator.
+        if(maxWidth >= maxHeight)
+          pliBuilder.drawPLIForStep(true, step, stepColorID, maxWidth*0.4, maxHeight, false);
+        else
+          pliBuilder.drawPLIForStep(false, step, stepColorID, maxWidth, maxHeight*0.4, false);
+        pliW = pliElement.width;
+        pliH = pliElement.height;
+        updateCameraSize();
+      }
+
+      var currentMultiplier = 1;
+      var currentRotation = false;
+      var updateMultiplier = null;
+      var updateRotator = null;
+      var initialConfiguration = true;
+      function realignModel(stepDiff, onRotated, onDone) {
+        //console.log("Realigning after " + stepDiff + " steps");
+        var oldRotationMatrix = currentRotationMatrix;
+        var oldPosition = new THREE.Vector3();
+        oldPosition.copy(baseObject.position);
+
+        // PLI:
+        var oldPLIW = pliW;
+        var oldPLIH = pliH;
+        var newPLIW, newPLIH;
+
+        var b;
+        var positionRotation;
+
+        var oldLevel = builder.getLevelOfCurrentStep();
+        var newLevel;
+        if(stepDiff === 1 && builder.nextStep(true)) {
+            positionRotation = builder.computeCameraPositionRotation(defaultMatrix, currentRotationMatrix);
+            b = builder.getBounds();
+            newLevel = builder.getLevelOfCurrentStep();
+            updatePLI(); newPLIW = pliW, newPLIH = pliH;
+            builder.prevStep(true);
+        }
+        else if(stepDiff === -1 && builder.prevStep(true)) {
+            positionRotation = builder.computeCameraPositionRotation(defaultMatrix, currentRotationMatrix);
+            b = builder.getBounds();
+            newLevel = builder.getLevelOfCurrentStep();
+            updatePLI(); newPLIW = pliW, newPLIH = pliH;
+            builder.nextStep(true);
+        }
+        else {
+            positionRotation = builder.computeCameraPositionRotation(defaultMatrix, currentRotationMatrix);
+            newLevel = oldLevel;
+            b = builder.getBounds();
+        }
+
+        //console.dir(positionRotation);
+        currentRotationMatrix = positionRotation[1];
+        var rotationChanges = !currentRotationMatrix.equals(oldRotationMatrix);
+        var ignorePos = new THREE.Vector3(); // Ignore
+        var newRot = new THREE.Quaternion();
+        var ignoreScale = new THREE.Vector3(); // Ignore
+        currentRotationMatrix.decompose(ignorePos, newRot, ignoreScale);
+
+        var newPosition = positionRotation[0];
+        var positionChanges = !oldPosition.equals(newPosition) || oldPLIW !== newPLIW || oldPLIH !== newPLIH;
+
+        var size = b.min.distanceTo(b.max) / Math.sqrt(2);
+        if(size < 100) {
+          size = 100; // Don't make small models too big on screen.
+	}
+					   
+	var oldDefaultZoom = defaultZoom;
+	var newDefaultZoom = defaultZoom = Math.min(window.innerWidth-20, window.innerHeight) / size;
+	var zoomChanges = oldDefaultZoom !== newDefaultZoom;
+	
+	function finalize() {
+	  updateConditionalLines = true;
+	  initialConfiguration = false;
+	  onRotated && onRotated(); onRotated = false;
+	  
+	  baseObject.setRotationFromMatrix(currentRotationMatrix);
+	  baseObject.position.x = newPosition.x;
+	  baseObject.position.y = newPosition.y;
+	  baseObject.position.z = newPosition.z;
+	  
+	  updateCameraZoom();
+	  updateCameraSize();
+	  render();
+	  onDone && onDone(); onDone = false;
+	}
+	  
+	var animationID;
+	var startTime = new Date();
+	var animationTimeRotationMS = rotationChanges ? 300 : 0; // First rotate, 
+	var animationTimePositionMS = positionChanges ? 150 : 0; // then move and zoom
+	if(newLevel !== oldLevel && newLevel-oldLevel === stepDiff) {
+          animationTimeRotationMS = 0; // Don't rotate when stepping in.
+	  animationTimePositionMS = 0;
+	}
+	var animationTimeMS = animationTimePositionMS+animationTimeRotationMS;
+	var lastPosition = oldPosition;
+	function animate() {
+  	  animationID = requestAnimationFrame(animate);
+		  
+	  var diffMS = new Date() - startTime;
+	  if(diffMS >= animationTimeMS) {
+	    cancelAnimationFrame(animationID); 
+	    finalize();
+	    return; // Done.
+	  }
+
+	  var progress = diffMS / animationTimeMS;
+	  defaultZoom = oldDefaultZoom + (newDefaultZoom-oldDefaultZoom)*progress;
+	  pliW = oldPLIW + (newPLIW-oldPLIW)*progress;
+	  pliH = oldPLIH + (newPLIH-oldPLIH)*progress;
+	  updateCameraSize();
+	
+  	  if(diffMS < animationTimeRotationMS) { // Rotate first.
+            progress = diffMS/animationTimeRotationMS;
+		    
+            var oldPos = new THREE.Vector3();
+            var oldRot = new THREE.Quaternion();
+            var oldScale = new THREE.Vector3();
+            oldRotationMatrix.decompose(oldPos, oldRot, oldScale);
+            var angleToTurn = oldRot.angleTo(newRot);
+            oldRot.rotateTowards(newRot, angleToTurn*progress*1.1); // *1.1 Ensure it is fully turned.
+			    
+            var invOldM4 = new THREE.Matrix4();
+            invOldM4.getInverse(oldRotationMatrix);
+            var tmpM4 = new THREE.Matrix4();
+            tmpM4.compose(oldPos, oldRot, oldScale);
+
+            oldPos.copy(oldPosition);
+	    oldPos.negate();
+	    oldPos.applyMatrix4(invOldM4);
+            oldPos.applyMatrix4(tmpM4);
+	    oldPos.negate();
+	    lastPosition = oldPos;
+			    
+            baseObject.setRotationFromMatrix(tmpM4);
+	    baseObject.position.x = oldPos.x;
+	    baseObject.position.y = oldPos.y;
+	    baseObject.position.z = oldPos.z;
+	  }
+	  else { // Move and zoom:
+	    updateConditionalLines = false;
+            onRotated && onRotated(); onRotated = false;
+	    progress = (diffMS-animationTimeRotationMS)/animationTimePositionMS;
+
+	    var tmpPosition = new THREE.Vector3();
+	    tmpPosition.subVectors(newPosition, lastPosition).multiplyScalar(progress).add(lastPosition);
+			    
+	    // Update camera and baseObject:
+	    baseObject.position.x = tmpPosition.x;
+            baseObject.position.y = tmpPosition.y;
+            baseObject.position.z = tmpPosition.z;
+          }
+
+	  render();
+        }
+
+        // Only animate if:
+        if(ldrOptions.showStepRotationAnimations === 0 && // show animations
+          Math.abs(stepDiff) === 1 && // Only stepping a single step &&
+          !initialConfiguration && // This is not the initial step &&
+          (zoomChanges || rotationChanges || positionChanges)) {
+          animate();
+        }
+        else {
+          finalize();
+        }
+      }
+
+      var windowStepCauseByHistoryManipulation = false;
+      var baseURL = "r.php?model=1&color=0&step=";
+
+      // Ensure mobile users can swipe right for next step:
+      var ensureSwipeForwardWorks = function() {
+			  window.history.replaceState(currentStep, null, baseURL + currentStep);
+        if(currentStep != builder.totalNumberOfSteps) {
+          window.history.pushState(currentStep+1, null, baseURL + (currentStep+1));
+          windowStepCauseByHistoryManipulation = true;
+          window.history.go(-1); // Go back again.
+	}
+      }
+
+      function clampStep(s) {
+        if(s < 1)
+	  return 1;
+	if(s > builder.totalNumberOfSteps)
+	  return builder.totalNumberOfSteps;
+	return s;
+      }
+
+      var handleStepsWalked = function(walkedSteps) {
+        currentStep = clampStep(currentStep + walkedSteps);
+        ensureSwipeForwardWorks();
+        realignModel(0);
+	updateUIComponents();
+	render();
+      };
+      function goToStep(step) {
+	step = clampStep(step);
+	var diff = step-currentStep;
+        if(diff === 1) {
+	  nextStep(false);
+	}
+        else if(diff === 1) {
+	  prevStep(false);
+	}
+        else {
+	  builder.moveSteps(step-currentStep, handleStepsWalked);
+	}
+      }
+// TODO: INTENT TO HERE
+      function nextStep(skip) {
+        if(builder.isAtVeryLastStep())
+			    return;
+			  if(skip) {
+          builder.fastForward(handleStepsWalked);
+			  }
+			  else {
+			    realignModel(1, function(){
+			  builder.nextStep();      
+			    }, function() {
+			        handleStepsWalked(1, false);
+			    });
+			  }
+      }
+      function prevStep(skip) {
+			  if(builder.isAtFirstStep())
+			    return;
+			  if(skip) {
+          builder.fastReverse(handleStepsWalked);
+			  }
+			  else {
+			    realignModel(-1, function(){
+            builder.prevStep();
+			    }, function() {
+			      handleStepsWalked(-1, false);
+			    });
+			  }
+      }
+
+      // Make ldrButtons catch arrow keys left/right
+      document.onkeydown = handleKeyDown;
+      function handleKeyDown(e) {
+          e = e || window.event;
+			    if(e.altKey) {
+			      // Don't handle key events when ALT is pressed, as they indicate page shift overwrite!
+				         return;
+					   }
+					     //console.log("Key code: " + e.keyCode);
+					       if(e.keyCode == '13') { // ENTER
+								        var stepToGoTo = parseInt(ldrButtons.stepInput.value);
+									     goToStep(stepToGoTo);
+									       }
+									         else if(e.keyCode == '37') { // Left:
+													      prevStep(false);
+													        }
+														  else if (e.keyCode == '39') { // Right:
+																	        nextStep(false);
+          }
+      }
+      
+      var onLoad = function() {
+        console.log("Done loading at " + (new Date()-pageStartTime) + "ms.");
+	var mainModel = ldrLoader.mainModel;
+	var origo = new THREE.Vector3();
+	var inv = new THREE.Matrix3(); 
+	inv.set(1,0,0, 0,1,0, 0,0,1); // Invert Y-axis
+
+	var pd = new THREE.LDRPartDescription(0, origo, inv, mainModel, false);
+
+	pliElement = document.getElementById('pli');
+	pliBuilder = new LDR.PLIBuilder(ldrLoader,mainModel, 0, pliElement,
+					document.getElementById('pli_render_canvas'));
+        builder = new LDR.StepBuilder(baseObject, camera, ldrLoader, [pd], function(){render();}, true);
+	builder.nextStep();
+	realignModel(0);
+	updateUIComponents();
+	render(); // Updates background color.
+
+        console.log("Render done after " + (new Date()-pageStartTime) + "ms.");
+
+	// Go to step indicated by parameter:
+	var stepFromParameters = 1;
+	stepFromParameters = clampStep(stepFromParameters);
+	if(stepFromParameters > 1)
+	  builder.moveSteps(stepFromParameters-1, handleStepsWalked);
+	  else
+	    ensureSwipeForwardWorks();
+
+	    // Register location changes:
+	    window.addEventListener('popstate', function(e) {
+					        var step = e.state;
+						  if(windowStepCauseByHistoryManipulation || step === null) {
+						      //console.log("Ignoring history manipulating step to: " + step);
+						          windowStepCauseByHistoryManipulation = false;
+            return;
+	      }
+	        var diff = step - currentStep;
+		  //console.log("Step from window: " + step + ", diff: " + diff);
+		    if(diff === 1) {
+		          nextStep(false);
+			    }
+			      else if(diff === -1) {
+			            prevStep(false);
+				      }
+				        else {
+            var handleStepsWalkedNoHistoryChange = function(walkedSteps){
+	          currentStep = clampStep(currentStep + walkedSteps);
+		        ensureSwipeForwardWorks();
+			      realignModel(0);
+			            updateUIComponents();
+            };
+	        builder.moveSteps(diff, handleStepsWalkedNoHistoryChange);
+		  }
+        });
+      }
+      var onProgress = function(part) {
+        // Ignore progress. // TODO: Quick load step 1
+      };
+      var onError = function(msg) {
+        console.dir(msg);
+      };
+
+      ldrLoader = new THREE.LDRLoader(THREE.DefaultLoadingManager, onLoad, onProgress, onError, false, true);
+      ldrLoader.load(modelTypeUrl, true);
+    </script>
+    <div id="instructions_decorations">
+      <div id="multiplier">x1</div>
+      <div id="rotator"><svg viewbox="-30,-30,60,60"></svg></div>
+      <canvas id="pli"></canvas>
+      <script>
+      var multiplier = document.getElementById("multiplier");
+      updateMultiplier = function() {
+        multiplier.innerHTML = "x" + currentMultiplier;
+      multiplier.style.visibility = (currentMultiplier == 1) ? "hidden" : "visible";
+      }
+
+      var rotator = document.getElementById("rotator");
+      LDR.SVG.appendRotationCircle(0, 0, 18, rotator.childNodes[0]);
+      updateRotator = function() {
+      rotator.style.visibility = currentRotation ? "visible" : "hidden";
+      }
+      </script>
+    </div>
+
+    <div id="options" />
+    <script>
+    var optionsDiv = document.getElementById('options');
+    ldrOptions.appendHeader(optionsDiv);    
+    ldrOptions.appendOldBrickColorOptions(optionsDiv);
+    ldrOptions.appendLineOptions(optionsDiv);
+    //ldrOptions.appendColorOptions(optionsDiv);
+    ldrOptions.appendAnimationOptions(optionsDiv);
+    ldrOptions.appendShowPLIOptions(optionsDiv);
+    //ldrOptions.appendFFFROptions(optionsDiv);
+    ldrOptions.appendLROptions(optionsDiv);
+    ldrOptions.appendCameraOptions(optionsDiv);
+
+    ldrOptions.appendFooter(optionsDiv);
+    ldrOptions.listeners.push(function() {
+      builder.updateMeshCollectors();
+      updatePLI();
+      render();
+    });
+    </script>
+    </div>
+  </body>
 </html>
+
