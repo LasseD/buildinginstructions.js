@@ -2,14 +2,12 @@
 
 LDR.TriangleVertexShader = `
   precision mediump float;
-  precision mediump int;
 
-  uniform mat4 modelViewMatrix;
-  uniform mat4 projectionMatrix;
   uniform vec4 color;
+  uniform mat4 projectionMatrix;
+  uniform mat4 modelViewMatrix;
 
   attribute vec3 position;
-  //attribute vec4 color;
 
   varying vec4 vColor;
 
@@ -21,11 +19,10 @@ LDR.TriangleVertexShader = `
 
 LDR.LineVertexShader = `
   precision mediump float;
-  precision mediump int;
 
-  uniform mat4 modelViewMatrix;
-  uniform mat4 projectionMatrix;
   uniform vec4 color;
+  uniform mat4 projectionMatrix;
+  uniform mat4 modelViewMatrix;
 
   attribute vec3 position;
 
@@ -44,9 +41,9 @@ LDR.LineVertexShader = `
 LDR.ConditionalLineVertexShader = `
   precision mediump float;
 
-  uniform mat4 modelViewMatrix;
-  uniform mat4 projectionMatrix;
   uniform vec4 color;
+  uniform mat4 projectionMatrix;
+  uniform mat4 modelViewMatrix;
 
   attribute vec3 position;
   attribute vec3 p2;
@@ -59,12 +56,9 @@ LDR.ConditionalLineVertexShader = `
       mat4 m = projectionMatrix * modelViewMatrix;
       vec4 p1 = m * vec4(position, 1.0);
       vec2 xp1 = p1.xy;
-      vec4 tmp2 = m * vec4(p2, 1.0);
-      vec2 d12 = tmp2.xy - xp1;
-      vec4 tmp3 = m * vec4(p3, 1.0);
-      vec2 d13 = tmp3.xy - xp1;
-      vec4 tmp4 = m * vec4(p4, 1.0);
-      vec2 d14 = tmp4.xy - xp1;
+      vec2 d12 = vec4(m * vec4(p2, 1.0)).xy - xp1;
+      vec2 d13 = vec4(m * vec4(p3, 1.0)).xy - xp1;
+      vec2 d14 = vec4(m * vec4(p4, 1.0)).xy - xp1;
       
       vColor = color;
       if((d12.x*d13.y - d12.y*d13.x)*(d12.x*d14.y - d12.y*d14.x) < 0.0) {
@@ -76,7 +70,7 @@ LDR.ConditionalLineVertexShader = `
 `;
 
 LDR.SimpleFragmentShader = `
-  precision mediump float;
+  precision lowp float;
 
   varying vec4 vColor;
 
@@ -86,7 +80,7 @@ LDR.SimpleFragmentShader = `
 `;
 
 LDR.AlphaTestFragmentShader = `
-  precision mediump float;
+  precision lowp float;
 
   varying vec4 vColor;
 
@@ -96,5 +90,3 @@ LDR.AlphaTestFragmentShader = `
       gl_FragColor = vColor;
   }
 `;
-
-
