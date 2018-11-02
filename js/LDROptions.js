@@ -14,7 +14,7 @@ LDR.Options = function() {
     this.showFFFRButtons = 0; // 0=off, 1=on
     this.showLRButtons = 0; // 0=right big, 1=right normal, 2=both off
     this.showCameraButtons = 0; // 0=+- on right, 1=+- on sides, 2=off
-    this.showStepRotationAnimations = 0; // 0=on, 1=off
+    this.showStepRotationAnimations = 1; // 0=slow, 1=normal speed, 2=off
     this.partsListType = 0; // 0=icons, 1=list
     this.showPLI = 1; // 0=off, 1=on
 
@@ -327,13 +327,13 @@ LDR.Options.prototype.appendColorOptions = function(optionsBlock) {
 }
 
 LDR.Options.prototype.appendAnimationOptions = function(optionsBlock) {
-    var group = this.addOptionsGroup(optionsBlock, 2, "Animations");
+    var group = this.addOptionsGroup(optionsBlock, 3, "Animations");
     var options = this;
     var onAnimationChange = function(idx) {
 	options.showStepRotationAnimations = idx;
 	options.onChange();
     };
-    var buttons = this.createButtons(group, 2, this.showStepRotationAnimations, onAnimationChange);
+    var buttons = this.createButtons(group, 3, this.showStepRotationAnimations, onAnimationChange);
     var red = function(){return '#FF0000';};
     var lineColor = function(options){
 	return LDR.Colors.int2Hex(options.lineColor);
@@ -341,7 +341,7 @@ LDR.Options.prototype.appendAnimationOptions = function(optionsBlock) {
     var w = 20;	
     
     /* 
-       Option 1: on
+       Option 1: Slow
     */
     {
 	// Left box
@@ -362,7 +362,40 @@ LDR.Options.prototype.appendAnimationOptions = function(optionsBlock) {
 	var turned = this.createSvgBlock(50, 0, true, red, lineColor, g2);
 
 	var a = document.createElementNS(LDR.SVG.NS, 'animateTransform');
-	a.setAttribute('id', 'turner');
+	a.setAttribute('id', 'turnerSlow');
+	a.setAttribute('attributeName', 'transform');
+	a.setAttribute('attributeType', 'XML');
+	a.setAttribute('type', 'rotate');
+	a.setAttribute('from', '0 50 0');
+	a.setAttribute('to', '90 50 0');
+	a.setAttribute('dur', '2s');
+	a.setAttribute('fill', 'freeze');
+	a.setAttribute('begin', '1s;turnerSlow.end+1s');
+
+	g2.appendChild(a);
+    }
+    /* 
+       Option 1: Normal speed
+    */
+    {
+	// Left box
+	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	svg.setAttribute('viewBox', '-100 -35 200 70');
+	buttons[1].appendChild(svg);
+	this.createSvgBlock(-50, 0, true, red, lineColor, svg);
+
+	// Circular arrow:
+	var g1 = document.createElementNS(LDR.SVG.NS, 'g');
+	svg.appendChild(g1);
+	LDR.SVG.appendRotationCircle(0, 0, 18, g1);
+
+	// Right hand side:
+	var g2 = document.createElementNS(LDR.SVG.NS, 'g');
+	svg.appendChild(g2);
+	var turned = this.createSvgBlock(50, 0, true, red, lineColor, g2);
+
+	var a = document.createElementNS(LDR.SVG.NS, 'animateTransform');
+	a.setAttribute('id', 'turnerNormal');
 	a.setAttribute('attributeName', 'transform');
 	a.setAttribute('attributeType', 'XML');
 	a.setAttribute('type', 'rotate');
@@ -370,18 +403,18 @@ LDR.Options.prototype.appendAnimationOptions = function(optionsBlock) {
 	a.setAttribute('to', '90 50 0');
 	a.setAttribute('dur', '1s');
 	a.setAttribute('fill', 'freeze');
-	a.setAttribute('begin', '1s;turner.end+2s');
+	a.setAttribute('begin', '1s;turnerNormal.end+2s');
 
 	g2.appendChild(a);
     }
     /* 
-       Option 2: off
+       Option 3: off
     */
     {
 	// Left box
 	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '-100 -35 200 70');
-	buttons[1].appendChild(svg);
+	buttons[2].appendChild(svg);
 	this.createSvgBlock(-50, 0, true, red, lineColor, svg);
 
 	// Arrow:

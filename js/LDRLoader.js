@@ -773,12 +773,13 @@ THREE.LDRMeshCollector.prototype.createConditionalLines = function(baseObject) {
 	    p3s.push(line.p3.x, line.p3.y, line.p3.z, line.p3.x, line.p3.y, line.p3.z);
 	    p4s.push(line.p4.x, line.p4.y, line.p4.z, line.p4.x, line.p4.y, line.p4.z);
 	}
+
 	this.conditionalLines[lineColor] = undefined;
 
 	lineGeometry.addAttribute('position', new THREE.BufferAttribute(new Float32Array(p1s), 3));
 	lineGeometry.addAttribute('p2', new THREE.BufferAttribute(new Float32Array(p2s), 3));
 	lineGeometry.addAttribute('p3', new THREE.BufferAttribute(new Float32Array(p3s), 3));
-	lineGeometry.addAttribute('p4', new THREE.BufferAttribute(new Float32Array(p4s), 3)); // TODO: Use mat3 instead!
+	lineGeometry.addAttribute('p4', new THREE.BufferAttribute(new Float32Array(p4s), 3));
 
 	var line = new THREE.LineSegments(lineGeometry, lineMaterial);
 	this.conditionalLineMeshes.push(line);

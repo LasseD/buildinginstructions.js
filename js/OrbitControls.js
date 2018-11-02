@@ -665,13 +665,19 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 	}
 
+        function inTriggerArea( event ) {
+	    var w = domElement.clientWidth;
+	    var h = domElement.clientHeight;
+	    var noTriggerSize = 0.1;
+	    return event.x > w*noTriggerSize && event.x < w-w*noTriggerSize &&
+	           event.y > h*noTriggerSize && event.y < h-h*noTriggerSize;
+	}
+
 	//
 	// event handlers - FSM: listen for events and reset state
 	//
-
 	function onMouseDown( event ) {
-
-		if ( scope.enabled === false ) return;
+	        if ( scope.enabled === false || !inTriggerArea( event ) ) return;
 
 		event.preventDefault();
 
@@ -807,8 +813,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 	}
 
 	function onTouchStart( event ) {
-
-		if ( scope.enabled === false ) return;
+	        if ( scope.enabled === false || !inTriggerArea( event ) ) return;
 
 		event.preventDefault();
 

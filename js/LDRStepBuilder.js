@@ -156,7 +156,7 @@ LDR.StepBuilder.prototype.nextStep = function(doNotEraseForSubModels) {
 	    this.meshCollectors[this.current] = meshCollector;
 	    meshCollector.draw(this.baseObject, false); // New part is not 'old'.
 
-	    // Helper:
+	    // Helper. Uncomment next line for bounding boxes:
 	    //this.baseObject.add(new THREE.Box3Helper(meshCollector.boundingBox, 0xff0000));
 
 	    this.setCurrentBounds(meshCollector.boundingBox);
