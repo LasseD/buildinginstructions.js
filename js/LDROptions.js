@@ -8,8 +8,9 @@ LDR.Options = function() {
     // Default values for options (in case of first visit or no cookies:
     this.showOldColors = 0; // 0 = all colors. 1 = single color old. 2 = dulled old.
     this.showLines = 0; // 0 = all lines. 1 = normal lines. 2 = no lines.
-    this.lineColor = 0x000000;
-    this.blackLineColor = 0x777777;
+    this.lineContrast = 1; // 0 = High contrast, 1 = LDraw. 2 = no lines.
+    this.lineColor = 0x333333;
+    this.blackLineColor = 0x595959;
     this.oldColor = 0xffff6f;
     this.showFFFRButtons = 0; // 0=off, 1=on
     this.showLRButtons = 0; // 0=right big, 1=right normal, 2=both off
@@ -52,6 +53,7 @@ LDR.Options.prototype.saveOptionsToCookie = function() {
     }
     addToKv("showOldColors");
     addToKv("showLines");
+    addToKv("lineContrast");
     addToKv("lineColor");
     addToKv("blackLineColor");
     addToKv("oldColor");
@@ -135,16 +137,16 @@ LDR.Options.prototype.appendOldBrickColorOptions = function(optionsBlock) {
     var buttons = this.createButtons(group, 3, this.showOldColors, onOldBrickChange);
     
     // Color functions:
-    var red = function(){return '#FF0000';};
-    var green = function(){return '#00FF00';};
-    var blue = function(){return '#0000FF';};    
+    var red = function(){return '#C91A09';};
+    var green = function(){return '#257A3E';};
+    var blue = function(){return '#0055BF';};    
     var rgb = [red, green, blue];
     
-    var dred = LDR.Colors.int2Hex(LDR.Colors.desaturateColor(0xFF0000));
+    var dred = LDR.Colors.int2Hex(LDR.Colors.desaturateColor(0xC91A09));
     var fdred = function(){return dred};
-    var dgreen = LDR.Colors.int2Hex(LDR.Colors.desaturateColor(0x00FF00));
+    var dgreen = LDR.Colors.int2Hex(LDR.Colors.desaturateColor(0x257A3E));
     var fdgreen = function(){return dgreen};
-    var dblue = LDR.Colors.int2Hex(LDR.Colors.desaturateColor(0x0000FF));
+    var dblue = LDR.Colors.int2Hex(LDR.Colors.desaturateColor(0x0055BF));
     var fdblue = function(){return dblue};
     var desat = [fdred, fdgreen, fdblue];
 
@@ -222,7 +224,7 @@ LDR.Options.prototype.appendLineOptions = function(optionsBlock) {
     var buttons = this.createButtons(group, 3, this.showLines, onLinesChange);
     
     // Color functions:
-    var red = function(){return '#FF0000';};
+    var red = function(){return '#C91A09';};
     var lineColor = function(options){
 	return LDR.Colors.int2Hex(options.lineColor);
     };
@@ -259,6 +261,61 @@ LDR.Options.prototype.appendLineOptions = function(optionsBlock) {
     }
 }
 
+LDR.Options.prototype.appendContrastOptions = function(optionsBlock) {
+    var group = this.addOptionsGroup(optionsBlock, 3, "Contrast");
+    var options = this;
+    var onChange = function(idx) {
+	options.lineContrast = idx;
+        if(idx == 1)
+          options.lineColor = 0x333333;
+        else if(idx == 0)
+          options.lineColor = 0;
+        else
+          options.lineColor = -1;
+	options.onChange();
+    };
+    var buttons = this.createButtons(group, 3, this.lineContrast, onChange);
+    
+    // Color functions:
+    var red = function(){return '#C91A09';};
+    var redEdge1 = function(){return '#000000';};
+    var redEdge2 = function(){return '#333333';};
+    var black = function(){return '#05131D';};
+    var blackEdge1 = function(){return '#FFFFFF';};
+    var blackEdge2 = function(){return '#595959';};
+
+    /* 
+       Option 1: High contrast:
+    */
+    {
+	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	svg.setAttribute('viewBox', '-100 -25 200 50');
+	buttons[0].appendChild(svg);
+	this.createSvgBlock(-LDR.Options.svgBlockWidth, 0, true, red, redEdge1, svg);
+	this.createSvgBlock(LDR.Options.svgBlockWidth, 0, true, black, blackEdge1, svg);
+    }
+    /* 
+       Option 2: Only normal lines:
+    */
+    {
+	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	svg.setAttribute('viewBox', '-100 -25 200 50');
+	buttons[1].appendChild(svg);
+	this.createSvgBlock(-LDR.Options.svgBlockWidth, 0, true, red, redEdge2, svg);
+	this.createSvgBlock(LDR.Options.svgBlockWidth, 0, true, black, blackEdge2, svg);
+    }
+    /* 
+       Option 3: No lines:
+    */
+    {
+	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	svg.setAttribute('viewBox', '-100 -25 200 50');
+	buttons[2].appendChild(svg);
+	this.createSvgBlock(-LDR.Options.svgBlockWidth, 0, true, red, red, svg);
+	this.createSvgBlock(LDR.Options.svgBlockWidth, 0, true, black, black, svg);
+    }
+}
+
 /*
 Choose the colors of lines, lines for black parts and colors for old parts.
 */
@@ -267,10 +324,10 @@ LDR.Options.prototype.appendColorOptions = function(optionsBlock) {
     var options = this;
 
     // Color functions:
-    var red = function(){return '#FF0000';};
-    var green = function(){return '#00FF00';};
-    var blue = function(){return '#0000FF';};
-    var black = function(){return '#000000';};    
+    var red = function(){return '#C91A09';};
+    var green = function(){return '#257A3E';};
+    var blue = function(){return '#0055BF';};
+    var black = function(){return '#333333';};    
     var rgb = [red, green, blue];
 
     var lineColor = function(options){
@@ -334,7 +391,7 @@ LDR.Options.prototype.appendAnimationOptions = function(optionsBlock) {
 	options.onChange();
     };
     var buttons = this.createButtons(group, 3, this.showStepRotationAnimations, onAnimationChange);
-    var red = function(){return '#FF0000';};
+    var red = function(){return '#C91A09';};
     var lineColor = function(options){
 	return LDR.Colors.int2Hex(options.lineColor);
     };
@@ -440,7 +497,7 @@ LDR.Options.prototype.appendShowPLIOptions = function(optionsBlock) {
     var buttons = this.createButtons(group, 2, this.showPLI, onPLIChange);
     
     // Colors:
-    var red = function(){return '#FF0000';};
+    var red = function(){return '#C91A09';};
         var lineColor = function(options){
 	return LDR.Colors.int2Hex(options.lineColor);
     };

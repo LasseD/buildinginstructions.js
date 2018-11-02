@@ -665,19 +665,23 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 	}
 
-        function inTriggerArea( event ) {
-	    var w = domElement.clientWidth;
-	    var h = domElement.clientHeight;
-	    var noTriggerSize = 0.1;
-	    return event.x > w*noTriggerSize && event.x < w-w*noTriggerSize &&
-	           event.y > h*noTriggerSize && event.y < h-h*noTriggerSize;
+        function inTriggerBox( event ) {
+	    if(!scope.noTriggerSize)
+		return true;
+	    var w = scope.domElement.clientWidth;
+	    var h = scope.domElement.clientHeight;
+	    var x = event.clientX || event.touches[ 0 ].pageX;
+	    var y = event.clientY || event.touches[ 0 ].pageY;
+
+	    return x > w*scope.noTriggerSize && x < w-w*scope.noTriggerSize &&
+	           y > h*scope.noTriggerSize && y < h-h*scope.noTriggerSize;
 	}
 
 	//
 	// event handlers - FSM: listen for events and reset state
 	//
 	function onMouseDown( event ) {
-	        if ( scope.enabled === false || !inTriggerArea( event ) ) return;
+	        if ( scope.enabled === false || !inTriggerBox( event ) ) return;
 
 		event.preventDefault();
 
@@ -739,8 +743,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 	}
 
 	function onMouseMove( event ) {
-
-		if ( scope.enabled === false ) return;
+	        if ( scope.enabled === false || !inTriggerBox( event ) ) return;
 
 		event.preventDefault();
 
@@ -775,8 +778,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 	}
 
 	function onMouseUp( event ) {
-
-		if ( scope.enabled === false ) return;
+	        if ( scope.enabled === false || !inTriggerBox( event ) ) return;
 
 		handleMouseUp( event );
 
@@ -790,8 +792,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 	}
 
 	function onMouseWheel( event ) {
-
-		if ( scope.enabled === false || scope.enableZoom === false || ( state !== STATE.NONE && state !== STATE.ROTATE ) ) return;
+	        if ( scope.enabled === false || !inTriggerBox( event ) ||  scope.enabled === false || scope.enableZoom === false || ( state !== STATE.NONE && state !== STATE.ROTATE ) ) return;
 
 		event.preventDefault();
 		event.stopPropagation();
@@ -813,7 +814,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 	}
 
 	function onTouchStart( event ) {
-	        if ( scope.enabled === false || !inTriggerArea( event ) ) return;
+	        if ( scope.enabled === false || !inTriggerBox( event ) ) return;
 
 		event.preventDefault();
 
@@ -854,8 +855,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 	}
 
 	function onTouchMove( event ) {
-
-		if ( scope.enabled === false ) return;
+	        if ( scope.enabled === false || !inTriggerBox( event ) ) return;
 
 		event.preventDefault();
 		event.stopPropagation();
@@ -889,8 +889,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 	}
 
 	function onTouchEnd( event ) {
-
-		if ( scope.enabled === false ) return;
+	        if ( scope.enabled === false || !inTriggerBox( event ) ) return;
 
 		handleTouchEnd( event );
 

@@ -20,6 +20,14 @@ LDR.Colors.getDesaturatedColor4 = function(colorID) {
     return new THREE.Vector4(color.r, color.g, color.b, alpha);
 }
 
+LDR.Colors.getHighContrastColor4 = function(colorID) {
+    if(colorID < 10000)
+	return LDR.Colors.getColor4(colorID); // No contrast for normal colors.
+    if(colorID == 10000 || colorID == 10256 || colorID == 10064 || colorID == 10083)
+	return new THREE.Vector4(1, 1, 1, 1);
+    return new THREE.Vector4(0, 0, 0, 1);
+}
+
 LDR.Colors.int2RGB = function(i) {
     var b = (i & 0xff);
     i = i >> 8;

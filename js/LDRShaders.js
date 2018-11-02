@@ -1,7 +1,7 @@
 'use strict';
 
 LDR.TriangleVertexShader = `
-  precision mediump float;
+  precision highp float;
 
   uniform vec4 color;
   uniform mat4 projectionMatrix;
@@ -18,7 +18,7 @@ LDR.TriangleVertexShader = `
 `;
 
 LDR.LineVertexShader = `
-  precision mediump float;
+  precision highp float;
 
   uniform vec4 color;
   uniform mat4 projectionMatrix;
@@ -39,7 +39,7 @@ LDR.LineVertexShader = `
 // See 'http://www.ldraw.org/article/218.html' for specification of optional/conditional lines.
 // A conditional line is drawn when the camera sees p3 and p4 on same side of line p1 p2.
 LDR.ConditionalLineVertexShader = `
-  precision mediump float;
+  precision highp float;
 
   uniform vec4 color;
   uniform mat4 projectionMatrix;
