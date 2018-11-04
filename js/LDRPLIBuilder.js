@@ -86,7 +86,7 @@ LDR.PLIBuilder.prototype.createSortedIcons = function(step, stepColorID) {
 	    icon.mult++;
 	}
 	else {
-	    icon = {key: key, 
+	    icon = {key: key,
 		    partID: partID, 
 		    colorID: colorID, 
 		    mult: 1, 
@@ -116,7 +116,7 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, ma
        this.lastColorID === colorID &&
        this.lastMaxWidth == maxWidth && this.lastMaxHeight == maxHeight &&
        this.fillHeight == fillHeight) {
-	return;
+	return this.sortedIcons;
     }
     this.lastStep = step;
     this.lastColorID = colorID;
@@ -125,9 +125,9 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, ma
     this.fillHeight = fillHeight;
 
     // Find, sort and set up icons to show:
-    var sortedIcons = this.createSortedIcons(step, colorID);
-    var [W,H] = Algorithm.PackSquares(fillHeight, maxWidth, maxHeight, sortedIcons, 200);
-    var iconSize = sortedIcons[0].width;
+    this.sortedIcons = this.createSortedIcons(step, colorID);
+    var [W,H] = Algorithm.PackSquares(fillHeight, maxWidth, maxHeight, this.sortedIcons, 200);
+    var iconSize = this.sortedIcons[0].width;
 
     this.pliElement.width = W+4;
     this.pliElement.height = H+4;
@@ -140,17 +140,18 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, ma
     context.clearRect(0, 0, this.pliElement.width, this.pliElement.height);
     var self = this;
     function delay() {
-	for(var i = 0; i < sortedIcons.length; i++) {
-	    var icon = sortedIcons[i];
+	for(var i = 0; i < self.sortedIcons.length; i++) {
+	    var icon = self.sortedIcons[i];
             self.render(icon.key, iconSize, iconSize);
 	    context.drawImage(self.renderer.domElement, 
 			      icon.x, icon.y);
 	}
-	for(var i = 0; i < sortedIcons.length; i++) {
-	    var icon = sortedIcons[i];
+	for(var i = 0; i < self.sortedIcons.length; i++) {
+	    var icon = self.sortedIcons[i];
 	    context.fillText(icon.mult + "x", 
 			     icon.x + 2, (icon.y+iconSize) - 8);
 	}
     }
     setTimeout(delay, 10); // Ensure not blocking
+    return this.sortedIcons;
 }
