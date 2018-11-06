@@ -41,27 +41,25 @@ LDR.PLIBuilder.prototype.updateCamera = function(w, h, zoom) {
     this.camera.updateProjectionMatrix();
 }
 
-LDR.PLIBuilder.prototype.render = function(key, w, h) {
+LDR.PLIBuilder.prototype.getPC = function(key, w, h) {
     var pc = this.partsBuilder.pcs[key];
-    if(!pc) {
-	console.dir(this.partsBuilder.pcs);
-	throw "Unknown key: " + key;
-    }
-    var b;
     if(!pc.mesh) {
 	pc.mesh = new THREE.Group();
 	pc.draw(pc.mesh);
-	b = pc.getBounds();
 	var elementCenter = new THREE.Vector3();
+	var b = pc.getBounds();
 	b.getCenter(elementCenter);
 	pc.mesh.position.x = -elementCenter.x;
 	pc.mesh.position.y = -elementCenter.y;
 	pc.mesh.position.z = -elementCenter.z;
     }
-    else {
-	pc.meshCollector.draw(pc.mesh, false);
-	b = pc.getBounds();
-    }
+    return pc;
+}
+
+LDR.PLIBuilder.prototype.render = function(key, w, h) {
+    var pc = this.getPC(key);
+    pc.meshCollector.draw(pc.mesh, false);
+    var b = pc.getBounds();
     
     this.scene.add(pc.mesh);
     
