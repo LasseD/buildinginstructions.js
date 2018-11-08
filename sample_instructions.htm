@@ -14,8 +14,9 @@
     <script src="js/three.min.js"></script>
     <script src="js/OrbitControls.js"></script>
     <script src="js/colors.js"></script>
+    <script src="js/pli.js"></script>\
+    <script src="js/LDRShaders.js"></script>
     <script src="js/LDRColorMaterials.js"></script>
-    <script src="js/pli.js"></script>
     <script src="js/LDRSVG.js"></script>
     <script src="js/LDROptions.js"></script>
     <script src="js/LDRLoader.js"></script>
@@ -41,7 +42,7 @@
         camera.position.x = 10000;
         camera.position.y = 7000;
         camera.position.z = 10000;
-      camera.lookAt(new THREE.Vector3());
+        camera.lookAt(new THREE.Vector3());
         updateCameraSize();
         render();
       }
@@ -90,17 +91,17 @@
         renderer.setViewport(pliW/2, 0, window.innerWidth, window.innerHeight);
       else
         renderer.setViewport(0, pliH/2, window.innerWidth, window.innerHeight);
-      updateCameraZoom();
+        updateCameraZoom();
       }
       function updateCameraZoom(zoom) {
         zoom = zoom || defaultZoom;
-      camera.zoom = zoom * currentZoom;
-      camera.updateProjectionMatrix();
+        camera.zoom = zoom * currentZoom;
+        camera.updateProjectionMatrix();
       }
       function onWindowResize(){
-      renderer.setSize(window.innerWidth-20, window.innerHeight);
+        renderer.setSize(window.innerWidth-20, window.innerHeight);
         updateCameraSize();
-      render();
+        render();
       }
       onWindowResize();
 
@@ -108,11 +109,6 @@
       currentRotationMatrix.set(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
       var defaultMatrix = new THREE.Matrix4();
       defaultMatrix.set(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
-      /*var m0 = new THREE.Matrix3();
-      m0.set(-0.693437,  0.0132227, -0.720396, 
-            0.292766,  0.918744, -0.264947, 
-            0.658357, -0.394631, -0.640962);
-      currentRotationMatrix.multiply(m0);*/
 
       var ldrLoader;
       var builder = null;
@@ -412,7 +408,7 @@
 	pliElement = document.getElementById('pli');
 	pliBuilder = new LDR.PLIBuilder(ldrLoader,mainModel, 0, pliElement,
 					document.getElementById('pli_render_canvas'));
-        builder = new LDR.StepBuilder(baseObject, camera, ldrLoader, [pd], function(){render();}, true);
+        builder = new LDR.StepBuilder(baseObject, ldrLoader, [pd], function(){render();}, true);
 	builder.nextStep();
 	realignModel(0);
 	updateUIComponents();
