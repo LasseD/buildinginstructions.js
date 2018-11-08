@@ -705,11 +705,10 @@ THREE.LDRMeshCollector.prototype.updateMeshVisibility = function() {
     for(var i = 0; i < this.triangleMeshes.length; i++) {
 	this.triangleMeshes[i].visible = v;
     }
-    v = ldrOptions.showLines < 2 && this.visible;
+    v = ldrOptions.lineContrast < 2 && this.visible;
     for(var i = 0; i < this.lineMeshes.length; i++) {
 	this.lineMeshes[i].visible = v;
     }
-    v = ldrOptions.showLines < 1 && this.visible;
     for(var i = 0; i < this.conditionalLineMeshes.length; i++) {
 	this.conditionalLineMeshes[i].visible = v;
     }
@@ -723,9 +722,11 @@ THREE.LDRMeshCollector.prototype.createNormalLines = function(baseObject) {
 
     for(var i = 0; i < this.lineColors.length; i++) {
 	var lineColor = this.lineColors[i];
+	var lineColorV = ldrOptions.lineContrast == 1 ? 
+	    LDR.Colors.getColor4(lineColor) : LDR.Colors.getHighContrastColor4(lineColor);
 	var lineMaterial = new THREE.RawShaderMaterial( {
 	    uniforms: {
-		color: { value: LDR.Colors.getColor4(lineColor) }
+		color: { value: lineColorV }
 	    },
 	    vertexShader: LDR.LineVertexShader,
 	    fragmentShader: LDR.SimpleFragmentShader,
@@ -753,9 +754,11 @@ THREE.LDRMeshCollector.prototype.createConditionalLines = function(baseObject) {
     // Now handle conditional lines:
     for(var i = 0; i < this.conditionalLineColors.length; i++) {
 	var lineColor = this.conditionalLineColors[i];
+	var lineColorV = ldrOptions.lineContrast == 1 ? 
+	    LDR.Colors.getColor4(lineColor) : LDR.Colors.getHighContrastColor4(lineColor);
 	var lineMaterial = new THREE.RawShaderMaterial( {
 	    uniforms: {
-		color: { value: LDR.Colors.getColor4(lineColor) }
+		color: { value: lineColorV }
 	    },
 	    vertexShader: LDR.ConditionalLineVertexShader,
 	    fragmentShader: LDR.AlphaTestFragmentShader,
@@ -921,8 +924,35 @@ THREE.LDRMeshCollector.prototype.colorTrianglesNormal = function() {
     }
 }
 
+THREE.LDRMeshCollector.prototype.colorLinesLDraw = function() {
+    for(var i = 0; i < this.lineColors.length; i++) {
+	var c = this.lineColors[i];
+	var mesh = this.lineMeshes[i];
+	mesh.material.uniforms.color.value = LDR.Colors.getColor4(c);
+    }
+    for(var i = 0; i < this.conditionalLineColors.length; i++) {
+	var c = this.conditionalLineColors[i];
+	var mesh = this.conditionalLineMeshes[i];
+	mesh.material.uniforms.color.value = LDR.Colors.getColor4(c);
+    }
+}
+
+THREE.LDRMeshCollector.prototype.colorLinesHighContrast = function() {
+    for(var i = 0; i < this.lineColors.length; i++) {
+	var c = this.lineColors[i];
+	var mesh = this.lineMeshes[i];
+	mesh.material.uniforms.color.value = LDR.Colors.getHighContrastColor4(c);
+    }
+    for(var i = 0; i < this.conditionalLineColors.length; i++) {
+	var c = this.conditionalLineColors[i];
+	var mesh = this.conditionalLineMeshes[i];
+	mesh.material.uniforms.color.value = LDR.Colors.getHighContrastColor4(c);
+    }
+}
+
 THREE.LDRMeshCollector.prototype.updateState = function(old) {
     this.old = old;
+    this.lineContrast = ldrOptions.lineContrast;
     this.oldColor = ldrOptions.oldColor;
     this.showOldColors = ldrOptions.showOldColors;
 }
@@ -930,11 +960,19 @@ THREE.LDRMeshCollector.prototype.updateState = function(old) {
 /*
  * Returns true on creation.
  */
-THREE.LDRMeshCollector.prototype.createOrUpdateTriangles = function(old, baseObject) {
+THREE.LDRMeshCollector.prototype.createOrUpdate = function(old, baseObject) {
     if(!this.triangleMeshes) { // Create triangles:
 	this.updateState(old);
 	this.buildTriangles(old, baseObject);
 	return true;
+    }
+
+    // Check if lines need to be recolored:
+    if(this.lineContrast != ldrOptions.lineContrast) {
+	if(ldrOptions.lineContrast == 1)
+	    this.colorLinesLDraw();
+	else
+	    this.colorLinesHighContrast();
     }
 
     if(old !== this.old) {
@@ -979,7 +1017,7 @@ THREE.LDRMeshCollector.prototype.draw = function(baseObject, old) {
     if(old == undefined)
 	throw "'old' is undefined!";
 
-    var created = this.createOrUpdateTriangles(old, baseObject);
+    var created = this.createOrUpdate(old, baseObject);
     if(created) {
 	this.visible = true;
 	this.createNormalLines(baseObject);

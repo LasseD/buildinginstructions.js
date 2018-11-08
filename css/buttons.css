@@ -1,6 +1,11 @@
 #prev_button, #next_button, #reset_camera_button, #zoom_in_button, #zoom_out_button, #zoom_in_button_large, #zoom_out_button_large {
     position: relative;
     cursor: pointer;
+    /* Prevent text select: */
+    -webkit-user-select: none; /* Safari + Chrome */
+    -moz-user-select: none; /* Firefox */
+    -khtml-user-select: none; /* Linux */
+    -ms-user-select: none; /* IE */
 }
 #prev_button {
     width: 100px;

@@ -85,10 +85,18 @@ body {
   border: 2px solid black;
   border-radius: 8px;
   background-color: white;
+  cursor: pointer;
 }
 #pli_render_canvas {
   position: fixed;
   left: 0;
   top: 0;
   display: none;
+}
+
+/*
+  Preview:
+*/
+#generated {
+    display: none;
 }

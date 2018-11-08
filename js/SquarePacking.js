@@ -39,6 +39,7 @@ Algorithm.PackSquares = function(fillHeight, maxWidth, maxHeight, squares, maxSq
 		squares[idx].x = x*size;
 		squares[idx].y = y*size;
 		squares[idx].width = size;
+		squares[idx].height = size;
 		idx++;
 	    }
 	}
@@ -50,6 +51,7 @@ Algorithm.PackSquares = function(fillHeight, maxWidth, maxHeight, squares, maxSq
 		squares[idx].x = x*size;
 		squares[idx].y = y*size;
 		squares[idx].width = size;
+		squares[idx].height = size;
 		idx++;
 	    }
 	}
