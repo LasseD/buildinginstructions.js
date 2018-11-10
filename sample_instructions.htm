@@ -26,7 +26,6 @@
     <script src="js/LDRPLIBuilder.js"></script>
     <script src="js/LDRButtons.js"></script>
     <script>
-      var pageStartTime = new Date();
       var modelTypeUrl = 'models/tristack.ldr';
       var scene = new THREE.Scene(); // To add stuff to
       scene.background = new THREE.Color( 0xffffff );
@@ -47,13 +46,11 @@
         render();
       }
       function zoomIn() {
-        currentZoom *= 1.2;
-        updateCameraZoom();
+        controls.dollyIn(1.2);
         render();
       }
       function zoomOut() {
-        currentZoom /= 1.2;
-        updateCameraZoom();
+        controls.dollyOut(1.2);
         render();
       }
       function setBackgroundColor(c) {
@@ -72,6 +69,7 @@
       var ldrOptions = new LDR.Options();
       var ldrButtons = new LDR.Buttons(document.body, true, '1', null);
       var controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.noTriggerSize = 0.2; // Sets a border area where the OrbitControl does not react to user input.
       controls.keys = {
         LEFT: 65, // A
         UP: 87, // W
@@ -87,10 +85,10 @@
         camera.right  =  window.innerWidth;
         camera.top    =  window.innerHeight;
         camera.bottom = -window.innerHeight;
-      if(!pliBuilder || pliBuilder.fillHeight)
-        renderer.setViewport(pliW/2, 0, window.innerWidth, window.innerHeight);
-      else
-        renderer.setViewport(0, pliH/2, window.innerWidth, window.innerHeight);
+        if(!pliBuilder || pliBuilder.fillHeight)
+          renderer.setViewport(pliW/2, 0, window.innerWidth, window.innerHeight);
+        else
+          renderer.setViewport(0, pliH/2, window.innerWidth, window.innerHeight);
         updateCameraZoom();
       }
       function updateCameraZoom(zoom) {
@@ -99,6 +97,7 @@
         camera.updateProjectionMatrix();
       }
       function onWindowResize(){
+        renderer.setPixelRatio(window.devicePixelRatio);
         renderer.setSize(window.innerWidth-20, window.innerHeight);
         updateCameraSize();
         render();
@@ -397,7 +396,6 @@
       }
       
       var onLoad = function() {
-        console.log("Done loading at " + (new Date()-pageStartTime) + "ms.");
 	var mainModel = ldrLoader.mainModel;
 	var origo = new THREE.Vector3();
 	var inv = new THREE.Matrix3(); 
@@ -413,10 +411,9 @@
 	realignModel(0);
 	updateUIComponents();
 	render(); // Updates background color.
-        console.log("Render done after " + (new Date()-pageStartTime) + "ms.");
       }
       var onProgress = function(part) {
-        // Ignore progress. // TODO: Quick load step 1
+        // Ignore progress.
       };
       var onError = function(msg) {
         console.dir(msg);
@@ -432,7 +429,7 @@
       <script>
       var multiplier = document.getElementById("multiplier");
       updateMultiplier = function() {
-        multiplier.innerHTML = "x" + currentMultiplier;
+      multiplier.innerHTML = "x" + currentMultiplier;
       multiplier.style.visibility = (currentMultiplier == 1) ? "hidden" : "visible";
       }
 
@@ -450,10 +447,8 @@
     ldrOptions.appendHeader(optionsDiv);    
     ldrOptions.appendOldBrickColorOptions(optionsDiv);
     ldrOptions.appendLineOptions(optionsDiv);
-    //ldrOptions.appendColorOptions(optionsDiv);
     ldrOptions.appendAnimationOptions(optionsDiv);
     ldrOptions.appendShowPLIOptions(optionsDiv);
-    //ldrOptions.appendFFFROptions(optionsDiv);
     ldrOptions.appendLROptions(optionsDiv);
     ldrOptions.appendCameraOptions(optionsDiv);
 
