@@ -24,24 +24,28 @@ LDR.PLIBuilder = function(ldrLoader, mainModelID, mainModelColor, pliElement, pl
     this.camera.position.y = 7000;
     this.camera.position.z = 10000;
     this.camera.lookAt(new THREE.Vector3());
+    this.camera.zoom = 1;
+    this.measurer = new LDR.Measurer(this.camera);
 
     this.scene = new THREE.Scene(); // Will only contain one element at a time.
-    this.scene.background = new THREE.Color( 0xffffff );
+    this.scene.background = new THREE.Color(0xFFFFFF);
 
     this.renderer = new THREE.WebGLRenderer({antialias: true});
+    //this.renderer.setPixelRatio(window.devicePixelRatio);
     pliRenderElement.appendChild(this.renderer.domElement);
 }
 
-LDR.PLIBuilder.prototype.updateCamera = function(w, h, zoom) {
-    this.camera.left = -w;
-    this.camera.right = w;
-    this.camera.top = h;
-    this.camera.bottom = -h;
+LDR.PLIBuilder.prototype.updateCamera = function(size, zoom) {
+    this.camera.left = -size;
+    this.camera.right = size;
+    this.camera.top = size;
+    this.camera.bottom = -size;
     this.camera.zoom = zoom;
+    this.camera.aspect = 1;
     this.camera.updateProjectionMatrix();
 }
 
-LDR.PLIBuilder.prototype.getPC = function(key, w, h) {
+LDR.PLIBuilder.prototype.getPC = function(key) {
     var pc = this.partsBuilder.pcs[key];
     if(!pc.mesh) {
 	pc.mesh = new THREE.Group();
@@ -52,21 +56,25 @@ LDR.PLIBuilder.prototype.getPC = function(key, w, h) {
 	pc.mesh.position.x = -elementCenter.x;
 	pc.mesh.position.y = -elementCenter.y;
 	pc.mesh.position.z = -elementCenter.z;
+	//pc.mesh.add(new THREE.Box3Helper(b, 0xff0000));
+
+	this.scene.add(pc.mesh);
+	pc.mesh.updateMatrixWorld(true);
+	this.scene.remove(pc.mesh);
+	var [dx,dy] = this.measurer.measure(b, pc.mesh.matrixWorld);
+	pc.dx = dx;
+	pc.dy = dy;
     }
     return pc;
 }
 
-LDR.PLIBuilder.prototype.render = function(key, w, h) {
+LDR.PLIBuilder.prototype.render = function(key, size) {
     var pc = this.getPC(key);
     pc.meshCollector.draw(pc.mesh, false);
-    var b = pc.getBounds();
     
     this.scene.add(pc.mesh);
-    
-    var size = b.min.distanceTo(b.max) * 0.6;
-    var zoom = Math.min(w, h) / size;
-    this.renderer.setSize(w, h);
-    this.updateCamera(w, h, zoom);
+    this.renderer.setSize(size, size);
+    this.updateCamera(Math.max(pc.dx, pc.dy)*0.52, 1);
     this.renderer.render(this.scene, this.camera);
     this.scene.remove(pc.mesh);
 }
@@ -84,11 +92,14 @@ LDR.PLIBuilder.prototype.createSortedIcons = function(step, stepColorID) {
 	    icon.mult++;
 	}
 	else {
+	    var pc = this.getPC(key);
 	    icon = {key: key,
 		    partID: partID, 
 		    colorID: colorID, 
 		    mult: 1, 
-		    desc: this.ldrLoader.ldrPartTypes[partID].modelDescription
+		    desc: this.ldrLoader.ldrPartTypes[partID].modelDescription,
+		    dx: pc.dx,
+		    dy: pc.dy
 		   };
 	    icons[key] = icon;
 	    sortedIcons.push(icon);
@@ -124,30 +135,38 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, ma
 
     // Find, sort and set up icons to show:
     this.sortedIcons = this.createSortedIcons(step, colorID);
-    var [W,H] = Algorithm.PackSquares(fillHeight, maxWidth, maxHeight, this.sortedIcons, 200);
-    var iconSize = this.sortedIcons[0].width;
-
-    this.pliElement.width = W+4;
-    this.pliElement.height = H+4;
+    var [W,H] = Algorithm.PackRectangles(fillHeight, maxWidth, maxHeight, this.sortedIcons, 200);
+    this.pliElement.width = W+12;
+    this.pliElement.height = H+16;
+    this.pliElement.style.width = (W+12)+"px";
+    this.pliElement.style.height = (H+16)+"px";
 
     var context = this.pliElement.getContext('2d');
 
-    var fontSize = parseInt(18*iconSize/100);
-    context.font = fontSize + "px sans-serif";
+    context.font = "25px sans-serif";
     context.fillStyle = "black";
-    context.clearRect(0, 0, this.pliElement.width, this.pliElement.height);
     var self = this;
     function delay() {
+	context.clearRect(0, 0, this.pliElement.width, this.pliElement.height);
 	for(var i = 0; i < self.sortedIcons.length; i++) {
 	    var icon = self.sortedIcons[i];
-            self.render(icon.key, iconSize, iconSize);
-	    context.drawImage(self.renderer.domElement, 
-			      icon.x, icon.y);
+	    var sizeMax = Math.max(icon.width, icon.height)*0.95;
+	    var sizeMin = Math.min(icon.width, icon.height);
+            self.render(icon.key, sizeMax);
+	    context.drawImage(self.renderer.domElement,
+			      (sizeMax-icon.width)/2, // Source image x
+			      (sizeMax-icon.height)/2, // Source image y
+			      icon.width, // Source image width
+			      icon.height, // Source image height
+			      icon.x+8, // Destination x, y, w, h...
+			      icon.y,
+			      icon.width,
+			      icon.height);
 	}
 	for(var i = 0; i < self.sortedIcons.length; i++) {
 	    var icon = self.sortedIcons[i];
 	    context.fillText(icon.mult + "x", 
-			     icon.x + 2, (icon.y+iconSize) - 8);
+			     icon.x + 2, (icon.y+icon.height) + 10);
 	}
     }
     setTimeout(delay, 10); // Ensure not blocking
