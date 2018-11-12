@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+ <head>
+    <title>Sample Render</title>
+ </head>
+ <body>
+    <script src="js/three.min.js"></script>
+    <script src="js/OrbitControls.js"></script>
+    <script src="js/colors.js"></script>
+    <script src="js/LDROptions.js"></script>
+    <script src="js/LDRShaders.js"></script>
+    <script src="js/LDRColorMaterials.js"></script>
+    <script src="js/LDRLoader.js"></script>
+    <script>
+      // The model to be rendered:
+      var modelTypeUrl = 'models/tristack.ldr';
+
+      var ldrOptions = new LDR.Options(); // Determine how to show lines. Change this in sample_instruction.htm
+
+      // Set up camera:
+      var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
+      camera.position.x = 10000;
+      camera.position.y = 7000;
+      camera.position.z = 10000;
+      camera.lookAt(new THREE.Vector3());
+
+      // Set up scene:
+      var scene = new THREE.Scene();
+      scene.background = new THREE.Color( 0xffffff );
+      var baseObject = new THREE.Group(); // Shown model is added to this.
+      scene.add(baseObject);
+
+      // Set up renderer:
+      var renderer = new THREE.WebGLRenderer({antialias: true});
+      renderer.setPixelRatio(window.devicePixelRatio);
+      function render() {
+        renderer.render(scene, camera);
+      }
+      document.body.appendChild(renderer.domElement);
+
+      function onWindowResize(){
+        camera.left = -window.innerWidth;
+        camera.right = window.innerWidth;
+        camera.top = window.innerHeight;
+        camera.bottom = -window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        render();
+      }
+
+      // React to user input:
+      var controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.addEventListener('change', render);
+      window.addEventListener('resize', onWindowResize, false);
+
+      // Three.js loader for LDraw models:
+      var ldrLoader;
+
+      var onLoad = function() {
+        onWindowResize();
+
+        var mainModel = ldrLoader.ldrPartTypes[ldrLoader.mainModel]; // Main model from the LDraw file (first model encountered)
+
+        // Place model in scene:
+        var origo = new THREE.Vector3();
+        var inv = new THREE.Matrix3(); 
+        inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
+
+        // Generate the mesh:
+        var mc = new THREE.LDRMeshCollector();
+        mainModel.generateThreePart(ldrLoader, 0, origo, inv, true, false, mc);
+        mc.draw(baseObject, false);
+
+        // Find center of draw model:
+        var b = mc.boundingBox;
+        var elementCenter = new THREE.Vector3();
+        b.getCenter(elementCenter);
+        baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
+        //baseObject.add(new THREE.Box3Helper(b, 0xff0000)); // Uncomment if you want to see the bounding box
+
+	camera.zoom = window.innerWidth/b.min.distanceTo(b.max);
+        onWindowResize();
+      }
+      var onProgress = function() {
+        // Ignore progress.
+      };
+      var onError = function(msg) {
+        console.dir(msg);
+      };
+
+      ldrLoader = new THREE.LDRLoader(THREE.DefaultLoadingManager, onLoad, onProgress, onError, false, true);
+      ldrLoader.load(modelTypeUrl, true);
+ </script>
+ </body>
+</html>
