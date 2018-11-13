@@ -28,7 +28,7 @@ LDR.PLIBuilder = function(ldrLoader, mainModelID, mainModelColor, pliElement, pl
     this.measurer = new LDR.Measurer(this.camera);
 
     this.scene = new THREE.Scene(); // Will only contain one element at a time.
-    this.scene.background = new THREE.Color(0xFFFFFF);
+    this.scene.background = new THREE.Color(0x00FFFF);
 
     this.renderer = new THREE.WebGLRenderer({antialias: true});
     //this.renderer.setPixelRatio(window.devicePixelRatio);
@@ -145,23 +145,23 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, ma
 
     context.font = "25px sans-serif";
     context.fillStyle = "black";
+    var scaleDown = 0.95; // To make icons not fill out the complete allocated cells.
     var self = this;
     function delay() {
 	context.clearRect(0, 0, this.pliElement.width, this.pliElement.height);
 	for(var i = 0; i < self.sortedIcons.length; i++) {
 	    var icon = self.sortedIcons[i];
-	    var sizeMax = Math.max(icon.width, icon.height)*0.95;
-	    var sizeMin = Math.min(icon.width, icon.height);
-            self.render(icon.key, sizeMax);
-	    context.drawImage(self.renderer.domElement,
-			      (sizeMax-icon.width)/2, // Source image x
-			      (sizeMax-icon.height)/2, // Source image y
-			      icon.width, // Source image width
-			      icon.height, // Source image height
-			      icon.x+8, // Destination x, y, w, h...
-			      icon.y,
-			      icon.width,
-			      icon.height);
+	    var size = parseInt(Math.max(icon.width, icon.height)*scaleDown);
+	    var w = parseInt(icon.width*scaleDown);
+	    var h = parseInt(icon.width*scaleDown);
+	    var sourceX = parseInt((size-w)/2); // Source image x
+	    var sourceY = parseInt((size-h)/2); // Source image y
+            self.render(icon.key, size);
+	    console.log("Drawing " + icon.key + " at " + icon.x +","+ icon.y + " size " + w + " x " + h + " on");
+	    console.log("Source size: " + self.renderer.domElement.width + " x " + self.renderer.domElement.height);
+	    context.drawImage(self.renderer.domElement, sourceX, sourceY,
+			      w, h, // Source image width, height
+			      icon.x+8, icon.y, w, h); // Destination x, y, w, h...
 	}
 	for(var i = 0; i < self.sortedIcons.length; i++) {
 	    var icon = self.sortedIcons[i];

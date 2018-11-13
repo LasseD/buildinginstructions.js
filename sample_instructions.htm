@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en-us">
   <head>
@@ -21,8 +20,9 @@
     <script src="js/LDROptions.js"></script>
     <script src="js/LDRLoader.js"></script>
     <script src="js/LDRStepBuilder.js"></script>
+    <script src="js/LDRMeasurer.js"></script>
     <script src="js/LDRPartsBuilder.js"></script>
-    <script src="js/SquarePacking.js"></script>
+    <script src="js/RectanglePacking.js"></script>
     <script src="js/LDRPLIBuilder.js"></script>
     <script src="js/LDRButtons.js"></script>
     <script>
@@ -85,16 +85,12 @@
         camera.right  =  window.innerWidth;
         camera.top    =  window.innerHeight;
         camera.bottom = -window.innerHeight;
+        camera.zoom = defaultZoom * currentZoom;
+        camera.updateProjectionMatrix();
         if(!pliBuilder || pliBuilder.fillHeight)
           renderer.setViewport(pliW/2, 0, window.innerWidth, window.innerHeight);
         else
           renderer.setViewport(0, pliH/2, window.innerWidth, window.innerHeight);
-        updateCameraZoom();
-      }
-      function updateCameraZoom(zoom) {
-        zoom = zoom || defaultZoom;
-        camera.zoom = zoom * currentZoom;
-        camera.updateProjectionMatrix();
       }
       function onWindowResize(){
         renderer.setPixelRatio(window.devicePixelRatio);
@@ -164,7 +160,6 @@
       var updateRotator = null;
       var initialConfiguration = true;
       function realignModel(stepDiff, onRotated, onDone) {
-        //console.log("Realigning after " + stepDiff + " steps");
         var oldRotationMatrix = currentRotationMatrix;
         var oldPosition = new THREE.Vector3();
         oldPosition.copy(baseObject.position);
@@ -180,26 +175,25 @@
         var oldLevel = builder.getLevelOfCurrentStep();
         var newLevel;
         if(stepDiff === 1 && builder.nextStep(true)) {
-            positionRotation = builder.computeCameraPositionRotation(defaultMatrix, currentRotationMatrix);
-            b = builder.getBounds();
-            newLevel = builder.getLevelOfCurrentStep();
-            updatePLI(); newPLIW = pliW, newPLIH = pliH;
-            builder.prevStep(true);
+          positionRotation = builder.computeCameraPositionRotation(defaultMatrix, currentRotationMatrix);
+          b = builder.getBounds();
+          newLevel = builder.getLevelOfCurrentStep();
+          updatePLI(); newPLIW = pliW, newPLIH = pliH;
+          builder.prevStep(true);
         }
         else if(stepDiff === -1 && builder.prevStep(true)) {
-            positionRotation = builder.computeCameraPositionRotation(defaultMatrix, currentRotationMatrix);
-            b = builder.getBounds();
-            newLevel = builder.getLevelOfCurrentStep();
-            updatePLI(); newPLIW = pliW, newPLIH = pliH;
-            builder.nextStep(true);
+          positionRotation = builder.computeCameraPositionRotation(defaultMatrix, currentRotationMatrix);
+          b = builder.getBounds();
+          newLevel = builder.getLevelOfCurrentStep();
+          updatePLI(); newPLIW = pliW, newPLIH = pliH;
+          builder.nextStep(true);
         }
         else {
-            positionRotation = builder.computeCameraPositionRotation(defaultMatrix, currentRotationMatrix);
-            newLevel = oldLevel;
-            b = builder.getBounds();
+          positionRotation = builder.computeCameraPositionRotation(defaultMatrix, currentRotationMatrix);
+          newLevel = oldLevel;
+          b = builder.getBounds();
         }
 
-        //console.dir(positionRotation);
         currentRotationMatrix = positionRotation[1];
         var rotationChanges = !currentRotationMatrix.equals(oldRotationMatrix);
         var ignorePos = new THREE.Vector3(); // Ignore
@@ -229,7 +223,6 @@
 	  baseObject.position.y = newPosition.y;
 	  baseObject.position.z = newPosition.z;
 	  
-	  updateCameraZoom();
 	  updateCameraSize();
 	  render();
 	  onDone && onDone(); onDone = false;
@@ -344,54 +337,45 @@
 	  builder.moveSteps(step-currentStep, handleStepsWalked);
 	}
       }
-// TODO: INTENT TO HERE
+
       function nextStep(skip) {
         if(builder.isAtVeryLastStep())
-			    return;
-			  if(skip) {
+	  return;
+        if(skip) {
           builder.fastForward(handleStepsWalked);
-			  }
-			  else {
-			    realignModel(1, function(){
-			  builder.nextStep();      
-			    }, function() {
-			        handleStepsWalked(1, false);
-			    });
-			  }
+        }
+	else {
+	  realignModel(1, function(){builder.nextStep();}, function() {handleStepsWalked(1, false);});
+        }
       }
       function prevStep(skip) {
-			  if(builder.isAtFirstStep())
-			    return;
-			  if(skip) {
+        if(builder.isAtFirstStep())
+	  return;
+	if(skip) {
           builder.fastReverse(handleStepsWalked);
-			  }
-			  else {
-			    realignModel(-1, function(){
-            builder.prevStep();
-			    }, function() {
-			      handleStepsWalked(-1, false);
-			    });
-			  }
+	}
+	else {
+	  realignModel(-1, function(){builder.prevStep();}, function() {handleStepsWalked(-1, false);});
+        }
       }
 
       // Make ldrButtons catch arrow keys left/right
       document.onkeydown = handleKeyDown;
       function handleKeyDown(e) {
           e = e || window.event;
-			    if(e.altKey) {
-			      // Don't handle key events when ALT is pressed, as they indicate page shift overwrite!
-				         return;
-					   }
-					     //console.log("Key code: " + e.keyCode);
-					       if(e.keyCode == '13') { // ENTER
-								        var stepToGoTo = parseInt(ldrButtons.stepInput.value);
-									     goToStep(stepToGoTo);
-									       }
-									         else if(e.keyCode == '37') { // Left:
-													      prevStep(false);
-													        }
-														  else if (e.keyCode == '39') { // Right:
-																	        nextStep(false);
+	  if(e.altKey) {
+	    // Don't handle key events when ALT is pressed, as they indicate page shift overwrite!
+	    return;
+	  }
+	  if(e.keyCode == '13') { // ENTER
+	    var stepToGoTo = parseInt(ldrButtons.stepInput.value);
+	    goToStep(stepToGoTo);
+	  }
+	  else if(e.keyCode == '37') { // Left:
+	    prevStep(false);
+          }
+	  else if (e.keyCode == '39') { // Right:
+            nextStep(false);
           }
       }
       
@@ -429,14 +413,14 @@
       <script>
       var multiplier = document.getElementById("multiplier");
       updateMultiplier = function() {
-      multiplier.innerHTML = "x" + currentMultiplier;
-      multiplier.style.visibility = (currentMultiplier == 1) ? "hidden" : "visible";
+        multiplier.innerHTML = "x" + currentMultiplier;
+        multiplier.style.visibility = (currentMultiplier == 1) ? "hidden" : "visible";
       }
 
       var rotator = document.getElementById("rotator");
       LDR.SVG.appendRotationCircle(0, 0, 18, rotator.childNodes[0]);
       updateRotator = function() {
-      rotator.style.visibility = currentRotation ? "visible" : "hidden";
+        rotator.style.visibility = currentRotation ? "visible" : "hidden";
       }
       </script>
     </div>
