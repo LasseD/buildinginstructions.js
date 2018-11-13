@@ -148,17 +148,10 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, ma
 	context.clearRect(0, 0, this.pliElement.width, this.pliElement.height);
 	for(var i = 0; i < self.sortedIcons.length; i++) {
 	    var icon = self.sortedIcons[i];
-	    var size = parseInt(Math.max(icon.width, icon.height)*scaleDown);
 	    var w = parseInt(icon.width*scaleDown);
 	    var h = parseInt(icon.height*scaleDown);
             self.render(icon.key, w, h);
-	    console.log("Drawing " + icon.key + " at " + icon.x +","+ icon.y + " size " + w + " x " + h + " from " + icon.dx + " x " + icon.dy);
-	    console.log("Source size: " + self.renderer.domElement.width + " x " + self.renderer.domElement.height);
 	    context.drawImage(self.renderer.domElement, (icon.x+8)*window.devicePixelRatio, icon.y*window.devicePixelRatio);
-	    /*
-	    context.drawImage(self.renderer.domElement, 0, 0,
-			      self.renderer.domElement.width, self.renderer.domElement.height, // Source image width, height
-			      icon.x+8, icon.y, w, h); // Destination x, y, w, h... //*/
 	}
 	for(var i = 0; i < self.sortedIcons.length; i++) {
 	    var icon = self.sortedIcons[i];
