@@ -24,25 +24,14 @@ LDR.PLIBuilder = function(ldrLoader, mainModelID, mainModelColor, pliElement, pl
     this.camera.position.y = 7000;
     this.camera.position.z = 10000;
     this.camera.lookAt(new THREE.Vector3());
-    this.camera.zoom = 1;
     this.measurer = new LDR.Measurer(this.camera);
 
     this.scene = new THREE.Scene(); // Will only contain one element at a time.
     this.scene.background = new THREE.Color(0xFFFFFF);
 
     this.renderer = new THREE.WebGLRenderer({antialias: true});
-    //this.renderer.setPixelRatio(window.devicePixelRatio);
+    this.renderer.setPixelRatio(window.devicePixelRatio);
     pliRenderElement.appendChild(this.renderer.domElement);
-}
-
-LDR.PLIBuilder.prototype.updateCamera = function(size, zoom) {
-    this.camera.left = -size;
-    this.camera.right = size;
-    this.camera.top = size;
-    this.camera.bottom = -size;
-    this.camera.zoom = zoom;
-    this.camera.aspect = 1;
-    this.camera.updateProjectionMatrix();
 }
 
 LDR.PLIBuilder.prototype.getPC = function(key) {
@@ -68,13 +57,21 @@ LDR.PLIBuilder.prototype.getPC = function(key) {
     return pc;
 }
 
-LDR.PLIBuilder.prototype.render = function(key, size) {
+LDR.PLIBuilder.prototype.updateCamera = function(w, h) {
+    this.camera.left = -w*0.5;
+    this.camera.right = w*0.5;
+    this.camera.top = h*0.5;
+    this.camera.bottom = -h*0.5;
+    this.camera.updateProjectionMatrix();
+}
+
+LDR.PLIBuilder.prototype.render = function(key, w, h) {
     var pc = this.getPC(key);
     pc.meshCollector.draw(pc.mesh, false);
     
     this.scene.add(pc.mesh);
-    this.renderer.setSize(size, size);
-    this.updateCamera(Math.max(pc.dx, pc.dy)*0.52, 1);
+    this.renderer.setSize(w+1, h+1); // +1 to ensure edges are in frame in case of rounding down.
+    this.updateCamera(pc.dx, pc.dy);
     this.renderer.render(this.scene, this.camera);
     this.scene.remove(pc.mesh);
 }
@@ -136,14 +133,14 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, ma
     // Find, sort and set up icons to show:
     this.sortedIcons = this.createSortedIcons(step, colorID);
     var [W,H] = Algorithm.PackRectangles(fillHeight, maxWidth, maxHeight, this.sortedIcons, 200);
-    this.pliElement.width = W+12;
-    this.pliElement.height = H+16;
+    this.pliElement.width = (12+W)*window.devicePixelRatio;
+    this.pliElement.height = (16+H)*window.devicePixelRatio;
     this.pliElement.style.width = (W+12)+"px";
     this.pliElement.style.height = (H+16)+"px";
 
     var context = this.pliElement.getContext('2d');
 
-    context.font = "25px sans-serif";
+    context.font = parseInt(25*window.devicePixelRatio) + "px sans-serif";
     context.fillStyle = "black";
     var scaleDown = 0.95; // To make icons not fill out the complete allocated cells.
     var self = this;
@@ -153,20 +150,20 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, ma
 	    var icon = self.sortedIcons[i];
 	    var size = parseInt(Math.max(icon.width, icon.height)*scaleDown);
 	    var w = parseInt(icon.width*scaleDown);
-	    var h = parseInt(icon.width*scaleDown);
-	    var sourceX = parseInt((size-w)/2); // Source image x
-	    var sourceY = parseInt((size-h)/2); // Source image y
-            self.render(icon.key, size);
-	    console.log("Drawing " + icon.key + " at " + icon.x +","+ icon.y + " size " + w + " x " + h + " on");
+	    var h = parseInt(icon.height*scaleDown);
+            self.render(icon.key, w, h);
+	    console.log("Drawing " + icon.key + " at " + icon.x +","+ icon.y + " size " + w + " x " + h + " from " + icon.dx + " x " + icon.dy);
 	    console.log("Source size: " + self.renderer.domElement.width + " x " + self.renderer.domElement.height);
-	    context.drawImage(self.renderer.domElement, sourceX, sourceY,
-			      w, h, // Source image width, height
-			      icon.x+8, icon.y, w, h); // Destination x, y, w, h...
+	    context.drawImage(self.renderer.domElement, (icon.x+8)*window.devicePixelRatio, icon.y*window.devicePixelRatio);
+	    /*
+	    context.drawImage(self.renderer.domElement, 0, 0,
+			      self.renderer.domElement.width, self.renderer.domElement.height, // Source image width, height
+			      icon.x+8, icon.y, w, h); // Destination x, y, w, h... //*/
 	}
 	for(var i = 0; i < self.sortedIcons.length; i++) {
 	    var icon = self.sortedIcons[i];
 	    context.fillText(icon.mult + "x", 
-			     icon.x + 2, (icon.y+icon.height) + 10);
+			     (icon.x + 2)*window.devicePixelRatio, ((icon.y+icon.height) + 10)*window.devicePixelRatio);
 	}
     }
     setTimeout(delay, 10); // Ensure not blocking
