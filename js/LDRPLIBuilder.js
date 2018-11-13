@@ -28,7 +28,7 @@ LDR.PLIBuilder = function(ldrLoader, mainModelID, mainModelColor, pliElement, pl
     this.measurer = new LDR.Measurer(this.camera);
 
     this.scene = new THREE.Scene(); // Will only contain one element at a time.
-    this.scene.background = new THREE.Color(0x00FFFF);
+    this.scene.background = new THREE.Color(0xFFFFFF);
 
     this.renderer = new THREE.WebGLRenderer({antialias: true});
     //this.renderer.setPixelRatio(window.devicePixelRatio);
