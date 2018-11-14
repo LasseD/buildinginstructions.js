@@ -58,10 +58,10 @@ LDR.PLIBuilder.prototype.getPC = function(key) {
 }
 
 LDR.PLIBuilder.prototype.updateCamera = function(w, h) {
-    this.camera.left = -w*0.5;
-    this.camera.right = w*0.5;
-    this.camera.top = h*0.5;
-    this.camera.bottom = -h*0.5;
+    this.camera.left = -w*0.51;
+    this.camera.right = w*0.51;
+    this.camera.top = h*0.51;
+    this.camera.bottom = -h*0.51;
     this.camera.updateProjectionMatrix();
 }
 
@@ -134,9 +134,9 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, ma
     this.sortedIcons = this.createSortedIcons(step, colorID);
     var [W,H] = Algorithm.PackRectangles(fillHeight, maxWidth, maxHeight, this.sortedIcons, 200);
     this.pliElement.width = (12+W)*window.devicePixelRatio;
-    this.pliElement.height = (16+H)*window.devicePixelRatio;
+    this.pliElement.height = (21+H)*window.devicePixelRatio;
     this.pliElement.style.width = (W+12)+"px";
-    this.pliElement.style.height = (H+16)+"px";
+    this.pliElement.style.height = (H+21)+"px";
 
     var context = this.pliElement.getContext('2d');
 
@@ -151,12 +151,12 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, ma
 	    var w = parseInt(icon.width*scaleDown);
 	    var h = parseInt(icon.height*scaleDown);
             self.render(icon.key, w, h);
-	    context.drawImage(self.renderer.domElement, (icon.x+8)*window.devicePixelRatio, icon.y*window.devicePixelRatio);
+	    context.drawImage(self.renderer.domElement, (icon.x+8)*window.devicePixelRatio, (icon.y+5)*window.devicePixelRatio);
 	}
 	for(var i = 0; i < self.sortedIcons.length; i++) {
 	    var icon = self.sortedIcons[i];
 	    context.fillText(icon.mult + "x", 
-			     (icon.x + 2)*window.devicePixelRatio, ((icon.y+icon.height) + 10)*window.devicePixelRatio);
+			     (icon.x + 2)*window.devicePixelRatio, (icon.y+icon.height+15)*window.devicePixelRatio);
 	}
     }
     setTimeout(delay, 10); // Ensure not blocking

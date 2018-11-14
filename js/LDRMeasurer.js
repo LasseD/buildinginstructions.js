@@ -33,14 +33,14 @@ LDR.Measurer.prototype.measure = function(b, matrixWorld) {
     m.copy(this.m);
     m.multiply(matrixWorld); // modelMatrix
 
-    var pts = [new THREE.Vector3(b.min.x, b.min.y, b.min.z), 
-	       new THREE.Vector3(b.max.x, b.max.y, b.max.z), 
-	       new THREE.Vector3(b.min.x, b.min.y, b.max.z), 
-	       new THREE.Vector3(b.min.x, b.max.y, b.min.z), 
-	       new THREE.Vector3(b.max.x, b.min.y, b.min.z), 
-	       new THREE.Vector3(b.min.x, b.max.y, b.max.z), 
-	       new THREE.Vector3(b.max.x, b.min.y, b.max.z), 
-	       new THREE.Vector3(b.max.x, b.max.y, b.min.z)];//*/
+    var pts = [new THREE.Vector3(b.min.x, b.min.y, b.min.z),
+	       new THREE.Vector3(b.max.x, b.max.y, b.max.z),
+	       new THREE.Vector3(b.min.x, b.min.y, b.max.z),
+	       new THREE.Vector3(b.min.x, b.max.y, b.min.z),
+	       new THREE.Vector3(b.max.x, b.min.y, b.min.z),
+	       new THREE.Vector3(b.min.x, b.max.y, b.max.z),
+	       new THREE.Vector3(b.max.x, b.min.y, b.max.z),
+	       new THREE.Vector3(b.max.x, b.max.y, b.min.z)];
 
     for(var i = 0; i < 8; i++) {
 	pts[i].applyMatrix4(m);
