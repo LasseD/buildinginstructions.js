@@ -1,3 +1,452 @@
+<!DOCTYPE html>
 <html>
+  <head>
+    <meta charset=utf-8>
+    <title>Sample Parts List</title>
+    <link href="css/preview.css" rel="stylesheet" type="text/css">
+    <link href="css/buttons.css" rel="stylesheet" type="text/css">
+    <link href="css/options.css" rel="stylesheet" type="text/css">
+    <link href="css/partslist.css" rel="stylesheet" type="text/css">
+    <meta name="viewport" content="width=device-width" />
+  </head>
+  <body>
+    <script src="js/jquery.min.js"></script>
+    <script src="js/three.min.js"></script>
+    <script src="js/OrbitControls.js"></script>
+    <script src="js/colors.js"></script>
+    <script src="js/pli.js"></script>
+    <script src="js/LDRShaders.js"></script>
+    <script src="js/LDRColorMaterials.js"></script>
+    <script src="js/LDRSVG.js"></script>
+    <script src="js/LDROptions.js"></script>
+    <script src="js/LDRLoader.js"></script>
+    <script src="js/LDRPartsBuilder.js"></script>
+    <script src="js/LDRButtons.js"></script>
+    <script src="js/LDRPLIPreview.js"></script>
+    <script>
+      var modelTypeUrl = 'models/spiral.ldr';
+      var ldrOptions = new LDR.Options();
+      var builder = null;
+      var ldrLoader = null;
 
+      var w = 200;
+      var h = 200;
+
+      var iconCamera = new THREE.OrthographicCamera(-w, w, h, -h, 0.1, 1000000);
+      iconCamera.position.x = 10000;
+      iconCamera.position.y = 7000;
+      iconCamera.position.z = 10000;
+      iconCamera.lookAt(new THREE.Vector3());
+
+      var iconScene = new THREE.Scene(); // To add stuff to. TODO: Use multiple iconScenes for web workers.
+      iconScene.background = new THREE.Color( 0xffffff );
+
+      var iconRenderer = new THREE.WebGLRenderer({antialias: true});
+      function render() {
+        iconRenderer.render(iconScene, iconCamera);
+      }
+      iconRenderer.setPixelRatio(window.devicePixelRatio);
+      iconRenderer.setSize(w, h);
+      var ldrButtons = null;
+      var lastPreview;
+      var lastBaseObject;
+      var pliPreviewer = new LDR.PliPreviewer(); // Has own renderer, camera, and iconScene.
+
+      // Used by camera buttons:
+      function resetCameraPosition() {
+        pliPreviewer.resetCameraPosition();
+      }
+      function zoomIn() {
+        pliPreviewer.zoomIn();
+      }
+      function zoomOut() {
+        pliPreviewer.zoomOut();
+      }
+
+      window.addEventListener('resize', pliPreviewer.onResize, false);
+
+      function isPartElement(ele) {
+        if(!ele)
+          return false;
+        return ele.className === 'partline' || ele.className === 'part';
+      }
+
+      function prevStep() {
+        if(!lastPreview)
+          return;
+        var newEle = lastPreview.previousSibling;
+        if(!isPartElement(newEle)) {
+          return;
+        }
+        var ele = newEle;
+        showPreview(ele);
+      }
+
+      function nextStep() {
+        if(!lastPreview)
+          return;
+        var newEle = lastPreview.nextSibling;
+        if(!isPartElement(newEle))
+          return;
+        var ele = newEle;
+        showPreview(ele);
+      }
+
+      function showPreview(ele) {
+        var pcIdx = ele.getAttribute('pcIdx');
+        var baseObject = setItemInScene(pcIdx, pliPreviewer.scene);
+        if(lastPreview) {
+          pliPreviewer.scene.remove(lastBaseObject);
+        }
+        pliPreviewer.scene.add(baseObject);
+        pliPreviewer.subjectSize = baseObject.subjectSize;
+
+        if(!isPartElement(ele.previousSibling)) {
+          ldrButtons.atFirstStep();
+        }
+        else if(!isPartElement(ele.nextSibling)) {
+          ldrButtons.atLastStep();
+        }
+        else {
+          ldrButtons.atAnyOtherStep();
+        }
+
+        var icon = {partID: ele.getAttribute('part_id'), desc: ele.getAttribute('part_description'), colorID: ele.getAttribute('color_id')};
+        pliPreviewer.showPliPreview(icon);
+
+        // Update description:
+        pliPreviewer.subjectSize = baseObject.subjectSize;
+        pliPreviewer.onResize();
+
+        lastPreview = ele;
+        lastBaseObject = baseObject;
+      }
+
+      document.onkeydown = function(e) {
+        e = e || window.event;
+        if(e.keyCode == '27') { // ESC
+           pliPreviewer.hidePliPreview();
+        }
+        else if(e.keyCode == '37') { // Left:
+          prevStep();
+        }
+        else if (e.keyCode == '39') { // Right:
+          nextStep();
+        }
+      }
+
+      function makePartElement(pcInfo, i, w, h) {
+        var span = document.createElement('span');
+        span.setAttribute('class', 'part');
+        span.setAttribute('color_id', pcInfo.colorID);
+        span.setAttribute('part_description', pcInfo.partDesc);
+        span.setAttribute('part_id', pcInfo.partID);
+        span.setAttribute('pcIdx', ""+i);
+
+        var mult = document.createElement('span');
+        mult.setAttribute('class', 'mult');
+        mult.innerHTML = pcInfo.amount + " x";
+        span.appendChild(mult);
+
+        var iconSceneHolder = document.createElement('span');
+        iconSceneHolder.setAttribute('class', 'iconScene');
+        span.appendChild(iconSceneHolder);
+
+        var canvas = document.createElement('canvas');
+        canvas.setAttribute("onClick", "showPreview(this.parentNode.parentNode);");
+        canvas.width = w*window.devicePixelRatio;
+        canvas.height = h*window.devicePixelRatio;
+        canvas.style.width = w+'px';
+        canvas.style.height = h+'px';
+        iconSceneHolder.appendChild(canvas);
+
+        var big_parts = document.getElementById('big_parts');
+        big_parts.appendChild(span);
+        return canvas;
+      }
+
+      function makeTD(content, cssClass, anchor) {
+        var td = document.createElement('td');
+        if(anchor) {
+          var a = document.createElement('a');
+          a.setAttribute('href', 'http://www.bricklink.com/catalogItem.asp?P=' + content);
+          a.setAttribute('target', '_blank');
+          a.innerHTML = ""+content;
+          td.appendChild(a);
+        }
+        else {
+          td.innerHTML = ""+content;
+        }
+        td.setAttribute('class', cssClass);
+          return td;
+        }
+        function makeListElement(pcInfo, i, w, h) {
+          var tr = document.createElement('tr');
+          tr.setAttribute('class', 'partline');
+
+          tr.setAttribute('amount', pcInfo.amount);
+          tr.setAttribute('color_id', pcInfo.colorID);
+          tr.setAttribute('part_description', pcInfo.partDesc);
+          tr.setAttribute('part_id', pcInfo.partID);
+          tr.setAttribute('pcIdx', ""+i);
+
+          tr.appendChild(makeTD(pcInfo.amount, 'list_amount'));
+          tr.appendChild(makeTD(pcInfo.colorID, 'list_color'));
+          tr.appendChild(makeTD(pcInfo.partDesc, 'list_description'));
+          tr.appendChild(makeTD(pcInfo.partID.slice(0, -4), 'list_id', true));
+
+          var iconSceneHolder = document.createElement('td');
+          iconSceneHolder.setAttribute('class', 'list_image');
+          tr.appendChild(iconSceneHolder);
+
+          var canvas = document.createElement('canvas');
+          canvas.setAttribute("onClick", "showPreview(this.parentNode.parentNode);");
+          canvas.width = w*window.devicePixelRatio;
+          canvas.height = h*window.devicePixelRatio;
+          canvas.style.width = w+'px';
+          canvas.style.height = h+'px';
+          iconSceneHolder.appendChild(canvas);
+
+          var table = document.getElementById('list_table');
+          table.children[0].appendChild(tr);
+          return canvas;
+        }
+
+        function setItemInScene(i) {
+          pc = builder.pcs[builder.pcKeys[i]];
+
+          // Already shown before - just re-render:
+          if(!pc.baseObject) {
+            var baseObject = new THREE.Group();
+            pc.draw(baseObject);
+            var b = pc.getBounds();
+            var size = b.min.distanceTo(b.max) * 0.6;
+            var elementCenter = new THREE.Vector3();
+            b.getCenter(elementCenter);
+            baseObject.position.x = -elementCenter.x;
+            baseObject.position.y = -elementCenter.y;
+            baseObject.position.z = -elementCenter.z;
+            baseObject.subjectSize = size;
+            pc.baseObject = baseObject;
+          }
+          else {
+            pc.draw(baseObject);
+          }
+          pc.meshCollector.updateMeshVisibility();
+          return pc.baseObject;
+        }
+
+        var partCanvasses = [];
+        var listCanvasses = [];
+
+        var onLoad = function() {
+          console.log("Done loading parts list!");
+        var mainModel = ldrLoader.mainModel;
+
+        builder = new LDR.PartsBulder(ldrLoader, mainModel, 0);
+        pliPreviewer.attachRenderer(document.getElementById('preview'));
+        ldrButtons = new LDR.Buttons(pliPreviewer.canvas.parentNode, false);
+
+        var sorter = function(a, b){
+          var ca = a.getAttribute('color_id');
+          var cb = b.getAttribute('color_id');
+          if(ca != cb) {
+            return ca < cb ? -1 : 1;
+	  }
+	  var ia = a.getAttribute('part_id');
+	  var ib = b.getAttribute('part_id');
+	  return ia < ib ? -1 : (ib < ia ? 1 : 0);
+        }
+	function basicSort(list) {
+          list.sort(sorter);
+          for (var i = 0; i < list.length; i++) {
+            list[i].parentNode.appendChild(list[i]);
+          }
+	}
+
+	// Build HTML elements first:
+	for(var i = 0; i < builder.pcKeys.length; i++) {
+	  var pcInfo = builder.pcs[builder.pcKeys[i]];
+	  partCanvasses.push(makePartElement(pcInfo, i, w, h));
+	  listCanvasses.push(makeListElement(pcInfo, i, w, h));
+	}
+        basicSort($("#big_parts > .part").get());
+        basicSort($("tbody > tr.partline").get());
+
+	function buildItem(i) {
+	  if(i === builder.pcKeys.length) {
+	    return; // done.
+	  }
+          var baseObject = setItemInScene(i, iconScene);
+	  iconCamera.zoom = 200 / baseObject.subjectSize;    
+          iconCamera.updateProjectionMatrix();
+	  iconScene.add(baseObject);
+	  render();
+	  iconScene.remove(baseObject);
+
+          function draw(canvas) {
+            var context = canvas.getContext('2d');
+	    context.drawImage(iconRenderer.domElement, 0, 0);
+	  }
+	  draw(partCanvasses[i]);
+	  draw(listCanvasses[i]);
+
+          setTimeout(function(){buildItem(i+1);}, 10);
+        }
+        buildItem(0);
+      }
+      var onProgress = function(part) {
+        // Ignore progress.
+      };
+      var onError = function(msg) {
+        console.dir(msg);
+      };
+
+      ldrLoader = new THREE.LDRLoader(THREE.DefaultLoadingManager, onLoad, onProgress, onError, false, true);
+      ldrLoader.load(modelTypeUrl, true);
+    </script>
+
+    <div id="all">
+    <div id="top">
+      <div id="icon_toggles">
+        <div id="big_icons_toggle" onclick="showList(false);" class="toggle"></div>
+        <div id="list_parts_toggle" onclick="showList(true);" class="toggle"></div>
+      </div>
+    </div>
+   
+    <div id="generated">
+      <div id="preview_background" onclick="pliPreviewer.hidePliPreview();"></div>
+      <div id="preview_holder">
+        <div id="preview_parent"><canvas id="preview" /></div>
+        <div id="preview_info">
+	  <span class="preview_info_line"><a href="" target="_blank"><div id="preview_info_name">PART NAME</div></a></span>
+          <span class="preview_info_line">LDraw color: <div id="preview_info_color_ldraw">LDR COLOR</div></span>
+          <span class="preview_info_line">LEGO/LDD color: <div id="preview_info_color_lego">LDD COLOR</div></span>
+	</div>
+      </div>
+
+      <div id="big_parts"></div>
+      <div id="list_parts">
+        <table id="list_table">
+          <tr>
+           <th><span class="sorter">&Sigma;</span></th>
+           <th><span class="sorter">Color</span></th>
+	      <th><span class="sorter">Name</span></th>
+           <th><span class="sorter">#</span></th>
+	      <th>Image</th>
+          </tr>
+         </table>
+        </div>
+      </div>
+      <script>
+	   var bit = document.getElementById('big_icons_toggle');
+	   var bi = document.getElementById('big_parts');
+	   var lpt = document.getElementById('list_parts_toggle');
+           var lp = document.getElementById('list_parts')
+	   if(ldrOptions.partsListType == 0) {
+             bit.setAttribute('class', 'toggle_selected');
+             lp.style.display = "none";
+	   }
+	   else {
+             lpt.setAttribute('class', 'toggle_selected');
+	     bi.style.display = "none";
+	   }
+           bit.appendChild(LDR.SVG.makeBigIconsIcon());
+           lpt.appendChild(LDR.SVG.makeListIcon());
+
+           function showList(showList) {
+	     lp.style.display = showList ? "block" : "none";
+	     bi.style.display = !showList ? "block" : "none";
+	     bit.setAttribute('class', !showList ? "toggle_selected" : "toggle");
+	     lpt.setAttribute('class', showList ? "toggle_selected" : "toggle");
+
+	     ldrOptions.partsListType = showList ? 1 : 0;
+	     ldrOptions.saveOptionsToCookie();
+	   }
+      </script>
+    </div>
+
+    <div id="options" />
+      <script>
+    var optionsDiv = document.getElementById('options');
+    ldrOptions.appendHeader(optionsDiv);    
+    ldrOptions.appendContrastOptions(optionsDiv);
+    ldrOptions.appendLROptions(optionsDiv);
+    ldrOptions.appendCameraOptions(optionsDiv);
+    ldrOptions.appendFooter(optionsDiv);
+    ldrOptions.listeners.push(function() {
+      function buildItem(i) {
+      if(i === builder.pcKeys.length)
+        return; // done.
+
+      var baseObject = setItemInScene(i, iconScene);
+      iconCamera.zoom = 200 / baseObject.subjectSize;    
+      iconCamera.updateProjectionMatrix();
+      iconScene.add(baseObject);
+      render();
+      iconScene.remove(baseObject);
+
+      function draw(canvas) {
+        var context = canvas.getContext('2d');
+        context.drawImage(iconRenderer.domElement, 0, 0);
+      }
+      draw(partCanvasses[i]);
+      draw(listCanvasses[i]);
+
+          setTimeout(function(){buildItem(i+1);}, 10);
+      }
+      buildItem(0);
+    });
+      </script>
+    </div>
+    <script>
+      var lastSorterIndex = -1;
+
+      $("span.sorter").click(function() {
+        var parent = this.parentNode;
+        var index = Array.from(parent.parentNode.children).indexOf(parent);
+    
+        var list = $("tbody > tr.partline").get();
+
+        var sort_by_int = function(a, b) {
+          a = a.children[index];
+          b = b.children[index];
+          if(a.children.length > 0) {
+            a = a.children[0];
+            b = b.children[0];
+          }
+          a = parseInt(a.innerHTML);
+          b = parseInt(b.innerHTML);
+          return a < b ? -1 : (a > b ? 1 : 0);
+        }
+        var sort_by_int_reverse = function(a, b) {
+          return sort_by_int(b, a);
+        }
+        var sort_by_txt = function(a, b) {
+          a = a.children[index];
+          b = b.children[index];
+          if(a.children.length > 0) {
+            a = a.children[0];
+            b = b.children[0];
+          }
+          return a.innerHTML.localeCompare(b.innerHTML);
+        }
+        var sort_by_txt_reverse = function(a, b) {
+          return sort_by_txt(b, a);
+        }
+
+        if(lastSorterIndex == index) {
+          list.sort(index == 0 ? sort_by_int_reverse : sort_by_txt_reverse);
+          lastSorterIndex = -1;
+        }
+        else {
+          list.sort(index == 0 ? sort_by_int : sort_by_txt);
+          lastSorterIndex = index;
+        }
+        for (var i = 0; i < list.length; i++) {
+          list[i].parentNode.appendChild(list[i]);
+        }
+    });
+    </script>
+  </body>
 </html>
