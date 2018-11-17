@@ -30,9 +30,8 @@ LDR.LineVertexShader = `
 
   void main() {
     vColor = color;
-    vec4 xPosition = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    xPosition.w -= 0.000001;
-    gl_Position = xPosition;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    gl_Position.w -= 0.000001;
   }
 `;
 
@@ -54,18 +53,18 @@ LDR.ConditionalLineVertexShader = `
 
   void main() {
       mat4 m = projectionMatrix * modelViewMatrix;
-      vec4 p1 = m * vec4(position, 1.0);
-      vec2 xp1 = p1.xy;
-      vec2 d12 = vec4(m * vec4(p2, 1.0)).xy - xp1;
+
+      gl_Position = m * vec4(position, 1.0);
+
+      vec2 xp1 = gl_Position.xy;
+      vec2 d12 = vec4(m * vec4(p2, 1.0)).yx - xp1.yx;
+      d12.y = -d12.y;
       vec2 d13 = vec4(m * vec4(p3, 1.0)).xy - xp1;
       vec2 d14 = vec4(m * vec4(p4, 1.0)).xy - xp1;
       
       vColor = color;
-      if((d12.x*d13.y - d12.y*d13.x)*(d12.x*d14.y - d12.y*d14.x) < 0.0) {
-	  vColor.a = 0.0;
-      }
-
-      gl_Position = p1;
+      //vColor.a *= sign((d12.x*d13.x + d12.y*d13.y)*(d12.x*d14.x + d12.y*d14.y));
+      vColor.a *= sign(dot(d12, d13)*dot(d12, d14));
   }
 `;
 
