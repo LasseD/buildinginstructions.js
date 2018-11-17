@@ -1,13 +1,14 @@
 html, body { 
     margin: 0; 
     padding: 0;
-    background-color: #ffffff;
+    background-color: #222;
     height: 100%
 }
 #icon_toggles {
   display: block;
   float: right;
   margin-right: 2em;
+  margin-bottom: 1em;
   background-color: #CCC;
   cursor: pointer;
   padding-left: 0.1em;
@@ -39,8 +40,12 @@ html, body {
 }
 #list_parts {
     display: block;
-    margin: 2em;;
-    padding-top: 0.5em;
+    margin: 2em;
+    color: black;
+    background-color: white;
+}
+#list_parts a {
+    color: black;
 }
 #list_parts table {
     width: 100%;
@@ -90,7 +95,9 @@ td.list_image {
     margin-bottom: 1em;
     width: 200px;
     height: 200px;
-  cursor: pointer;
+    cursor: pointer;
+    background-color: white;
+    color: black;
 }
 .mult {
     display: block;

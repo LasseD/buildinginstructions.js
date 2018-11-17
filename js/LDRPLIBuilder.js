@@ -132,7 +132,7 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, ma
 
     // Find, sort and set up icons to show:
     this.sortedIcons = this.createSortedIcons(step, colorID);
-    var [W,H] = Algorithm.PackRectangles(fillHeight, maxWidth, maxHeight, this.sortedIcons, 200);
+    var [W,H] = Algorithm.PackRectangles(fillHeight, maxWidth, maxHeight, this.sortedIcons, window.innerWidth/5);
     this.pliElement.width = (12+W)*window.devicePixelRatio;
     this.pliElement.height = (21+H)*window.devicePixelRatio;
     this.pliElement.style.width = (W+12)+"px";

@@ -223,9 +223,7 @@
             var size = b.min.distanceTo(b.max) * 0.6;
             var elementCenter = new THREE.Vector3();
             b.getCenter(elementCenter);
-            baseObject.position.x = -elementCenter.x;
-            baseObject.position.y = -elementCenter.y;
-            baseObject.position.z = -elementCenter.z;
+            baseObject.position.sub(elementCenter);
             baseObject.subjectSize = size;
             pc.baseObject = baseObject;
           }
