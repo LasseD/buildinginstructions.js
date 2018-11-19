@@ -8,9 +8,9 @@ var Algorithm = Algorithm || {};
 Algorithm.PackRectangles = function(fillHeight, maxWidth, maxHeight, rectangles, maxRectangleWidth) {
     // Compute rectangleWidth by increasing minRectangleWidth as much as possible:
     var len = rectangles.length;
-    var minRectangleWidth = 64;
-    var heightAdd = 8; // Add for height to include multiplication.
-    var w, h;
+    var minRectangleWidth = 1;
+    var widthAdd = 4; // Add for width when fillWidth
+    var heightAdd = 10; // Add for height to include multiplication.
 
     var maxRectangleSideLength = 0;
     for(var i = 0; i < rectangles.length; i++)
@@ -31,8 +31,7 @@ Algorithm.PackRectangles = function(fillHeight, maxWidth, maxHeight, rectangles,
 		r.width = scale*r.dx;
 		r.height = scale*r.dy;
 
-		if(indentY + r.height + heightAdd > maxHeight) {
-		    // Place in new row
+		if(indentY + r.height + heightAdd > maxHeight) { // Place in new row
 		    indentX += maxW;
 		    indentY = 0;
 		    maxW = r.width;
@@ -52,7 +51,7 @@ Algorithm.PackRectangles = function(fillHeight, maxWidth, maxHeight, rectangles,
 		r.width = scale*r.dx;
 		r.height = scale*r.dy;
 
-		if(indentX + r.width > maxWidth) {
+		if(indentX + r.width + widthAdd > maxWidth) { // Place in new column
 		    indentY += maxH + heightAdd;
 		    indentX = 0;
 		    maxH = r.height;
@@ -62,7 +61,7 @@ Algorithm.PackRectangles = function(fillHeight, maxWidth, maxHeight, rectangles,
 		r.x = indentX; r.y = indentY;
 		w = Math.max(w, indentX + r.width);
 		h = Math.max(h, indentY + r.height);
-		indentX += r.width; // Place next
+		indentX += r.width + widthAdd; // Place next
 	    }
 	}
 	if(w < maxWidth && h < maxHeight)
