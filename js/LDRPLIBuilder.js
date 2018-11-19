@@ -137,6 +137,7 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, ma
     this.pliElement.height = (21+H)*window.devicePixelRatio;
     this.pliElement.style.width = (W+12)+"px";
     this.pliElement.style.height = (H+21)+"px";
+    //console.log("Packed " + this.sortedIcons.length + ", W=" + W + ", H=" + H);
 
     var context = this.pliElement.getContext('2d');
 
@@ -156,7 +157,7 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, ma
 	for(var i = 0; i < self.sortedIcons.length; i++) {
 	    var icon = self.sortedIcons[i];
 	    context.fillText(icon.mult + "x", 
-			     (icon.x + 2)*window.devicePixelRatio, (icon.y+icon.height+15)*window.devicePixelRatio);
+			     (icon.x + 2)*window.devicePixelRatio, (icon.y+icon.height+17)*window.devicePixelRatio);
 	}
     }
     setTimeout(delay, 10); // Ensure not blocking

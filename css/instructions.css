@@ -28,15 +28,15 @@ body {
     font-family: sans-serif;
     font-weight: bold;
     font-size: 50px;
-    visibility: hidden;
+    /*visibility: hidden;*/
     color: black;
 }
 #rotator {
     display: block;
     float: left;
     position: relative;
-    top: -200px;
-    left: 60px;
+    top: -210px;
+    left: 1em;
     width: 100px;
     height: 100px;
     margin-right: -300px;
@@ -55,7 +55,7 @@ body {
     vertical-align: top;
     /*line-height: 150px;*/
     margin: 0;
-    margin-top: -40px;
+    margin-top: -60px;
 }
 .green_container {
     display: inline-block;

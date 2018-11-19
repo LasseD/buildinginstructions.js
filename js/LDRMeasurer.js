@@ -14,7 +14,6 @@ LDR = LDR || {};
   projectionMatrix = camera.projectionMatrix
   viewMatrix = camera.matrixWorldInverse
   modelMatrix = object.matrixWorld
-
  */
 LDR.Measurer = function(camera) {
     this.camera = camera;

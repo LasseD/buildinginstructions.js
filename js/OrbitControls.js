@@ -221,6 +221,32 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 	}();
 
+	this.quickUpdate = function () {
+		var offset = new THREE.Vector3();
+
+		// so camera.up is the orbit axis
+		var quat = new THREE.Quaternion().setFromUnitVectors( object.up, new THREE.Vector3( 0, 1, 0 ) );
+		var quatInverse = quat.clone().inverse();
+
+		return function update() {
+		    var position = scope.object.position;
+
+		    offset.copy( position ).sub( scope.target );
+
+		    // rotate offset to "y-axis-is-up" space
+		    offset.applyQuaternion( quat );
+		    
+		    // move target to panned location
+		    scope.target.add(panOffset);
+		    
+		    // rotate offset back to "camera-up-vector-is-up" space
+		    offset.applyQuaternion(quatInverse);
+		    
+		    scope.object.lookAt( scope.target );
+		    panOffset.set( 0, 0, 0 );
+		};
+	}();
+
 	this.dispose = function () {
 
 		scope.domElement.removeEventListener( 'contextmenu', onContextMenu, false );
@@ -301,43 +327,26 @@ THREE.OrbitControls = function ( object, domElement ) {
 	}
 
 	var panLeft = function () {
-
-		var v = new THREE.Vector3();
-
-		return function panLeft( distance, objectMatrix ) {
-
-			v.setFromMatrixColumn( objectMatrix, 0 ); // get X column of objectMatrix
-			v.multiplyScalar( - distance );
-
-			panOffset.add( v );
-
-		};
-
+	    var v = new THREE.Vector3();
+	    return function panLeft( distance, objectMatrix ) {
+		v.setFromMatrixColumn( objectMatrix, 0 ); // get X column of objectMatrix
+		v.multiplyScalar( -distance );
+		panOffset.add( v );
+	    };
 	}();
 
 	var panUp = function () {
-
-		var v = new THREE.Vector3();
-
-		return function panUp( distance, objectMatrix ) {
-
-			if ( scope.screenSpacePanning === true ) {
-
-				v.setFromMatrixColumn( objectMatrix, 1 );
-
-			} else {
-
-				v.setFromMatrixColumn( objectMatrix, 0 );
-				v.crossVectors( scope.object.up, v );
-
-			}
-
-			v.multiplyScalar( distance );
-
-			panOffset.add( v );
-
-		};
-
+	    var v = new THREE.Vector3();
+	    return function panUp( distance, objectMatrix ) {
+		if ( scope.screenSpacePanning === true ) {
+		    v.setFromMatrixColumn( objectMatrix, 1 );
+		} else {
+		    v.setFromMatrixColumn( objectMatrix, 0 );
+		    v.crossVectors( scope.object.up, v );
+		}
+		v.multiplyScalar( distance );
+		panOffset.add( v );
+	    };
 	}();
 
 	// deltaX and deltaY are in pixels; right and down are positive
@@ -364,7 +373,6 @@ THREE.OrbitControls = function ( object, domElement ) {
 				panUp( 2 * deltaY * targetDistance / element.clientHeight, scope.object.matrix );
 
 			} else if ( scope.object.isOrthographicCamera ) {
-
 				// orthographic
 				panLeft( deltaX * ( scope.object.right - scope.object.left ) / scope.object.zoom / element.clientWidth, scope.object.matrix );
 				panUp( deltaY * ( scope.object.top - scope.object.bottom ) / scope.object.zoom / element.clientHeight, scope.object.matrix );
@@ -659,10 +667,25 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 	}
 
+        /*
+	  Base performance: LeMans: 21FPS
+	  Extract panLeft, panUp and element: 20FPS
+	  quickUpdate: 31FPS
+	 */
+        this.panTo = function(x, y) {
+	    scope.target.set(0, 0, 0); // Reset this.target
+
+	    var element = scope.domElement;
+
+	    var div = scope.object.zoom * element.clientWidth;
+	    panLeft(x*(scope.object.right-scope.object.left)/div, scope.object.matrix);
+	    panUp(y*(scope.object.top-scope.object.bottom)/div, scope.object.matrix);
+
+	    scope.quickUpdate();
+        }
+
 	function handleTouchEnd( event ) {
-
 		//console.log( 'handleTouchEnd' );
-
 	}
 
         function inTriggerBox( event ) {
@@ -670,8 +693,12 @@ THREE.OrbitControls = function ( object, domElement ) {
 		return true;
 	    var w = scope.domElement.clientWidth;
 	    var h = scope.domElement.clientHeight;
-	    var x = event.clientX || event.touches[ 0 ].pageX;
-	    var y = event.clientY || event.touches[ 0 ].pageY;
+	    var x = event.clientX || 0;
+	    var y = event.clientY || 0;
+	    if(!x && !y && event.touches && event.touches.length > 0) {
+		x = event.touches[0].pageX;
+		y = event.touches[0].pageY;
+	    }
 
 	    return x > w*scope.noTriggerSize && x < w-w*scope.noTriggerSize &&
 	           y > h*scope.noTriggerSize && y < h-h*scope.noTriggerSize;
