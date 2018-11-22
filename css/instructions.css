@@ -21,6 +21,7 @@ body {
 }
 #multiplier {
     display: block;
+    visibility: hidden;
     float: left;
     position: relative;
     top: -175px;
@@ -76,23 +77,24 @@ body {
   PLI
 */
 #pli {
-  display: inline;
-  position: absolute;
-  margin-right: -100%;
-  margin-bottom: -100%;
-  left: 4px;
-  top: 100px;
-
-  border: 2px solid black;
-  border-radius: 8px;
-  background-color: white;
-  cursor: pointer;
+    display: inline;
+    visibility: hidden;
+    position: absolute;
+    margin-right: -100%;
+    margin-bottom: -100%;
+    left: 4px;
+    top: 100px;
+    
+    border: 2px solid black;
+    border-radius: 8px;
+    background-color: white;
+    cursor: pointer;
 }
 #pli_render_canvas {
-  position: fixed;
-  left: 0;
-  top: 0;
-  display: none;
+    position: fixed;
+    left: 0;
+    top: 0;
+    display: none;
 }
 
 /*
