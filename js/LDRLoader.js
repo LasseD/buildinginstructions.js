@@ -181,6 +181,11 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		console.log("Special case: Main model ID change from " + part.ID + " to " + fileName);
 		self.mainModel = part.ID = fileName;
 	    }
+	    else if(part.steps.length == 0 && step.empty && 
+		    Object.keys(extraSteps).length == 0) {
+		console.log("Special case: 'FILE' does not match 'Name:' - Keep FILE");
+		// Do nothing.
+	    }
 	    else { // Close model and start new:
 		closeStep(false);
 		if(part.ID) {
