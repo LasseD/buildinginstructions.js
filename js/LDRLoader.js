@@ -127,6 +127,9 @@ THREE.LDRLoader.prototype.parse = function(data) {
     var dataLines = data.split(/(\r\n)|\n/);
     for(var i = 0; i < dataLines.length; i++) {
 	var line = dataLines[i];
+	if(!line)
+	    continue; // Empty line, or 'undefined' due to '\r\n' split.
+
 	var parts = line.split(" ").filter(x => x !== ''); // Remove empty strings.
 	if(parts.length <= 1)
 	    continue; // Empty/ empty comment line
@@ -150,8 +153,8 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    if(part.modelDescription || !previousComment)
 		return;
 	    part.modelDescription = previousComment;
-	    if(previousComment.startsWith("~Moved to ")) {
-		var newID = previousComment.substring("~Moved to ".length).toLowerCase();
+	    if(previousComment.toLowerCase().startsWith("~moved to ")) {
+		var newID = previousComment.substring("~moved to ".length).toLowerCase();
 		if(!newID.endsWith(".dat"))
 		    newID += ".dat";
 		self.onWarning({message:'The part "' + part.ID + '" has been moved to "' + newID + '". Instructions and parts lists will show "' + newID + '".', line:i, subModel:part});
@@ -345,7 +348,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
     this.ldrPartTypes[part.ID] = part;
 
     var parseEndTime = new Date();
-    console.log("LDraw file read in " + (parseEndTime-parseStartTime) + "ms.");
+    //console.log("LDraw file read in " + (parseEndTime-parseStartTime) + "ms.");
 };
 
 /*
