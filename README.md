@@ -12,6 +12,18 @@ After copying the files in this repository, you can view sample_view.htm for see
 
 See sample_instructions.htm for how to set up building instructions, including options for personalization.
 
+If you want to view additional models, then add the necessary LDraw files directly to the 'ldraw_parts' directory. Downloaded files from [the LDraw parts library](http://www.ldraw.org/parts/latest-parts.html) should thus result in a file structure as follows:
+
+
+* /ldraw_parts - Contains all parts from '/p' and '/parts', such as '1.dat' and '1-4cylc3.dat'.
+
+* /ldraw_parts/8 - Place the content of '/p/8' here.
+
+* /ldraw_parts/48 - Place the content of '/p/48' here.
+
+* /ldraw_parts/s - Place the content of '/parts/s', such as '10s01.dat' here.
+
+
 These files fetch data asynchroneously, so opening them in your browser might not work out of the box due to default security settings. To get around this you can either host the files on a local server or disable the browser checks. As an example, Chrome can be started with the following parameters in order to disable these security settings:
 
 ```

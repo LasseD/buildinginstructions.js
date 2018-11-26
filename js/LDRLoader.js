@@ -181,12 +181,22 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		console.log("Special case: Main model ID change from " + part.ID + " to " + fileName);
 		self.mainModel = part.ID = fileName;
 	    }
-	    else if(part.steps.length == 0 && step.empty && 
-		    Object.keys(extraSteps).length == 0) {
-		console.log("Special case: 'FILE' does not match 'Name:' - Keep FILE");
-		// Do nothing.
-	    }
 	    else { // Close model and start new:
+		if(part.steps.length == 0 && step.empty && 
+		   Object.keys(extraSteps).length == 0 && part.ID && 
+		   part.ID != 'empty.dat') {
+		    console.log("Special case: Empty '" + part.ID + "' does not match '" + fileName + "' - Create new shallow part!");		
+		    // Create pseudo-model with just one of 'fileName' inside:
+		    var rotation = new THREE.Matrix3();
+		    rotation.set(1, 0, 0, 0, 1, 0, 0, 0, 1);
+		    var shallowSubModel = new THREE.LDRPartDescription(16, 
+								       new THREE.Vector3(),
+								       rotation, 
+								       fileName,
+								       false,
+								       false);
+		    step.addLDR(shallowSubModel);
+		}
 		closeStep(false);
 		if(part.ID) {
 		    self.ldrPartTypes[part.ID] = part;

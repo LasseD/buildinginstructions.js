@@ -20,9 +20,7 @@ LDR.PLIBuilder = function(ldrLoader, mainModelID, mainModelColor, pliElement, pl
 
     // Set up rendering elements:
     this.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
-    this.camera.position.x = 10000;
-    this.camera.position.y = 7000;
-    this.camera.position.z = 10000;
+    this.camera.position.set(10000, 7000, 10000);
     this.camera.lookAt(new THREE.Vector3());
     this.measurer = new LDR.Measurer(this.camera);
 

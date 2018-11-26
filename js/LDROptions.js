@@ -18,6 +18,7 @@ LDR.Options = function() {
     this.showStepRotationAnimations = 1; // 0=slow, 1=normal speed, 2=off
     this.partsListType = 0; // 0=icons, 1=list
     this.showPLI = 1; // 0=off, 1=on
+    this.rotateModel = 0; // 0=off, 1=on
 
     // Read values that might be in cookie:
     this.readOptionsFromCookie();
@@ -65,6 +66,7 @@ LDR.Options.prototype.saveOptionsToCookie = function() {
     addToKv("showLRButtons");
     addToKv("partsListType");
     addToKv("showPLI");
+    addToKv("rotateModel");
 }
 
 LDR.Options.setOptionsSelected = function(node, callback) {
@@ -93,7 +95,7 @@ LDR.Options.prototype.appendHeader = function(optionsBlock) {
 }
 LDR.Options.prototype.appendFooter = function(optionsBlock) {
     var div = document.createElement('div');
-    div.setAttribute('id', 'options_footer');
+    div.setAttribute('class', 'options_footer');
     var a = document.createElement('a');
     a.setAttribute('href', '#top');
 
@@ -702,6 +704,55 @@ LDR.Options.prototype.appendCameraOptions = function(optionsBlock) {
 	svg.setAttribute('class', 'ui_toggles');
 	svg.appendChild(LDR.SVG.makeOffIcon(0, 0, 100));
 	buttons[2].appendChild(svg);
+    }
+}
+
+LDR.Options.prototype.appendRotationOptions = function(optionsBlock) {
+    var group = this.addOptionsGroup(optionsBlock, 2, "Show FPS and Rotate");
+    var options = this;
+    var onChange = function(idx) {
+	options.rotateModel = idx;
+	options.onChange();
+    };
+    var buttons = this.createButtons(group, 2, this.rotateModel, onChange);
+    var red = function(){return '#C91A09';};
+    var lineColor = function(options){
+	return LDR.Colors.int2Hex(options.lineColor);
+    };
+    var w = 20;	
+    
+    /* 
+       Option 0: Off
+    */
+    {
+	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	svg.setAttribute('viewBox', '-100 -25 200 50');
+	buttons[0].appendChild(svg);
+	this.createSvgBlock(0, 0, true, red, lineColor, svg);
+    }
+    /* 
+       Option 1: On
+    */
+    {
+	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	svg.setAttribute('viewBox', '-100 -25 200 50');
+	buttons[1].appendChild(svg);
+
+	var g = document.createElementNS(LDR.SVG.NS, 'g');
+	svg.appendChild(g);
+	var turned = this.createSvgBlock(0, 0, true, red, lineColor, g);
+
+	var a = document.createElementNS(LDR.SVG.NS, 'animateTransform');
+	a.setAttribute('id', 'turnerFull');
+	a.setAttribute('attributeName', 'transform');
+	a.setAttribute('attributeType', 'XML');
+	a.setAttribute('type', 'rotate');
+	a.setAttribute('from', '0 0 0');
+	a.setAttribute('to', '360 0 0');
+	a.setAttribute('dur', '30s');
+	a.setAttribute('begin', '1s;turnerFull.end');
+
+	g.appendChild(a);
     }
 }
 

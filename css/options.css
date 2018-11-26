@@ -1,17 +1,17 @@
-#options_header, #options_footer {
+#options_header, .options_footer {
     height: 100px;
     display: block;
     width: 100%;
     background-color: black;
 }
-#options_header svg, #options_footer svg {
+#options_header svg, .options_footer svg {
     stroke: white;
     margin: auto;
     display: block;
     width: 100px;
     height: 100px;
 }
-#options_footer svg polygon, #options_footer svg circle {
+.options_footer svg polygon, .options_footer svg circle {
     stroke: white;
 }
 #options {

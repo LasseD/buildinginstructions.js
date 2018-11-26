@@ -84,10 +84,11 @@ LDR.PliPreviewer.prototype.zoomOut = function() {
 LDR.PliPreviewer.prototype.showPliPreview = function(icon) {    
     // Update description:
     var nameEle = document.getElementById('preview_info_name');
-    var bricklinkID = icon.partID.slice(0, -4);
-    var desc = icon.desc;
-    nameEle.innerHTML = desc + " (" + bricklinkID + ")";
-    nameEle.parentNode.setAttribute('href', 'http://www.bricklink.com/catalogItem.asp?P=' + bricklinkID);
+    var partIdNoDat = icon.partID.slice(0, -4);
+    var desc = icon.desc || partIdNoDat;
+    nameEle.innerHTML = desc + " (" + partIdNoDat + ")";
+    //nameEle.parentNode.setAttribute('href', 'http://www.bricklink.com/catalogItem.asp?P=' + partIdNoDat);
+    nameEle.parentNode.setAttribute('href', '../p/' + partIdNoDat);
     var colorID = icon.colorID;
     var color = LDR.Colors[colorID];
     document.getElementById('preview_info_color_ldraw').innerHTML = color.name + " (" + colorID + ")";
