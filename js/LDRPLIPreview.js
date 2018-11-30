@@ -18,12 +18,6 @@ LDR.PliPreviewer.prototype.attachRenderer = function(canvas) {
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.canvas = canvas;
     this.controls = new THREE.OrbitControls(this.camera, this.canvas);
-    this.controls.keys = {
-	LEFT: 65, // A
-	UP: 87, // W
-	RIGHT: 68, // D
-	BOTTOM: 83 // S
-    }
     var self = this;
     this.controls.addEventListener('change',function(){self.render();});
 }

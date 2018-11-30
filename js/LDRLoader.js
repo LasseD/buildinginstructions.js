@@ -99,8 +99,8 @@ THREE.LDRLoader.prototype.parse = function(data) {
 
     // BFC Parameters:
     var CCW = true; // Assume CCW as default
+    var localCull = false; // Do not cull by default - wait for BFC CERTIFY
     var invertNext = false; // Don't assume that first line needs inverted.
-    var localCull = true;
 
     // Start parsing:
     var part = new THREE.LDRPartType();
@@ -169,6 +169,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	function handlePotentialFileStart(fileName) {
 	    // Normalize the name by bringing to lower case and replacing backslashes:
 	    fileName = fileName.toLowerCase().replace('\\', '/');
+	    localCull = false; // BFC Statements come after the FILE or Name: - directives.
 
 	    if(part.ID === fileName) { // Consistent 'FILE' and 'Name:' lines.
 		setModelDescription();
@@ -225,7 +226,9 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		var option = parts[2];
 		switch(option) {
 		case "CERTIFY":
-                    CCW = true;
+		    part.certifiedBFC = true;
+		    part.CCW = CCW = true;
+                    localCull = true;
 		    break;
 		case "INVERTNEXT":
                     invertNext = true;
@@ -239,10 +242,12 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		}
 		
 		// Handle CW/CCW:
-		if(parts[parts.length-1] == "CCW")
-                    CCW = true;
-		else if(parts[parts.length-1] == "CW")
-                    CCW = false;
+		if(parts[parts.length-1] == "CCW") {
+                    part.CCW = CCW = true;
+		}
+		else if(parts[parts.length-1] == "CW") {
+                    part.CCW = CCW = false;
+		}
 	    }
 	    else if(parts[1] === "STEP") {
 		closeStep(true);
@@ -270,6 +275,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    
 	    // TODO: MLCad commands:
 	    // TODO: LSynth commands:
+	    part.lines.push(new LDR.Line0(parts.slice(1).join(" ")));
 	    break;
 	case 1: // 1 <colour> x y z a b c d e f g h i <file>
 	    for(var j = 2; j < 14; j++)
@@ -306,12 +312,14 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		    this.load(subModelID, false); // Start loading the separate file immediately!
 		}
 	    }
+	    part.lines.push(new LDR.Line1(subModel));
 	    invertNext = false;
 	    break;
 	case 2: // Line "2 <colour> x1 y1 z1 x2 y2 z2"
 	    var p1 = new THREE.Vector3(parseFloat(parts[2]), parseFloat(parts[3]), parseFloat(parts[4]));
 	    var p2 = new THREE.Vector3(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
 	    step.addLine(colorID, p1, p2);
+	    part.lines.push(new LDR.Line2(colorID, p1, p2));
 	    invertNext = false;
 	    break;
 	case 3: // 3 <colour> x1 y1 z1 x2 y2 z2 x3 y3 z3
@@ -324,10 +332,10 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    else {
 		step.addTrianglePoints(colorID, p1, p2, p3);
 	    }
-
-	    if(!localCull)
+	    if(!part.certifiedBFC || !localCull)
 		step.cull = false; // Ensure no culling when step is handled.
 
+	    part.lines.push(new LDR.Line3(colorID, p1, p2, p3, localCull, CCW != invertNext));
 	    invertNext = false;
 	    break;
 	case 4: // 4 <colour> x1 y1 z1 x2 y2 z2 x3 y3 z3 x4 y4 z4
@@ -343,9 +351,10 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		step.addTrianglePoints(colorID, p1, p2, p4);
 		step.addTrianglePoints(colorID, p2, p3, p4);
 	    }
-	    if(!localCull)
+	    if(!part.certifiedBFC || !localCull)
 		step.cull = false; // Ensure no culling when step is handled.
 
+	    part.lines.push(new LDR.Line4(colorID, p1, p2, p3, p4, localCull, CCW != invertNext));
 	    invertNext = false;
 	    break;
 	case 5: // Conditional lines:
@@ -354,6 +363,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    var p3 = new THREE.Vector3(parseFloat(parts[8]), parseFloat(parts[9]), parseFloat(parts[10]));
 	    var p4 = new THREE.Vector3(parseFloat(parts[11]), parseFloat(parts[12]), parseFloat(parts[13]));
 	    step.addConditionalLine(colorID, p1, p2, p3, p4);
+	    part.lines.push(new LDR.Line5(colorID, p1, p2, p3, p4));
 	    invertNext = false;
 	    break;
 	}
@@ -611,12 +621,55 @@ THREE.LDRStep = function() {
     }
 }
 
+LDR.Line0 = function(txt) {
+    this.txt = txt;    
+    this.line0 = true;
+}
+LDR.Line1 = function(desc) {
+    this.desc = desc;
+    this.line1 = true;
+}
+LDR.Line2 = function(c, p1, p2) {
+    this.c = c;
+    this.p1 = p1;
+    this.p2 = p2;
+    this.line2 = true;
+}
+LDR.Line3 = function(c, p1, p2, p3, cull, ccw) {
+    this.c = c;
+    this.p1 = p1;
+    this.p2 = p2;
+    this.p3 = p3;
+    this.cull = cull;
+    this.ccw = ccw;
+    this.line3 = true;
+}
+LDR.Line4 = function(c, p1, p2, p3, p4, cull, ccw) {
+    this.c = c;
+    this.p1 = p1;
+    this.p2 = p2;
+    this.p3 = p3;
+    this.p4 = p4;
+    this.cull = cull;
+    this.ccw = ccw;
+    this.line4 = true;
+}
+LDR.Line5 = function(c, p1, p2, p3, p4) {
+    this.c = c;
+    this.p1 = p1;
+    this.p2 = p2;
+    this.p3 = p3;
+    this.p4 = p4;
+    this.line5 = true;
+}
+
 THREE.LDRPartType = function() {
     this.ID = null;
     this.modelDescription;
     this.author;
     this.license;
     this.steps = [];
+    this.lines = [];
     this.lastRotation = null;
     this.replacement;
     this.inlined = false;
@@ -1032,9 +1085,6 @@ THREE.LDRMeshCollector.prototype.createOrUpdate = function(old, baseObject) {
 }
 
 THREE.LDRMeshCollector.prototype.draw = function(baseObject, old) {
-    if(old == undefined)
-	throw "'old' is undefined!";
-
     var created = this.createOrUpdate(old, baseObject);
     if(created) {
 	this.visible = true;
