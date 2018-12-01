@@ -41,8 +41,6 @@ THREE.LDRLoader = function(manager, onLoad, onProgress, onError, onWarning, load
  * top should be set to 'true' for top level model files, such as .ldr and .mpd files.
  */
 THREE.LDRLoader.prototype.load = function(id, top) {
-    if(!id)
-	throw "Missing id for LDRLoader::load";
     if(!top)
 	id = id.toLowerCase();
     var url = this.idToUrl(id, top);
@@ -220,6 +218,12 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    }
 	    else if(is("!LICENSE")) {
 		part.license = parts.slice(2).join(" ");
+	    }
+	    else if(is("!HISTORY")) {
+		// Ignore.
+	    }
+	    else if(is("!LDRAW_ORG")) {
+		part.ldraw_org = parts.slice(2).join(" ");
 	    }
 	    else if(parts[1] === "BFC") {
 		// BFC documentation: http://www.ldraw.org/article/415
@@ -1082,6 +1086,37 @@ THREE.LDRMeshCollector.prototype.createOrUpdate = function(old, baseObject) {
 
     this.updateState(old);
     return false;
+}
+
+/*
+  This is a temporary function used by single parts render. 
+  To be decomissioned when colors are moved to an attribute.
+ */
+THREE.LDRMeshCollector.prototype.overwriteColor = function(color) {
+    for(var i = 0; i < this.triangleColors.length; i++) {
+	var triangleColor = this.triangleColors[i];
+	if(triangleColor != 16)
+	    continue;
+	var mesh = this.triangleMeshes[i];
+	mesh.material.uniforms.color.value = LDR.Colors.getColor4(color);
+	break; // We only want to change color 16.
+    }
+    for(var i = 0; i < this.lineColors.length; i++) {
+	var c = this.lineColors[i];
+	if(c != 10016)
+	    continue;
+	var mesh = this.lineMeshes[i];
+	mesh.material.uniforms.color.value = ldrOptions.lineContrast == 0 ? LDR.Colors.getHighContrastColor4(color+10000) : LDR.Colors.getColor4(color+10000);
+	break;
+    }
+    for(var i = 0; i < this.conditionalLineColors.length; i++) {
+	var c = this.conditionalLineColors[i];
+	if(c != 10016)
+	    continue;
+	var mesh = this.conditionalLineMeshes[i];
+	mesh.material.uniforms.color.value = ldrOptions.lineContrast == 0 ? LDR.Colors.getHighContrastColor4(color+10000) : LDR.Colors.getColor4(color+10000);
+	break;
+    }
 }
 
 THREE.LDRMeshCollector.prototype.draw = function(baseObject, old) {
