@@ -265,8 +265,8 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		}
 		closeStep(true);
 	    }
-	    else if(parts[1] === "!INLINED") {
-		part.inlined = true;
+	    else if(parts[1] === "!BRICKHUB_INLINED") {
+		part.inlined = parts.length == 3 ? parts[2] : 'UNKNOWN';
 	    }
 	    else if(parts[1][0] === "!") {
 		invertNext = false;
@@ -676,7 +676,8 @@ THREE.LDRPartType = function() {
     this.lines = [];
     this.lastRotation = null;
     this.replacement;
-    this.inlined = false;
+    this.inlined;
+    this.ldraw_org;
 
     this.addStep = function(step) {
 	if(step.empty && this.steps.length === 0)
@@ -867,9 +868,13 @@ THREE.LDRMeshCollector.prototype.createConditionalLines = function(baseObject) {
 }
 
 THREE.LDRMeshCollector.prototype.computeBoundingBox = function() {
-    // Bounding box:
+    if(this.boundingBox)
+	throw "Bounding box already computed!";
     var mc = this;
-    function expandBB(b) {
+    function expandBB(mesh) {
+	mesh.geometry.computeBoundingBox();
+	var b = mesh.geometry.boundingBox;
+
 	if(!mc.boundingBox) {
 	    mc.boundingBox = new THREE.Box3();
 	    mc.boundingBox.copy(b);
@@ -881,7 +886,15 @@ THREE.LDRMeshCollector.prototype.computeBoundingBox = function() {
     }
 
     for(var i = 0; i < this.triangleMeshes.length; i++) {
-	expandBB(this.triangleMeshes[i].geometry.boundingBox);
+	expandBB(this.triangleMeshes[i]);
+    }
+    if(this.triangleMeshes.length == 0) {
+	for(var i = 0; i < this.lineMeshes.length; i++) {
+	    expandBB(this.lineMeshes[i]);
+	}
+	for(var i = 0; i < this.conditionalLineMeshes.length; i++) {
+	    expandBB(this.conditionalLineMeshes[i]);
+	}
     }
 }
 
@@ -967,7 +980,6 @@ THREE.LDRMeshCollector.prototype.buildTriangles = function(old, baseObject) {
 	triangleGeometry.setIndex(this.triangleIndices[triangleColor]);
 	triangleGeometry.addAttribute('position', this.vertexAttribute);
 	
-	triangleGeometry.computeBoundingBox();
 	var mesh = new THREE.Mesh(triangleGeometry, triangleMaterial);
 	this.triangleMeshes.push(mesh);
 	baseObject.add(mesh);
