@@ -29,7 +29,12 @@ THREE.LDRLoader = function(manager, onLoad, onProgress, onError, onWarning, load
     this.mainModel;
     this.loadRelatedFilesImmediately = loadRelatedFilesImmediately || false;
     var self = this;
-    this.idToUrl = idToUrl || function(id, top) {if(self.isTopLevelModel(id)){return id;}return "ldraw_parts/"+id.toLowerCase();};
+    this.idToUrl = idToUrl || function(id, top) {
+	if(self.isTopLevelModel(id)){
+	    return id;
+	}
+	return "ldraw_parts/"+id.toLowerCase();
+    };
 }
 
 /*
@@ -488,6 +493,7 @@ THREE.LDRStepIdx = 0;
 THREE.LDRStep = function() {
     this.idx = THREE.LDRStepIdx++;
     this.empty = true;
+    this.hasPrimitives = false;
     this.ldrs = [];
     this.dats = [];
     this.lines = []; // {colorID, p1, p2}
@@ -506,15 +512,26 @@ THREE.LDRStep = function() {
     }
     this.addLine = function(c, p1, p2) {
 	this.empty = false;
+	this.hasPrimitives = true;
     	this.lines.push({colorID:c, p1:p1, p2:p2});
     }
     this.addTrianglePoints = function(c, p1, p2, p3) {
 	this.empty = false;
+	this.hasPrimitives = true;
 	this.triangles.push({colorID:c, p1:p1, p2:p2, p3:p3});
     }
     this.addConditionalLine = function(c, p1, p2, p3, p4) {
 	this.empty = false;
+	this.hasPrimitives = true;
     	this.conditionalLines.push({colorID:c, p1:p1, p2:p2, p3:p3, p4:p4});
+    }
+
+    this.countParts = function(loader) {
+	var ret = this.dats.length;
+	for(var i = 0; i < this.ldrs.length; i++) {
+	    ret += loader.ldrPartTypes[this.ldrs[i].ID].countParts(loader);
+	}
+	return ret;
     }
 
     /*
@@ -700,8 +717,18 @@ THREE.LDRPartType = function() {
 
     this.generateThreePart = function(loader, c, p, r, cull, inv, meshCollector, parentIsDat) {
 	for(var i = 0; i < this.steps.length; i++) {
-	    this.steps[i].generateThreePart(loader, c, p, r, cull, inv, meshCollector, parentIsDat, this.ID.endsWith('dat'));
+	    var childIsDat = this.ID.endsWith('dat') || 
+		(this.steps.length == 1 && this.steps[0].hasPrimitives);
+	    this.steps[i].generateThreePart(loader, c, p, r, cull, inv, meshCollector, parentIsDat, childIsDat);
 	}
+    }
+
+    this.countParts = function(loader) {
+	var ret = 0;
+	for(var i = 0; i < this.steps.length; i++) {
+	    ret += this.steps[i].countParts(loader);
+	}
+	return ret;
     }
 }
 

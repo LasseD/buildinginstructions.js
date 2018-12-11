@@ -12,7 +12,6 @@ LDR.Options = function() {
     this.lineColor = 0x333333;
     this.blackLineColor = 0x595959;
     this.oldColor = 0xffff6f;
-    this.showFFFRButtons = 0; // 0=off, 1=on
     this.showLRButtons = 0; // 0=right big, 1=right normal, 2=both off
     this.showCameraButtons = 0; // 0=+- on right, 1=+- on sides, 2=off
     this.showStepRotationAnimations = 1; // 0=slow, 1=normal speed, 2=off
@@ -62,7 +61,6 @@ LDR.Options.prototype.saveOptionsToCookie = function() {
     addToKv("showStepRotationAnimations");
     addToKv("showPartsCallouts");
     addToKv("showCameraButtons");
-    addToKv("showFFFRButtons");
     addToKv("showLRButtons");
     addToKv("partsListType");
     addToKv("showPLI");
@@ -536,39 +534,6 @@ LDR.Options.prototype.appendShowPLIOptions = function(optionsBlock) {
 	    this.createSvgBlock(xx*LDR.Options.svgBlockWidth, 
 				0, true, red, lineColor, svg);
 	}
-    }
-}
-
-LDR.Options.prototype.appendFFFROptions = function(optionsBlock) {
-    var group = this.addOptionsGroup(optionsBlock, 2, "Skip Sub Model Buttons");
-    var options = this;
-    var onFFFRChange = function(idx) {
-	options.showFFFRButtons = idx;
-	options.onChange();
-	ldrButtons.ffButton.style.display = ldrButtons.frButton.style.display = (idx === 0) ? 'none' : 'inline-block';
-    };
-    var buttons = this.createButtons(group, 2, this.showFFFRButtons, onFFFRChange);
-    
-    /* 
-       Option 1: Off
-    */
-    {
-	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
-	svg.setAttribute('viewBox', '-150 -50 300 100');
-	svg.setAttribute('class', 'ui_toggles');
-	svg.appendChild(LDR.SVG.makeOffIcon(0, 0, 80));
-	buttons[0].appendChild(svg);
-    }
-    /* 
-       Option 2: On
-    */
-    {
-	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
-	svg.setAttribute('viewBox', '0 0 300 100');
-	svg.setAttribute('class', 'ui_toggles');
-	svg.appendChild(LDR.SVG.makeFR(0));
-	svg.appendChild(LDR.SVG.makeFF(200));
-	buttons[1].appendChild(svg);
     }
 }
 

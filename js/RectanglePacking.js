@@ -5,16 +5,22 @@ var Algorithm = Algorithm || {};
 /*
   Rectangles: array with 'rectangle' objects {x, y, width}.
  */
-Algorithm.PackRectangles = function(fillHeight, maxWidth, maxHeight, rectangles, maxRectangleWidth) {
+Algorithm.PackRectangles = function(fillHeight, maxWidth, maxHeight, rectangles, maxSizePerPixel) { // Previously maxRectangleWidth
     // Compute rectangleWidth by increasing minRectangleWidth as much as possible:
     var len = rectangles.length;
     var minRectangleWidth = 1;
     var widthAdd = 4; // Add for width when fillWidth
-    var heightAdd = 10; // Add for height to include multiplication.
+    var heightAdd = 14; // Add for height to include multiplication.
 
     var maxRectangleSideLength = 0;
-    for(var i = 0; i < rectangles.length; i++)
-	maxRectangleSideLength = Math.max(maxRectangleSideLength, rectangles[i].dx, rectangles[i].dy);
+    var maxSize = 0;
+    for(var i = 0; i < rectangles.length; i++) {
+	var r = rectangles[i];
+	maxRectangleSideLength = Math.max(maxRectangleSideLength, r.dx, r.dy);
+	maxSize = Math.max(maxSize, r.size);
+    }
+    var maxRectangleWidth = maxSize/maxSizePerPixel;//maxRectangleSideLength vs maxSize vs maxSizePerPixel
+    //console.log("maxSize=" + maxSize + " => maxRectangleWidth=" + maxRectangleWidth);
 
     // Binary search for maximum size:
     while(minRectangleWidth < maxRectangleWidth-1) {
@@ -69,5 +75,6 @@ Algorithm.PackRectangles = function(fillHeight, maxWidth, maxHeight, rectangles,
 	else
 	    maxRectangleWidth = rectangleWidth;
     }
+    //console.log(maxWidth + "/" + maxHeight + " -> " + w + "/" + h);
     return [w, h];
 }

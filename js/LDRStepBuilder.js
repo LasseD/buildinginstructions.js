@@ -34,6 +34,7 @@ LDR.StepBuilder = function(baseObject, ldrLoader, partDescs, onProgress, isForMa
     this.current = -1; // Índex of currently-shown step (call nextStep() to initialize)
     this.extraParts = partDescs.length > 1; // Replace with actual mesh builder once loaded.
     this.bounds = []; // Bounds for each step
+    this.accumulatedBounds = []; // Accumulated bounds for each step
     
     var partDesc = partDescs[0];
     this.part = ldrLoader.ldrPartTypes[partDesc.ID];
@@ -56,20 +57,22 @@ LDR.StepBuilder = function(baseObject, ldrLoader, partDescs, onProgress, isForMa
 	}
 	this.meshCollectors.push(null);
 	this.bounds.push(null);
+	this.accumulatedBounds.push(null);
     }
     this.bounds.push(null); // One more for placement step.
+    this.accumulatedBounds.push(null); // One more for placement step.
     if(isForMainModel && partDescs.length > 1)
 	this.totalNumberOfSteps++;
     //console.log("Builder for " + partDesc.ID + " with " + this.part.steps.length + " normal steps. Total: " + this.totalNumberOfSteps);
 }
 
-LDR.StepBuilder.prototype.computeCameraPositionRotation = function(defaultMatrix, currentRotationMatrix) {
+LDR.StepBuilder.prototype.computeCameraPositionRotation = function(defaultMatrix, currentRotationMatrix, useAccumulatedBounds) {
     if(this.current == -1 || this.current == this.subBuilders.length)
 	throw "Can't reposition in void for step " + this.current + " in " + this.part.ID;
 
     var subBuilder = this.subBuilders[this.current];
     if((subBuilder !== null) && !subBuilder.isAtPlacementStep()) {
-	return subBuilder.computeCameraPositionRotation(defaultMatrix, currentRotationMatrix); // Delegate to subBuilder.
+	return subBuilder.computeCameraPositionRotation(defaultMatrix, currentRotationMatrix, useAccumulatedBounds); // Delegate to subBuilder.
     }
 
     var stepRotation = this.part.steps[this.current].rotation;
@@ -77,7 +80,10 @@ LDR.StepBuilder.prototype.computeCameraPositionRotation = function(defaultMatrix
     // Get the current model rotation matrix and model center:
     var pr = this.partDescs[0].rotation.elements;
     var modelCenter = new THREE.Vector3(); 
-    this.bounds[this.current].getCenter(modelCenter);
+    if(useAccumulatedBounds)
+	this.accumulatedBounds[this.current].getCenter(modelCenter);
+    else
+	this.bounds[this.current].getCenter(modelCenter);
 
     var partM4 = new THREE.Matrix4();
     partM4.set(pr[0], pr[3], pr[6], 0,
@@ -177,7 +183,7 @@ LDR.StepBuilder.prototype.nextStep = function(doNotEraseForSubModels) {
 	if(subBuilder.isAtPlacementStep()) {
 	    // Add bounds:
 	    if(this.bounds[this.current] === null) {
-		var b = subBuilder.bounds[subBuilder.subBuilders.length];
+		var b = subBuilder.accumulatedBounds[subBuilder.subBuilders.length];
 		this.setCurrentBounds(b);
 	    }
 
@@ -232,6 +238,16 @@ LDR.StepBuilder.prototype.cleanUpAfterWalking = function() {
     }
 }
 
+LDR.StepBuilder.prototype.getAccumulatedBounds = function() {
+    var subBuilder = this.subBuilders[this.current];
+    if(subBuilder && !subBuilder.isAtPlacementStep()) {
+	var ret = subBuilder.getAccumulatedBounds();
+	if(ret)
+	    return ret;
+    }
+    return this.accumulatedBounds[this.current];
+}
+
 LDR.StepBuilder.prototype.getBounds = function() {
     var subBuilder = this.subBuilders[this.current];
     if(subBuilder && !subBuilder.isAtPlacementStep()) {
@@ -246,16 +262,17 @@ LDR.StepBuilder.prototype.setCurrentBounds = function(b) {
     if(this.current === 0) {
 	if(!b)
 	    throw "Illegal state: Empty first step!";
-	this.bounds[this.current] = new THREE.Box3(b.min, b.max);
+	this.accumulatedBounds[this.current] = this.bounds[this.current] = b;
 	return;
     }
+    this.bounds[this.current] = b;
 
-    var prevBounds = new THREE.Box3();
-    prevBounds.copy(this.bounds[this.current-1]);
-    this.bounds[this.current] = prevBounds;
+    var prevAccumulatedBounds = new THREE.Box3();
+    prevAccumulatedBounds.copy(this.accumulatedBounds[this.current-1]);
+    this.accumulatedBounds[this.current] = prevAccumulatedBounds;
     if(b) {
-	this.bounds[this.current].expandByPoint(b.min);
-	this.bounds[this.current].expandByPoint(b.max);
+	this.accumulatedBounds[this.current].expandByPoint(b.min);
+	this.accumulatedBounds[this.current].expandByPoint(b.max);
     }
 }
 
@@ -300,10 +317,11 @@ LDR.StepBuilder.prototype.getLevelOfCurrentStep = function() {
 }
 
 LDR.StepBuilder.prototype.drawExtras = function() {
-    if(!this.extraParts) { // No extra parts to draw:
-	if(this.bounds[this.subBuilders.length] === null) {
-	    var b = this.bounds[this.subBuilders.length-1];
-	    this.bounds[this.subBuilders.length] = new THREE.Box3(b.min, b.max);
+    var len = this.subBuilders.length;
+    if(!this.extraParts) { // No extra parts to draw: Copy from previous step:
+	if(!this.bounds[len]) {
+	    this.accumulatedBounds[len] = this.accumulatedBounds[len-1];
+	    this.bounds[len] = this.bounds[len-1];
 	}
 	return; // Done.
     }
@@ -311,20 +329,20 @@ LDR.StepBuilder.prototype.drawExtras = function() {
     if(this.extraParts === true) { // Not already loaded
 	this.extraParts = new THREE.LDRMeshCollector();
 
-	var prevBounds = new THREE.Box3();
-	prevBounds.copy(this.bounds[this.subBuilders.length-1]);
-	this.bounds[this.subBuilders.length] = prevBounds;
+	var prevAccumulatedBounds = new THREE.Box3();
+	prevAccumulatedBounds.copy(this.accumulatedBounds[len-1]);
+	this.bounds[len] = this.accumulatedBounds[len] = prevAccumulatedBounds;
 
+	// Add all extra parts to mesh collector:
 	for(var i = 1; i < this.partDescs.length; i++) {
 	    var pd = this.partDescs[i];
 	    this.part.generateThreePart(this.ldrLoader, pd.colorID, pd.position, pd.rotation, true, false, this.extraParts, false);
 	}
 	this.extraParts.draw(this.baseObject, this.extraParts.old);
-	if(this.subBuilders.length >= 2) {
-	    var b = this.extraParts.boundingBox;
-	    this.bounds[this.subBuilders.length].expandByPoint(b.min);
-	    this.bounds[this.subBuilders.length].expandByPoint(b.max);
-	}
+
+	var b = this.extraParts.boundingBox;
+	this.accumulatedBounds[len].expandByPoint(b.min);
+	this.accumulatedBounds[len].expandByPoint(b.max);
     }
     else {
 	this.extraParts.setVisible(true);

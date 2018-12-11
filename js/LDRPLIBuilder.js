@@ -88,13 +88,15 @@ LDR.PLIBuilder.prototype.createSortedIcons = function(step, stepColorID) {
 	}
 	else {
 	    var pc = this.getPC(key);
+	    var b = pc.getBounds();
 	    icon = {key: key,
 		    partID: partID, 
 		    colorID: colorID, 
 		    mult: 1, 
 		    desc: this.ldrLoader.ldrPartTypes[partID].modelDescription,
 		    dx: pc.dx,
-		    dy: pc.dy
+		    dy: pc.dy,
+		    size: b.min.distanceTo(b.max)
 		   };
 	    icons[key] = icon;
 	    sortedIcons.push(icon);
@@ -114,7 +116,7 @@ LDR.PLIBuilder.prototype.createSortedIcons = function(step, stepColorID) {
     return sortedIcons;
 }
 
-LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, maxWidth, maxHeight, force) {
+LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, maxWidth, maxHeight, maxSizePerPixel, force) {
     if(!force && this.lastStep && 
        this.lastStep.idx === step.idx && 
        this.lastColorID === colorID &&
@@ -130,7 +132,7 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, ma
 
     // Find, sort and set up icons to show:
     this.sortedIcons = this.createSortedIcons(step, colorID);
-    var [W,H] = Algorithm.PackRectangles(fillHeight, maxWidth, maxHeight, this.sortedIcons, window.innerWidth/5);
+    var [W,H] = Algorithm.PackRectangles(fillHeight, maxWidth, maxHeight, this.sortedIcons, maxSizePerPixel); // Previously max size window.innerWidth/5
     this.pliElement.width = (12+W)*window.devicePixelRatio;
     this.pliElement.height = (21+H)*window.devicePixelRatio;
     this.pliElement.style.width = (W+12)+"px";
@@ -155,7 +157,7 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, ma
 	for(var i = 0; i < self.sortedIcons.length; i++) {
 	    var icon = self.sortedIcons[i];
 	    context.fillText(icon.mult + "x", 
-			     (icon.x + 2)*window.devicePixelRatio, (icon.y+icon.height+17)*window.devicePixelRatio);
+			     (icon.x + 5)*window.devicePixelRatio, (icon.y+icon.height+17)*window.devicePixelRatio);
 	}
     }
     setTimeout(delay, 10); // Ensure not blocking
