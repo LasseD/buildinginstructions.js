@@ -9,8 +9,9 @@ Algorithm.PackRectangles = function(fillHeight, maxWidth, maxHeight, rectangles,
     // Compute rectangleWidth by increasing minRectangleWidth as much as possible:
     var len = rectangles.length;
     var minRectangleWidth = 1;
-    var widthAdd = 4; // Add for width when fillWidth
-    var heightAdd = 14; // Add for height to include multiplication.
+    var WIDTH_ADD = 4; // Add for width when fillWidth
+    var HEIGHT_ADD = 20; // Add for height to include multiplication.
+    var MIN_WIDTH = 25;
 
     var maxRectangleSideLength = 0;
     var maxSize = 0;
@@ -30,24 +31,24 @@ Algorithm.PackRectangles = function(fillHeight, maxWidth, maxHeight, rectangles,
 	var w = 0, h = 0, indentX = 0, indentY = 0; // indentXY = where to place the current rectangle.
 
 	if(fillHeight) {
-	    var maxW = 0; // Max width in current column.
+	    var maxW = MIN_WIDTH; // Max width in current column.
 	    // Test that we can build the BOM:
 	    for(var i = 0; i < rectangles.length; i++) {
 		var r = rectangles[i];
 		r.width = scale*r.dx;
 		r.height = scale*r.dy;
 
-		if(indentY + r.height + heightAdd > maxHeight) { // Place in new row
+		if(indentY > 0 && indentY + r.height + HEIGHT_ADD > maxHeight) { // Place in new row
 		    indentX += maxW;
 		    indentY = 0;
-		    maxW = r.width;
+		    maxW = Math.max(MIN_WIDTH, r.width);
 		}
 		else
 		    maxW = Math.max(maxW, r.width);
 		r.x = indentX; r.y = indentY;
 		w = Math.max(w, indentX + r.width);
 		h = Math.max(h, indentY + r.height);
-		indentY += r.height + heightAdd; // Place next
+		indentY += r.height + HEIGHT_ADD; // Place next
 	    }
 	}
 	else {
@@ -57,8 +58,8 @@ Algorithm.PackRectangles = function(fillHeight, maxWidth, maxHeight, rectangles,
 		r.width = scale*r.dx;
 		r.height = scale*r.dy;
 
-		if(indentX + r.width + widthAdd > maxWidth) { // Place in new column
-		    indentY += maxH + heightAdd;
+		if(indentX + r.width + WIDTH_ADD > maxWidth) { // Place in new column
+		    indentY += maxH + HEIGHT_ADD;
 		    indentX = 0;
 		    maxH = r.height;
 		}
@@ -67,7 +68,7 @@ Algorithm.PackRectangles = function(fillHeight, maxWidth, maxHeight, rectangles,
 		r.x = indentX; r.y = indentY;
 		w = Math.max(w, indentX + r.width);
 		h = Math.max(h, indentY + r.height);
-		indentX += r.width + widthAdd; // Place next
+		indentX += r.width + WIDTH_ADD; // Place next
 	    }
 	}
 	if(w < maxWidth && h < maxHeight)

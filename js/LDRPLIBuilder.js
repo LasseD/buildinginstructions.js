@@ -89,11 +89,13 @@ LDR.PLIBuilder.prototype.createSortedIcons = function(step, stepColorID) {
 	else {
 	    var pc = this.getPC(key);
 	    var b = pc.getBounds();
+	    var type = this.ldrLoader.ldrPartTypes[partID];
 	    icon = {key: key,
 		    partID: partID, 
 		    colorID: colorID, 
 		    mult: 1, 
-		    desc: this.ldrLoader.ldrPartTypes[partID].modelDescription,
+		    desc: type.modelDescription,
+		    annotation: pc.annotation,
 		    dx: pc.dx,
 		    dy: pc.dy,
 		    size: b.min.distanceTo(b.max)
@@ -134,7 +136,7 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, ma
     this.sortedIcons = this.createSortedIcons(step, colorID);
     var [W,H] = Algorithm.PackRectangles(fillHeight, maxWidth, maxHeight, this.sortedIcons, maxSizePerPixel); // Previously max size window.innerWidth/5
     this.pliElement.width = (12+W)*window.devicePixelRatio;
-    this.pliElement.height = (21+H)*window.devicePixelRatio;
+    this.pliElement.height = (28+H)*window.devicePixelRatio;
     this.pliElement.style.width = (W+12)+"px";
     this.pliElement.style.height = (H+21)+"px";
     //console.log("Packed " + this.sortedIcons.length + ", W=" + W + ", H=" + H);
@@ -147,6 +149,7 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, ma
     var self = this;
     function delay() {
 	context.clearRect(0, 0, this.pliElement.width, this.pliElement.height);
+	// Draw icon:
 	for(var i = 0; i < self.sortedIcons.length; i++) {
 	    var icon = self.sortedIcons[i];
 	    var w = parseInt(icon.width*scaleDown);
@@ -154,10 +157,38 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, ma
             self.render(icon.key, w, h);
 	    context.drawImage(self.renderer.domElement, (icon.x+8)*window.devicePixelRatio, (icon.y+5)*window.devicePixelRatio);
 	}
+	// Draw multiplier:
+	context.fillStyle = "#000";
 	for(var i = 0; i < self.sortedIcons.length; i++) {
 	    var icon = self.sortedIcons[i];
 	    context.fillText(icon.mult + "x", 
-			     (icon.x + 5)*window.devicePixelRatio, (icon.y+icon.height+17)*window.devicePixelRatio);
+			     (icon.x + 5)*window.devicePixelRatio, (icon.y+icon.height+24)*window.devicePixelRatio);
+	}
+	// Draw Annotation:
+	context.lineWidth = "1";
+	context.font = parseInt(18*window.devicePixelRatio) + "px Lucida Console";
+	for(var i = 0; i < self.sortedIcons.length; i++) {
+	    var icon = self.sortedIcons[i];
+	    console.dir(icon);
+	    if(!icon.annotation)
+		continue;
+	    var len = icon.annotation.length;
+	    var x = (icon.x + icon.width - len*10 - 9)*window.devicePixelRatio;
+	    var y = (icon.y + icon.height + 4)*window.devicePixelRatio;
+	    var w = (len*10 + 9)*window.devicePixelRatio;
+	    var h = 19*window.devicePixelRatio;
+	    context.beginPath();
+	    context.fillStyle = "#CFF";
+	    if(icon.desc.startsWith('Technic Axle'))
+		context.arc(x+w*0.45, y+h*0.5, w/2, 0, 2*Math.PI, false);
+	    else
+		context.rect(x, y, w, h);
+	    context.fill();
+	    context.stroke();
+	    context.fillStyle = "#25E";
+	    x += 3.5*window.devicePixelRatio;
+	    y += 16*window.devicePixelRatio;
+	    context.fillText(icon.annotation, x, y);
 	}
     }
     setTimeout(delay, 10); // Ensure not blocking

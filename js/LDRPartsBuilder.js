@@ -67,6 +67,7 @@ LDR.PartAndColor = function(partID, colorID, ldrLoader) {
     this.amount = 0;
     this.mesh; // Optional use.
     this.ldrLoader = ldrLoader;
+    this.annotation;
 
     this.partType = ldrLoader.ldrPartTypes[partID];
     if(!this.partType) {
@@ -79,7 +80,7 @@ LDR.PartAndColor = function(partID, colorID, ldrLoader) {
 	this.partType = ldrLoader.ldrPartTypes[this.partType.replacement];
     }
     // Rotate for pli:
-    var pliID = "pli_" + this.partID.slice(0, -4);
+    var pliID = "pli_" + this.partType.ID.slice(0, -4);
     if(LDR.PLI && LDR.PLI[pliID]) {
 	var pliInfo = LDR.PLI[pliID];
 	var pliName = "pli_" + this.partID;
@@ -107,6 +108,11 @@ LDR.PartAndColor = function(partID, colorID, ldrLoader) {
 	    console.log("Replaced PLI for " + pliName);
 	}
     }
+    // Annotate:
+    if(LDR.Annotations && LDR.Annotations[pliID]) {
+	this.annotation = LDR.Annotations[pliID];
+    }
+    
     this.partDesc = this.partType.modelDescription;
 }
 

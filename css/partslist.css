@@ -110,6 +110,26 @@ td.list_image {
     font-weight: bold;
     font-size: 2em;
 }
+.annotation, .annotation_round {
+    display: block;
+    float: right;
+    background-color: #CFF;
+    border: 0.1em solid black;
+    padding: 0.2em;
+    color: #25E;
+    position: relative;
+    right: 0.125em;
+    /*margin-right: -100%;*/
+    margin-bottom: -100%;
+    min-width: 1em;
+    text-align: center;
+    font-family: sans-serif;
+    font-weight: bold;
+    font-size: 1em;
+}
+.annotation_round {
+    border-radius: 2em;
+}
 
 /*
   Overlay 'preview' for parts:
