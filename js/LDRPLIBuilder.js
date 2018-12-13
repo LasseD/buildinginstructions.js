@@ -169,7 +169,6 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, ma
 	context.font = parseInt(18*window.devicePixelRatio) + "px Lucida Console";
 	for(var i = 0; i < self.sortedIcons.length; i++) {
 	    var icon = self.sortedIcons[i];
-	    console.dir(icon);
 	    if(!icon.annotation)
 		continue;
 	    var len = icon.annotation.length;

@@ -1,5 +1,41 @@
 'use strict';
 
+/*
+  ColorAttribute: 
+    color: [r,g,b,a] (4)
+    color + edge color + dimmed (12)
+    x 496    
+ */
+LDR.Colors.buildGLSLColors = function(defaultColorIdx) {
+    var v = [];
+    var black = new THREE.Vector4();
+    var white = new THREE.Vector4(1,1,1,1);
+    var color16 = new THREE.Color(LDR.Colors[16].value);
+    var old = new THREE.Vector4(color16.r, color16.g, color16.b, 1);
+
+    for(var i = 0; i < 496; i++) {
+	var colorObject = LDR.Colors[i];
+	if(i == 16 && defaultColorIdx != undefined) {
+	    colorObject = LDR.Colors[defaultColorIdx];
+	}
+	if(!colorObject) {
+	    v.push(old, old, old, old, old);
+	    continue;
+	}
+
+	var color = new THREE.Color(colorObject.value);
+	var edge = new THREE.Color(colorObject.edge ? colorObject.edge : 0x333333);
+	var dim = LDR.Colors.desaturateThreeColor(colorObject.value);
+	var alpha = colorObject.alpha ? colorObject.alpha/256.0 : 1;
+	v.push(new THREE.Vector4(color.r, color.g, color.b, alpha),
+	       old,
+	       new THREE.Vector4(dim.r, dim.g, dim.b, alpha),
+	       new THREE.Vector4(edge.r, edge.g, edge.b, alpha),
+	       LDR.Colors.isBlack(i) ? white : black);
+    }
+    return v;
+}
+
 LDR.Colors.getColor4 = function(colorID) {
     var colorObject = LDR.Colors[colorID < 10000 ? colorID : colorID - 10000];
     if(!colorObject)
@@ -70,3 +106,5 @@ LDR.Colors.desaturateThreeColor = function(hex) {
 LDR.Colors.desaturateColor = function(hex) {
     return LDR.Colors.desaturateThreeColor(hex).getHex();
 }
+
+LDR.Colors.defaultGLSLColors = LDR.Colors.buildGLSLColors();

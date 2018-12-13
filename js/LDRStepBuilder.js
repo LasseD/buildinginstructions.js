@@ -238,7 +238,7 @@ LDR.StepBuilder.prototype.cleanUpAfterWalking = function() {
     }
 }
 
-LDR.StepBuilder.prototype.getAccumulatedBounds = function() {
+LDR.StepBuilder.prototype.getAccumulatedBounds = function() {    
     var subBuilder = this.subBuilders[this.current];
     if(subBuilder && !subBuilder.isAtPlacementStep()) {
 	var ret = subBuilder.getAccumulatedBounds();

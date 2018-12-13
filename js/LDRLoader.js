@@ -746,57 +746,50 @@ THREE.LDRMeshCollector = function() {
     this.sizeVertices = 0;
 
     // Temporary geometries. Notice: Colors 10000+ are for edge colors.
-    this.triangleIndices = []; // Color ID -> indices.
-    this.lineIndices = []; // Color ID -> indices.
-    this.conditionalLines = []; // [colorID] -> {p1, p2, p3, p4}
-
-    this.triangleColors = []; // [] -> used color
-    this.lineColors = []; // [] -> used color
-    this.conditionalLineColors = []; // [] -> used color
+    this.triangleIndices = []; // [] -> {p1, p2, p3}
+    this.triangleColorIndices = []; // [] -> fc, fc, fc
+    this.lineIndices = []; // [] -> {p1, p2}
+    this.lineColorIndices = []; // [] -> fc, fc
+    this.conditionalLines = []; // [] -> {fc, p1, p2, p3, p4}
 
     // Final three.js geometries:
-    this.triangleMeshes; // [] -> meshes
-    this.lineMeshes; // [] -> meshes
-    this.conditionalLineMeshes; // colorID -> meshes
+    this.triangleMesh;
+    this.lineMesh;
+    this.conditionalLineMesh;
 
     this.isMeshCollector = true;
     this.old = false;
     this.visible = false;
 }
 
-THREE.LDRMeshCollector.prototype.addTriangle = function(colorID, p1, p2, p3) {
-    if(!this.triangleIndices[colorID]) {
-	this.triangleIndices[colorID] = [];
-	this.triangleColors.push(colorID);
-    }
-    var t = this.triangleIndices[colorID];
-    var size = t.length;
-    t.push(-1, -1, -1);
-
-    this.unbakedVertices.push({x:p1.x, y:p1.y, z:p1.z, id:size,   t:0, c:colorID},
-			      {x:p2.x, y:p2.y, z:p2.z, id:size+1, t:0, c:colorID}, 
-			      {x:p3.x, y:p3.y, z:p3.z, id:size+2, t:0, c:colorID});
+THREE.LDRMeshCollector.prototype.getFloatColor = function(c) {
+    if(c >= 10000)
+	return -c+10000-0.5;
+    else
+	return c+0.5;
 }
 
-THREE.LDRMeshCollector.prototype.addLine = function(colorID, p1, p2) {
-    if(!this.lineIndices[colorID]) {
-	this.lineIndices[colorID] = [];
-	this.lineColors.push(colorID);
-    }
-    var t = this.lineIndices[colorID];
-    var size = t.length;
-    t.push(-1, -1);
-
-    this.unbakedVertices.push({x:p1.x, y:p1.y, z:p1.z, id:size,   t:1, c:colorID},
-			      {x:p2.x, y:p2.y, z:p2.z, id:size+1, t:1, c:colorID});
+THREE.LDRMeshCollector.prototype.addTriangle = function(c, p1, p2, p3) {
+    var size = this.triangleIndices.length;
+    this.triangleIndices.push(0, 0, 0);
+    var floatColor = this.getFloatColor(c);
+    this.triangleColorIndices.push(floatColor, floatColor, floatColor);
+    this.unbakedVertices.push({x:p1.x, y:p1.y, z:p1.z, id:size,   t:0, fc:floatColor},
+			      {x:p2.x, y:p2.y, z:p2.z, id:size+1, t:0, fc:floatColor}, 
+			      {x:p3.x, y:p3.y, z:p3.z, id:size+2, t:0, fc:floatColor});
 }
 
-THREE.LDRMeshCollector.prototype.addConditionalLine = function(colorID, p1, p2, p3, p4) {
-    if(!this.conditionalLines[colorID]) {
-	this.conditionalLines[colorID] = [];
-	this.conditionalLineColors.push(colorID);
-    }
-    this.conditionalLines[colorID].push({p1:p1, p2:p2, p3:p3, p4:p4});
+THREE.LDRMeshCollector.prototype.addLine = function(c, p1, p2) {
+    var size = this.lineIndices.length;
+    this.lineIndices.push(0, 0);
+    var floatColor = this.getFloatColor(c);
+    this.lineColorIndices.push(floatColor, floatColor);
+    this.unbakedVertices.push({x:p1.x, y:p1.y, z:p1.z, id:size,   t:1, fc:floatColor},
+			      {x:p2.x, y:p2.y, z:p2.z, id:size+1, t:1, fc:floatColor});
+}
+
+THREE.LDRMeshCollector.prototype.addConditionalLine = function(c, p1, p2, p3, p4) {
+    this.conditionalLines.push({p1:p1, p2:p2, p3:p3, p4:p4, fc:this.getFloatColor(c)});
 }
 
 /*
@@ -805,46 +798,36 @@ THREE.LDRMeshCollector.prototype.addConditionalLine = function(colorID, p1, p2, 
  */
 THREE.LDRMeshCollector.prototype.updateMeshVisibility = function() {
     var v = this.visible;
-    for(var i = 0; i < this.triangleMeshes.length; i++) {
-	this.triangleMeshes[i].visible = v;
-    }
+    if(this.triangleMesh)
+	this.triangleMesh.visible = v;
     v = ldrOptions.lineContrast < 2 && this.visible;
-    for(var i = 0; i < this.lineMeshes.length; i++) {
-	this.lineMeshes[i].visible = v;
-    }
-    for(var i = 0; i < this.conditionalLineMeshes.length; i++) {
-	this.conditionalLineMeshes[i].visible = v;
-    }
+    if(this.lineMesh)
+	this.lineMesh.visible = v;
+    if(this.conditionalLineMesh)
+	this.conditionalLineMesh.visible = v;
 }
 
-/*
-  Create both normal lines.
-*/
 THREE.LDRMeshCollector.prototype.createNormalLines = function(baseObject) {
-    this.lineMeshes = [];
+    var lineMaterial = new THREE.RawShaderMaterial( {
+	uniforms: {
+	    colors: { type: 'v4v', value: LDR.Colors.defaultGLSLColors },
+	    highContrast: { value: (ldrOptions.lineContrast == 0 ? 4 : 3) },
+	    old: { value: 0 },
+	    type: { value: ldrOptions.showOldColors },
+	},
+	vertexShader: LDR.LineVertexShader,
+	fragmentShader: LDR.SimpleFragmentShader,
+	transparent: false
+    });
 
-    for(var i = 0; i < this.lineColors.length; i++) {
-	var lineColor = this.lineColors[i];
-	var lineColorV = ldrOptions.lineContrast == 1 ? 
-	    LDR.Colors.getColor4(lineColor) : LDR.Colors.getHighContrastColor4(lineColor);
-	var lineMaterial = new THREE.RawShaderMaterial( {
-	    uniforms: {
-		color: { value: lineColorV }
-	    },
-	    vertexShader: LDR.LineVertexShader,
-	    fragmentShader: LDR.SimpleFragmentShader,
-	    transparent: true
-	});
+    var lineGeometry = new THREE.BufferGeometry();
+    lineGeometry.setIndex(this.lineIndices);
+    lineGeometry.addAttribute('position', this.vertexAttribute);
 
-	// Create the three.js line:
-	var lineGeometry = new THREE.BufferGeometry();
-	lineGeometry.setIndex(this.lineIndices[lineColor]);
-	lineGeometry.addAttribute('position', this.vertexAttribute);
-	var line = new THREE.LineSegments(lineGeometry, lineMaterial);
-	this.lineMeshes.push(line);
-	baseObject.add(line);
-	this.lineIndices[lineColor] = undefined;
-    }
+    this.lineMesh = new THREE.LineSegments(lineGeometry, lineMaterial);
+    baseObject.add(this.lineMesh);
+    
+    this.lineColorIndices = undefined;
     this.lineIndices = undefined;
 }
 
@@ -852,45 +835,40 @@ THREE.LDRMeshCollector.prototype.createNormalLines = function(baseObject) {
   Create conditional lines.
 */
 THREE.LDRMeshCollector.prototype.createConditionalLines = function(baseObject) {
-    this.conditionalLineMeshes = [];
+    var lineMaterial = new THREE.RawShaderMaterial( {
+	uniforms: {
+	    colors: { type: 'v4v', value: LDR.Colors.defaultGLSLColors },
+	    highContrast: { value: (ldrOptions.lineContrast == 0 ? 4 : 3) },
+	    old: { value: 0 },
+	    type: { value: ldrOptions.showOldColors },
+	},
+	vertexShader: LDR.ConditionalLineVertexShader,
+	fragmentShader: LDR.AlphaTestFragmentShader,
+	transparent: false
+    });
+
+    var lineGeometry = new THREE.BufferGeometry();
+    var p1s = [], p2s = [], p3s = [], p4s = [], colorIndices = [];
 
     // Now handle conditional lines:
-    for(var i = 0; i < this.conditionalLineColors.length; i++) {
-	var lineColor = this.conditionalLineColors[i];
-	var lineColorV = ldrOptions.lineContrast == 1 ? 
-	    LDR.Colors.getColor4(lineColor) : LDR.Colors.getHighContrastColor4(lineColor);
-	var lineMaterial = new THREE.RawShaderMaterial( {
-	    uniforms: {
-		color: { value: lineColorV }
-	    },
-	    vertexShader: LDR.ConditionalLineVertexShader,
-	    fragmentShader: LDR.AlphaTestFragmentShader,
-	    transparent: true
-	});
+    for(var i = 0; i < this.conditionalLines.length; i++) {
+	var line = this.conditionalLines[i]; // {p1, p2, p3, p4, fc}
 
-	// Create the three.js line:
-	var lineGeometry = new THREE.BufferGeometry();
-	var conditionalLine = this.conditionalLines[lineColor]; // {p1, p2, p3, p4}
-	var p1s = [], p2s = [], p3s = [], p4s = [];
-	for(var j = 0; j < conditionalLine.length; j++) {
-	    var line = conditionalLine[j];
-	    p1s.push(line.p1.x, line.p1.y, line.p1.z, line.p2.x, line.p2.y, line.p2.z);
-	    p2s.push(line.p2.x, line.p2.y, line.p2.z, line.p1.x, line.p1.y, line.p1.z);
-	    p3s.push(line.p3.x, line.p3.y, line.p3.z, line.p3.x, line.p3.y, line.p3.z);
-	    p4s.push(line.p4.x, line.p4.y, line.p4.z, line.p4.x, line.p4.y, line.p4.z);
-	}
-
-	this.conditionalLines[lineColor] = undefined;
-
-	lineGeometry.addAttribute('position', new THREE.BufferAttribute(new Float32Array(p1s), 3));
-	lineGeometry.addAttribute('p2', new THREE.BufferAttribute(new Float32Array(p2s), 3));
-	lineGeometry.addAttribute('p3', new THREE.BufferAttribute(new Float32Array(p3s), 3));
-	lineGeometry.addAttribute('p4', new THREE.BufferAttribute(new Float32Array(p4s), 3));
-
-	var line = new THREE.LineSegments(lineGeometry, lineMaterial);
-	this.conditionalLineMeshes.push(line);
-	baseObject.add(line);
+	p1s.push(line.p1.x, line.p1.y, line.p1.z, line.p2.x, line.p2.y, line.p2.z);
+	p2s.push(line.p2.x, line.p2.y, line.p2.z, line.p1.x, line.p1.y, line.p1.z);
+	p3s.push(line.p3.x, line.p3.y, line.p3.z, line.p3.x, line.p3.y, line.p3.z);
+	p4s.push(line.p4.x, line.p4.y, line.p4.z, line.p4.x, line.p4.y, line.p4.z);
+	colorIndices.push(line.fc, line.fc); // 2 points.
     }
+    lineGeometry.addAttribute('position', new THREE.BufferAttribute(new Float32Array(p1s), 3));
+    lineGeometry.addAttribute('p2', new THREE.BufferAttribute(new Float32Array(p2s), 3));
+    lineGeometry.addAttribute('p3', new THREE.BufferAttribute(new Float32Array(p3s), 3));
+    lineGeometry.addAttribute('p4', new THREE.BufferAttribute(new Float32Array(p4s), 3));
+    lineGeometry.addAttribute('colorIndex', new THREE.BufferAttribute(new Float32Array(colorIndices), 1));
+
+    this.conditionalLineMesh = new THREE.LineSegments(lineGeometry, lineMaterial);
+    baseObject.add(this.conditionalLineMesh);
+
     this.conditionalLines = undefined;
 }
 
@@ -912,15 +890,15 @@ THREE.LDRMeshCollector.prototype.computeBoundingBox = function() {
 	}
     }
 
-    for(var i = 0; i < this.triangleMeshes.length; i++) {
-	expandBB(this.triangleMeshes[i]);
+    if(this.triangleMesh) {
+	expandBB(this.triangleMesh);
     }
-    if(this.triangleMeshes.length == 0) {
-	for(var i = 0; i < this.lineMeshes.length; i++) {
-	    expandBB(this.lineMeshes[i]);
+    else {
+	if(this.lineMesh) {
+	    expandBB(this.lineMesh);
 	}
-	for(var i = 0; i < this.conditionalLineMeshes.length; i++) {
-	    expandBB(this.conditionalLineMeshes[i]);
+	if(this.conditionalLineMesh) {
+	    expandBB(this.conditionalLineMesh);
 	}
     }
 }
@@ -937,26 +915,28 @@ THREE.LDRMeshCollector.prototype.bakeVertices = function() {
 	    return a.x-b.x;
 	if(a.y != b.y)
 	    return a.y-b.y;
-	return a.z-b.z;
+	if(a.z != b.z)
+	    return a.z-b.z;
+	return a.fc-b.fc;
     });
     
     var prev = {x:-123456, y:-123456, z:-123456};
     //var cnt = 0;
     for(var i = 0; i < len; i++) {
 	var p = this.unbakedVertices[i];
-	if(p.z != prev.z || p.y != prev.y || p.x != prev.x) {
+	if(p.fc != prev.fc || p.z != prev.z || p.y != prev.y || p.x != prev.x) {
 	    // New vertex:
-	    this.vertices.push(p.x, p.y, p.z);
+	    this.vertices.push(p.x, p.y, p.z, p.fc);
 	    reduced++;
 	    this.sizeVertices++;
 	    prev = p;
 	    //cnt++;
 	}
 	if(p.t == 0) { // Triangle vertex:
-	    this.triangleIndices[p.c][p.id] = this.sizeVertices -1;
+	    this.triangleIndices[p.id] = this.sizeVertices - 1;
 	}
 	else {
-	    this.lineIndices[p.c][p.id] = this.sizeVertices -1;
+	    this.lineIndices[p.id] = this.sizeVertices - 1;
 	}
     }
     this.unbakedVertices = [];
@@ -969,98 +949,67 @@ THREE.LDRMeshCollector.prototype.bakeVertices = function() {
   - oldColor
 */
 THREE.LDRMeshCollector.prototype.buildTriangles = function(old, baseObject) {
-    this.triangleMeshes = []; // colorID -> mesh.
-    this.vertexAttribute = new THREE.Float32BufferAttribute(this.vertices, 3); // to be reused
+    this.vertexAttribute = new THREE.Float32BufferAttribute(this.vertices, 4); // to be reused
     this.vertices = undefined;
 
-    for(var i = 0; i < this.triangleColors.length; i++) {
-	var triangleColor = this.triangleColors[i];
-	var triangleMaterial;
+    var triangleMaterial = new THREE.RawShaderMaterial( {
+	uniforms: {
+	    colors: { type: 'v4v', value: LDR.Colors.defaultGLSLColors },
+	    old: { value: old ? 1 : 0 },
+	    type: { value: ldrOptions.showOldColors },
+	},
+	vertexShader: LDR.TriangleVertexShader,
+	fragmentShader: LDR.SimpleFragmentShader,
+	//side: THREE.DoubleSide,
+	transparent: false
+    });
 
-	var colorValue;
-	if(old && ldrOptions.showOldColors === 1) { // Show dulled!
-	    colorValue = LDR.Colors.getColor4(16);
-	}
-	else {
-	    if(LDR.Colors[triangleColor] == undefined) {
-		console.warn("Unknown LDraw color '" + triangleColor + "', defaulting to black.");
-		colorValue = LDR.Colors.getColor4(0);
-	    }
-	    else if(old && ldrOptions.showOldColors === 2) {
-		colorValue = LDR.Colors.getDesaturatedColor4(0);
-	    }
-	    else {
-		colorValue = LDR.Colors.getColor4(triangleColor);
-	    }
-	}
-	triangleMaterial = new THREE.RawShaderMaterial( {
-	    uniforms: {
-		color: { value: colorValue }
-	    },
-	    vertexShader: LDR.TriangleVertexShader,
-	    fragmentShader: LDR.SimpleFragmentShader,
-	    //side: THREE.DoubleSide,
-	    transparent: true
-	});
+    var triangleGeometry = new THREE.BufferGeometry();
+    triangleGeometry.setIndex(this.triangleIndices);
+    triangleGeometry.addAttribute('position', this.vertexAttribute);
 
-	var triangleGeometry = new THREE.BufferGeometry();
-	triangleGeometry.setIndex(this.triangleIndices[triangleColor]);
-	triangleGeometry.addAttribute('position', this.vertexAttribute);
-	
-	var mesh = new THREE.Mesh(triangleGeometry, triangleMaterial);
-	this.triangleMeshes.push(mesh);
-	baseObject.add(mesh);
-	this.triangleIndices[triangleColor] = undefined;
-    }
+    this.triangleMesh = new THREE.Mesh(triangleGeometry, triangleMaterial);
+    baseObject.add(this.triangleMesh);
     this.triangleIndices = undefined;
+    this.triangleColorIndices = undefined;
 }
 
 THREE.LDRMeshCollector.prototype.colorTrianglesOldSingleColor = function() {
-    for(var i = 0; i < this.triangleColors.length; i++) {
-	var mesh = this.triangleMeshes[i];
-	mesh.material.uniforms.color.value = LDR.Colors.getColor4(16);
-    }
+    if(!this.triangleMesh)
+	return;
+    this.triangleMesh.material.uniforms.type.value = 1;
+    this.triangleMesh.material.uniforms.old.value = 1;
 }
 
 THREE.LDRMeshCollector.prototype.colorTrianglesDulled = function() {
-    for(var i = 0; i < this.triangleColors.length; i++) {
-	var triangleColor = this.triangleColors[i];
-	var mesh = this.triangleMeshes[i];
-	mesh.material.uniforms.color.value = LDR.Colors.getDesaturatedColor4(triangleColor);
-    }
+    if(!this.triangleMesh)
+	return;
+    this.triangleMesh.material.uniforms.type.value = 2;
+    this.triangleMesh.material.uniforms.old.value = 1;
 }
 
 THREE.LDRMeshCollector.prototype.colorTrianglesNormal = function() {
-    for(var i = 0; i < this.triangleColors.length; i++) {
-	var triangleColor = this.triangleColors[i];
-	var mesh = this.triangleMeshes[i];
-	mesh.material.uniforms.color.value = LDR.Colors.getColor4(triangleColor);
-    }
+    if(!this.triangleMesh)
+	return;
+    this.triangleMesh.material.uniforms.type.value = 0;
+    this.triangleMesh.material.uniforms.old.value = 0;
 }
 
 THREE.LDRMeshCollector.prototype.colorLinesLDraw = function() {
-    for(var i = 0; i < this.lineColors.length; i++) {
-	var c = this.lineColors[i];
-	var mesh = this.lineMeshes[i];
-	mesh.material.uniforms.color.value = LDR.Colors.getColor4(c);
+    if(this.lineMesh) {
+	this.lineMesh.material.uniforms.highContrast.value = 3;
     }
-    for(var i = 0; i < this.conditionalLineColors.length; i++) {
-	var c = this.conditionalLineColors[i];
-	var mesh = this.conditionalLineMeshes[i];
-	mesh.material.uniforms.color.value = LDR.Colors.getColor4(c);
+    if(this.conditionalLineMesh) {
+	this.conditionalLineMesh.material.uniforms.highContrast.value = 3;
     }
 }
 
 THREE.LDRMeshCollector.prototype.colorLinesHighContrast = function() {
-    for(var i = 0; i < this.lineColors.length; i++) {
-	var c = this.lineColors[i];
-	var mesh = this.lineMeshes[i];
-	mesh.material.uniforms.color.value = LDR.Colors.getHighContrastColor4(c);
+    if(this.lineMesh) {
+	this.lineMesh.material.uniforms.highContrast.value = 4;
     }
-    for(var i = 0; i < this.conditionalLineColors.length; i++) {
-	var c = this.conditionalLineColors[i];
-	var mesh = this.conditionalLineMeshes[i];
-	mesh.material.uniforms.color.value = LDR.Colors.getHighContrastColor4(c);
+    if(this.conditionalLineMesh) {
+	this.conditionalLineMesh.material.uniforms.highContrast.value = 4;
     }
 }
 
@@ -1072,10 +1021,10 @@ THREE.LDRMeshCollector.prototype.updateState = function(old) {
 }
 
 /*
- * Returns true on creation.
+ * Returns true on creation. TODO: Make updates simpler now there are only 3-4 meshes.
  */
 THREE.LDRMeshCollector.prototype.createOrUpdate = function(old, baseObject) {
-    if(!this.triangleMeshes) { // Create triangles:
+    if(!this.triangleMesh) { // Create triangles:
 	this.updateState(old);
 	this.buildTriangles(old, baseObject);
 	return true;
@@ -1132,29 +1081,15 @@ THREE.LDRMeshCollector.prototype.createOrUpdate = function(old, baseObject) {
   To be decomissioned when colors are moved to an attribute.
  */
 THREE.LDRMeshCollector.prototype.overwriteColor = function(color) {
-    for(var i = 0; i < this.triangleColors.length; i++) {
-	var triangleColor = this.triangleColors[i];
-	if(triangleColor != 16)
-	    continue;
-	var mesh = this.triangleMeshes[i];
-	mesh.material.uniforms.color.value = LDR.Colors.getColor4(color);
-	break; // We only want to change color 16.
+    var v = LDR.Colors.buildColorUniform(color);
+    if(this.triangleMesh) {
+	this.triangleMesh.material.uniforms.colors = v;
     }
-    for(var i = 0; i < this.lineColors.length; i++) {
-	var c = this.lineColors[i];
-	if(c != 10016)
-	    continue;
-	var mesh = this.lineMeshes[i];
-	mesh.material.uniforms.color.value = ldrOptions.lineContrast == 0 ? LDR.Colors.getHighContrastColor4(color+10000) : LDR.Colors.getColor4(color+10000);
-	break;
+    if(this.lineMesh) {
+	this.lineMesh.material.uniforms.colors = v;
     }
-    for(var i = 0; i < this.conditionalLineColors.length; i++) {
-	var c = this.conditionalLineColors[i];
-	if(c != 10016)
-	    continue;
-	var mesh = this.conditionalLineMeshes[i];
-	mesh.material.uniforms.color.value = ldrOptions.lineContrast == 0 ? LDR.Colors.getHighContrastColor4(color+10000) : LDR.Colors.getColor4(color+10000);
-	break;
+    if(this.conditionalLineMesh) {
+	this.conditionalLineMesh.material.uniforms.colors = v;
     }
 }
 
@@ -1165,6 +1100,7 @@ THREE.LDRMeshCollector.prototype.draw = function(baseObject, old) {
 	this.createNormalLines(baseObject);
 	this.createConditionalLines(baseObject);
 	this.computeBoundingBox();
+	this.vertexAttribute = undefined;
     }
     this.updateMeshVisibility();
 }
