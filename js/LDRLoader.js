@@ -284,6 +284,8 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    
 	    // TODO: MLCad commands:
 	    // TODO: LSynth commands:
+	    // TODO: TEXMAP commands:
+	    // TODO: Buffer exchange commands:
 	    part.lines.push(new LDR.Line0(parts.slice(1).join(" ")));
 	    break;
 	case 1: // 1 <colour> x y z a b c d e f g h i <file>
@@ -747,15 +749,15 @@ THREE.LDRMeshCollector = function() {
 
     // Temporary geometries. Notice: Colors 10000+ are for edge colors.
     this.triangleIndices = []; // [] -> {p1, p2, p3}
-    this.triangleColorIndices = []; // [] -> fc, fc, fc
+    this.ttriangleIndices = []; // [] -> {p1, p2, p3} ttriangle = transparent triangle
     this.lineIndices = []; // [] -> {p1, p2}
-    this.lineColorIndices = []; // [] -> fc, fc
     this.conditionalLines = []; // [] -> {fc, p1, p2, p3, p4}
 
     // Final three.js geometries:
-    this.triangleMesh;
     this.lineMesh;
     this.conditionalLineMesh;
+    this.triangleMesh;
+    this.ttriangleMesh;
 
     this.isMeshCollector = true;
     this.old = false;
@@ -770,22 +772,32 @@ THREE.LDRMeshCollector.prototype.getFloatColor = function(c) {
 }
 
 THREE.LDRMeshCollector.prototype.addTriangle = function(c, p1, p2, p3) {
-    var size = this.triangleIndices.length;
-    this.triangleIndices.push(0, 0, 0);
     var floatColor = this.getFloatColor(c);
-    this.triangleColorIndices.push(floatColor, floatColor, floatColor);
-    this.unbakedVertices.push({x:p1.x, y:p1.y, z:p1.z, id:size,   t:0, fc:floatColor},
-			      {x:p2.x, y:p2.y, z:p2.z, id:size+1, t:0, fc:floatColor}, 
-			      {x:p3.x, y:p3.y, z:p3.z, id:size+2, t:0, fc:floatColor});
+
+    var isTransparent = LDR.Colors[c].alpha;
+    var size, t;
+    if(isTransparent) {
+	size = this.ttriangleIndices.length;
+	this.ttriangleIndices.push(0, 0, 0);
+	t = 2;
+    }
+    else {
+	size = this.triangleIndices.length;
+	this.triangleIndices.push(0, 0, 0);
+	t = 1;
+    }
+
+    this.unbakedVertices.push({x:p1.x, y:p1.y, z:p1.z, id:size,   t:t, fc:floatColor},
+			      {x:p2.x, y:p2.y, z:p2.z, id:size+1, t:t, fc:floatColor}, 
+			      {x:p3.x, y:p3.y, z:p3.z, id:size+2, t:t, fc:floatColor});
 }
 
 THREE.LDRMeshCollector.prototype.addLine = function(c, p1, p2) {
     var size = this.lineIndices.length;
     this.lineIndices.push(0, 0);
     var floatColor = this.getFloatColor(c);
-    this.lineColorIndices.push(floatColor, floatColor);
-    this.unbakedVertices.push({x:p1.x, y:p1.y, z:p1.z, id:size,   t:1, fc:floatColor},
-			      {x:p2.x, y:p2.y, z:p2.z, id:size+1, t:1, fc:floatColor});
+    this.unbakedVertices.push({x:p1.x, y:p1.y, z:p1.z, id:size,   t:0, fc:floatColor},
+			      {x:p2.x, y:p2.y, z:p2.z, id:size+1, t:0, fc:floatColor});
 }
 
 THREE.LDRMeshCollector.prototype.addConditionalLine = function(c, p1, p2, p3, p4) {
@@ -798,8 +810,10 @@ THREE.LDRMeshCollector.prototype.addConditionalLine = function(c, p1, p2, p3, p4
  */
 THREE.LDRMeshCollector.prototype.updateMeshVisibility = function() {
     var v = this.visible;
-    if(this.triangleMesh)
+    if(this.triangleMesh) {
 	this.triangleMesh.visible = v;
+	this.ttriangleMesh.visible = v;
+    }
     v = ldrOptions.lineContrast < 2 && this.visible;
     if(this.lineMesh)
 	this.lineMesh.visible = v;
@@ -827,7 +841,6 @@ THREE.LDRMeshCollector.prototype.createNormalLines = function(baseObject) {
     this.lineMesh = new THREE.LineSegments(lineGeometry, lineMaterial);
     baseObject.add(this.lineMesh);
     
-    this.lineColorIndices = undefined;
     this.lineIndices = undefined;
 }
 
@@ -892,6 +905,7 @@ THREE.LDRMeshCollector.prototype.computeBoundingBox = function() {
 
     if(this.triangleMesh) {
 	expandBB(this.triangleMesh);
+	expandBB(this.ttriangleMesh);
     }
     else {
 	if(this.lineMesh) {
@@ -932,8 +946,11 @@ THREE.LDRMeshCollector.prototype.bakeVertices = function() {
 	    prev = p;
 	    //cnt++;
 	}
-	if(p.t == 0) { // Triangle vertex:
+	if(p.t == 1) { // Non-transparent triangles:
 	    this.triangleIndices[p.id] = this.sizeVertices - 1;
+	}
+	else if(p.t == 2) { // Transparent triangles:
+	    this.ttriangleIndices[p.id] = this.sizeVertices - 1;
 	}
 	else {
 	    this.lineIndices[p.id] = this.sizeVertices - 1;
@@ -948,11 +965,8 @@ THREE.LDRMeshCollector.prototype.bakeVertices = function() {
   - showOldColors 0 = all colors. 1 = single color old. 2 = dulled old.
   - oldColor
 */
-THREE.LDRMeshCollector.prototype.buildTriangles = function(old, baseObject) {
-    this.vertexAttribute = new THREE.Float32BufferAttribute(this.vertices, 4); // to be reused
-    this.vertices = undefined;
-
-    var triangleMaterial = new THREE.RawShaderMaterial( {
+THREE.LDRMeshCollector.prototype.buildTriangles = function(old, baseObject, trans) {
+    var material = new THREE.RawShaderMaterial( {
 	uniforms: {
 	    colors: { type: 'v4v', value: LDR.Colors.defaultGLSLColors },
 	    old: { value: old ? 1 : 0 },
@@ -961,17 +975,23 @@ THREE.LDRMeshCollector.prototype.buildTriangles = function(old, baseObject) {
 	vertexShader: LDR.TriangleVertexShader,
 	fragmentShader: LDR.SimpleFragmentShader,
 	//side: THREE.DoubleSide,
-	transparent: false
+	transparent: trans
     });
 
-    var triangleGeometry = new THREE.BufferGeometry();
-    triangleGeometry.setIndex(this.triangleIndices);
-    triangleGeometry.addAttribute('position', this.vertexAttribute);
+    var geometry = new THREE.BufferGeometry();
+    geometry.setIndex(trans ? this.ttriangleIndices : this.triangleIndices);
+    geometry.addAttribute('position', this.vertexAttribute);
+    var mesh = new THREE.Mesh(geometry, material);
+    baseObject.add(mesh);
 
-    this.triangleMesh = new THREE.Mesh(triangleGeometry, triangleMaterial);
-    baseObject.add(this.triangleMesh);
-    this.triangleIndices = undefined;
-    this.triangleColorIndices = undefined;
+    if(trans) {
+	this.ttriangleMesh = mesh;
+	this.ttriangleIndices = undefined;
+    }
+    else {
+	this.triangleMesh = mesh;
+	this.triangleIndices = undefined;
+    }
 }
 
 THREE.LDRMeshCollector.prototype.colorTrianglesOldSingleColor = function() {
@@ -979,6 +999,8 @@ THREE.LDRMeshCollector.prototype.colorTrianglesOldSingleColor = function() {
 	return;
     this.triangleMesh.material.uniforms.type.value = 1;
     this.triangleMesh.material.uniforms.old.value = 1;
+    this.ttriangleMesh.material.uniforms.type.value = 1;
+    this.ttriangleMesh.material.uniforms.old.value = 1;
 }
 
 THREE.LDRMeshCollector.prototype.colorTrianglesDulled = function() {
@@ -986,6 +1008,8 @@ THREE.LDRMeshCollector.prototype.colorTrianglesDulled = function() {
 	return;
     this.triangleMesh.material.uniforms.type.value = 2;
     this.triangleMesh.material.uniforms.old.value = 1;
+    this.ttriangleMesh.material.uniforms.type.value = 2;
+    this.ttriangleMesh.material.uniforms.old.value = 1;
 }
 
 THREE.LDRMeshCollector.prototype.colorTrianglesNormal = function() {
@@ -993,6 +1017,8 @@ THREE.LDRMeshCollector.prototype.colorTrianglesNormal = function() {
 	return;
     this.triangleMesh.material.uniforms.type.value = 0;
     this.triangleMesh.material.uniforms.old.value = 0;
+    this.ttriangleMesh.material.uniforms.type.value = 0;
+    this.ttriangleMesh.material.uniforms.old.value = 0;
 }
 
 THREE.LDRMeshCollector.prototype.colorLinesLDraw = function() {
@@ -1026,7 +1052,9 @@ THREE.LDRMeshCollector.prototype.updateState = function(old) {
 THREE.LDRMeshCollector.prototype.createOrUpdate = function(old, baseObject) {
     if(!this.triangleMesh) { // Create triangles:
 	this.updateState(old);
-	this.buildTriangles(old, baseObject);
+	this.vertexAttribute = new THREE.Float32BufferAttribute(this.vertices, 4); // to be reused
+	this.vertices = undefined;
+	this.buildTriangles(old, baseObject, false);
 	return true;
     }
 
@@ -1081,15 +1109,16 @@ THREE.LDRMeshCollector.prototype.createOrUpdate = function(old, baseObject) {
   To be decomissioned when colors are moved to an attribute.
  */
 THREE.LDRMeshCollector.prototype.overwriteColor = function(color) {
-    var v = LDR.Colors.buildColorUniform(color);
+    var v = LDR.Colors.buildGLSLColors(color);
     if(this.triangleMesh) {
-	this.triangleMesh.material.uniforms.colors = v;
+	this.triangleMesh.material.uniforms.colors.value = v;
+	this.ttriangleMesh.material.uniforms.colors.value = v;
     }
     if(this.lineMesh) {
-	this.lineMesh.material.uniforms.colors = v;
+	this.lineMesh.material.uniforms.colors.value = v;
     }
     if(this.conditionalLineMesh) {
-	this.conditionalLineMesh.material.uniforms.colors = v;
+	this.conditionalLineMesh.material.uniforms.colors.value = v;
     }
 }
 
@@ -1099,8 +1128,9 @@ THREE.LDRMeshCollector.prototype.draw = function(baseObject, old) {
 	this.visible = true;
 	this.createNormalLines(baseObject);
 	this.createConditionalLines(baseObject);
+	this.buildTriangles(old, baseObject, true); // Add transparent triangles last.
 	this.computeBoundingBox();
-	this.vertexAttribute = undefined;
+	//this.vertexAttribute = undefined;
     }
     this.updateMeshVisibility();
 }
