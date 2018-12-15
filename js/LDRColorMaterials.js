@@ -107,4 +107,10 @@ LDR.Colors.desaturateColor = function(hex) {
     return LDR.Colors.desaturateThreeColor(hex).getHex();
 }
 
+LDR.Colors.isTrans = function(colorID) {
+    if(colorID >= 10000)
+	colorID -= 10000;
+    return LDR.Colors[colorID].alpha;
+}
+
 LDR.Colors.defaultGLSLColors = LDR.Colors.buildGLSLColors();

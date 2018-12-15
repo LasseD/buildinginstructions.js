@@ -1,67 +1,39 @@
 'use strict';
 
-LDR.TriangleVertexShader = `
-  precision highp float;
-  precision mediump int;
+LDR.Shader = {};
 
-  uniform vec4 colors[2480];
-  uniform int old; // 0=no, 1=old
-  uniform int type; // 0=oldIsNormal, 1=oldIsDefaultColor, 2=oldIsDimmed
+LDR.Shader.createShaderHeader = function(defaultColorId, defaultIsEdge) {
+    var ret = "precision highp float;precision mediump int;uniform bool old;";
 
+    var colorObject = LDR.Colors[defaultColorId];
+    var color = new THREE.Color(defaultIsEdge ? colorObject.edge : colorObject.value);
+    var alpha = colorObject.alpha ? colorObject.alpha/256.0 : 1.0;
+    ret += "const vec4 defaultColor = vec4(" + color.r + "," + color.g + "," + color.b + "," + alpha + ");";
+
+    return ret;
+}
+
+LDR.Shader.shaderBody = `
   uniform mat4 projectionMatrix;
   uniform mat4 modelViewMatrix;
-
   attribute vec4 position;
-
   varying vec4 vColor;
-
   void main() {
-      vColor = colors[5*int(position.w)+old*type];
-
+      vColor = old ? defaultColor : colors[int(position.w)];
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position.xyz, 1.0);
-      gl_Position.w -= 0.000001;
-  }
 `;
 
-LDR.LineVertexShader = `
-  precision highp float;
-  precision mediump int;
+LDR.Shader.createSimpleVertexShader = function(numberOfColors, push, defaultColorId, defaultIsEdge) {
+    var ret = LDR.Shader.createShaderHeader(defaultColorId, defaultIsEdge);
+    ret += "  uniform vec4 colors[" + numberOfColors + "];";
+    ret += LDR.Shader.shaderBody;
+    if(push)
+	ret += "gl_Position.w -= 0.000002;";
+    ret += "  }";
+    return ret;
+}
 
-  uniform vec4 colors[2480];
-  uniform int highContrast; // 3=no, 4=yes
-  uniform int old; // 0=no, 1=old
-  uniform int type; // 0=oldIsNormal, 1=oldIsDefaultColor, 2=oldIsDimmed
-
-  uniform mat4 projectionMatrix;
-  uniform mat4 modelViewMatrix;
-
-  attribute vec4 position;
-
-  varying vec4 vColor;
-
-  void main() {
-      float colorIndex = position.w;
-      if(colorIndex < 0.0) // Edge:
-	  vColor = colors[-5*int(colorIndex)+highContrast];
-      else
-	  vColor = colors[5*int(colorIndex)+old*type];
-
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position.xyz, 1.0);
-      gl_Position.w -= 0.000002;
-  }
-`;
-
-// See 'http://www.ldraw.org/article/218.html' for specification of optional/conditional lines.
-// A conditional line is drawn when the camera sees p3 and p4 on same side of line p1 p2.
-LDR.ConditionalLineVertexShader = `
-  precision highp float;
-  precision mediump int;
-
-  uniform vec4 colors[2480];
-  uniform int highContrast; // 3=no, 4=yes
-  uniform int old; // 0=no, 1=old
-  uniform int type; // 0=oldIsNormal, 1=oldIsDefaultColor, 2=oldIsDimmed
-
+LDR.Shader.conditionalShaderBody = `
   uniform mat4 projectionMatrix;
   uniform mat4 modelViewMatrix;
 
@@ -85,15 +57,23 @@ LDR.ConditionalLineVertexShader = `
       vec2 d14 = vec4(m * vec4(p4, 1.0)).xy - xp1;
       
       // Compute color:
-      if(colorIndex < 0.0) // Edge:
-	  vColor = colors[-5*int(colorIndex)+highContrast];
-      else
-	  vColor = colors[5*int(colorIndex)+old*type];
+      vColor = colors[int(colorIndex)];
       vColor.a *= sign(dot(d12, d13)*dot(d12, d14));
-  }
 `;
 
-LDR.SimpleFragmentShader = `
+// See 'http://www.ldraw.org/article/218.html' for specification of optional/conditional lines.
+// A conditional line is drawn when the camera sees p3 and p4 on same side of line p1 p2.
+LDR.Shader.createConditionalVertexShader = function(numberOfColors, push, defaultColorId, defaultIsEdge) {
+    var ret = LDR.Shader.createShaderHeader(defaultColorId, defaultIsEdge);
+    ret += "  uniform vec4 colors[" + numberOfColors + "];";
+    ret += LDR.Shader.conditionalShaderBody;
+    if(push)
+	ret += "gl_Position.w -= 0.000002;";
+    ret += "  }";
+    return ret;
+}
+
+LDR.Shader.SimpleFragmentShader = `
   precision lowp float;
 
   varying vec4 vColor;
@@ -103,7 +83,7 @@ LDR.SimpleFragmentShader = `
   }
 `;
 
-LDR.AlphaTestFragmentShader = `
+LDR.Shader.AlphaTestFragmentShader = `
   precision lowp float;
 
   varying vec4 vColor;

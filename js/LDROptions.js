@@ -6,7 +6,7 @@ LDR.Options = function() {
     this.listeners = [];
     
     // Default values for options (in case of first visit or no cookies:
-    this.showOldColors = 0; // 0 = all colors. 1 = single color old. 2 = dulled old.
+    this.showOldColors = 0; // 0 = all colors. 1 = single color old
     this.showLines = 0; // 0 = all lines. 1 = normal lines. 2 = no lines.
     this.lineContrast = 1; // 0 = High contrast, 1 = LDraw. 2 = no lines.
     this.lineColor = 0x333333;
@@ -128,13 +128,13 @@ LDR.Options.prototype.appendDescriptionBar = function(optionsBlock, columns, des
 }
 
 LDR.Options.prototype.appendOldBrickColorOptions = function(optionsBlock) {
-    var group = this.addOptionsGroup(optionsBlock, 3, "Highlights");
+    var group = this.addOptionsGroup(optionsBlock, 2, "Highlight New in Step");
     var options = this;
     var onOldBrickChange = function(idx) {
 	options.showOldColors = idx;
 	options.onChange();
     };
-    var buttons = this.createButtons(group, 3, this.showOldColors, onOldBrickChange);
+    var buttons = this.createButtons(group, 2, this.showOldColors, onOldBrickChange);
     
     // Color functions:
     var red = function(){return '#C91A09';};
@@ -142,14 +142,6 @@ LDR.Options.prototype.appendOldBrickColorOptions = function(optionsBlock) {
     var blue = function(){return '#0055BF';};    
     var rgb = [red, green, blue];
     
-    var dred = LDR.Colors.int2Hex(LDR.Colors.desaturateColor(0xC91A09));
-    var fdred = function(){return dred};
-    var dgreen = LDR.Colors.int2Hex(LDR.Colors.desaturateColor(0x257A3E));
-    var fdgreen = function(){return dgreen};
-    var dblue = LDR.Colors.int2Hex(LDR.Colors.desaturateColor(0x0055BF));
-    var fdblue = function(){return dblue};
-    var desat = [fdred, fdgreen, fdblue];
-
     var lineColor = function(options){
 	return LDR.Colors.int2Hex(options.lineColor);
     };
@@ -189,24 +181,6 @@ LDR.Options.prototype.appendOldBrickColorOptions = function(optionsBlock) {
 				    yy*LDR.Options.svgBlockHeight, 
 				    yy === -1,
 				    yy === -1 ? rgb[(xx+yy+2)%3] : oldColor, 
-				    lineColor, 
-				    svg);
-	    }
-	}
-    }
-    /* 
-       Third option: old colors desaturated:
-    */
-    {
-	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
-	svg.setAttribute('viewBox', '-100 -50 200 100');
-	buttons[2].appendChild(svg);
-	for(var yy = -1; yy <= 1; yy++) {
-	    for(var xx = -1; xx <= 1; xx++) {
-		this.createSvgBlock(xx*LDR.Options.svgBlockWidth, 
-				    yy*LDR.Options.svgBlockHeight, 
-				    yy === -1,
-				    (yy === -1 ? rgb : desat)[(xx+yy+2)%3],
 				    lineColor, 
 				    svg);
 	    }
