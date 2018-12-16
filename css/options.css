@@ -62,6 +62,12 @@
   padding: 0.5em;
   cursor: pointer;
 }
+.color_option {
+  padding: 0.5em;
+}
+.color_option input {
+    width: 100%;
+}
 .option_selected {
   border: 2px solid #008A00;
   background-color: #DDFFDD;

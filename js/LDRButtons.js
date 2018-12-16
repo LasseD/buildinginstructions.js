@@ -1,6 +1,8 @@
 'use strict';
 
 LDR.Buttons = function(element, addTopButtons, homeLink, mainImage) {
+    var self = this;
+    this.onCameraButtons = false;
     // Add buttons to element:
     
     // Lower buttons:
@@ -36,6 +38,29 @@ LDR.Buttons = function(element, addTopButtons, homeLink, mainImage) {
     if(addTopButtons)
 	this.addTopButtonElements(element, homeLink, mainImage);
     this.hideElementsAccordingToOptions();
+
+    var runCameraFading = function() {
+	if(ldrOptions.showCameraButtons != 2 && self.onCameraButtons && $('#camera_buttons').is(':animated')) {
+            $('#camera_buttons').stop().animate({opacity:'100'});
+	}
+	if(ldrOptions.showCameraButtons != 2)
+	    $('#camera_buttons').show();
+	if(!self.onCameraButtons)
+            $('#camera_buttons').fadeOut(1000);
+    };
+    $("canvas").mousemove(runCameraFading);
+    $("#camera_buttons").mousemove(function () {
+      self.onCameraButtons = true;
+      runCameraFading();
+    });
+    $("#camera_buttons").mouseout(function () {
+      self.onCameraButtons = false;
+      runCameraFading();
+    });    
+    $("#camera_buttons").click(function () {
+      self.onCameraButtons = true;
+      runCameraFading();
+    });
 }
 
 LDR.Buttons.prototype.addTopButtonElements = function(element, homeLink, mainImage) {

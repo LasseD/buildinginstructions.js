@@ -182,7 +182,7 @@ LDR.SubPartBulder = function(table, linkPrefix, ldrLoader, colorID, position, ro
 	    pointGeometry.addAttribute('color', colorAttribute);
 	    pointGeometry.addAttribute('position', vertexAttribute);
 
-	    var pointMaterial = new THREE.PointsMaterial({size: 3, vertexColors: THREE.VertexColors});
+	    var pointMaterial = new THREE.PointsMaterial({size: 3.5, vertexColors: THREE.VertexColors});
 
             line.markers = new THREE.Points(pointGeometry, pointMaterial);
 	    line.markers.visible = false;

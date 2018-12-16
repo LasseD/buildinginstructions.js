@@ -9,9 +9,12 @@ LDR.Options = function() {
     this.showOldColors = 0; // 0 = all colors. 1 = single color old
     this.showLines = 0; // 0 = all lines. 1 = normal lines. 2 = no lines.
     this.lineContrast = 1; // 0 = High contrast, 1 = LDraw. 2 = no lines.
+    this.bgColor = 0xFFFFFF;
+    this.pointColor = 0xFF0000;
+    this.pointSize = 2;
     this.lineColor = 0x333333;
     this.blackLineColor = 0x595959;
-    this.oldColor = 0xffff6f;
+    this.oldColor = 0xFFFF6F;
     this.showLRButtons = 0; // 0=right big, 1=right normal, 2=both off
     this.showCameraButtons = 0; // 0=+- on right, 1=+- on sides, 2=off
     this.showStepRotationAnimations = 1; // 0=slow, 1=normal speed, 2=off
@@ -55,7 +58,10 @@ LDR.Options.prototype.saveOptionsToCookie = function() {
     addToKv("showLines");
     addToKv("lineContrast");
     addToKv("lineColor");
+    addToKv("pointSize");
     addToKv("blackLineColor");
+    addToKv("bgColor");
+    addToKv("pointColor");
     addToKv("oldColor");
     addToKv("showPartsCallouts");
     addToKv("showStepRotationAnimations");
@@ -128,7 +134,7 @@ LDR.Options.prototype.appendDescriptionBar = function(optionsBlock, columns, des
 }
 
 LDR.Options.prototype.appendOldBrickColorOptions = function(optionsBlock) {
-    var group = this.addOptionsGroup(optionsBlock, 2, "Highlight New in Step");
+    var group = this.addOptionsGroup(optionsBlock, 2, "Highlight New Parts");
     var options = this;
     var onOldBrickChange = function(idx) {
 	options.showOldColors = idx;
@@ -149,42 +155,47 @@ LDR.Options.prototype.appendOldBrickColorOptions = function(optionsBlock) {
 	return LDR.Colors.int2Hex(options.oldColor);
     };
 
+    var positions = [{x:-1,y:1},{x:1,y:1},{x:1,y:-1}];
+    var drawParts = function(x, y, cnt, cntOld, svg) {
+	for(var i = 0; i < cnt; i++) {
+	    var position = positions[i];
+	    options.createSvgBlock(x + 0.5*position.x*LDR.Options.svgBlockWidth, 
+				   y + 0.5*position.y*LDR.Options.svgBlockHeight, 
+				   i == 0 || i == cnt-1,
+				   i < cntOld ? oldColor : rgb[i%3],
+				   lineColor,
+				   svg);
+	}
+    }
+
     /* 
        The first option is to always paint colors:
        Indicated by 9 bricks - all colorful.
     */
+    var dst = 60;
+    var w = 20;
     {
 	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
-	svg.setAttribute('viewBox', '-100 -50 200 100');
+	svg.setAttribute('viewBox', '-100 -40 200 80');
 	buttons[0].appendChild(svg);
-	for(var yy = -1; yy <= 1; yy++) {
-	    for(var xx = -1; xx <= 1; xx++) {
-		this.createSvgBlock(xx*LDR.Options.svgBlockWidth, 
-				    yy*LDR.Options.svgBlockHeight, 
-				    yy === -1, 
-				    rgb[(xx+yy+2)%3],
-				    lineColor,
-				    svg);
-	    }
-	}
+	drawParts(-dst, 0, 2, 0, svg);
+	svg.appendChild(LDR.SVG.makeLine(-w, 0, w, 0, true));
+	svg.appendChild(LDR.SVG.makeLine(w/2, w/2, w, 0, true));
+	svg.appendChild(LDR.SVG.makeLine(w/2, -w/2, w, 0, true));
+	drawParts(dst, 0, 3, 0, svg);
     }
     /* 
        Second option: old colors in customizable color:
     */
     {
 	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
-	svg.setAttribute('viewBox', '-100 -50 200 100');
+	svg.setAttribute('viewBox', '-100 -40 200 80');
 	buttons[1].appendChild(svg);
-	for(var yy = -1; yy <= 1; yy++) {
-	    for(var xx = -1; xx <= 1; xx++) {
-		this.createSvgBlock(xx*LDR.Options.svgBlockWidth, 
-				    yy*LDR.Options.svgBlockHeight, 
-				    yy === -1,
-				    yy === -1 ? rgb[(xx+yy+2)%3] : oldColor, 
-				    lineColor, 
-				    svg);
-	    }
-	}
+	drawParts(-dst, 0, 2, 0, svg);
+	svg.appendChild(LDR.SVG.makeLine(-w, 0, w, 0, true));
+	svg.appendChild(LDR.SVG.makeLine(w/2, w/2, w, 0, true));
+	svg.appendChild(LDR.SVG.makeLine(w/2, -w/2, w, 0, true));
+	drawParts(dst, 0, 3, 2, svg);
     }
 }
 
@@ -355,6 +366,101 @@ LDR.Options.prototype.appendColorOptions = function(optionsBlock) {
 
     var preview3 = createPreview(group, [oldColor], lineColor);
     var input3 = createColorInput(preview3, oldColor(options), onChange);
+}
+
+/*
+Part color options (points and background color)
+*/
+LDR.Options.prototype.appendPartColorOptions = function(optionsBlock) {
+    var group = this.addOptionsGroup(optionsBlock, 2, "Background and Point Color");
+    var options = this;
+
+    // Color functions:
+    var bgColor = function(options){return LDR.Colors.int2Hex(options.bgColor);};
+    var pointColor = function(options){return LDR.Colors.int2Hex(options.pointColor);};
+    var oldColor = function(options){return LDR.Colors.int2Hex(options.oldColor);};
+    var lineColor = function(options){return LDR.Colors.int2Hex(options.lineColor);};
+
+    // Build html elements:
+    function createPreview(parent, forBG) {
+	var preview = document.createElement('td');
+	preview.setAttribute('class', 'color_option');
+	parent.appendChild(preview);
+
+	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	svg.setAttribute('viewBox', '-100 -25 200 50');
+	preview.appendChild(svg);
+	if(forBG)
+	    options.createSvgBlock(0, 0, true, oldColor, lineColor, svg);
+	else
+	    options.createSvgPoints(0, 0, pointColor, svg, 2);
+
+	var listener = function(options) {
+	    svg.style.backgroundColor = bgColor(options);
+	};
+	options.listeners.push(listener);
+	listener(options);
+
+	return preview;
+    }
+    function createColorInput(parent, color, onChange) {
+	var input = document.createElement('input');
+	input.setAttribute('class', 'color_input');
+	input.setAttribute('type', 'color');
+	input.setAttribute('value', color);
+	input.addEventListener("input", onChange, false);
+	input.addEventListener("change", onChange, false);
+	parent.appendChild(input);
+	return input;
+    }
+    var onChange = function() {
+	options.bgColor = parseInt(input1.value.substring(1), 16);
+	options.pointColor = parseInt(input2.value.substring(1), 16);
+	options.onChange();
+    }
+
+    // Fill in data:
+    var preview1 = createPreview(group, true);
+    var input1 = createColorInput(preview1, bgColor(options), onChange);
+
+    var preview2 = createPreview(group, false);
+    var input2 = createColorInput(preview2, pointColor(options), onChange);
+}
+
+/*
+Part color options (points and background color)
+*/
+LDR.Options.prototype.appendPartPointSizeOptions = function(optionsBlock) {
+    var group = this.addOptionsGroup(optionsBlock, 5, "Points");
+    var options = this;
+    var onChange = function(idx) {
+	options.pointSize = idx;
+	options.onChange();
+    };
+    var buttons = this.createButtons(group, 5, this.pointSize, onChange);
+
+    // Color function:
+    var pointColor = function(options){return LDR.Colors.int2Hex(options.pointColor);};
+
+    /* 
+       Option 1: off
+    */
+    {
+	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	svg.setAttribute('viewBox', '-25 -25 50 50');
+	svg.setAttribute('class', 'ui_toggles');
+	svg.appendChild(LDR.SVG.makeOffIcon(0, 0, 50));
+	buttons[0].appendChild(svg);
+    }
+    /*
+      Options 2-5: Size 1-4:
+    */
+    for(var i = 1; i <= 4; i++) {
+	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	svg.setAttribute('viewBox', '-25 -25 50 50');
+	options.createSvgPoints(0, 0, pointColor, svg, i);	
+	buttons[i].appendChild(svg);
+    }
 }
 
 LDR.Options.prototype.appendAnimationOptions = function(optionsBlock) {
@@ -770,6 +876,49 @@ LDR.Options.prototype.createSvgBlock = function(x, y, closed, getFillColor, getL
     var listener2 = function() {
 	path2.setAttribute('fill', getFillColor(options));
 	path2.setAttribute('stroke', getLineColor(options));
+    }
+    this.listeners.push(listener2);
+    parent.appendChild(path2);
+    listener2(options);
+}
+
+LDR.Options.prototype.createSvgPoints = function(x, y, getColor, parent, size) {
+    var dx2 = LDR.Options.svgBlockWidth/2; // Half a block width
+    var dy = LDR.Options.svgBlockHeight;
+    var dy2 = dy*0.3; // dy for moving half a block width.
+
+    var pts1 = 'M ' + x + ' ' + (y - dy/2 + dy2) + 
+	' l' + dx2 + ' -' + dy2 + 
+	' v' + dy + 
+	' l-' + dx2 + ' ' + dy2 + 
+	' l-' + dx2 + ' -' + dy2 + 
+	' v-' + dy + 
+	' l' + dx2 + ' ' + dy2 + 
+	' v' + dy;
+    var path1 = document.createElementNS(LDR.SVG.NS, 'path');
+    path1.setAttribute('d', pts1);
+    path1.setAttribute('stroke-dasharray', '0.1 5');
+    path1.setAttribute('fill', 'none');
+    path1.style = "stroke-width: " + size/2;
+    var options = this;
+    var listener1 = function(options) {
+	path1.setAttribute('stroke', getColor(options));
+    };
+    this.listeners.push(listener1);
+    parent.appendChild(path1);
+    listener1(options);
+
+    var pts2 = 'M ' +(x-dx2) + ' ' + (y-dy/2) + 
+	' l' + dx2 + ' -' + dy2 + 
+	' l' + dx2 + ' ' + dy2;
+    var path2 = document.createElementNS(LDR.SVG.NS, 'path');
+    path2.setAttribute('d', pts2);
+    path2.setAttribute('stroke-dasharray', '0.1 5');
+    path2.setAttribute('fill', 'none');
+    path2.style = "stroke-width: " + size/2;
+    var options = this;
+    var listener2 = function() {
+	path2.setAttribute('stroke', getColor(options));
     }
     this.listeners.push(listener2);
     parent.appendChild(path2);
