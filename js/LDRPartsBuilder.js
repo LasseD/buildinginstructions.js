@@ -5,7 +5,7 @@ The LDRPartsBulder is used for displaying parts for LEGO models.
 */
 var LDR = LDR || {};
 
-LDR.PartsBulder = function(ldrLoader, mainModelID, mainModelColor) {
+LDR.PartsBulder = function(ldrLoader, mainModelID, mainModelColor, onBuiltPart) {
     this.ldrLoader = ldrLoader;
     this.mainModelID = mainModelID;
     this.mainModelColor = mainModelColor;
@@ -16,6 +16,7 @@ LDR.PartsBulder = function(ldrLoader, mainModelID, mainModelColor) {
     var pcs = this.pcs;
     var pcKeys = this.pcKeys;
 
+    // TODO: Use WebWorkers and finally call onBuiltPart for each built part.
     function build(multiplier, partID, colorID) {
 	if(colorID == 16)
 	    throw "Building with default color not allowed! Part ID: " + partID;

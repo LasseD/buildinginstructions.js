@@ -697,6 +697,130 @@ LDR.Line5 = function(c, p1, p2, p3, p4) {
     this.line5 = true;
 }
 
+/*
+  Binary merge of the geometry streams.
+ */
+THREE.mergeGeometries = function(geometries) {
+    do {
+	var nextGeometries = [];
+	if(geometries.length % 2 == 1)
+	    nextGeometries.push(geometries[geometries.length-1]);
+	for(var i = 0; i < geometries.length-1; i+=2) {
+	    geometries[i].merge(geometries[i+1]);
+	    nextGeometries.push(geometries[i]);
+	}
+	geometries = nextGeometries;
+    } while(geometries.length > 1);
+    return geometries[0];
+}
+
+THREE.LDRGeometry = function() {
+    this.vertices = []; // sorted THREE.Vector3 (x,y,z).
+    this.lineIndices = [];
+    this.conditionalLineIndices = [];
+    this.triangleIndices = [];
+    this.quadIndices = [];
+
+    /*
+      
+     */
+    this.fromStep = function() {
+	var geometries = [];
+
+	this.ldrs = [];
+	this.dats = [];
+	this.lines = []; // {colorID, p1, p2}
+	this.conditionalLines = []; // {colorID, p1, p2, p3, p4}
+	this.triangles = []; // {colorID, p1, p2, p3}
+	this.quads = []; // {colorID, p1, p2, p3, p4}
+	this.cull = true;
+
+	// TODO
+
+	this.copy(THREE.mergeGeometries(geometries));
+    }
+
+    this.copy = function(g) {
+	this.vertices = g.vertices;
+	this.lineIndices = g.lineIndices;
+	this.conditionalLineIndices = g.conditionalLineIndices;
+	this.triangleIndices = g.triangleIndices;
+	this.quadIndices = g.quadIndices;
+    }
+
+    /*
+      Merge sort all geometric primitives:
+     */
+    this.fromPartType = function(pt) {
+	// Merge all steps:
+	for(var i = 0; i < pt.steps.length; i++)
+	    // TODO
+	var geometries = [];
+	THREE.LDRGeometry();
+    }
+
+    this.merge = function(other) {
+	// First merge vertices:
+	var mergedVertices = [];
+	var indexMapThis = [];
+	var indexMapOther = [];
+	var idxThis = 0, idxOther = 0;
+	while(idxThis < this.vertices.length && idxOther < other.vertices.length) {
+	    var pThis = this.vertices[idxThis];
+	    var pOther = other.vertices[idxOther];
+	    if(pThis.x == pOther.x && pThis.y == pOther.y && pThis.z == pOther.z) {
+		indexMapThis.push(mergedVertices.length);
+		indexMapOther.push(mergedVertices.length);
+		mergedVertices.push(pThis);
+		++idxThis;
+		++idxOther;
+	    }
+	    else if(pThis.x < pOther.x ||
+	       (pThis.x == pOther.x && (pThis.y < pOther.y || 
+					(pThis.y == pOther.y && pThis.z < pOther.z)))) {
+		indexMapThis.push(mergedVertices.length);
+		mergedVertices.push(pThis);
+		++idxThis;
+	    }
+	    else {
+		indexMapOther.push(mergedVertices.length);
+		mergedVertices.push(pOther);
+		++idxOther;
+	    }
+	}
+	while(idxThis < this.vertices.length) {
+	    var pThis = this.vertices[idxThis];
+	    indexMapThis.push(mergedVertices.length);
+	    mergedVertices.push(pThis);
+	    ++idxThis;
+	}
+	while(idxOther < this.vertices.length) {
+	    var pOther = this.vertices[idxOther];
+	    indexMapOther.push(mergedVertices.length);
+	    mergedVertices.push(pOther);
+	    ++idxOther;
+	}
+
+	// Merge the lines, conditional lines, triangles and quads:
+	for(var i = 0; i < this.lineIndices.length; i++)
+	    this.lineIndices[i] = indexMapThis[this.lineIndices[i]];
+	for(var i = 0; i < this.conditionalLineIndices.length; i++)
+	    this.conditionalLineIndices[i] = indexMapThis[this.conditionalLineIndices[i]];
+	for(var i = 0; i < this.triangleIndices.length; i++)
+	    this.triangleIndices[i] = indexMapThis[this.triangleIndices[i]];
+	for(var i = 0; i < this.quadIndices.length; i++)
+	    this.quadIndices[i] = indexMapThis[this.quadIndices[i]];
+	for(var i = 0; i < other.lineIndices.length; i++)
+	    this.lineIndices.oush(indexMapThis[other.lineIndices[i]]);
+	for(var i = 0; i < other.conditionalLineIndices.length; i++)
+	    this.conditionalLineIndices.push(indexMapThis[other.conditionalLineIndices[i]]);
+	for(var i = 0; i < other.triangleIndices.length; i++)
+	    this.triangleIndices.push(indexMapThis[other.triangleIndices[i]]);
+	for(var i = 0; i < other.quadIndices.length; i++)
+	    this.quadIndices.push(indexMapThis[other.quadIndices[i]]);
+    }
+}
+
 THREE.LDRPartType = function() {
     this.ID = null;
     this.modelDescription;
@@ -708,6 +832,16 @@ THREE.LDRPartType = function() {
     this.replacement;
     this.inlined;
     this.ldraw_org;
+    this.geometry;
+
+    this.prepareGeometry = function() {
+	if(this.geometry) {
+	    console.warn("Geometry already prepared for " + this.ID);
+	    return;
+	}
+	this.geometry = new THREE.LDRGeometry();
+	this.geometry.fromPartType(this);
+    }
 
     this.addStep = function(step) {
 	if(step.empty && this.steps.length === 0)
@@ -730,10 +864,12 @@ THREE.LDRPartType = function() {
 
     this.generateThreePart = function(loader, c, p, r, cull, inv, meshCollector, parentIsDat) {
 	for(var i = 0; i < this.steps.length; i++) {
-	    var childIsDat = this.ID.endsWith('dat') || 
-		(this.steps.length == 1 && this.steps[0].hasPrimitives);
-	    this.steps[i].generateThreePart(loader, c, p, r, cull, inv, meshCollector, parentIsDat, childIsDat);
+	    this.steps[i].generateThreePart(loader, c, p, r, cull, inv, meshCollector, parentIsDat, this.isPart(););
 	}
+    }
+    
+    this.isPart = function() {
+	return this.ID.endsWith('dat') || (this.steps.length == 1 && this.steps[0].hasPrimitives);
     }
 
     this.countParts = function(loader) {
@@ -788,6 +924,71 @@ THREE.LDRMeshCollectorColorManager = function() {
 					   new THREE.Vector4(0, 0, 0, 1));
 	return f;
     }
+}
+
+THREE.LDRMeshBuilder = function(loader, onlyLoadParts, onProgress, onLoad) { // , numberOfWorkers
+    /* Set up for part types:
+       - children = count of unhandled children
+       - parents = ID's of parents
+     */
+    var ready = []; // Ready list of ID's
+    function prepare(parent, child) {
+	if(child.parents[parent.ID])
+	    return; // Already referencing.
+	parent.children++;
+	child.parents.push(child.ID);
+    }
+    for(var i = 0; i < loader.ldrPartTypes.length; i++) {
+	var partType = loader.ldrPartTypes[i];
+	var childLess = true;
+	for(var j = 0; j < partType.steps.length; j++) {
+	    var step = partType.steps[j];
+	    for(var k = 0; k < step.ldrs.length; k++) {
+		prepare(partType, loader.ldrPartTypes[step.ldrs[k].ID]);
+		childLess = false;
+	    }
+	    for(var k = 0; k < step.dats.length; k++) {
+		prepare(partType, loader.ldrPartTypes[step.dats[k].ID]);
+		childLess = false;
+	    }
+	}
+	if(childLess)
+	    ready.push(partType.ID);
+    }
+
+    /*
+      Run in rounds:
+     */
+    var nextRound = [];
+    do { // Handle each in the ready list:	
+	for(var i = 0; i < ready.length; i++) {
+	    var partType = loader.ldrPartTypes[ready[i]];
+	    for(var j = 0; j < partType.parent.length; j++) {
+		var parent = partType.parent[j];
+		parent.children--;
+		if(parent.children == 0 && (!onlyLoadParts || parent.isPart())) {
+		    nextRound.push(parent.ID);
+		}
+	    }
+	    partType.prepareGeometry();
+	}
+	
+	ready = nextRound;
+	nextRound = [];
+    } while(ready.length > 0);
+
+    /*
+      Run workers:
+     *//*
+    this.workers = [];    
+    for(var i = 0; i < numberOfWorkers; i++) {
+	var w = new Worker("LDRConstructionWorker.js");
+	this.workers.push(w);
+	w.onmessage = function(event) {
+	    console.dir(event);
+	    //console.dir(event.data);
+	};
+    } */
 }
 
 /*
