@@ -554,8 +554,8 @@ THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, 
     var transformColor = function(subColorID) {
 	if(subColorID == 16)
 	    return colorID; // Main color
-	if(subColorID == 24)
-	    return 10000 + colorID; // Edge color
+	else if(subColorID == 24)
+	    return colorID >= 10000 ? colorID : 10000 + colorID; // Edge color
 	return subColorID;
     }
     var transformPoint = function(p) {
