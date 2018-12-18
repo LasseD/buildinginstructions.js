@@ -24,7 +24,7 @@
     <script src="js/LDRButtons.js"></script>
     <script src="js/LDRPLIPreview.js"></script>
     <script>
-      var modelTypeUrl = 'models/spiral.ldr';
+      var modelTypeUrl = 'models/pyramid10.ldr';
       var ldrOptions = new LDR.Options();
       var builder = null;
       var ldrLoader = null;
@@ -33,9 +33,7 @@
       var h = 200;
 
       var iconCamera = new THREE.OrthographicCamera(-w, w, h, -h, 0.1, 1000000);
-      iconCamera.position.x = 10000;
-      iconCamera.position.y = 7000;
-      iconCamera.position.z = 10000;
+      iconCamera.position.set(10000, 7000, 10000);
       iconCamera.lookAt(new THREE.Vector3());
 
       var iconScene = new THREE.Scene(); // To add stuff to. TODO: Use multiple iconScenes for web workers.
