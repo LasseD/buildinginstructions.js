@@ -864,7 +864,7 @@ THREE.LDRPartType = function() {
 
     this.generateThreePart = function(loader, c, p, r, cull, inv, meshCollector, parentIsDat) {
 	for(var i = 0; i < this.steps.length; i++) {
-	    this.steps[i].generateThreePart(loader, c, p, r, cull, inv, meshCollector, parentIsDat, this.isPart(););
+	    this.steps[i].generateThreePart(loader, c, p, r, cull, inv, meshCollector, parentIsDat, this.isPart());
 	}
     }
     
