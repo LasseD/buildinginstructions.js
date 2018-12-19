@@ -212,7 +212,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	}
 
 	switch(lineType) {
-	case 0: // TODO: Many commands from LDraw and various vendors.
+	case 0:
 	    if(is("FILE") || is("file") || is("Name:")) {
 		// LDR FILE or 'Name:' line found. Set name and update data in case this is a new ldr file (do not use file suffix to determine).
 		handlePotentialFileStart(parts.slice(2).join(" "));
@@ -282,10 +282,10 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		previousComment = line.substring(2);
 	    }
 	    
-	    // TODO: MLCad commands:
-	    // TODO: LSynth commands:
-	    // TODO: TEXMAP commands:
-	    // TODO: Buffer exchange commands:
+	    // TODO: LSynth commands
+	    // TODO: TEXMAP commands
+	    // TODO: Buffer exchange commands
+
 	    part.lines.push(new LDR.Line0(parts.slice(1).join(" ")));
 	    break;
 	case 1: // 1 <colour> x y z a b c d e f g h i <file>
@@ -397,9 +397,21 @@ THREE.LDRPartDescription = function(colorID, position, rotation, ID, cull, inver
     this.invertCCW = invertCCW;
 }
 
+THREE.LDRPartDescription.prototype.placedColor = function(pdColorID) {
+    var colorID = this.colorID;
+    if(colorID == 16) {
+        colorID = pdColorID;
+    }
+    else if(colorID == 24) {
+        colorID = pdColorID == 16 ? 24 : pdColorID; // Ensure color 24 is propagated correctly when placed for main color (16)..
+    }
+
+    return colorID;
+}
+
 THREE.LDRPartDescription.prototype.placeAt = function(pd) {
     // Compute augmented colorID, position, rotation, ID
-    var colorID = (this.colorID == 16 || this.colorID == 24) ? pd.colorID : this.colorID;
+    var colorID = this.placedColor(pd.colorID);
     
     var position = new THREE.Vector3();
     position.copy(this.position);
@@ -478,14 +490,14 @@ THREE.LDRStepRotation.prototype.getRotationMatrix = function(defaultMatrix) {
 		       0, 0, 0, 1);
     var ret = new THREE.Matrix4();
     if(this.type === "REL") {
-	ret.copy(defaultMatrix).multiply(rotationMatrix);
+	ret.multiplyMatrices(defaultMatrix, rotationMatrix);
     }
     else if(this.type === "ADD") {
         throw "Unsupported rotation type: ADD!"
 	//ret.copy(currentMatrix).multiply(rotationMatrix);
     }
     else { // this.type === ABS
-	ret.copy(THREE.LDRStepRotation.ABS).multiply(rotationMatrix);
+	ret.multiplyMatrices(THREE.LDRStepRotation.ABS, rotationMatrix);
     }
     return ret;
 }
@@ -698,130 +710,6 @@ LDR.Line5 = function(c, p1, p2, p3, p4) {
     this.line5 = true;
 }
 
-/*
-  Binary merge of the geometry streams.
- */
-THREE.mergeGeometries = function(geometries) {
-    do {
-	var nextGeometries = [];
-	if(geometries.length % 2 == 1)
-	    nextGeometries.push(geometries[geometries.length-1]);
-	for(var i = 0; i < geometries.length-1; i+=2) {
-	    geometries[i].merge(geometries[i+1]);
-	    nextGeometries.push(geometries[i]);
-	}
-	geometries = nextGeometries;
-    } while(geometries.length > 1);
-    return geometries[0];
-}
-
-THREE.LDRGeometry = function() {
-    this.vertices = []; // sorted THREE.Vector3 (x,y,z).
-    this.lineIndices = [];
-    this.conditionalLineIndices = [];
-    this.triangleIndices = [];
-    this.quadIndices = [];
-
-    /*
-      
-     */
-    this.fromStep = function() {
-	var geometries = [];
-
-	this.ldrs = [];
-	this.dats = [];
-	this.lines = []; // {colorID, p1, p2}
-	this.conditionalLines = []; // {colorID, p1, p2, p3, p4}
-	this.triangles = []; // {colorID, p1, p2, p3}
-	this.quads = []; // {colorID, p1, p2, p3, p4}
-	this.cull = true;
-
-	// TODO
-
-	this.copy(THREE.mergeGeometries(geometries));
-    }
-
-    this.copy = function(g) {
-	this.vertices = g.vertices;
-	this.lineIndices = g.lineIndices;
-	this.conditionalLineIndices = g.conditionalLineIndices;
-	this.triangleIndices = g.triangleIndices;
-	this.quadIndices = g.quadIndices;
-    }
-
-    /*
-      Merge sort all geometric primitives:
-     */
-    this.fromPartType = function(pt) {
-	// Merge all steps:
-	for(var i = 0; i < pt.steps.length; i++)
-	    // TODO
-	var geometries = [];
-	THREE.LDRGeometry();
-    }
-
-    this.merge = function(other) {
-	// First merge vertices:
-	var mergedVertices = [];
-	var indexMapThis = [];
-	var indexMapOther = [];
-	var idxThis = 0, idxOther = 0;
-	while(idxThis < this.vertices.length && idxOther < other.vertices.length) {
-	    var pThis = this.vertices[idxThis];
-	    var pOther = other.vertices[idxOther];
-	    if(pThis.x == pOther.x && pThis.y == pOther.y && pThis.z == pOther.z) {
-		indexMapThis.push(mergedVertices.length);
-		indexMapOther.push(mergedVertices.length);
-		mergedVertices.push(pThis);
-		++idxThis;
-		++idxOther;
-	    }
-	    else if(pThis.x < pOther.x ||
-	       (pThis.x == pOther.x && (pThis.y < pOther.y || 
-					(pThis.y == pOther.y && pThis.z < pOther.z)))) {
-		indexMapThis.push(mergedVertices.length);
-		mergedVertices.push(pThis);
-		++idxThis;
-	    }
-	    else {
-		indexMapOther.push(mergedVertices.length);
-		mergedVertices.push(pOther);
-		++idxOther;
-	    }
-	}
-	while(idxThis < this.vertices.length) {
-	    var pThis = this.vertices[idxThis];
-	    indexMapThis.push(mergedVertices.length);
-	    mergedVertices.push(pThis);
-	    ++idxThis;
-	}
-	while(idxOther < this.vertices.length) {
-	    var pOther = this.vertices[idxOther];
-	    indexMapOther.push(mergedVertices.length);
-	    mergedVertices.push(pOther);
-	    ++idxOther;
-	}
-
-	// Merge the lines, conditional lines, triangles and quads:
-	for(var i = 0; i < this.lineIndices.length; i++)
-	    this.lineIndices[i] = indexMapThis[this.lineIndices[i]];
-	for(var i = 0; i < this.conditionalLineIndices.length; i++)
-	    this.conditionalLineIndices[i] = indexMapThis[this.conditionalLineIndices[i]];
-	for(var i = 0; i < this.triangleIndices.length; i++)
-	    this.triangleIndices[i] = indexMapThis[this.triangleIndices[i]];
-	for(var i = 0; i < this.quadIndices.length; i++)
-	    this.quadIndices[i] = indexMapThis[this.quadIndices[i]];
-	for(var i = 0; i < other.lineIndices.length; i++)
-	    this.lineIndices.oush(indexMapThis[other.lineIndices[i]]);
-	for(var i = 0; i < other.conditionalLineIndices.length; i++)
-	    this.conditionalLineIndices.push(indexMapThis[other.conditionalLineIndices[i]]);
-	for(var i = 0; i < other.triangleIndices.length; i++)
-	    this.triangleIndices.push(indexMapThis[other.triangleIndices[i]]);
-	for(var i = 0; i < other.quadIndices.length; i++)
-	    this.quadIndices.push(indexMapThis[other.quadIndices[i]]);
-    }
-}
-
 THREE.LDRPartType = function() {
     this.ID = null;
     this.modelDescription;
@@ -994,6 +882,7 @@ THREE.LDRMeshBuilder = function(loader, onlyLoadParts, onProgress, onLoad) { // 
 
     /*
       Run workers:
+      TODO
      *//*
     this.workers = [];    
     for(var i = 0; i < numberOfWorkers; i++) {

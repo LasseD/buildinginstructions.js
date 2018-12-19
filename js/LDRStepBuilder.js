@@ -100,7 +100,7 @@ LDR.StepBuilder.prototype.computeCameraPositionRotation = function(defaultMatrix
     currentRotationMatrix.set(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
 
     if(stepRotation !== null) {
-	var rotationMatrix = stepRotation.getRotationMatrix(defaultMatrix, currentRotationMatrix);
+	var rotationMatrix = stepRotation.getRotationMatrix(defaultMatrix);
 	currentRotationMatrix.multiply(rotationMatrix);
     }
 
