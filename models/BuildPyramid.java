@@ -58,7 +58,10 @@ public class BuildPyramid {
                         colorIndex = 0;
                 }
             }
-            w.println("0 STEP");
+            if(i == 0)
+                w.println("0 STEP");
+            else
+                w.println("0 ROTSTEP 0 90 0 ADD");
         }
         w.flush();
         w.close();

@@ -30,7 +30,7 @@
     <script src="js/LDRMeasurer.js"></script>
     <canvas id="main_canvas"></canvas>
     <script>
-      var modelTypeUrl = 'models/tristack.ldr';
+      var modelTypeUrl = 'models/pyramid20.ldr';
       var scene = new THREE.Scene(); // To add stuff to
       scene.background = new THREE.Color( 0xffffff );
 
@@ -221,7 +221,8 @@
 	    b = builder.getBounds();
 	    size = b.min.distanceTo(b.max);
 	  }
-	  var positionRotation = builder.computeCameraPositionRotation(defaultMatrix, currentRotationMatrix, useAccumulatedBounds);
+          var newPosition;
+	  [newPosition, currentRotationMatrix] = builder.computeCameraPositionRotation(defaultMatrix, currentRotationMatrix, useAccumulatedBounds);
 
 	  // Find actual screen bounds:
 	  baseObject.setRotationFromMatrix(currentRotationMatrix);
@@ -239,15 +240,12 @@
 	  updatePLI(false); newPLIW = pliW, newPLIH = pliH;
 
 	  goBack();
-
-	  currentRotationMatrix = positionRotation[1];
 	  var rotationChanges = !currentRotationMatrix.equals(oldRotationMatrix);
 	  var ignorePos = new THREE.Vector3(); // Ignore
 	  var newRot = new THREE.Quaternion();
 	  var ignoreScale = new THREE.Vector3(); // Ignore
 	  currentRotationMatrix.decompose(ignorePos, newRot, ignoreScale);
 
-	  var newPosition = positionRotation[0];
 	  var positionChanges = !oldPosition.equals(newPosition) || 
 	      		      	oldPLIW !== newPLIW || oldPLIH !== newPLIH;
 
@@ -379,8 +377,8 @@
       var handleStepsWalked = function(walkedSteps) {
         currentStep = clampStep(currentStep + walkedSteps);
 	if(walkedSteps != 1 && walkedSteps != -1)
-        realignModel(0);
-  	  updateUIComponents(false);
+          realignModel(0);
+  	updateUIComponents(false);
 	render();
       };
       function goToStep(step) {
@@ -483,7 +481,7 @@
     </script>
     <div id="instructions_decorations">
       <div id="multiplier">x1</div>
-      <div style="display:none;" id="rotator"><svg viewbox="-30,-30,60,60"></svg></div> <!-- TODO: Remove display none -->
+      <div id="rotator"><svg viewbox="-30,-30,60,60"></svg></div>
       <canvas id="pli"></canvas>
       <script>
       var multiplier = document.getElementById("multiplier");

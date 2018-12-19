@@ -448,7 +448,7 @@ THREE.LDRStepRotation.ABS = THREE.LDRStepRotation.getAbsRotationMatrix();
 /* 
    Specification: https://www.lm-software.com/mlcad/Specification_V2.0.pdf (page 7 and 8)
 */
-THREE.LDRStepRotation.prototype.getRotationMatrix = function(defaultMatrix, currentMatrix) {
+THREE.LDRStepRotation.prototype.getRotationMatrix = function(defaultMatrix) {
     //console.log("Rotating for " + this.x + ", " + this.y + ", " + this.z);
     var wx = this.x / 180.0 * Math.PI;
     var wy = -this.y / 180.0 * Math.PI;
@@ -481,7 +481,8 @@ THREE.LDRStepRotation.prototype.getRotationMatrix = function(defaultMatrix, curr
 	ret.copy(defaultMatrix).multiply(rotationMatrix);
     }
     else if(this.type === "ADD") {
-	ret.copy(currentMatrix).multiply(rotationMatrix);
+        throw "Unsupported rotation type: ADD!"
+	//ret.copy(currentMatrix).multiply(rotationMatrix);
     }
     else { // this.type === ABS
 	ret.copy(THREE.LDRStepRotation.ABS).multiply(rotationMatrix);
@@ -846,6 +847,20 @@ THREE.LDRPartType = function() {
     this.addStep = function(step) {
 	if(step.empty && this.steps.length === 0)
 	    return; // Totally illegal step.
+
+        // Update rotation in case of ADD;
+        if(step.rotation && step.rotation.type == "ADD") {
+            if(!this.lastRotation) {
+                step.rotation.type = "REL";
+            }
+            else {
+                step.rotation = new THREE.LDRStepRotation(step.rotation.x + this.lastRotation.x,
+                                                          step.rotation.y + this.lastRotation.y,
+                                                          step.rotation.z + this.lastRotation.z,
+                                                          this.lastRotation.type);
+            }
+        }
+
 	var sameRotation = THREE.LDRStepRotation.equals(step.rotation, this.lastRotation);
 	if(step.empty && sameRotation) {
 	    return; // No change.
