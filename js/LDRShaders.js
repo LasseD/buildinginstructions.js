@@ -28,7 +28,7 @@ LDR.Shader.createSimpleVertexShader = function(numberOfColors, push, defaultColo
     ret += "  uniform vec4 colors[" + numberOfColors + "];";
     ret += LDR.Shader.shaderBody;
     if(push)
-	ret += "gl_Position.w -= 0.000001;";
+	ret += "gl_Position.w -= 0.0000005;";
     ret += "  }";
     return ret;
 }
@@ -68,7 +68,7 @@ LDR.Shader.createConditionalVertexShader = function(numberOfColors, push, defaul
     ret += "  uniform vec4 colors[" + numberOfColors + "];";
     ret += LDR.Shader.conditionalShaderBody;
     if(push)
-	ret += "gl_Position.w -= 0.000001;";
+	ret += "gl_Position.w -= 0.0000005;";
     ret += "  }";
     return ret;
 }

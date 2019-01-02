@@ -2,7 +2,6 @@
 
 LDR.Buttons = function(element, addTopButtons, homeLink, mainImage) {
     var self = this;
-    this.onCameraButtons = false;
     // Add buttons to element:
     
     // Lower buttons:
@@ -39,28 +38,30 @@ LDR.Buttons = function(element, addTopButtons, homeLink, mainImage) {
 	this.addTopButtonElements(element, homeLink, mainImage);
     this.hideElementsAccordingToOptions();
 
+    this.fadeOutHandle;
+    this.fadingIn = false;
+    var fadeOut = function() {
+	self.fadeOutHandle = undefined;
+	$('#camera_buttons').fadeTo(1000, 0);
+    }
+    var onFadeInComplete = function() {
+	self.fadingIn = false;
+        self.fadeOutHandle = setTimeout(fadeOut, 1000);
+    }
+
     var runCameraFading = function() {
-	if(ldrOptions.showCameraButtons != 2 && self.onCameraButtons && $('#camera_buttons').is(':animated')) {
-            $('#camera_buttons').stop().animate({opacity:'100'});
-	}
-	if(ldrOptions.showCameraButtons != 2)
-	    $('#camera_buttons').show();
-	if(!self.onCameraButtons)
-            $('#camera_buttons').fadeOut(1000);
+	if(ldrOptions.showCameraButtons == 2)
+	    return; // Do not show anything.
+	if(self.fadingIn)
+	    return; // Currently fading in. Do nothing.
+
+        $('#camera_buttons').stop(); // Stop fade out.
+	if(self.fadeOutHandle)
+	    clearTimeout(self.fadeOutHandle);
+	self.fadingIn = true;
+	$('#camera_buttons').fadeTo(1000, 1, onFadeInComplete);
     };
     $("canvas").mousemove(runCameraFading);
-    $("#camera_buttons").mousemove(function () {
-      self.onCameraButtons = true;
-      runCameraFading();
-    });
-    $("#camera_buttons").mouseout(function () {
-      self.onCameraButtons = false;
-      runCameraFading();
-    });    
-    $("#camera_buttons").click(function () {
-      self.onCameraButtons = true;
-      runCameraFading();
-    });
 }
 
 LDR.Buttons.prototype.addTopButtonElements = function(element, homeLink, mainImage) {

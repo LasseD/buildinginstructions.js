@@ -8,7 +8,9 @@
  * LDraw ID's are used for identifying colors efficiently. However. An LDraw color has both an ordinary value and an 'edge' value which can be used for rendering. In order to simplify the data model for storing geometries by colors, geometries colored in edge colors have '10.000' added to their ID's. An 'edge' color is thus identified by ID's being >= 10000 and the LDraw ID can be obtained by subtracting 10000.
  * This choice is internal to the loader and transparent to code that uses LDRLoader.
  *
- * Parameters manager, onLoad, onProgress and onError are standard for Three.js loaders.
+ * onLoad is called on completion of loading of all necesasry LDraw files.
+ * Parameters for the options object (optional):
+ * manager, onProgress and onError are standard for Three.js loaders.
  * onWarning and loadRelatedFilesImmediately are optional:
  * onWarning(warningObj) is called when non-breaking errors are encountered, such as unknown colors and unsupported META commands.
  * loadRelatedFilesImmediately can be set to true in order to start loading dat files as soon as they are encountered. This options makes the loader handle these related files automatically.
@@ -16,20 +18,21 @@
  * - id is the part id to be translated.
  * - top is true for top-level ids, such as .ldr and .mpd.
  */
-THREE.LDRLoader = function(manager, onLoad, onProgress, onError, onWarning, loadRelatedFilesImmediately, idToUrl) {
-    this.manager = manager;
-    this.ldrPartTypes = []; // id => part. id can be "parts/3001.dat", "model.mpd", etc.
+THREE.LDRLoader = function(onLoad, options) {
+    var nop = function(){};
+    options = options || {};
+    this.ldrPartTypes = {}; // id => part. id can be "parts/3001.dat", "model.mpd", etc.
     this.unloadedFiles = 0;
     this.onLoad = onLoad;
-    this.onProgress = onProgress;
-    this.onError = onError;
-    var nop = function(){};
-    this.onWarning = onWarning || nop;
-    this.loader = new THREE.FileLoader(manager);
+    this.onProgress = options.onProgress || nop;
+    this.onError = options.onError || nop;
+    this.onWarning = options.onWarning || nop;
+    this.loadRelatedFilesImmediately = options.loadRelatedFilesImmediately || false;
+    this.loader = new THREE.FileLoader(options.manager || THREE.DefaultLoadingManager);
+    this.saveFileLines = options.saveFileLines || false;
     this.mainModel;
-    this.loadRelatedFilesImmediately = loadRelatedFilesImmediately || false;
     var self = this;
-    this.idToUrl = idToUrl || function(id, top) {
+    this.idToUrl = options.idToUrl || function(id, top) {
 	if(self.isTopLevelModel(id)){
 	    return id;
 	}
@@ -197,7 +200,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 								       new THREE.Vector3(),
 								       rotation, 
 								       fileName,
-								       false,
+								       true,
 								       false);
 		    step.addLDR(shallowSubModel);
 		}
@@ -286,7 +289,8 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    // TODO: TEXMAP commands
 	    // TODO: Buffer exchange commands
 
-	    part.lines.push(new LDR.Line0(parts.slice(1).join(" ")));
+	    if(this.saveFileLines)
+		part.lines.push(new LDR.Line0(parts.slice(1).join(" ")));
 	    break;
 	case 1: // 1 <colour> x y z a b c d e f g h i <file>
 	    for(var j = 2; j < 14; j++)
@@ -323,14 +327,16 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		    this.load(subModelID, false); // Start loading the separate file immediately!
 		}
 	    }
-	    part.lines.push(new LDR.Line1(subModel));
+	    if(this.saveFileLines)
+  		part.lines.push(new LDR.Line1(subModel));
 	    invertNext = false;
 	    break;
 	case 2: // Line "2 <colour> x1 y1 z1 x2 y2 z2"
 	    var p1 = new THREE.Vector3(parseFloat(parts[2]), parseFloat(parts[3]), parseFloat(parts[4]));
 	    var p2 = new THREE.Vector3(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
 	    step.addLine(colorID, p1, p2);
-	    part.lines.push(new LDR.Line2(colorID, p1, p2));
+	    if(this.saveFileLines)
+		part.lines.push(new LDR.Line2(colorID, p1, p2));
 	    invertNext = false;
 	    break;
 	case 3: // 3 <colour> x1 y1 z1 x2 y2 z2 x3 y3 z3
@@ -346,7 +352,8 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    if(!part.certifiedBFC || !localCull)
 		step.cull = false; // Ensure no culling when step is handled.
 
-	    part.lines.push(new LDR.Line3(colorID, p1, p2, p3, localCull, CCW != invertNext));
+	    if(this.saveFileLines)
+		part.lines.push(new LDR.Line3(colorID, p1, p2, p3, localCull, CCW != invertNext));
 	    invertNext = false;
 	    break;
 	case 4: // 4 <colour> x1 y1 z1 x2 y2 z2 x3 y3 z3 x4 y4 z4
@@ -363,7 +370,8 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    if(!part.certifiedBFC || !localCull)
 		step.cull = false; // Ensure no culling when step is handled.
 
-	    part.lines.push(new LDR.Line4(colorID, p1, p2, p3, p4, localCull, CCW != invertNext));
+	    if(this.saveFileLines)
+		part.lines.push(new LDR.Line4(colorID, p1, p2, p3, p4, localCull, CCW != invertNext));
 	    invertNext = false;
 	    break;
 	case 5: // Conditional lines:
@@ -372,7 +380,8 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    var p3 = new THREE.Vector3(parseFloat(parts[8]), parseFloat(parts[9]), parseFloat(parts[10]));
 	    var p4 = new THREE.Vector3(parseFloat(parts[11]), parseFloat(parts[12]), parseFloat(parts[13]));
 	    step.addConditionalLine(colorID, p1, p2, p3, p4);
-	    part.lines.push(new LDR.Line5(colorID, p1, p2, p3, p4));
+	    if(this.saveFileLines)
+		part.lines.push(new LDR.Line5(colorID, p1, p2, p3, p4));
 	    invertNext = false;
 	    break;
 	}
@@ -384,6 +393,17 @@ THREE.LDRLoader.prototype.parse = function(data) {
     var parseEndTime = new Date();
     //console.log("LDraw file read in " + (parseEndTime-parseStartTime) + "ms.");
 };
+
+THREE.LDRLoader.prototype.removeGeometries = function() {
+    for(var ptID in this.ldrPartTypes) {
+	if(!this.ldrPartTypes.hasOwnProperty(ptID))
+	    continue; // Not a part.
+	var partType = this.ldrPartTypes[ptID];
+	if(partType === true || !partType.geometry)
+	    continue;
+	delete partType.geometry;
+    }
+}
 
 /*
   Part description: a part (ID) placed (position, rotation) with a given color (16/24 allowed) and invertCCW to allow for sub-parts in DAT-parts.
@@ -515,6 +535,16 @@ THREE.LDRStep = function() {
     this.quads = []; // {colorID, p1, p2, p3, p4}
     this.rotation = null;
     this.cull = true;
+    this.cnt = -1;
+}
+
+THREE.LDRStep.prototype.removePrimitivesAndSubParts = function() {
+    delete this.ldrs;
+    delete this.dats;
+    delete this.lines;
+    delete this.conditionalLines;
+    delete this.triangles;
+    delete this.quads;
 }
 
 THREE.LDRStep.prototype.addLDR = function(ldr) {
@@ -547,11 +577,13 @@ THREE.LDRStep.prototype.addConditionalLine = function(c, p1, p2, p3, p4) {
 }
 
 THREE.LDRStep.prototype.countParts = function(loader) {
-    var ret = this.dats.length;
+    if(this.cnt >= 0)
+	return this.cnt;
+    this.cnt = this.dats.length;
     for(var i = 0; i < this.ldrs.length; i++) {
-	ret += loader.ldrPartTypes[this.ldrs[i].ID].countParts(loader);
+	this.cnt += loader.ldrPartTypes[this.ldrs[i].ID].countParts(loader);
     }
-    return ret;
+    return this.cnt;
 }
 
 /*
@@ -577,7 +609,7 @@ THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, 
 	ret.add(position);
 	return ret;
     }
-    
+
     // Add lines:
     for(var i = 0; i < this.lines.length; i++) {
 	var line = this.lines[i]; // {colorID, p1, p2}
@@ -632,7 +664,7 @@ THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, 
 		message: "Unloaded sub model: " + subModelDesc.ID,
 		htmlMessage: "Unloaded sub model: " + subModelDesc.ID,
 		toString:    function(){return this.name + ": " + this.message;} 
-	    }; 
+	    };
 	}
 	if(subModel.replacement) {
 	    var replacementSubModel = loader.ldrPartTypes[subModel.replacement];
@@ -722,66 +754,81 @@ THREE.LDRPartType = function() {
     this.inlined;
     this.ldraw_org;
     this.geometry;
+    this.cnt = -1;
+}
 
-    this.prepareGeometry = function() {
-	if(this.geometry) {
-	    console.warn("Geometry already prepared for " + this.ID);
-	    return;
-	}
-	this.geometry = new THREE.LDRGeometry();
-	this.geometry.fromPartType(this);
+THREE.LDRPartType.prototype.prepareGeometry = function(loader) {
+    if(this.geometry) {
+	console.warn("Geometry already prepared for " + this.ID);
+	return;
     }
+    this.countParts(loader);
+    this.geometry = new LDR.LDRGeometry();
+    this.geometry.fromPartType(loader, this);
+    // Clean up this:
+    for(var i = 0; i < this.steps.length; i++) {
+	this.steps[i].removePrimitivesAndSubParts(); // Remove unused 'geometries'.
+    }
+}
 
-    this.addStep = function(step) {
-	if(step.empty && this.steps.length === 0)
-	    return; // Totally illegal step.
-
-        // Update rotation in case of ADD;
-        if(step.rotation && step.rotation.type == "ADD") {
-            if(!this.lastRotation) {
-                step.rotation.type = "REL";
-            }
-            else {
-                step.rotation = new THREE.LDRStepRotation(step.rotation.x + this.lastRotation.x,
-                                                          step.rotation.y + this.lastRotation.y,
-                                                          step.rotation.z + this.lastRotation.z,
-                                                          this.lastRotation.type);
-            }
+THREE.LDRPartType.prototype.addStep = function(step) {
+    if(step.empty && this.steps.length === 0)
+	return; // Totally illegal step.
+    
+    // Update rotation in case of ADD;
+    if(step.rotation && step.rotation.type == "ADD") {
+        if(!this.lastRotation) {
+            step.rotation.type = "REL";
         }
-
-	var sameRotation = THREE.LDRStepRotation.equals(step.rotation, this.lastRotation);
-	if(step.empty && sameRotation) {
-	    return; // No change.
-	}
-	if(this.steps.length > 0) {
-	    var prevStep = this.steps[this.steps.length-1];
-	    if(prevStep.empty && sameRotation) {
-		// Special case: Merge into previous step:
-		this.steps[this.steps.length-1] = step;
-		return;
-	    }
-	}
-	this.steps.push(step);
-	this.lastRotation = step.rotation;
-    }
-
-    this.generateThreePart = function(loader, c, p, r, cull, inv, meshCollector, parentIsDat) {
-	for(var i = 0; i < this.steps.length; i++) {
-	    this.steps[i].generateThreePart(loader, c, p, r, cull, inv, meshCollector, parentIsDat, this.isPart());
-	}
+        else {
+            step.rotation = new THREE.LDRStepRotation(step.rotation.x + this.lastRotation.x,
+                                                      step.rotation.y + this.lastRotation.y,
+                                                      step.rotation.z + this.lastRotation.z,
+                                                      this.lastRotation.type);
+        }
     }
     
-    this.isPart = function() {
-	return this.ID.endsWith('dat') || (this.steps.length == 1 && this.steps[0].hasPrimitives);
+    var sameRotation = THREE.LDRStepRotation.equals(step.rotation, this.lastRotation);
+    if(step.empty && sameRotation) {
+	return; // No change.
+    }
+    if(this.steps.length > 0) {
+	var prevStep = this.steps[this.steps.length-1];
+	if(prevStep.empty && sameRotation) {
+	    // Special case: Merge into previous step:
+	    this.steps[this.steps.length-1] = step;
+	    return;
+	}
+    }
+    this.steps.push(step);
+    this.lastRotation = step.rotation;
+}
+    
+THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, inv, meshCollector, parentIsDat) {
+    if(this.geometry) {
+	//console.log("Building " + this.ID + " from cached geometry.");
+	meshCollector.buildFromGeometryCPR(loader, this.ID, c, p, r);
+	return;
     }
 
-    this.countParts = function(loader) {
-	var ret = 0;
-	for(var i = 0; i < this.steps.length; i++) {
-	    ret += this.steps[i].countParts(loader);
-	}
-	return ret;
+    console.log("Geometry of " + this.ID + " not set. Building top-down.");
+    for(var i = 0; i < this.steps.length; i++) {
+	this.steps[i].generateThreePart(loader, c, p, r, cull, inv, meshCollector, parentIsDat, this.isPart());
     }
+}
+    
+THREE.LDRPartType.prototype.isPart = function() {
+    return this.ID.endsWith('dat') || (this.steps.length == 1 && this.steps[0].hasPrimitives);
+}
+
+THREE.LDRPartType.prototype.countParts = function(loader) {
+    if(this.cnt >= 0)
+	return this.cnt;
+    this.cnt = 0;
+    for(var i = 0; i < this.steps.length; i++) {
+	this.cnt += this.steps[i].countParts(loader);
+    }
+    return this.cnt;
 }
 
 THREE.LDRMeshCollectorColorManager = function() {
@@ -817,6 +864,9 @@ THREE.LDRMeshCollectorColorManager = function() {
 	var isEdge = id >= 10000;
 	var lowID = isEdge ? id-10000 : id;
 	var colorObject = LDR.Colors[lowID];
+	if(!colorObject) {
+	    throw "Unknown color " + lowID + " from " + id;
+	}
 	var color = new THREE.Color(isEdge ? colorObject.edge : colorObject.value);
 	var alpha = colorObject.alpha ? colorObject.alpha/256.0 : 1;
 	f = this.shaderColors.length + 0.1;
@@ -829,34 +879,125 @@ THREE.LDRMeshCollectorColorManager = function() {
     }
 }
 
-THREE.LDRMeshBuilder = function(loader, onlyLoadParts, onProgress, onLoad) { // , numberOfWorkers
-    /* Set up for part types:
-       - children = count of unhandled children
-       - parents = ID's of parents
-     */
-    var ready = []; // Ready list of ID's
-    function prepare(parent, child) {
-	if(child.parents[parent.ID])
-	    return; // Already referencing.
-	parent.children++;
-	child.parents.push(child.ID);
+/*
+  The LDRMeshBuilder is used to build geometries for parts.
+ */
+LDR.GeometryBuilder = function(loader) {
+    this.loader = loader;
+
+    function checkLocalStorageAvailable(){
+	var test = '__TEST__';
+	try {
+            localStorage.setItem(test, test);
+            localStorage.removeItem(test);
+            return true;
+	}
+	catch {
+            return false;
+	}
     }
-    for(var i = 0; i < loader.ldrPartTypes.length; i++) {
-	var partType = loader.ldrPartTypes[i];
-	var childLess = true;
+    this.localStorageAvailable = checkLocalStorageAvailable();
+}
+
+/*
+  Find all parts that are referenced directly from non-parts.
+ */
+LDR.GeometryBuilder.prototype.getAllTopLevelToBeBuilt = function() {
+    var toBeBuilt = [];
+    var self = this;
+
+    function handle(pt) {
+	if(!pt.isPart() || pt.geometry || pt.markToBeBuilt)
+	    return;
+	if(self.localStorageAvailable) {
+	    var fromStorage = JSON.parse(localStorage.getItem(pt.ID));
+	    if(fromStorage) {
+		pt.geometry = fromStorage;
+		return;
+	    }
+	}
+	toBeBuilt.push(pt);
+	pt.markToBeBuilt = true;
+	console.log("Top level part to be built: " + pt.ID);
+    }
+
+    for(var ptID in this.loader.ldrPartTypes) {
+	if(!this.loader.ldrPartTypes.hasOwnProperty(ptID))
+	    continue; // Not a part.
+	var partType = this.loader.ldrPartTypes[ptID];
+	if(partType === true || (partType.isPart() && !partType.replacement))
+	    continue; // We do not know if partType is directly referenced from a step.
 	for(var j = 0; j < partType.steps.length; j++) {
 	    var step = partType.steps[j];
 	    for(var k = 0; k < step.ldrs.length; k++) {
-		prepare(partType, loader.ldrPartTypes[step.ldrs[k].ID]);
-		childLess = false;
+		var id = step.ldrs[k].ID;
+		handle(this.loader.ldrPartTypes[id]);
 	    }
 	    for(var k = 0; k < step.dats.length; k++) {
-		prepare(partType, loader.ldrPartTypes[step.dats[k].ID]);
-		childLess = false;
+		var id = step.dats[k].ID;
+		handle(this.loader.ldrPartTypes[id]);
 	    }
 	}
-	if(childLess)
-	    ready.push(partType.ID);
+    }
+    return toBeBuilt;
+}
+
+/*
+  This function builds the partTypes in the list 'toBeBuilt'. It does so my running in rounds of ready geometries, since this allows for multiple threads/workers to handle part types simultaneously.
+ */
+LDR.GeometryBuilder.prototype.build = function(toBeBuilt, onDone) {
+    var startTime = new Date();
+    /* Set up for part types:
+       - children = count of unhandled children (dats within a step)
+       - parents = ID's of parents
+     */
+    var ready = []; // partTypes without children (all children have geometries).
+    var self = this;
+
+    function linkChild(parent, child) {
+	if(child.geometry)
+	    return;
+	if(self.localStorageAvailable) {
+	    var fromStorage = JSON.parse(localStorage.getItem(child.ID));
+	    if(fromStorage) {
+		child.geometry = fromStorage;
+		return;
+	    }
+	}
+	if(!child.parents)
+	    child.parents = {};
+	else if(child.parents.hasOwnProperty(parent.ID))
+	    return; // Already referencing.
+	parent.children++;
+	child.parents[parent.ID] = parent;
+    }
+    function prepare(partType) {
+	if(partType.prepared || partType.geometry)
+	    return; // Already prepared
+	partType.parents = {};
+	partType.children = 0;
+	partType.prepared = true;
+
+	for(var j = 0; j < partType.steps.length; j++) {
+	    var step = partType.steps[j];
+	    for(var k = 0; k < step.ldrs.length; k++) {
+		var id = step.ldrs[k].ID;
+		var child = self.loader.ldrPartTypes[id];
+		prepare(child);
+		linkChild(partType, child);
+	    }
+	    for(var k = 0; k < step.dats.length; k++) {
+		var id = step.dats[k].ID;
+		var child = self.loader.ldrPartTypes[id];
+		prepare(child);
+		linkChild(partType, child);
+	    }
+	}
+	if(partType.children == 0)
+	    ready.push(partType);
+    }
+    for(var i = 0; i < toBeBuilt.length; i++) {
+	prepare(toBeBuilt[i]);
     }
 
     /*
@@ -864,21 +1005,37 @@ THREE.LDRMeshBuilder = function(loader, onlyLoadParts, onProgress, onLoad) { // 
      */
     var nextRound = [];
     do { // Handle each in the ready list:	
+	console.log("Handling round with " + ready.length + " entries");
 	for(var i = 0; i < ready.length; i++) {
-	    var partType = loader.ldrPartTypes[ready[i]];
-	    for(var j = 0; j < partType.parent.length; j++) {
-		var parent = partType.parent[j];
+	    var partType = ready[i];
+	    for(var ptID in partType.parents) {
+		if(!partType.parents.hasOwnProperty(ptID))
+		    continue; // Not a part.
+		var parent = partType.parents[ptID];
 		parent.children--;
-		if(parent.children == 0 && (!onlyLoadParts || parent.isPart())) {
-		    nextRound.push(parent.ID);
+		if(parent.children == 0) {
+		    nextRound.push(parent);
 		}
 	    }
-	    partType.prepareGeometry();
+	    delete partType.parents;
+
+	    partType.prepareGeometry(this.loader);
+	    if(partType.markToBeBuilt && this.localStorageAvailable) {
+		try {
+		    localStorage.setItem(partType.ID, JSON.stringify(partType.geometry));
+		}
+		catch {
+		    this.localStorageAvailable = false;
+		}
+	    }
 	}
 	
 	ready = nextRound;
 	nextRound = [];
     } while(ready.length > 0);
+
+    console.log("Geometries built in " + (new Date()-startTime) + "ms.");
+    onDone();
 
     /*
       Run workers:
@@ -906,12 +1063,9 @@ THREE.LDRMeshCollector = function() {
     // Vertices (shared among both triangles and lines):
     this.unbakedVertices = []; // Points {x,y,z,id,t,c} // t = 0 for triangles, c=colorID
     this.vertices = []; // 'baked' vertices shared by triangles and normal lines.
-    this.sizeVertices = 0;
 
-    this.triangleColors = new THREE.LDRMeshCollectorColorManager();
-    this.ttriangleColors = new THREE.LDRMeshCollectorColorManager();
-    this.lineColors = new THREE.LDRMeshCollectorColorManager();
-    this.conditionalLineColors = new THREE.LDRMeshCollectorColorManager();
+    this.colors = new THREE.LDRMeshCollectorColorManager();
+
     this.triangleIndices = []; // [] -> {p1, p2, p3}
     this.ttriangleIndices = []; // [] -> {p1, p2, p3} ttriangle = transparent triangle
     this.lineIndices = []; // [] -> {p1, p2}
@@ -929,15 +1083,64 @@ THREE.LDRMeshCollector = function() {
     this.created = false;
 }
 
+THREE.LDRMeshCollector.prototype.buildFromGeometryCPR = function(loader, id, c, p, r) {
+    var partDescription = new THREE.LDRPartDescription(c, p, r, id, true, false);
+    var g = new LDR.LDRGeometry();
+    g.fromPartDescription(loader, partDescription);
+    g.ensureCull();
+    //console.log("Built geometry with " + g.vertices.length + " vertices, " + (g.triangles.length+g.quads.length) + " polygons.");
+
+    // Add all primitives directly from g:
+    var v0 = this.vertices.length/4;
+    for(var i = 0; i < g.vertices.length; i++) {
+	var v = g.vertices[i];
+	this.vertices.push(v.x, v.y, v.z, this.colors.get(v.c));
+    }
+
+    for(var i = 0; i < g.lines.length; i++) {
+        var p = g.lines[i];
+        this.lineIndices.push(p.p1+v0, p.p2+v0);
+    }
+    for(var i = 0; i < g.conditionalLines.length; i++) {
+        var p = g.conditionalLines[i];
+
+	var p1 = g.vertices[p.p1];
+	var p2 = g.vertices[p.p2];
+	var p3 = g.vertices[p.p3];
+	var p4 = g.vertices[p.p4];
+	var floatColor = this.colors.get(p1.c);
+	this.conditionalLines.push({p1:p1, p2:p2, p3:p3, p4:p4, fc:floatColor});
+    }
+    for(var i = 0; i < g.triangles.length; i++) {
+        var p = g.triangles[i];
+	if(LDR.Colors.isTrans(g.vertices[p.p1].c)) {
+            this.ttriangleIndices.push(p.p1+v0, p.p2+v0, p.p3+v0);
+	}
+	else {
+            this.triangleIndices.push(p.p1+v0, p.p2+v0, p.p3+v0);
+	}
+    }
+    for(var i = 0; i < g.quads.length; i++) {
+        var p = g.quads[i];
+	if(LDR.Colors.isTrans(g.vertices[p.p1].c)) {
+            this.ttriangleIndices.push(p.p1+v0, p.p2+v0, p.p3+v0);
+            this.ttriangleIndices.push(p.p1+v0, p.p3+v0, p.p4+v0);
+	}
+	else {
+            this.triangleIndices.push(p.p1+v0, p.p2+v0, p.p3+v0);
+            this.triangleIndices.push(p.p1+v0, p.p3+v0, p.p4+v0);
+	}
+    }
+}
+
 THREE.LDRMeshCollector.prototype.addTriangle = function(c, p1, p2, p3) {
-    var t, floatColor, indices;
+    var t, indices;
+    var floatColor = this.colors.get(c);
     if(LDR.Colors.isTrans(c)) {
-	floatColor = this.ttriangleColors.get(c);
 	indices = this.ttriangleIndices;
 	t = 2;
     }
     else {
-	floatColor = this.triangleColors.get(c);
 	indices = this.triangleIndices;
 	t = 1;
     }
@@ -959,14 +1162,13 @@ THREE.LDRMeshCollector.prototype.addTriangles = function(c, p1, p2, p3, ownInver
 }
 
 THREE.LDRMeshCollector.prototype.addQuad = function(c, p1, p2, p3, p4) {
-    var t, floatColor, indices;
+    var t, indices;
+    var floatColor = this.colors.get(c);
     if(LDR.Colors.isTrans(c)) {
-	floatColor = this.ttriangleColors.get(c);
 	indices = this.ttriangleIndices;
 	t = 2;
     }
     else {
-	floatColor = this.triangleColors.get(c);
 	indices = this.triangleIndices;
 	t = 1;
     }
@@ -993,13 +1195,13 @@ THREE.LDRMeshCollector.prototype.addQuads = function(c, p1, p2, p3, p4, ownInver
 THREE.LDRMeshCollector.prototype.addLine = function(c, p1, p2) {
     var size = this.lineIndices.length;
     this.lineIndices.push(0, 0);
-    var floatColor = this.lineColors.get(c, 'line');
+    var floatColor = this.colors.get(c);
     this.unbakedVertices.push({x:p1.x, y:p1.y, z:p1.z, id:size,   t:0, fc:floatColor},
 			      {x:p2.x, y:p2.y, z:p2.z, id:size+1, t:0, fc:floatColor});
 }
 
 THREE.LDRMeshCollector.prototype.addConditionalLine = function(c, p1, p2, p3, p4) {
-    var floatColor = this.conditionalLineColors.get(c, 'cond line');
+    var floatColor = this.colors.get(c);
     this.conditionalLines.push({p1:p1, p2:p2, p3:p3, p4:p4, fc:floatColor});
 }
 
@@ -1021,11 +1223,11 @@ THREE.LDRMeshCollector.prototype.updateMeshVisibility = function() {
 }
 
 THREE.LDRMeshCollector.prototype.createNormalLines = function(baseObject) {
-    var colors = ldrOptions.lineContrast == 0 ? this.lineColors.highContrastShaderColors : this.lineColors.shaderColors;
-    var len = colors.length;
-    if(len == 0) {
+    if(this.lineIndices.length == 0) {
 	return;
     }
+    var colors = ldrOptions.lineContrast == 0 ? this.colors.highContrastShaderColors : this.colors.shaderColors;
+    var len = colors.length;
     var lineMaterial = new THREE.RawShaderMaterial( {
 	uniforms: {
 	    colors: { type: 'v4v', value: colors },
@@ -1050,11 +1252,11 @@ THREE.LDRMeshCollector.prototype.createNormalLines = function(baseObject) {
   Create conditional lines.
 */
 THREE.LDRMeshCollector.prototype.createConditionalLines = function(baseObject) {
-    var colors = ldrOptions.lineContrast == 0 ? this.conditionalLineColors.highContrastShaderColors : this.conditionalLineColors.shaderColors;
-    var len = colors.length;
-    if(len == 0) {
+    if(this.conditionalLines.length == 0) {
 	return;
     }
+    var colors = ldrOptions.lineContrast == 0 ? this.colors.highContrastShaderColors : this.colors.shaderColors;
+    var len = colors.length;
     var lineMaterial = new THREE.RawShaderMaterial( {
 	uniforms: {
 	    colors: { type: 'v4v', value: colors },
@@ -1122,12 +1324,12 @@ THREE.LDRMeshCollector.prototype.computeBoundingBox = function() {
     }
 }
 
-var orig = 0;
-var reduced = 0;
+//var orig = 0;
+//var reduced = 0;
 THREE.LDRMeshCollector.prototype.bakeVertices = function() {
     // Sort and reduce the vertices:
     var len = this.unbakedVertices.length;
-    orig += len;
+    //orig += len;
     //console.log("Baking " + len + " vertices.");
     this.unbakedVertices.sort(function(a, b){
 	if(a.x != b.x)
@@ -1145,18 +1347,17 @@ THREE.LDRMeshCollector.prototype.bakeVertices = function() {
 	if(p.fc != prev.fc || p.z != prev.z || p.y != prev.y || p.x != prev.x) {
 	    // New vertex:
 	    this.vertices.push(p.x, p.y, p.z, p.fc);
-	    reduced++;
-	    this.sizeVertices++;
+	    //reduced++;
 	    prev = p;
 	}
 	if(p.t == 1) { // Non-transparent triangles:
-	    this.triangleIndices[p.id] = this.sizeVertices - 1;
+	    this.triangleIndices[p.id] = this.vertices.length/4 - 1;
 	}
 	else if(p.t == 2) { // Transparent triangles:
-	    this.ttriangleIndices[p.id] = this.sizeVertices - 1;
+	    this.ttriangleIndices[p.id] = this.vertices.length/4 - 1;
 	}
 	else {
-	    this.lineIndices[p.id] = this.sizeVertices - 1;
+	    this.lineIndices[p.id] = this.vertices.length/4 - 1;
 	}
     }
     this.unbakedVertices = [];
@@ -1164,9 +1365,9 @@ THREE.LDRMeshCollector.prototype.bakeVertices = function() {
 }
 
 THREE.LDRMeshCollector.prototype.buildTriangles = function(old, baseObject, trans) {
-    var colors = trans ? this.ttriangleColors : this.triangleColors;
+    var colors = this.colors;
     var len = colors.shaderColors.length;
-    if(len == 0) {
+    if((trans ? this.ttriangleIndices : this.triangleIndices).length == 0) {
 	//console.log("No triangles. Skipping mesh. Trans: " + trans);
 	return;
     }
@@ -1228,7 +1429,7 @@ THREE.LDRMeshCollector.prototype.colorTrianglesNormal = function() {
 
 THREE.LDRMeshCollector.prototype.colorLinesLDraw = function() {
     if(this.lineMesh) {
-	var c = this.lineColors.shaderColors;
+	var c = this.colors.shaderColors;
 	this.lineMesh.material.uniforms.colors.value = c;
     }
     if(this.conditionalLineMesh) {
@@ -1239,7 +1440,7 @@ THREE.LDRMeshCollector.prototype.colorLinesLDraw = function() {
 
 THREE.LDRMeshCollector.prototype.colorLinesHighContrast = function() {
     if(this.lineMesh) {
-	var c = this.lineColors.highContrastShaderColors;
+	var c = this.colors.highContrastShaderColors;
 	this.lineMesh.material.uniforms.colors.value = c;
     }
     if(this.conditionalLineMesh) {
@@ -1262,13 +1463,14 @@ THREE.LDRMeshCollector.prototype.createOrUpdate = function(old, baseObject) {
     if(!this.created) { // Build:
 	this.updateState(old);
 	this.vertexAttribute = new THREE.Float32BufferAttribute(this.vertices, 4); // to be reused
-	this.vertices = undefined;
-	this.buildTriangles(old, baseObject, false);
-
+	delete this.vertices;
 	this.visible = true;
+	
+	this.buildTriangles(old, baseObject, false);
 	this.createNormalLines(baseObject);
 	this.createConditionalLines(baseObject);
 	this.buildTriangles(old, baseObject, true); // Add transparent triangles last.
+	//delete this.vertexAttribute;
 	this.computeBoundingBox();
 
 	this.created = true;
@@ -1320,31 +1522,28 @@ THREE.LDRMeshCollector.prototype.createOrUpdate = function(old, baseObject) {
   To be decomissioned when colors are moved to an attribute.
  */
 THREE.LDRMeshCollector.prototype.overwriteColor = function(color) {    
+    var c = this.colors;
+    c.overWrite(color);
     if(this.lineMesh) {
-	var c = this.lineColors;
-	c.overWrite(color);
 	this.lineMesh.material.uniforms.colors.value = c.shaderColors;
     }
     if(this.conditionalLineMesh) {
-	var c = this.conditionalLineColors;
-	c.overWrite(color);	    
 	this.conditionalLineMesh.material.uniforms.colors.value = c.shaderColors;
     }
     if(this.triangleMesh) {
-	var c = this.triangleColors;
-	c.overWrite(color);
 	this.triangleMesh.material.uniforms.colors.value = c.shaderColors;
     }
     if(this.ttriangleMesh) {
-	var c = this.ttriangleColors;
-	c.overWrite(color);
 	this.ttriangleMesh.material.uniforms.colors.value = c.shaderColors;
     }
 }
 
 THREE.LDRMeshCollector.prototype.draw = function(baseObject, old) {
     var created = this.createOrUpdate(old, baseObject);
-    if(!created)
+    if(created) {
+	//console.dir(this);
+    }
+    else
 	this.updateMeshVisibility();
 }
 
