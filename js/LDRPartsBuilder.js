@@ -56,7 +56,7 @@ LDR.PartsBulder = function(ldrLoader, mainModelID, mainModelColor, onBuiltPart) 
 LDR.PartsBulder.prototype.updateMeshCollectors = function(baseObject) {
     for(var i = 0; i < this.pcKeys.length; i++) {
 	var pcInfo = builder.pcs[builder.pcKeys[i]];
-	pcInfo.draw(baseObject, false);
+	pcInfo.draw(baseObject);
     }
 }
 
@@ -117,9 +117,9 @@ LDR.PartAndColor = function(partID, colorID, ldrLoader) {
     this.partDesc = this.partType.modelDescription;
 }
 
-LDR.PartAndColor.prototype.ensureMeshCollector = function() {
+LDR.PartAndColor.prototype.ensureMeshCollector = function(baseObject) {
     if(!this.meshCollector) {
-	this.meshCollector = new THREE.LDRMeshCollector();
+	this.meshCollector = new LDR.MeshCollector(baseObject, baseObject);
 
 	// Build meshCollector (lines and triangles for part in color):
 	var p = new THREE.Vector3();
@@ -133,17 +133,19 @@ LDR.PartAndColor.prototype.ensureMeshCollector = function() {
 }
 
 LDR.PartAndColor.prototype.getBounds = function() {
-    this.ensureMeshCollector();
+    if(!this.meshCollector)
+	throw 'Mesh collector not built!';
     if(!this.meshCollector.boundingBox) {
+	console.dir(this);
 	throw "No bounding box for " + this.partID + " / " + this.partDesc;
     }
     return this.meshCollector.boundingBox;
 }
 LDR.PartAndColor.prototype.draw = function(baseObject) {
-    this.ensureMeshCollector();
-    this.meshCollector.draw(baseObject, false);
+    this.ensureMeshCollector(baseObject);
+    this.meshCollector.draw(false);
 }
 LDR.PartAndColor.prototype.setVisible = function(v, baseObject) {
-    this.ensureMeshCollector();
+    this.ensureMeshCollector(baseObject);
     this.meshCollector.setVisible(v);
 }

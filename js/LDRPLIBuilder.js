@@ -40,14 +40,7 @@ LDR.PLIBuilder.prototype.getPC = function(key) {
 	var elementCenter = new THREE.Vector3();
 	var b = pc.getBounds();
 	b.getCenter(elementCenter);
-	pc.mesh.position.x = -elementCenter.x;
-	pc.mesh.position.y = -elementCenter.y;
-	pc.mesh.position.z = -elementCenter.z;
-	//pc.mesh.add(new THREE.Box3Helper(b, 0xff0000));
-
-	this.scene.add(pc.mesh);
-	pc.mesh.updateMatrixWorld(true);
-	this.scene.remove(pc.mesh);
+	pc.mesh.position.sub(elementCenter);
 	var [dx,dy] = this.measurer.measure(b, pc.mesh.matrixWorld);
 	pc.dx = dx;
 	pc.dy = dy;
@@ -65,7 +58,7 @@ LDR.PLIBuilder.prototype.updateCamera = function(w, h) {
 
 LDR.PLIBuilder.prototype.render = function(key, w, h) {
     var pc = this.getPC(key);
-    pc.meshCollector.draw(pc.mesh, false);
+    pc.meshCollector.draw(false);
     
     this.scene.add(pc.mesh);
     this.renderer.setSize(w+1, h+1); // +1 to ensure edges are in frame in case of rounding down.

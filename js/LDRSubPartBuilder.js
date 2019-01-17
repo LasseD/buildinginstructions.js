@@ -43,8 +43,12 @@ LDR.SubPartBulder = function(table, linkPrefix, ldrLoader, colorID, position, ro
     var transformColor = function(subColorID) {
 	if(subColorID == 16)
 	    return colorID; // Main color
-	if(subColorID == 24)
-	    return 10000 + colorID; // Edge color
+	if(subColorID == 24) {
+	    if(colorID == 16)
+		return 24;
+	    else
+		return 10000 + colorID; // Edge color
+	}
 	return subColorID;
     }
     var transformPoint = function(p) {
@@ -66,12 +70,14 @@ LDR.SubPartBulder = function(table, linkPrefix, ldrLoader, colorID, position, ro
 	    content.setAttribute('colspan', '5');
 	}
 	else {
-	    line.mc = new THREE.LDRMeshCollector();
+	    line.mc = new LDR.MeshCollector(baseObject, baseObject); // TODO
 	    var c = transformColor(line.line1 ? line.desc.colorID : line.c);
-	    var p1 = undefined, p2 = undefined, p3 = undefined, p4 = undefined;
+	    var p1, p2, p3, p4;
+
+	    var subModel = line.line1 ? ldrLoader.ldrPartTypes[line.desc.ID] : new THREE.LDRPartType();
+	    var step = new THREE.LDRStep();
 
 	    if(line.line1) {
-		var subModel = ldrLoader.ldrPartTypes[line.desc.ID];
 		if(subModel == undefined) {
 		    throw {
 			name: "UnloadedSubmodelException",
@@ -101,7 +107,7 @@ LDR.SubPartBulder = function(table, linkPrefix, ldrLoader, colorID, position, ro
 		var nextRotation = new THREE.Matrix3();
 		nextRotation.multiplyMatrices(rotation, line.desc.rotation);
 
-		subModel.generateThreePart(ldrLoader, c, nextPosition, nextRotation, line.desc.cull, line.desc.invertCCW, line.mc, false);
+		subModel.generateThreePart(ldrLoader, c, nextPosition, nextRotation, line.desc.cull, line.desc.invertCCW, line.mc);
 	    }
 	    else if(line.line2) {
 		LDR.makeEle(tr, 'td', 'line_type').innerHTML = 'Line';
@@ -111,8 +117,8 @@ LDR.SubPartBulder = function(table, linkPrefix, ldrLoader, colorID, position, ro
 		LDR.makeEle(tr, 'td', 'line_color').innerHTML = line.c;
 
 		p1 = transformPoint(line.p1);
-		p2 = transformPoint(line.p2);
-		line.mc.addLine(c, p1, p2);
+		p2 = transformPoint(line.p2);		
+		step.addLine(c, p1, p2);
 	    }
 	    else if(line.line3) {
 		LDR.makeEle(tr, 'td', 'line_type').innerHTML = 'Triangle';
@@ -124,7 +130,7 @@ LDR.SubPartBulder = function(table, linkPrefix, ldrLoader, colorID, position, ro
 		p1 = transformPoint(line.p1);
 		p2 = transformPoint(line.p2);
 		p3 = transformPoint(line.p3);
-		line.mc.addTriangles(c, p1, p2, p3, !line.ccw, line.cull);
+		step.addTrianglePoints(c, p1, p2, p3);
 	    }
 	    else if(line.line4) {
 		LDR.makeEle(tr, 'td', 'line_type').innerHTML = 'Quad';
@@ -137,7 +143,7 @@ LDR.SubPartBulder = function(table, linkPrefix, ldrLoader, colorID, position, ro
 		p2 = transformPoint(line.p2);
 		p3 = transformPoint(line.p3);
 		p4 = transformPoint(line.p4);
-		line.mc.addQuads(c, p1, p2, p3, p4, !line.ccw, line.cull);
+		step.addQuadPoints(c, p1, p2, p3, p4);
 	    }
 	    else if(line.line5) {
 		LDR.makeEle(tr, 'td', 'line_type').innerHTML = 'Optional';
@@ -150,11 +156,17 @@ LDR.SubPartBulder = function(table, linkPrefix, ldrLoader, colorID, position, ro
 		p2 = transformPoint(line.p2);
 		p3 = transformPoint(line.p3);
 		p4 = transformPoint(line.p4);
-		line.mc.addConditionalLine(c, p1, p2, p3, p4);
+		step.addConditionalLine(c, p1, p2, p3, p4);
+	    }
+
+	    if(!line.line1) {
+		subModel.addStep(step);
+		subModel.prepareGeometry(ldrLoader);
+		subModel.generateThreePart(ldrLoader, c, new THREE.Vector3(), new THREE.Matrix3(), line.cull, line.ccw, line.mc);
 	    }
 
 	    line.imageHolder = LDR.makeEle(tr, 'td', 'line_image');
-	    line.mc.bakeVertices();
+	    // TODOline.mc.bakeVertices();
 	}
 
 	if(p1) {
@@ -288,17 +300,17 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseMC, baseObject, redPoints,
 	    line.markers.updateMatrix();
 	}
 
-	line.mc.draw(baseObject, false);
+	line.mc.draw(false);
     }
 } 
 
-LDR.SubPartBulder.prototype.drawAllIcons = function(baseMC, baseObject, redPoints) {
+LDR.SubPartBulder.prototype.drawAllIcons = function(baseMC, redPoints) {
     // Base icon:
     this.setVisible(false);
     redPoints.visible = false;
 
     baseMC.setVisible(true);
-    baseMC.draw(baseObject, false);
+    baseMC.draw(false);
     baseMC.overwriteColor(this.c);
     this.render();
     var context = this.canvas.getContext('2d');
@@ -313,7 +325,7 @@ LDR.SubPartBulder.prototype.drawAllIcons = function(baseMC, baseObject, redPoint
 	    continue;
 
 	line.mc.setVisible(true);
-	line.mc.draw(baseObject, false);
+	line.mc.draw(false);
 	line.mc.overwriteColor(this.c);
 	if(line.markers)
 	    line.markers.visible = true;
