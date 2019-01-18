@@ -20,6 +20,7 @@
     <script src="js/pli.js"></script>
     <script src="js/LDRSVG.js"></script>
     <script src="js/LDROptions.js"></script>
+    <script src="js/LDRGeometries.js"></script>
     <script src="js/LDRLoader.js"></script>
     <script src="js/LDRStepBuilder.js"></script>
     <script src="js/LDRPartsBuilder.js"></script>
@@ -109,7 +110,9 @@
       var pliBuilder;
       var pliShownPreview;
 
-      var baseObject = new THREE.Group();
+      var baseObject = new THREE.Group(), opaqueObject = new THREE.Group(), transObject = new THREE.Group();
+      baseObject.add(opaqueObject); // Draw non-trans before trans.
+      baseObject.add(transObject);
       scene.add(baseObject);
       var pliPreviewer = new LDR.PliPreviewer();
 
@@ -445,7 +448,7 @@
 	    pliShownPreview = null;
       }
 	
-      var onLoad = function() {
+      var onPartsBuilt = function() {
 	var mainModel = ldrLoader.mainModel;
 	var origo = new THREE.Vector3();
 	var inv = new THREE.Matrix3(); 
@@ -459,7 +462,7 @@
 					0, 
 		                        pliElement,
 					document.getElementById('pli_render_canvas'));
-        builder = new LDR.StepBuilder(baseObject, ldrLoader, [pd], function(){render();}, true);
+        builder = new LDR.StepBuilder(opaqueObject, transObject, ldrLoader, [pd], function(){render();}, true);
 	builder.nextStep(false);
 	realignModel(0);
 	updateUIComponents(false);
@@ -468,15 +471,19 @@
 	// Enable pli preview:
         pliPreviewer.attachRenderer(document.getElementById('preview'));
       }
-      var onProgress = function(part) {
-        // Ignore progress.
-      };
+
+      var onLoad = function() {
+	var geometryBuilder = new LDR.GeometryBuilder(ldrLoader);
+	var toBeBuilt = geometryBuilder.getAllTopLevelToBeBuilt();
+	geometryBuilder.build({}, toBeBuilt, onPartsBuilt);
+      }
+
       var onError = function(msg) {
         console.dir(msg);
       };
 
       onWindowResize();
-      ldrLoader = new THREE.LDRLoader(THREE.DefaultLoadingManager, onLoad, onProgress, onError, false, true);
+      ldrLoader = new THREE.LDRLoader(onLoad, {onError:onError, loadRelatedFilesImmediately:true});
       ldrLoader.load(modelTypeUrl, true);
     </script>
     <div id="instructions_decorations">

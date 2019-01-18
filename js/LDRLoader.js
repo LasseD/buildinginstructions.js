@@ -867,13 +867,14 @@ LDR.ColorManager = function() {
     }
 
     this.overWrite = function(id) {
-	var colorObject = LDR.Colors[id];
+        var isEdge = id >= 10000;
+	var colorObject = LDR.Colors[isEdge ? id-10000 : id];
 	if(!colorObject)
 	    throw "Unknown color: " + id;
 	this.lastSet = id;
 	var alpha = colorObject.alpha ? colorObject.alpha/256.0 : 1;
 	if(this.sixteen >= 0) {
-	    var color = new THREE.Color(colorObject.value);
+	    var color = new THREE.Color(isEdge ? colorObject.edge : colorObject.value);
 	    this.shaderColors[this.sixteen] = new THREE.Vector4(color.r, color.g, color.b, alpha);
 	}
 	if(this.edgeSixteen >= 0) {

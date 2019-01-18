@@ -12,12 +12,11 @@
     <script src="js/LDROptions.js"></script>
     <script src="js/LDRShaders.js"></script>
     <script src="js/LDRColorMaterials.js"></script>
+    <script src="js/LDRGeometries.js"></script>
     <script src="js/LDRLoader.js"></script>
     <script>
       // The model to be rendered:
       var modelTypeUrl = 'models/pyramid10.ldr';
-
-      var ldrOptions = new LDR.Options(); // Determine how to show lines. Change this in sample_instruction.htm
 
       // Set up camera:
       var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
@@ -26,9 +25,13 @@
 
       // Set up scene:
       var scene = new THREE.Scene();
-      scene.background = new THREE.Color( 0xFFFFFF );
-      var baseObject = new THREE.Group(); // Shown model is added to this.
+      scene.background = new THREE.Color(0xFFFFFF);
+
+      var baseObject = new THREE.Group(), opaqueObject = new THREE.Group(), transObject = new THREE.Group();
+      baseObject.add(opaqueObject); // Draw non-trans before trans.
+      baseObject.add(transObject);
       scene.add(baseObject);
+      var mc = new LDR.MeshCollector(opaqueObject, transObject);
 
       // Set up renderer:
       var renderer = new THREE.WebGLRenderer({antialias: true});
@@ -56,9 +59,7 @@
       // Three.js loader for LDraw models:
       var ldrLoader;
 
-      var onLoad = function() {
-        onWindowResize();
-
+      var onPartsBuilt = function() {
         var mainModel = ldrLoader.ldrPartTypes[ldrLoader.mainModel]; // Main model from the LDraw file (first model encountered)
 
         // Place model in scene:
@@ -67,9 +68,7 @@
         inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
 
         // Generate the mesh:
-        var mc = new THREE.LDRMeshCollector();
-        mainModel.generateThreePart(ldrLoader, 0, origo, inv, true, false, mc);
-        mc.draw(baseObject, false);
+        mainModel.generateThreePart(ldrLoader, 0, origo, inv, true, false, mc, false);
 
         // Find center of draw model:
         var b = mc.boundingBox;
@@ -81,14 +80,19 @@
 	camera.zoom = window.innerWidth/b.min.distanceTo(b.max);
         onWindowResize();
       }
-      var onProgress = function() {
-        // Ignore progress.
-      };
+
+      var onLoad = function() {
+	var geometryBuilder = new LDR.GeometryBuilder(ldrLoader);
+	var toBeBuilt = geometryBuilder.getAllTopLevelToBeBuilt();
+	geometryBuilder.build({}, toBeBuilt, onPartsBuilt);
+      }
+
       var onError = function(msg) {
         console.dir(msg);
       };
 
-      ldrLoader = new THREE.LDRLoader(THREE.DefaultLoadingManager, onLoad, onProgress, onError, false, true);
+      var ldrOptions = new LDR.Options(); // Determine how to show lines. Change this in sample_instruction.htm
+      ldrLoader = new THREE.LDRLoader(onLoad, {onError:onError, loadRelatedFilesImmediately:true});
       ldrLoader.load(modelTypeUrl, true);
  </script>
  </body>
