@@ -20,15 +20,12 @@ The builder supports the operations:
 - moveSteps: Go forward/back a specific number of steps.
 */
 var LDR = LDR || {};
-LDR.changeBufferSize = 0;
-LDR.changeBufferLimit = 5;
 
-LDR.StepBuilder = function(opaqueObject, transObject, ldrLoader, partDescs, onProgress, isForMainModel) {
+LDR.StepBuilder = function(opaqueObject, transObject, ldrLoader, partDescs, isForMainModel) {
     this.opaqueObject = opaqueObject;
     this.transObject = transObject;
     this.ldrLoader = ldrLoader;
     this.partDescs = partDescs;
-    this.onProgress = onProgress;
 
     this.meshCollectors = []; // One for each step. null to represent non-built obejcts
     this.subBuilders = []; // One for each step. null to represent no step builder.
@@ -136,7 +133,6 @@ LDR.StepBuilder.prototype.nextStep = function(doNotEraseForSubModels) {
     if((this.current === this.subBuilders.length-1) && willStep) { 
 	this.updateMeshCollectors(false); // Make whole subBuilder new (for placement):
 	this.drawExtras();
-	LDR.changeBufferSize += 1;
 	this.current++;
 	return true;
     }
@@ -163,14 +159,13 @@ LDR.StepBuilder.prototype.nextStep = function(doNotEraseForSubModels) {
 	    this.meshCollectors[this.current] = meshCollector;
 
 	    // Helper. Uncomment next line for bounding boxes:
-	    //this.opaqueObject.add(new THREE.Box3Helper(meshCollector.boundingBox, 0xff0000));
+	    this.opaqueObject.add(new THREE.Box3Helper(meshCollector.boundingBox, 0xff0000));
 	    this.setCurrentBounds(meshCollector.boundingBox);
 	}
 	else {
 	    meshCollector.draw(false); // New part is not 'old'.
 	    meshCollector.setVisible(true);
 	}
-	LDR.changeBufferSize += 1;
     }
     else { // LDR sub-models:
 	if(subBuilder.current == -1) {
@@ -186,8 +181,9 @@ LDR.StepBuilder.prototype.nextStep = function(doNotEraseForSubModels) {
 		this.setCurrentBounds(b);
 	    }
 
-	    if(!doNotEraseForSubModels)
+	    if(!doNotEraseForSubModels) {
 		this.setVisibleUpTo(true, this.current); // Show the invisible steps again.
+	    }
 	}
     }
     return true;
@@ -326,7 +322,7 @@ LDR.StepBuilder.prototype.drawExtras = function() {
     }
 
     if(this.extraParts === true) { // Not already loaded
-	this.extraParts = new LDR.MeshCollector(opaqueObject, transObject);
+	this.extraParts = new LDR.MeshCollector(this.opaqueObject, this.transObject);
 
 	var prevAccumulatedBounds = new THREE.Box3();
 	prevAccumulatedBounds.copy(this.accumulatedBounds[len-1]);
@@ -335,9 +331,8 @@ LDR.StepBuilder.prototype.drawExtras = function() {
 	// Add all extra parts to mesh collector:
 	for(var i = 1; i < this.partDescs.length; i++) {
 	    var pd = this.partDescs[i];
-	    this.part.generateThreePart(this.ldrLoader, pd.colorID, pd.position, pd.rotation, true, false, this.extraParts, false);
+	    this.part.generateThreePart(this.ldrLoader, pd.colorID, pd.position, pd.rotation, true, false, this.extraParts);
 	}
-	this.extraParts.draw(this.extraParts.old);
 
 	var b = this.extraParts.boundingBox;
 	this.accumulatedBounds[len].expandByPoint(b.min);
@@ -360,7 +355,6 @@ LDR.StepBuilder.prototype.prevStep = function(doNotEraseForSubModels) {
     if(this.isAtPlacementStep()) {
 	if(this.extraParts) {
 	    this.extraParts.setVisible(false);
-	    LDR.changeBufferSize += 1;
 	}
 	// Update all previous steps to be old:
 	for(var i = 0; i < this.subBuilders.length-1; i++) {
@@ -382,7 +376,6 @@ LDR.StepBuilder.prototype.prevStep = function(doNotEraseForSubModels) {
     if(subBuilder === null) { // Remove standard step:
     	var meshCollector = this.meshCollectors[this.current];
 	meshCollector.setVisible(false);
-	LDR.changeBufferSize += 1;
 	this.stepBack();
     }
     else { // There is a subBuilder, so we have to step inside of it:
@@ -413,105 +406,21 @@ LDR.StepBuilder.prototype.stepBack = function() {
     }
 }
 
-LDR.StepBuilder.prototype.fastForward = function(onDone) {    
-    // Find active builder:
-    var b = this;
-    while(b.current < b.subBuilders.length && b.subBuilders[b.current] !== null) {
-	b = b.subBuilders[b.current];
-    }
-    var walkedAlready = 0;
-    // Step if at last step of builder:    
-    if(b.isAtLastStep()) {
-	this.nextStep(true);
-	walkedAlready++;
-	// Find active builder now:
-	b = this;
-	while(b.current < b.subBuilders.length && b.subBuilders[b.current] !== null) {
-	    b = b.subBuilders[b.current];
-	}
-    }
-
-    var walk = function(walked, baseBuilder, builderToComplete, od, op) {
-	while(!builderToComplete.isAtLastStep()) {
-	    baseBuilder.nextStep(true);
-	    walked++;
-	    if(LDR.changeBufferSize >= THREE.changeBufferLimit) {
-		op();
-		LDR.changeBufferSize = 0;
-		setTimeout(function(){walk(walked, baseBuilder, builderToComplete, od, op)}, 50);
-		return;
-	    }
-	}
-	baseBuilder.cleanUpAfterWalking();
-	od(walked, true);
-    }
-    walk(walkedAlready, this, b, onDone, this.onProgress);
-}
-
-LDR.StepBuilder.prototype.fastReverse = function(onDone) {
-    // Find active builder:
-    var b = this;
-    while(b.current < b.subBuilders.length && b.subBuilders[b.current] !== null) {
-	b = b.subBuilders[b.current];
-    }
-    // Step if at last step of builder:
-    var walkedAlready = 0;
-    if(b.isAtFirstStep()) {
-	this.prevStep(true);
-	walkedAlready--;
-	b = this;
-	while(b.current < b.subBuilders.length && b.subBuilders[b.current] !== null) {
-	    console.log("Stepping into " + b.current);
-	    b = b.subBuilders[b.current];
-	}
-    }
-
-    var walk = function(walked, baseBuilder, builderToComplete, od, op) {
-	while(!builderToComplete.isAtFirstStep()) {
-	    baseBuilder.prevStep(true);
-	    walked--;
-	    if(LDR.changeBufferSize >= THREE.changeBufferLimit) {
-		op();
-		LDR.changeBufferSize = 0;
-		setTimeout(function(){walk(walked, baseBuilder, builderToComplete, od, op)}, 50);
-		return;
-	    }
-	}
-	baseBuilder.cleanUpAfterWalking();
-	od(walked, true);
-    }
-    walk(walkedAlready, this, b, onDone, this.onProgress);
-}
-
 LDR.StepBuilder.prototype.moveSteps = function(steps, onDone) {
     var walked = 0;
-    if(steps === 0) {
-	this.cleanUpAfterWalking();
-	onDone(walked);
-	return;
-    }
     while(true) {
-	// Try to walk:
-	if(!(steps > 0 ? this.nextStep(true) : this.prevStep(true))) {
+	if(steps == 0 || !(steps > 0 ? this.nextStep(true) : this.prevStep(true))) {
 	    this.cleanUpAfterWalking();
 	    onDone(walked);
 	    return;
 	}
-	walked += (steps > 0) ? 1 : -1;
-	if(walked == steps) {
-	    this.cleanUpAfterWalking();
-	    onDone(walked);
-	    return;
+	if(steps > 0) {
+	    walked++;
+	    steps--;
 	}
-	else if(LDR.changeBufferSize >= THREE.changeBufferLimit) {
-	    this.onProgress();
-	    LDR.changeBufferSize = 0;
-	    var nextOnDone = function(d) {onDone(walked + d)};
-	    var builder = this;
-	    var toMove = steps - walked;
-	    //console.log("Recursing after " + walked + " of " + steps + " => " + toMove);
-	    setTimeout(function(){builder.moveSteps(toMove, nextOnDone)}, 50);
-	    return; // Done here.
+	else {
+	    walked--;
+	    steps++;
 	}
     }
 }
@@ -541,11 +450,9 @@ LDR.StepBuilder.prototype.isAtVeryLastStep = function() {
 LDR.StepBuilder.prototype.setVisibleUpTo = function(v, idx) {
     for(var i = 0; i < idx; i++) {
 	var t = this.meshCollectors[i];
-	if(t !== null) {
-	    if(t.isVisible() != v) {
-		t.setVisible(v);
-		LDR.changeBufferSize += 1;
-	    }
+	if(t) {
+	    t.setVisible(v);
+	    continue;
 	}
 	var s = this.subBuilders[i];
 	if(s) {
@@ -553,10 +460,10 @@ LDR.StepBuilder.prototype.setVisibleUpTo = function(v, idx) {
 	}
     }
 }
+
 LDR.StepBuilder.prototype.setVisible = function(v) {
     this.setVisibleUpTo(v, this.subBuilders.length);
-    if(this.extraParts && this.extraParts.isMeshCollector && this.extraParts.isVisible() !== v) {
-	LDR.changeBufferSize += 1;
+    if(this.extraParts && this.extraParts.isMeshCollector) {
 	this.extraParts.setVisible(v);
     }
 }

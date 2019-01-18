@@ -106,7 +106,7 @@ LDR.PartAndColor = function(partID, colorID, ldrLoader) {
 	    pt.steps.push(step);
 	    ldrLoader.ldrPartTypes[pliName] = pt;
 	    this.partType = pt;
-	    console.log("Replaced PLI for " + pliName);
+	    //console.log("Replaced PLI for " + pliName);
 	}
     }
     // Annotate:

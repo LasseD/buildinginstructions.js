@@ -1136,6 +1136,7 @@ LDR.MeshCollector = function(opaqueObject, transObject) {
     this.old = false;
     this.visible = true;
     this.boundingBox;
+    this.isMeshCollector = true;
 }
 
 LDR.MeshCollector.prototype.getLineMaterial = function(colorManager, color, conditional) {
@@ -1303,7 +1304,7 @@ LDR.MeshCollector.prototype.isVisible = function(v) {
   Update meshes and set own visibility indicator.
 */
 LDR.MeshCollector.prototype.setVisible = function(v) {
-    if(this.visible === v)
+    if(this.visible == v)
 	return;
     this.visible = v;
     this.updateMeshVisibility();
