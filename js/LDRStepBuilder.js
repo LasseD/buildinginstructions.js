@@ -23,8 +23,9 @@ var LDR = LDR || {};
 LDR.changeBufferSize = 0;
 LDR.changeBufferLimit = 5;
 
-LDR.StepBuilder = function(baseObject, ldrLoader, partDescs, onProgress, isForMainModel) {    
-    this.baseObject = baseObject;
+LDR.StepBuilder = function(opaqueObject, transObject, ldrLoader, partDescs, onProgress, isForMainModel) {
+    this.opaqueObject = opaqueObject;
+    this.transObject = transObject;
     this.ldrLoader = ldrLoader;
     this.partDescs = partDescs;
     this.onProgress = onProgress;
@@ -48,7 +49,7 @@ LDR.StepBuilder = function(baseObject, ldrLoader, partDescs, onProgress, isForMa
 		var placed = step.ldrs[j].placeAt(partDesc);
 		subDescs.push(placed);
 	    }
-	    var subStepBuilder = new LDR.StepBuilder(baseObject, ldrLoader, subDescs, false);
+	    var subStepBuilder = new LDR.StepBuilder(opaqueObject, transObject, ldrLoader, subDescs, false);
 	    this.subBuilders.push(subStepBuilder);
 	    this.totalNumberOfSteps += subStepBuilder.totalNumberOfSteps; 
 	}
@@ -145,7 +146,7 @@ LDR.StepBuilder.prototype.nextStep = function(doNotEraseForSubModels) {
 	if(subBuilder)
 	    subBuilder.updateMeshCollectors(true); // Make previous step 'old'.
 	else if(meshCollector)
-	    meshCollector.draw(this.baseObject, true); // Make previous step 'old'.
+	    meshCollector.draw(true); // Make previous step 'old'.
 	this.current++; // Point to next step.
 	subBuilder = this.subBuilders[this.current];
     }
@@ -155,20 +156,18 @@ LDR.StepBuilder.prototype.nextStep = function(doNotEraseForSubModels) {
 	var meshCollector = this.meshCollectors[this.current];
 	if(meshCollector === null) {
 	    var pd = this.partDescs[0];
-            meshCollector = new THREE.LDRMeshCollector();
+            meshCollector = new LDR.MeshCollector(this.opaqueObject, this.transObject);
 	    var step = this.part.steps[this.current];
-	    step.generateThreePart(this.ldrLoader, pd.colorID, pd.position, pd.rotation, true, false, meshCollector, false, true);
+	    step.generateThreePart(this.ldrLoader, pd.colorID, pd.position, pd.rotation, true, false, meshCollector, false, false);
 
 	    this.meshCollectors[this.current] = meshCollector;
-	    meshCollector.draw(this.baseObject, false); // New part is not 'old'.
 
 	    // Helper. Uncomment next line for bounding boxes:
-	    //this.baseObject.add(new THREE.Box3Helper(meshCollector.boundingBox, 0xff0000));
-
+	    //this.opaqueObject.add(new THREE.Box3Helper(meshCollector.boundingBox, 0xff0000));
 	    this.setCurrentBounds(meshCollector.boundingBox);
 	}
 	else {
-	    meshCollector.draw(this.baseObject, false); // New part is not 'old'.
+	    meshCollector.draw(false); // New part is not 'old'.
 	    meshCollector.setVisible(true);
 	}
 	LDR.changeBufferSize += 1;
@@ -327,7 +326,7 @@ LDR.StepBuilder.prototype.drawExtras = function() {
     }
 
     if(this.extraParts === true) { // Not already loaded
-	this.extraParts = new THREE.LDRMeshCollector();
+	this.extraParts = new LDR.MeshCollector(opaqueObject, transObject);
 
 	var prevAccumulatedBounds = new THREE.Box3();
 	prevAccumulatedBounds.copy(this.accumulatedBounds[len-1]);
@@ -338,7 +337,7 @@ LDR.StepBuilder.prototype.drawExtras = function() {
 	    var pd = this.partDescs[i];
 	    this.part.generateThreePart(this.ldrLoader, pd.colorID, pd.position, pd.rotation, true, false, this.extraParts, false);
 	}
-	this.extraParts.draw(this.baseObject, this.extraParts.old);
+	this.extraParts.draw(this.extraParts.old);
 
 	var b = this.extraParts.boundingBox;
 	this.accumulatedBounds[len].expandByPoint(b.min);
@@ -367,7 +366,7 @@ LDR.StepBuilder.prototype.prevStep = function(doNotEraseForSubModels) {
 	for(var i = 0; i < this.subBuilders.length-1; i++) {
 	    var t = this.meshCollectors[i];
 	    if(t !== null) {
-		t.draw(this.baseObject, true);
+		t.draw(true);
 	    }
 	    var s = this.subBuilders[i];
 	    if(s) {
@@ -406,7 +405,7 @@ LDR.StepBuilder.prototype.stepBack = function() {
 	return;
     var t = this.meshCollectors[this.current];
     if(t !== null) {
-	t.draw(this.baseObject, false);
+	t.draw(false);
     }
     var s = this.subBuilders[this.current];
     if(s) {
@@ -544,7 +543,7 @@ LDR.StepBuilder.prototype.setVisibleUpTo = function(v, idx) {
 	var t = this.meshCollectors[i];
 	if(t !== null) {
 	    if(t.isVisible() != v) {
-		t.setVisible(v, this.baseObject);
+		t.setVisible(v);
 		LDR.changeBufferSize += 1;
 	    }
 	}
@@ -569,7 +568,7 @@ LDR.StepBuilder.prototype.updateMeshCollectors = function(old) {
 	    var tOld = old;
 	    if(tOld == undefined)
 		tOld = t.old;
-	    t.draw(this.baseObject, tOld);
+	    t.draw(tOld);
 	}
 	var s = this.subBuilders[i];
 	if(s) {
@@ -580,7 +579,7 @@ LDR.StepBuilder.prototype.updateMeshCollectors = function(old) {
 	var tOld = old;
 	if(tOld == undefined)
 	    tOld = this.extraParts.old;
-	this.extraParts.draw(this.baseObject, tOld);
+	this.extraParts.draw(tOld);
     }
 }
 

@@ -110,7 +110,66 @@ LDR.Colors.desaturateColor = function(hex) {
 LDR.Colors.isTrans = function(colorID) {
     if(colorID >= 10000)
 	colorID -= 10000;
-    return LDR.Colors[colorID].alpha;
+    return LDR.Colors[colorID].alpha > 0;
 }
 
 LDR.Colors.defaultGLSLColors = LDR.Colors.buildGLSLColors();
+LDR.Colors.canBeOld = false;
+
+LDR.Colors.buildLineMaterial = function(colorManager, color, conditional) {
+    colorManager = colorManager.clone();
+    colorManager.overWrite(color);
+
+    var colors = ldrOptions.lineContrast == 0 ? colorManager.highContrastShaderColors : 
+	                                        colorManager.shaderColors;
+    var len = colors.length;
+
+    var uniforms = {};
+    if(LDR.Colors.canBeOld)
+	uniforms['old'] = {value: false};
+    if(len > 1) {
+	uniforms['colors'] = {type: 'v4v', value: colors};
+    }
+    else {
+	uniforms['color'] = {type: 'v4', value: colors[0]};
+    }
+    var ret = new THREE.RawShaderMaterial( {
+	uniforms: uniforms,
+	vertexShader: (conditional ? 
+	    LDR.Shader.createConditionalVertexShader(LDR.Colors.canBeOld, colors, true) : 
+            LDR.Shader.createSimpleVertexShader(LDR.Colors.canBeOld, colors, true, true)),
+	fragmentShader: (conditional ? 
+	    LDR.Shader.AlphaTestFragmentShader :
+	    LDR.Shader.SimpleFragmentShader),
+	transparent: false,
+	visible: ldrOptions.lineContrast < 2
+    });
+    ret.colorManager = colorManager;
+    return ret;
+}
+
+LDR.Colors.buildTriangleMaterial = function(colorManager, color, isTrans) {
+    colorManager = colorManager.clone();
+    colorManager.overWrite(color);
+    var colors = colorManager.shaderColors;
+    var len = colors.length;
+
+    var uniforms = {};
+    if(LDR.Colors.canBeOld)
+	uniforms['old'] = {value: false};
+    if(len > 1) {
+	uniforms['colors'] = {type: 'v4v', value: colors};
+    }
+    else {
+	uniforms['color'] = {type: 'v4', value: colors[0]};
+    }
+    var ret = new THREE.RawShaderMaterial( {
+	uniforms: uniforms,
+	vertexShader: LDR.Shader.createSimpleVertexShader(LDR.Colors.canBeOld, colors, false, false),
+	fragmentShader: LDR.Shader.SimpleFragmentShader,
+	transparent: isTrans
+    });
+    ret.colorManager = colorManager;
+    return ret;
+}
+
