@@ -8,9 +8,9 @@ See this project visualized on [BrickHub.org](https://brickhub.org)
 
 ## How To Install Locally
 
-After copying the files in this repository, you can view sample_view.htm for seeing how to set up a render. 
+After copying the files in this repository, you can view sample_view.htm for how to set up a render. This sample is less than 100 lines and provides a good starting point that is easy to grasp.
 
-See sample_instructions.htm for how to set up building instructions, including options for personalization.
+See sample_instructions.htm for how to set up building instructions, including options for personalization. This is a very involved sample file reflecting the instructions on BrickHub.org.
 
 If you want to view additional models, then add the necessary LDraw files directly to the 'ldraw_parts' directory. Downloaded files from [the LDraw parts library](http://www.ldraw.org/parts/latest-parts.html) should thus result in a file structure as follows:
 
@@ -42,9 +42,7 @@ Feel free to raise issues or make pull requests. The project is in active develo
 
 - Reduce paper waste by replacing the need of traditional building instructions.
 
-- Improve the LDraw parts library by fixing BFC issues.
-
-- Supplement the LDraw parts library with open source connectivity information for parts.
+- Become a valuable addition to the LDraw suite of applications.
 
 ## License
 
@@ -52,4 +50,4 @@ buildinginstructions.js is in the Public Domain.
 
 The LDraw library is redistributable under CCAL version 2.0 : see CAreadme.txt.
 
-Three.js uses the MIT license.
+Three.js and OrbitControls.js use the MIT license.
