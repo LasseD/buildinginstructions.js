@@ -159,7 +159,7 @@ LDR.StepBuilder.prototype.nextStep = function(doNotEraseForSubModels) {
 	    this.meshCollectors[this.current] = meshCollector;
 
 	    // Helper. Uncomment next line for bounding boxes:
-	    this.opaqueObject.add(new THREE.Box3Helper(meshCollector.boundingBox, 0xff0000));
+	    //this.opaqueObject.add(new THREE.Box3Helper(meshCollector.boundingBox, 0xff0000));
 	    this.setCurrentBounds(meshCollector.boundingBox);
 	}
 	else {
