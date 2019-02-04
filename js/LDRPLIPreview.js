@@ -81,8 +81,17 @@ LDR.PliPreviewer.prototype.showPliPreview = function(icon) {
     var partIdNoDat = icon.partID.slice(0, -4);
     var desc = icon.desc || partIdNoDat;
     nameEle.innerHTML = desc + " (" + partIdNoDat + ")";
-    //nameEle.parentNode.setAttribute('href', 'http://www.bricklink.com/catalogItem.asp?P=' + partIdNoDat);
-    nameEle.parentNode.setAttribute('href', '../p/' + partIdNoDat);
+    var blA = document.getElementById('preview_info_bl_link');
+    blA.setAttribute('href', 'http://www.bricklink.com/catalogItem.asp?P=' + partIdNoDat);
+
+    var bhA = document.getElementById('preview_info_bh_link');
+    if(icon.inlined && !isNaN(icon.inlined)) {
+	bhA.setAttribute('href', "../p/part.php?user_id=" + icon.inlined + "&id=" + partIdNoDat);
+    }
+    else {
+	bhA.setAttribute('href', '../p/' + partIdNoDat);
+    }
+
     var colorID = icon.colorID;
     var color = LDR.Colors[colorID];
     document.getElementById('preview_info_color_ldraw').innerHTML = color.name + " (" + colorID + ")";

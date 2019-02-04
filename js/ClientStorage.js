@@ -1,7 +1,7 @@
-"using strict";
+'use strict';
 
 LDR.STORAGE = function(onDone) {
-    this.req = window.indexedDB.open("ldraw", 1); 
+    this.req = /*window.*/indexedDB.open("ldraw", 1); 
     this.db;
 
     this.req.onupgradeneeded = function(event) {
@@ -69,32 +69,3 @@ LDR.STORAGE.prototype.retrievePartsFromStorage = function(parts, onDone) {
     }
     parts.forEach(fetch);
 }
-
-
-/*
-    const transaction = db.transaction(["invoices", "invoice-items"], "readwrite");
-    const invStore = transaction.objectStore("invoices");
-    const itemStore = transaction.objectStore("invoice-items");
-  
-    // Add data
-    invStore.add(
-        { invoiceId: "123", vendor: "Whirlpool", paid: false }
-    );
-    itemStore.add({
-        invoiceId: "123",
-        row: "1",
-        item: "Dish washer",
-        cost: 1400
-    });
-    itemStore.add({
-        invoiceId: "123",
-        row: "2",
-        item: "Labor",
-        cost: 500
-    });
-
-    // Clean up: close connection
-    transaction.oncomplete = () => {
-        db.close();
-    };
-*/

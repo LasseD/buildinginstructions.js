@@ -665,6 +665,7 @@ LDR.LDRGeometry.prototype.fromStep = function(loader, step, parent) {
 LDR.LDRGeometry.prototype.fromPartType = function(loader, pt) {
     var geometries = [];
     if(pt.steps.length == 0) {
+	console.warn("No steps in " + pt.ID);
 	return; // Empty - just make empty.
     }
     for(var i = 0; i < pt.steps.length; i++) {

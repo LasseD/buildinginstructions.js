@@ -74,7 +74,8 @@ LDR.PLIBuilder.prototype.createSortedIcons = function(step, stepColorID) {
 	var dat = step.dats[i];
 	var partID = dat.ID;
 	var colorID = dat.colorID == 16 ? stepColorID : dat.colorID;
-	var key = partID + '_' + colorID;
+	var key = partID.endsWith('.dat') ? partID.substring(0, partID.length-4) : partID;
+	key += '_' + colorID;
 	var icon = icons[key];
 	if(icon) {
 	    icon.mult++;
@@ -91,7 +92,8 @@ LDR.PLIBuilder.prototype.createSortedIcons = function(step, stepColorID) {
 		    annotation: pc.annotation,
 		    dx: pc.dx,
 		    dy: pc.dy,
-		    size: b.min.distanceTo(b.max)
+		    size: b.min.distanceTo(b.max),
+		    inlined: pc.inlined
 		   };
 	    icons[key] = icon;
 	    sortedIcons.push(icon);

@@ -588,7 +588,12 @@ THREE.LDRStep.prototype.countParts = function(loader) {
 	return this.cnt;
     this.cnt = this.dats.length;
     for(var i = 0; i < this.ldrs.length; i++) {
-	this.cnt += loader.ldrPartTypes[this.ldrs[i].ID].countParts(loader);
+	var pt = loader.ldrPartTypes[this.ldrs[i].ID];
+	if(!pt) {
+	    console.warn("Unknown part (not DAT): " + this.ldrs[i].ID);
+	    continue;
+	}
+	this.cnt += pt.countParts(loader);
     }
     return this.cnt;
 }
@@ -621,13 +626,8 @@ THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, 
 	
 	var subModel = loader.ldrPartTypes[subModelDesc.ID];
 	if(subModel == undefined) {
-	    throw { 
-		name: "UnloadedSubmodelException", 
-		level: "Severe", 
-		message: "Unloaded sub model: " + subModelDesc.ID,
-		htmlMessage: "Unloaded sub model: " + subModelDesc.ID,
-		toString:    function(){return this.name + ": " + this.message;} 
-	    };
+	    loader.onError("Unloaded sub model: " + subModelDesc.ID,);
+	    return;
 	}
 	if(subModel.replacement) {
 	    var replacementSubModel = loader.ldrPartTypes[subModel.replacement];
