@@ -100,9 +100,9 @@ LDR.PartAndColor = function(key, partID, colorID, ldrLoader) {
 	var pliName = "pli_" + this.partID;
 	if(!ldrLoader.ldrPartTypes[pliName]) {
 	    var r = new THREE.Matrix3();
-	    r.set(pliInfo[4], pliInfo[5], pliInfo[6],
-		  pliInfo[7], pliInfo[8], pliInfo[9],
-		  pliInfo[10], pliInfo[11], pliInfo[12]);
+	    r.set(pliInfo[0], pliInfo[1], pliInfo[2],
+		  pliInfo[3], pliInfo[4], pliInfo[5],
+		  pliInfo[6], pliInfo[7], pliInfo[8]);
 	    var dat = new THREE.LDRPartDescription(colorID, 
 						   new THREE.Vector3(),
 						   r,
