@@ -34,6 +34,11 @@ LDR.Buttons = function(element, addTopButtons, homeLink, mainImage) {
     this.nextButton.appendChild(this.rightArrowNormal);
     element.appendChild(this.nextButton);
 
+    this.doneButton = this.createDiv('done_button', 'clickDone();');
+    this.checkmark = LDR.SVG.makeCheckMark();
+    this.doneButton.appendChild(this.checkmark);
+    element.appendChild(this.doneButton);
+
     if(addTopButtons)
 	this.addTopButtonElements(element, homeLink, mainImage);
     this.hideElementsAccordingToOptions();
@@ -146,13 +151,16 @@ LDR.Buttons.prototype.createDiv = function(id, onclick) {
 LDR.Buttons.prototype.atFirstStep = function() {
     this.backButton.style.visibility = 'hidden';
     this.nextButton.style.visibility = 'visible';
+    this.doneButton.style.visibility = 'hidden';
 }
 LDR.Buttons.prototype.atLastStep = function() {
     this.backButton.style.visibility = 'visible';
     this.nextButton.style.visibility = 'hidden';
+    this.doneButton.style.visibility = 'visible';
 }
 LDR.Buttons.prototype.atAnyOtherStep = function() {
     this.backButton.style.visibility = this.nextButton.style.visibility = 'visible';
+    this.doneButton.style.visibility = 'hidden';
 }
 LDR.Buttons.prototype.setShownStep = function(step) {
     this.stepInput.value = ""+step;
