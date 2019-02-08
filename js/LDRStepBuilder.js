@@ -21,11 +21,12 @@ The builder supports the operations:
 */
 var LDR = LDR || {};
 
-LDR.StepBuilder = function(opaqueObject, transObject, ldrLoader, partDescs, isForMainModel) {
+LDR.StepBuilder = function(opaqueObject, transObject, ldrLoader, partDescs, isForMainModel, storage) {
     this.opaqueObject = opaqueObject;
     this.transObject = transObject;
     this.ldrLoader = ldrLoader;
     this.partDescs = partDescs;
+    this.geometryBuilder = new LDR.GeometryBuilder(ldrLoader, storage);
 
     this.meshCollectors = []; // One for each step. null to represent non-built obejcts
     this.subBuilders = []; // One for each step. null to represent no step builder.
@@ -46,7 +47,7 @@ LDR.StepBuilder = function(opaqueObject, transObject, ldrLoader, partDescs, isFo
 		var placed = step.ldrs[j].placeAt(partDesc);
 		subDescs.push(placed);
 	    }
-	    var subStepBuilder = new LDR.StepBuilder(opaqueObject, transObject, ldrLoader, subDescs, false);
+	    var subStepBuilder = new LDR.StepBuilder(opaqueObject, transObject, ldrLoader, subDescs, false, storage);
 	    this.subBuilders.push(subStepBuilder);
 	    this.totalNumberOfSteps += subStepBuilder.totalNumberOfSteps; 
 	}
@@ -154,13 +155,14 @@ LDR.StepBuilder.prototype.nextStep = function(doNotEraseForSubModels) {
 	    var pd = this.partDescs[0];
             meshCollector = new LDR.MeshCollector(this.opaqueObject, this.transObject);
 	    var step = this.part.steps[this.current];
-	    step.generateThreePart(this.ldrLoader, pd.colorID, pd.position, pd.rotation, true, false, meshCollector, false, false);
 
+	    this.geometryBuilder.buildStep(step); // Ensure geometries
+	    step.generateThreePart(this.ldrLoader, pd.colorID, pd.position, pd.rotation, true, false, meshCollector, false, false);
 	    this.meshCollectors[this.current] = meshCollector;
+	    this.setCurrentBounds(meshCollector.boundingBox);
 
 	    // Helper. Uncomment next line for bounding boxes:
 	    //this.opaqueObject.add(new THREE.Box3Helper(meshCollector.boundingBox, 0xff0000));
-	    this.setCurrentBounds(meshCollector.boundingBox);
 	}
 	else {
 	    meshCollector.draw(false); // New part is not 'old'.
@@ -331,6 +333,7 @@ LDR.StepBuilder.prototype.drawExtras = function() {
 	// Add all extra parts to mesh collector:
 	for(var i = 1; i < this.partDescs.length; i++) {
 	    var pd = this.partDescs[i];
+	    // Here it is not necessary to run any "geometryBuilder.buildPart..." due to all parts having already been loaded when the first submodel was built.
 	    this.part.generateThreePart(this.ldrLoader, pd.colorID, pd.position, pd.rotation, true, false, this.extraParts);
 	}
 
