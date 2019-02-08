@@ -7,7 +7,7 @@ LDR.ICON_SIZE = 200;
   The LDRSubPartBulder is used for displaying a part and all of its sub parts, 
   primitives, and comment lines.
 */
-LDR.SubPartBulder = function(baseMC, table, redPoints, ldrLoader, colorID, position, rotation, scene, subjectSize, onIconClick) {
+LDR.SubPartBulder = function(baseMC, table, redPoints, ldrLoader, partType, colorID, position, rotation, scene, subjectSize, onIconClick, from) {
     var self = this;
     this.baseMC = baseMC;
     this.table = table;
@@ -16,9 +16,10 @@ LDR.SubPartBulder = function(baseMC, table, redPoints, ldrLoader, colorID, posit
     this.p = position;
     this.r = rotation;
     this.scene = scene;
-    this.partType = ldrLoader.ldrPartTypes[ldrLoader.mainModel];
+    this.partType = partType;
     this.linesBuilt = false;
     this.onIconClick = onIconClick;
+    this.from = from;
 
     this.camera = new THREE.OrthographicCamera(-subjectSize, subjectSize, subjectSize, -subjectSize, 0.1, 1000000);
     this.camera.position.set(10*subjectSize, 7*subjectSize, 10*subjectSize);
@@ -36,7 +37,7 @@ LDR.SubPartBulder = function(baseMC, table, redPoints, ldrLoader, colorID, posit
 
     // Add self to table:
     var tr = LDR.makeEle(table, 'tr');
-    LDR.makeEle(tr, 'td', 'line_type').innerHTML = ldrLoader.mainModel;
+    LDR.makeEle(tr, 'td', 'line_type').innerHTML = partType.ID;
     LDR.makeEle(tr, 'td', 'line_desc').innerHTML = LDR.writePrettyPointsPR(p0, m0);
     LDR.makeEle(tr, 'td', 'line_cull').innerHTML = "&#x271" + (this.partType.certifiedBFC ? '4' : '6') + ";";;
     var CCW = this.partType.CCW;
@@ -177,6 +178,9 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
 		var url = linkPrefix;
 		if(subModel.inlined && !isNaN(subModel.inlined)) {
 		    url += "part.php?user_id=" + subModel.inlined + "&id=";
+		}
+		else if(subModel.inlined === undefined) {
+		    url += "part.php?from=" + self.from + "&id=";
 		}
 		a.setAttribute('href', url + subModel.ID);
 		a.innerHTML = line.desc.ID;
@@ -353,37 +357,3 @@ LDR.SubPartBulder.prototype.drawAllIcons = function() {
     this.redPoints.visible = false;
     this.baseMC.setVisible(true);
 }
-
-// TODO: PLI!
-
-/*
-    // Rotate for pli:
-    var pliID = "pli_" + this.partID.slice(0, -4);
-    if(LDR.PLI && LDR.PLI[pliID]) {
-	var pliInfo = LDR.PLI[pliID];
-	var pliName = "pli_" + this.partID;
-	if(!ldrLoader.ldrPartTypes[pliName]) {
-	    var r = new THREE.Matrix3();
-	    r.set(pliInfo[4], pliInfo[5], pliInfo[6],
-		  pliInfo[7], pliInfo[8], pliInfo[9],
-		  pliInfo[10], pliInfo[11], pliInfo[12]);
-	    var dat = new THREE.LDRPartDescription(colorID, 
-						   new THREE.Vector3(),
-						   r,
-						   this.partID,
-						   false,
-						   false);
-	    var step = new THREE.LDRStep();
-	    step.addDAT(dat);
-	    var pt = new THREE.LDRPartType();
-	    pt.ID = pliName;
-	    pt.modelDescription = this.partType.modelDescription;
-	    pt.author = this.partType.author;
-	    pt.license = this.partType.license;
-	    pt.steps.push(step);
-	    ldrLoader.ldrPartTypes[pliName] = pt;
-	    this.partType = pt;
-	    console.log("Replaced PLI for " + pliName);
-	}
-    }
-*/

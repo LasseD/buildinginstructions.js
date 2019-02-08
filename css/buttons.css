@@ -27,21 +27,24 @@
     margin-left: auto;
     margin-right: auto;
 }
-#next_button, #done_button {    
+#lower_right_buttons {
     float: right;
     transform: translate(0, -100%);
-    margin-bottom: -200px;
-    margin-right: 20px;
+    width: 200px;
+    height: 200px;
+}
+#next_button, #done_button {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 200px;
+    height: 200px;
     visibility: hidden;
 }
-#done_button {
-    margin-right: 0;
-}
-#next_button svg.next_normal {
-    margin-left: -100px;
-}
-#next_button svg.next_large {
-    margin-left: -200px;
+.next_large, .next_normal {
+    position: absolute;
+    right: 0;
+    bottom: 0;
 }
 
 #reset_camera_button {

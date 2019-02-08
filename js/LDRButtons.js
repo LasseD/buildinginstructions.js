@@ -27,17 +27,21 @@ LDR.Buttons = function(element, addTopButtons, homeLink, mainImage) {
     this.cameraButtons.appendChild(this.zoomInButtonLarge);
     element.appendChild(this.cameraButtons);
 
+    var lowerRightButtons = this.createDiv('lower_right_buttons');
+
     this.nextButton = this.createDiv('next_button', 'nextStep();');
+    lowerRightButtons.append(this.nextButton);
+
     this.rightArrowLarge = LDR.SVG.makeRightArrowLarge();
     this.rightArrowNormal = LDR.SVG.makeRightArrow();
     this.nextButton.appendChild(this.rightArrowLarge);
     this.nextButton.appendChild(this.rightArrowNormal);
-    element.appendChild(this.nextButton);
+
+    element.appendChild(lowerRightButtons);
 
     this.doneButton = this.createDiv('done_button', 'clickDone();');
-    this.checkmark = LDR.SVG.makeCheckMark();
-    this.doneButton.appendChild(this.checkmark);
-    element.appendChild(this.doneButton);
+    this.doneButton.append(LDR.SVG.makeCheckMark());
+    lowerRightButtons.appendChild(this.doneButton);
 
     if(addTopButtons)
 	this.addTopButtonElements(element, homeLink, mainImage);

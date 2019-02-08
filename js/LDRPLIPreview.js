@@ -1,7 +1,8 @@
 /*
   Icon: {x, y, width, height, mult, key, partID, colorID, desc}
  */
-LDR.PliPreviewer = function() {
+LDR.PliPreviewer = function(modelID) {
+    this.modelID = modelID;
     this.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
     this.resetCameraPosition();
     this.subjectSize = 1;
@@ -85,10 +86,16 @@ LDR.PliPreviewer.prototype.showPliPreview = function(icon) {
     blA.setAttribute('href', 'http://www.bricklink.com/catalogItem.asp?P=' + partIdNoDat);
 
     var bhA = document.getElementById('preview_info_bh_link');
+
     if(icon.inlined && !isNaN(icon.inlined)) {
-	bhA.setAttribute('href', "../p/part.php?user_id=" + icon.inlined + "&id=" + partIdNoDat);
+	bhA.setAttribute('href', "../p/part.php?user_id=" + icon.inlined + "&id=" + encodeURI(partIdNoDat));
+    }
+    else if(icon.inlined === undefined || icon.inlined === 'undefined') {
+	bhA.setAttribute('href', "../p/part.php?from=" + this.modelID + "&id=" + encodeURI(partIdNoDat));
     }
     else {
+	console.log("EH");
+	console.log(icon.inlined);
 	bhA.setAttribute('href', '../p/' + partIdNoDat);
     }
 
