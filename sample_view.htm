@@ -59,7 +59,11 @@
       // Three.js loader for LDraw models:
       var ldrLoader;
 
-      var onPartsBuilt = function() {
+      var onLoad = function() {
+	var geometryBuilder = new LDR.GeometryBuilder(ldrLoader, {});
+	var toBeBuilt = geometryBuilder.getAllTopLevelToBeBuilt();
+	geometryBuilder.build(toBeBuilt);
+
         var mainModel = ldrLoader.ldrPartTypes[ldrLoader.mainModel]; // Main model from the LDraw file (first model encountered)
 
         // Place model in scene:
@@ -79,12 +83,6 @@
 
 	camera.zoom = window.innerWidth/b.min.distanceTo(b.max);
         onWindowResize();
-      }
-
-      var onLoad = function() {
-	var geometryBuilder = new LDR.GeometryBuilder(ldrLoader);
-	var toBeBuilt = geometryBuilder.getAllTopLevelToBeBuilt();
-	geometryBuilder.build({}, toBeBuilt, onPartsBuilt);
       }
 
       var onError = function(msg) {
