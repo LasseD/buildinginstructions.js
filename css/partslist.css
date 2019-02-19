@@ -349,3 +349,6 @@ input {
     height: 1.8em;
     width: 1.8em;
 }
+.note_field {
+    display: none;
+}

@@ -57,6 +57,7 @@ LDR.Buttons = function(element, addTopButtons, homeLink, mainImage) {
 	self.fadingIn = false;
         self.fadeOutHandle = setTimeout(fadeOut, 1000);
     }
+    fadeOut();
 
     var runCameraFading = function() {
 	if(ldrOptions.showCameraButtons == 2)
