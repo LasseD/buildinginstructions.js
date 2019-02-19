@@ -13,8 +13,8 @@ LDR.PartsBulder = function(ldrLoader, mainModelID, mainModelColor, onBuiltPart) 
     this.pcs = {}; // partID_colorID -> PartAndColor objects
     this.pcKeys = [];
     
-    var pcs = this.pcs;
-    var pcKeys = this.pcKeys;
+    const pcs = this.pcs;
+    const pcKeys = this.pcKeys;
 
     // TODO: Use WebWorkers and finally call onBuiltPart for each built part.
     function build(multiplier, partID, colorID) {
@@ -37,10 +37,11 @@ LDR.PartsBulder = function(ldrLoader, mainModelID, mainModelColor, onBuiltPart) 
 		for(var j = 0; j < step.dats.length; j++) {
 		    var dat = step.dats[j];
 		    var datColorID = dat.colorID == 16 ? colorID : dat.colorID;
-		    var key = dat.ID + '_' + datColorID;
+		    var key = dat.ID.endsWith('.dat') ? dat.ID.substring(0, dat.ID.length-4) : dat.ID;
+		    key += '_' + datColorID;
 		    var pc = pcs[key];
 		    if(!pc) {
-			pc = new LDR.PartAndColor(dat.ID, datColorID, ldrLoader);
+			pc = new LDR.PartAndColor(key, dat.ID, datColorID, ldrLoader);
 			pcs[key] = pc;
 			pcKeys.push(key);
 		    }
@@ -51,6 +52,15 @@ LDR.PartsBulder = function(ldrLoader, mainModelID, mainModelColor, onBuiltPart) 
 	}
     }
     build(1, mainModelID, mainModelColor);
+
+    function sorter(a, b) {
+	a = pcs[a];
+	b = pcs[b];
+	if(a.colorID != b.colorID)
+	    return a.colorID - b.colorID;
+	return a.partID < b.partID ? -1 : (b.partID < a.partID ? 1 : 0);
+    }
+    pcKeys.sort(sorter);
 }
 
 LDR.PartsBulder.prototype.updateMeshCollectors = function(baseObject) {
@@ -60,14 +70,15 @@ LDR.PartsBulder.prototype.updateMeshCollectors = function(baseObject) {
     }
 }
 
-LDR.PartAndColor = function(partID, colorID, ldrLoader) {
+LDR.PartAndColor = function(key, partID, colorID, ldrLoader) {
+    this.key = key;
     this.partID = partID;
     this.colorID = colorID;
-    this.key = partID + '_' + colorID;
+    this.ldrLoader = ldrLoader;
+
     this.meshCollector;
     this.amount = 0;
     this.mesh; // Optional use.
-    this.ldrLoader = ldrLoader;
     this.annotation;
 
     this.partType = ldrLoader.ldrPartTypes[partID];
@@ -75,6 +86,8 @@ LDR.PartAndColor = function(partID, colorID, ldrLoader) {
 	console.dir(ldrLoader);
 	throw "Unknown part type: " + partID;
     }
+    this.inlined = this.partType.inlined;
+
     // Use replacement part:
     if(this.partType.replacement) {
 	//console.log("Replacing: " + partID + " -> " + this.partType.replacement);
@@ -87,9 +100,9 @@ LDR.PartAndColor = function(partID, colorID, ldrLoader) {
 	var pliName = "pli_" + this.partID;
 	if(!ldrLoader.ldrPartTypes[pliName]) {
 	    var r = new THREE.Matrix3();
-	    r.set(pliInfo[4], pliInfo[5], pliInfo[6],
-		  pliInfo[7], pliInfo[8], pliInfo[9],
-		  pliInfo[10], pliInfo[11], pliInfo[12]);
+	    r.set(pliInfo[0], pliInfo[1], pliInfo[2],
+		  pliInfo[3], pliInfo[4], pliInfo[5],
+		  pliInfo[6], pliInfo[7], pliInfo[8]);
 	    var dat = new THREE.LDRPartDescription(colorID, 
 						   new THREE.Vector3(),
 						   r,
@@ -106,7 +119,7 @@ LDR.PartAndColor = function(partID, colorID, ldrLoader) {
 	    pt.steps.push(step);
 	    ldrLoader.ldrPartTypes[pliName] = pt;
 	    this.partType = pt;
-	    console.log("Replaced PLI for " + pliName);
+	    //console.log("Replaced PLI for " + pliName);
 	}
     }
     // Annotate:

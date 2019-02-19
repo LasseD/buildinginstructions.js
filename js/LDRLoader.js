@@ -591,7 +591,12 @@ THREE.LDRStep.prototype.countParts = function(loader) {
 	return this.cnt;
     this.cnt = this.dats.length;
     for(var i = 0; i < this.ldrs.length; i++) {
-	this.cnt += loader.ldrPartTypes[this.ldrs[i].ID].countParts(loader);
+	var pt = loader.ldrPartTypes[this.ldrs[i].ID];
+	if(!pt) {
+	    console.warn("Unknown part (not DAT): " + this.ldrs[i].ID);
+	    continue;
+	}
+	this.cnt += pt.countParts(loader);
     }
     return this.cnt;
 }
@@ -624,13 +629,8 @@ THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, 
 	
 	var subModel = loader.ldrPartTypes[subModelDesc.ID];
 	if(subModel == undefined) {
-	    throw { 
-		name: "UnloadedSubmodelException", 
-		level: "Severe", 
-		message: "Unloaded sub model: " + subModelDesc.ID,
-		htmlMessage: "Unloaded sub model: " + subModelDesc.ID,
-		toString:    function(){return this.name + ": " + this.message;} 
-	    };
+	    loader.onError("Unloaded sub model: " + subModelDesc.ID,);
+	    return;
 	}
 	if(subModel.replacement) {
 	    var replacementSubModel = loader.ldrPartTypes[subModel.replacement];
@@ -920,22 +920,11 @@ LDR.ColorManager = function() {
 /*
   The LDRMeshBuilder is used to build geometries for parts.
  */
-LDR.GeometryBuilder = function(loader) {
+LDR.GeometryBuilder = function(loader, storage) {
+    if(!storage)
+	throw "Missing storage!";
     this.loader = loader;
-
-    /*
-    function checkLocalStorageAvailable(){
-	var test = '__TEST__';
-	try {
-            localStorage.setItem(test, test);
-            localStorage.removeItem(test);
-            return true;
-	}
-	catch {
-            return false;
-	}
-    }
-    this.localStorageAvailable = checkLocalStorageAvailable();*/
+    this.storage = storage;
 }
 
 /*
@@ -965,14 +954,6 @@ LDR.GeometryBuilder.prototype.getAllTopLevelToBeBuilt = function() {
     function mark(pt) {
 	if(!pt.isPart() || pt.geometry || pt.markToBeBuilt)
 	    return;
-	/*if(self.localStorageAvailable) {
-	    var fromStorage = localStorage.getItem(pt.ID);
-	    if(fromStorage) {
-		pt.geometry = new LDR.LDRGeometry();
-		pt.geometry.deserialize(fromStorage);
-		return;
-	    }
-	}*/
 	toBeBuilt.push(pt);
 	pt.markToBeBuilt = true;
     }
@@ -1002,10 +983,23 @@ LDR.GeometryBuilder.prototype.getAllTopLevelToBeBuilt = function() {
     return toBeBuilt;
 }
 
+LDR.GeometryBuilder.prototype.buildStep = function(step) {
+    var self = this;
+    var toBeBuilt = step.dats.map(pd => self.loader.ldrPartTypes[pd.ID]).filter(
+	function(partType){
+	    if(partType.inStep)
+		return false;
+	    partType.inStep = true;
+	    return true;
+	}
+    );
+    this.build(toBeBuilt);
+}
+
 /*
   This function builds the partTypes in the list 'toBeBuilt'. It does so my running in rounds of ready geometries, since this allows for multiple threads/workers to handle part types simultaneously.
  */
-LDR.GeometryBuilder.prototype.build = function(storage, toBeBuilt, onDone) {
+LDR.GeometryBuilder.prototype.build = function(toBeBuilt) {
     var startTime = new Date();
     /* Set up for part types:
        - children = count of unhandled children (dats within a step)
@@ -1056,10 +1050,11 @@ LDR.GeometryBuilder.prototype.build = function(storage, toBeBuilt, onDone) {
 
     var transaction, objectStore;
     var partsWritten = 0;
-    if(storage.db) {
-	transaction = storage.db.transaction(["parts"], "readwrite");
+    if(this.storage.db) {
+	transaction = this.storage.db.transaction(["parts"], "readwrite");
 	transaction.oncomplete = function(event) {
-	    console.log('Completed writing of ' + partsWritten + ' parts');
+	    if(partsWritten >= 10)
+		console.log('Completed writing of ' + partsWritten + ' parts');
 	};
 	transaction.onerror = function(event) {
 	    console.warn('Error while writing parts!');
@@ -1072,8 +1067,9 @@ LDR.GeometryBuilder.prototype.build = function(storage, toBeBuilt, onDone) {
       Run in rounds:
      */
     var nextRound = [];
+    var totalBuilt = 0;
     do { // Handle each in the ready list:	
-	console.log("Handling round with " + ready.length + " entries");
+	totalBuilt += ready.length;
 	for(var i = 0; i < ready.length; i++) {
 	    var partType = ready[i];
 	    for(var ptID in partType.parents) {
@@ -1101,22 +1097,9 @@ LDR.GeometryBuilder.prototype.build = function(storage, toBeBuilt, onDone) {
 	nextRound = [];
     } while(ready.length > 0);
 
-    console.log("Geometries built in " + (new Date()-startTime) + "ms.");
-    onDone();
-
-    /*
-      Run workers:
-      TODO
-     *//*
-    this.workers = [];    
-    for(var i = 0; i < numberOfWorkers; i++) {
-	var w = new Worker("LDRConstructionWorker.js");
-	this.workers.push(w);
-	w.onmessage = function(event) {
-	    console.dir(event);
-	    //console.dir(event.data);
-	};
-    } */
+    var elapsedTime = new Date()-startTime;
+    if(elapsedTime > 50)
+	console.log("Geometries for " + (totalBuilt-toBeBuilt.length) + " primitives from " + toBeBuilt.length + " parts built in " + elapsedTime + "ms.");
 }
 
 /*
@@ -1139,6 +1122,7 @@ LDR.MeshCollector = function(opaqueObject, transObject) {
     this.old = false;
     this.visible = true;
     this.boundingBox;
+    this.isMeshCollector = true;
 }
 
 LDR.MeshCollector.prototype.getLineMaterial = function(colorManager, color, conditional) {
@@ -1306,7 +1290,7 @@ LDR.MeshCollector.prototype.isVisible = function(v) {
   Update meshes and set own visibility indicator.
 */
 LDR.MeshCollector.prototype.setVisible = function(v) {
-    if(this.visible === v)
+    if(this.visible == v)
 	return;
     this.visible = v;
     this.updateMeshVisibility();

@@ -7,13 +7,19 @@ LDR.ICON_SIZE = 200;
   The LDRSubPartBulder is used for displaying a part and all of its sub parts, 
   primitives, and comment lines.
 */
-LDR.SubPartBulder = function(table, linkPrefix, ldrLoader, colorID, position, rotation, scene, subjectSize) {
+LDR.SubPartBulder = function(baseMC, table, redPoints, ldrLoader, partType, colorID, position, rotation, scene, subjectSize, onIconClick, from) {
     var self = this;
+    this.baseMC = baseMC;
+    this.table = table;
+    this.redPoints = redPoints;
     this.c = colorID;
     this.p = position;
     this.r = rotation;
     this.scene = scene;
-    this.partType = ldrLoader.ldrPartTypes[ldrLoader.mainModel];
+    this.partType = partType;
+    this.linesBuilt = false;
+    this.onIconClick = onIconClick;
+    this.from = from;
 
     this.camera = new THREE.OrthographicCamera(-subjectSize, subjectSize, subjectSize, -subjectSize, 0.1, 1000000);
     this.camera.position.set(10*subjectSize, 7*subjectSize, 10*subjectSize);
@@ -31,7 +37,7 @@ LDR.SubPartBulder = function(table, linkPrefix, ldrLoader, colorID, position, ro
 
     // Add self to table:
     var tr = LDR.makeEle(table, 'tr');
-    LDR.makeEle(tr, 'td', 'line_type').innerHTML = ldrLoader.mainModel;
+    LDR.makeEle(tr, 'td', 'line_type').innerHTML = partType.ID;
     LDR.makeEle(tr, 'td', 'line_desc').innerHTML = LDR.writePrettyPointsPR(p0, m0);
     LDR.makeEle(tr, 'td', 'line_cull').innerHTML = "&#x271" + (this.partType.certifiedBFC ? '4' : '6') + ";";;
     var CCW = this.partType.CCW;
@@ -39,22 +45,101 @@ LDR.SubPartBulder = function(table, linkPrefix, ldrLoader, colorID, position, ro
     LDR.makeEle(tr, 'td', 'line_color').innerHTML = colorID;
     this.imageHolder = LDR.makeEle(tr, 'td', 'line_image');
 
+    // Add icon for self:
+    this.canvas = LDR.buildThumbnail(this.imageHolder);
+    var self = this;
+    this.canvas.addEventListener('click', function(){
+	self.setVisible(false);
+	self.baseMC.setVisible(true);
+	self.redPoints.visible = false;
+	self.onIconClick();
+    }, false);
+}
+
+LDR.writePrettyPointColors = ['#FFA500', '#00CC00', '#4444FF', '#A500FF'];
+
+LDR.writePrettyPoints = function(ele, pts) {
+    var ul = LDR.makeEle(ele, 'ul', 'pretty_points');
+    for(var i = 0; i < pts.length; i++) {
+	var li = LDR.makeEle(ul, 'li');
+	li.style.color = LDR.writePrettyPointColors[i];
+
+	var span = LDR.makeEle(li, 'span', 'pretty_points');
+	var x = +parseFloat(pts[i].x).toFixed(3);
+	var y = +parseFloat(pts[i].y).toFixed(3);
+	var z = +parseFloat(pts[i].z).toFixed(3);
+	span.innerHTML = x + ' ' + y + ' ' + z;
+    }
+}
+
+LDR.writePrettyPointsPR = function(p, r) {
+    var x = +parseFloat(p.x).toFixed(3);
+    var y = +parseFloat(p.y).toFixed(3);
+    var z = +parseFloat(p.z).toFixed(3);
+    var ret = x + ' ' + y + ' ' + z;
+
+    for(var i = 0; i < r.elements.length; i++) {
+	var e = +parseFloat(r.elements[i]).toFixed(3);
+	ret += ' ' + e;
+    }
+    return ret;
+}
+
+LDR.makeEle = function(parent, type, cls) {
+    var ret = document.createElement(type);
+    parent.appendChild(ret);
+    if(cls)
+	ret.setAttribute('class', cls);
+    return ret;
+}
+
+LDR.buildThumbnail = function(ele) {
+    // Add thumbnail:
+    var iconSceneHolder = document.createElement('span');
+    iconSceneHolder.setAttribute('class', 'iconScene');
+    ele.appendChild(iconSceneHolder);
+
+    var canvas = document.createElement('canvas');
+    var w = LDR.ICON_SIZE, h = LDR.ICON_SIZE;
+    canvas.width = w*window.devicePixelRatio;
+    canvas.height = h*window.devicePixelRatio;
+    canvas.style.width = w+'px';
+    canvas.style.height = h+'px';
+    iconSceneHolder.appendChild(canvas);
+    return canvas;
+}
+
+LDR.SubPartBulder.prototype.setVisible = function(v) {
+    if(!this.linesBuilt)
+	return;
+    for(var i = 0; i < this.partType.lines.length; i++) {
+	var line = this.partType.lines[i];
+	if(line.line0)
+	    continue;
+	line.mc.setVisible(v);
+	if(line.markers)
+	    line.markers.visible = v;
+    }
+}
+
+LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
+    const self = this;
     // Handle all lines:
     var transformColor = function(subColorID) {
 	if(subColorID == 16)
-	    return colorID; // Main color
+	    return self.c; // Main color
 	if(subColorID == 24) {
-	    if(colorID == 16)
+	    if(self.c == 16)
 		return 24;
 	    else
-		return 10000 + colorID; // Edge color
+		return 10000 + self.c; // Edge color
 	}
 	return subColorID;
     }
     var transformPoint = function(p) {
 	var ret = new THREE.Vector3(p.x, p.y, p.z);
-	ret.applyMatrix3(rotation);
-	ret.add(position);
+	ret.applyMatrix3(self.r);
+	ret.add(self.p);
 	return ret;
     }
 
@@ -62,7 +147,7 @@ LDR.SubPartBulder = function(table, linkPrefix, ldrLoader, colorID, position, ro
 	var line = this.partType.lines[i];
 	line.idx = i;
 	
-	tr = LDR.makeEle(table, 'tr');
+	var tr = LDR.makeEle(this.table, 'tr');
 	if(line.line0) { // Comment line - just display.
 	    LDR.makeEle(tr, 'td', 'line_type').innerHTML = 'Comment';
 	    var content = LDR.makeEle(tr, 'td', 'line_desc');
@@ -94,6 +179,9 @@ LDR.SubPartBulder = function(table, linkPrefix, ldrLoader, colorID, position, ro
 		if(subModel.inlined && !isNaN(subModel.inlined)) {
 		    url += "part.php?user_id=" + subModel.inlined + "&id=";
 		}
+		else if(subModel.inlined === undefined) {
+		    url += "part.php?from=" + self.from + "&id=";
+		}
 		a.setAttribute('href', url + subModel.ID);
 		a.innerHTML = line.desc.ID;
 		typeEle.appendChild(a);
@@ -105,7 +193,7 @@ LDR.SubPartBulder = function(table, linkPrefix, ldrLoader, colorID, position, ro
 
 		var nextPosition = transformPoint(line.desc.position);
 		var nextRotation = new THREE.Matrix3();
-		nextRotation.multiplyMatrices(rotation, line.desc.rotation);
+		nextRotation.multiplyMatrices(this.r, line.desc.rotation);
 
 		subModel.generateThreePart(ldrLoader, c, nextPosition, nextRotation, line.desc.cull, line.desc.invertCCW, line.mc);
 	    }
@@ -200,125 +288,53 @@ LDR.SubPartBulder = function(table, linkPrefix, ldrLoader, colorID, position, ro
 	    line.markers.visible = false;
 	}
     }
-}
-
-LDR.writePrettyPointColors = ['#FFA500', '#00CC00', '#4444FF', '#A500FF'];
-
-LDR.writePrettyPoints = function(ele, pts) {
-    var ul = LDR.makeEle(ele, 'ul', 'pretty_points');
-    for(var i = 0; i < pts.length; i++) {
-	var li = LDR.makeEle(ul, 'li');
-	li.style.color = LDR.writePrettyPointColors[i];
-
-	var span = LDR.makeEle(li, 'span', 'pretty_points');
-	var x = +parseFloat(pts[i].x).toFixed(3);
-	var y = +parseFloat(pts[i].y).toFixed(3);
-	var z = +parseFloat(pts[i].z).toFixed(3);
-	span.innerHTML = x + ' ' + y + ' ' + z;
-    }
-}
-
-LDR.writePrettyPointsPR = function(p, r) {
-    var x = +parseFloat(p.x).toFixed(3);
-    var y = +parseFloat(p.y).toFixed(3);
-    var z = +parseFloat(p.z).toFixed(3);
-    var ret = x + ' ' + y + ' ' + z;
-
-    for(var i = 0; i < r.elements.length; i++) {
-	var e = +parseFloat(r.elements[i]).toFixed(3);
-	ret += ' ' + e;
-    }
-    return ret;
-}
-
-LDR.makeEle = function(parent, type, cls) {
-    var ret = document.createElement(type);
-    parent.appendChild(ret);
-    if(cls)
-	ret.setAttribute('class', cls);
-    return ret;
-}
-
-LDR.buildThumbnail = function(ele) {
-    // Add thumbnail:
-    var iconSceneHolder = document.createElement('span');
-    iconSceneHolder.setAttribute('class', 'iconScene');
-    ele.appendChild(iconSceneHolder);
-
-    var canvas = document.createElement('canvas');
-    var w = LDR.ICON_SIZE, h = LDR.ICON_SIZE;
-    canvas.width = w*window.devicePixelRatio;
-    canvas.height = h*window.devicePixelRatio;
-    canvas.style.width = w+'px';
-    canvas.style.height = h+'px';
-    iconSceneHolder.appendChild(canvas);
-    return canvas;
-}
-
-LDR.SubPartBulder.prototype.setVisible = function(v) {
-    for(var i = 0; i < this.partType.lines.length; i++) {
-	var line = this.partType.lines[i];
-	if(line.line0)
-	    continue;
-	line.mc.setVisible(v);
-	if(line.markers)
-	    line.markers.visible = v;
-    }
-}
-
-LDR.SubPartBulder.prototype.buildIcons = function(baseMC, baseObject, redPoints, onIconClick) {
-    // Add icon for self:
-    this.canvas = LDR.buildThumbnail(this.imageHolder);
-    var self = this;
-    this.canvas.addEventListener('click', function(){
-	self.setVisible(false);
-	baseMC.setVisible(true);
-	redPoints.visible = false;
-	onIconClick();
-    }, false);
 
     // Icons for lines:
     for(var i = 0; i < this.partType.lines.length; i++) {
-	var line = this.partType.lines[i];
+	const line = this.partType.lines[i];
 	if(line.line0)
 	    continue;
 
 	line.canvas = LDR.buildThumbnail(line.imageHolder);
 	line.canvas.line = line;
 	line.canvas.addEventListener('click', function(){
-	    baseMC.setVisible(false);
+	    self.baseMC.setVisible(false);
 	    self.setVisible(false);
 	    this.line.mc.setVisible(true);
-	    redPoints.visible = true;
+	    self.redPoints.visible = true;
 	    if(this.line.markers)
 		this.line.markers.visible = true;
-	    onIconClick();
+	    self.onIconClick();
 	}, false);
 
 	if(line.markers) {
 	    baseObject.add(line.markers);
 	    line.markers.updateMatrix();
 	}
-
 	line.mc.draw(false);
     }
+
+    this.linesBuilt = true;
 } 
 
-LDR.SubPartBulder.prototype.drawAllIcons = function(baseMC, redPoints) {
+LDR.SubPartBulder.prototype.drawAllIcons = function() {
     // Base icon:
     this.setVisible(false);
-    redPoints.visible = false;
+    this.redPoints.visible = false;
 
-    baseMC.setVisible(true);
-    baseMC.draw(false);
-    baseMC.overwriteColor(this.c);
+    this.baseMC.setVisible(true);
+    this.baseMC.draw(false);
+    this.baseMC.overwriteColor(this.c);
     this.render();
     var context = this.canvas.getContext('2d');
     context.drawImage(this.renderer.domElement, 0, 0);
 
+    if(!this.linesBuilt)
+	return;
+
     // Icons for lines:
-    baseMC.setVisible(false);
-    redPoints.visible = true;
+    this.baseMC.setVisible(false);
+    this.redPoints.visible = true;
     for(var i = 0; i < this.partType.lines.length; i++) {
 	var line = this.partType.lines[i];
 	if(line.line0)
@@ -338,40 +354,6 @@ LDR.SubPartBulder.prototype.drawAllIcons = function(baseMC, redPoints) {
 	if(line.markers)
 	    line.markers.visible = false;
     }
-    redPoints.visible = false;
-    baseMC.setVisible(true);
+    this.redPoints.visible = false;
+    this.baseMC.setVisible(true);
 }
-
-// TODO: PLI!
-
-/*
-    // Rotate for pli:
-    var pliID = "pli_" + this.partID.slice(0, -4);
-    if(LDR.PLI && LDR.PLI[pliID]) {
-	var pliInfo = LDR.PLI[pliID];
-	var pliName = "pli_" + this.partID;
-	if(!ldrLoader.ldrPartTypes[pliName]) {
-	    var r = new THREE.Matrix3();
-	    r.set(pliInfo[4], pliInfo[5], pliInfo[6],
-		  pliInfo[7], pliInfo[8], pliInfo[9],
-		  pliInfo[10], pliInfo[11], pliInfo[12]);
-	    var dat = new THREE.LDRPartDescription(colorID, 
-						   new THREE.Vector3(),
-						   r,
-						   this.partID,
-						   false,
-						   false);
-	    var step = new THREE.LDRStep();
-	    step.addDAT(dat);
-	    var pt = new THREE.LDRPartType();
-	    pt.ID = pliName;
-	    pt.modelDescription = this.partType.modelDescription;
-	    pt.author = this.partType.author;
-	    pt.license = this.partType.license;
-	    pt.steps.push(step);
-	    ldrLoader.ldrPartTypes[pliName] = pt;
-	    this.partType = pt;
-	    console.log("Replaced PLI for " + pliName);
-	}
-    }
-*/

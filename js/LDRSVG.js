@@ -47,6 +47,22 @@ LDR.SVG.makeRightArrow = function() {
     g.appendChild(LDR.SVG.makeCircle(50, 50, 49));
     return ret;
 }
+LDR.SVG.makeCheckMark = function() {
+    var ret = document.createElementNS(LDR.SVG.NS, 'svg');
+    ret.setAttribute("class", "done");
+    ret.setAttribute("viewBox", "-75 -75 150 150");
+
+    var g = document.createElementNS(LDR.SVG.NS, 'g');
+    ret.appendChild(g);
+
+    var path = document.createElementNS(LDR.SVG.NS, 'path');
+    path.setAttribute("d", "M-48 -5L-35 -15L-20 10L35-48L48-35L-20 50Z");
+    path.setAttribute("fill", "#4B4");
+
+    g.appendChild(path);
+    g.appendChild(LDR.SVG.makeCircle(0, 0, 74));
+    return ret;
+}
 
 // Up arrow is used to return to top of the page
 LDR.SVG.makeUpArrow = function() {

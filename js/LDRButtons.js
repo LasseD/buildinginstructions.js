@@ -27,12 +27,21 @@ LDR.Buttons = function(element, addTopButtons, homeLink, mainImage) {
     this.cameraButtons.appendChild(this.zoomInButtonLarge);
     element.appendChild(this.cameraButtons);
 
+    var lowerRightButtons = this.createDiv('lower_right_buttons');
+
     this.nextButton = this.createDiv('next_button', 'nextStep();');
+    lowerRightButtons.append(this.nextButton);
+
     this.rightArrowLarge = LDR.SVG.makeRightArrowLarge();
     this.rightArrowNormal = LDR.SVG.makeRightArrow();
     this.nextButton.appendChild(this.rightArrowLarge);
     this.nextButton.appendChild(this.rightArrowNormal);
-    element.appendChild(this.nextButton);
+
+    element.appendChild(lowerRightButtons);
+
+    this.doneButton = this.createDiv('done_button', 'clickDone();');
+    this.doneButton.append(LDR.SVG.makeCheckMark());
+    lowerRightButtons.appendChild(this.doneButton);
 
     if(addTopButtons)
 	this.addTopButtonElements(element, homeLink, mainImage);
@@ -146,13 +155,16 @@ LDR.Buttons.prototype.createDiv = function(id, onclick) {
 LDR.Buttons.prototype.atFirstStep = function() {
     this.backButton.style.visibility = 'hidden';
     this.nextButton.style.visibility = 'visible';
+    this.doneButton.style.visibility = 'hidden';
 }
 LDR.Buttons.prototype.atLastStep = function() {
     this.backButton.style.visibility = 'visible';
     this.nextButton.style.visibility = 'hidden';
+    this.doneButton.style.visibility = 'visible';
 }
 LDR.Buttons.prototype.atAnyOtherStep = function() {
     this.backButton.style.visibility = this.nextButton.style.visibility = 'visible';
+    this.doneButton.style.visibility = 'hidden';
 }
 LDR.Buttons.prototype.setShownStep = function(step) {
     this.stepInput.value = ""+step;

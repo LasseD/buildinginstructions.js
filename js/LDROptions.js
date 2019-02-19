@@ -19,6 +19,7 @@ LDR.Options = function() {
     this.showCameraButtons = 0; // 0=+- on right, 1=+- on sides, 2=off
     this.showStepRotationAnimations = 1; // 0=slow, 1=normal speed, 2=off
     this.partsListType = 0; // 0=icons, 1=list
+    this.showNotes = 0; // 0=off, 1=on
     this.showPLI = 1; // 0=off, 1=on
     this.rotateModel = 0; // 0=off, 1=on
 
@@ -69,6 +70,7 @@ LDR.Options.prototype.saveOptionsToCookie = function() {
     addToKv("showCameraButtons");
     addToKv("showLRButtons");
     addToKv("partsListType");
+    addToKv("showNotes");
     addToKv("showPLI");
     addToKv("rotateModel");
 }

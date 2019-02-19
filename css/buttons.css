@@ -1,4 +1,4 @@
-#prev_button, #next_button, #reset_camera_button, #zoom_in_button, #zoom_out_button, #zoom_in_button_large, #zoom_out_button_large {
+#prev_button, #next_button, #reset_camera_button, #zoom_in_button, #zoom_out_button, #zoom_in_button_large, #zoom_out_button_large, #done_button {
     position: relative;
     cursor: pointer;
     /* Prevent text select: */
@@ -27,13 +27,26 @@
     margin-left: auto;
     margin-right: auto;
 }
-#next_button {    
+#lower_right_buttons {
     float: right;
     transform: translate(0, -100%);
-    margin-bottom: -200px;
-    margin-right: 20px;
+    width: 200px;
+    height: 200px;
+}
+#next_button, #done_button {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 200px;
+    height: 200px;
     visibility: hidden;
 }
+.next_large, .next_normal {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+}
+
 #reset_camera_button {
     display: inline-block;
     width: 100px;
@@ -140,7 +153,7 @@ svg {
 svg:hover {
     opacity: 1;
 }
-#next_button svg {
+#next_button svg, #done_button svg {
     stroke: black;
     width: 200px;
     height: 200px;
