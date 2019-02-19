@@ -68,7 +68,7 @@
         inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
 
         // Generate the mesh:
-        mainModel.generateThreePart(ldrLoader, 0, origo, inv, true, false, mc, false);
+        mainModel.generateThreePart(ldrLoader, 0, origo, inv, true, false, mc);
 
         // Find center of draw model:
         var b = mc.boundingBox;

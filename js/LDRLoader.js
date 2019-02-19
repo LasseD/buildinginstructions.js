@@ -385,6 +385,9 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		part.lines.push(new LDR.Line5(colorID, p1, p2, p3, p4));
 	    invertNext = false;
 	    break;
+        default:
+            self.onWarning({message:'Unknown command "' + parts[1] + '" is ignored.', line:i, subModel:part});
+            break;
 	}
     }
 
