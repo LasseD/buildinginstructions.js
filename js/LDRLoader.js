@@ -385,6 +385,9 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		part.lines.push(new LDR.Line5(colorID, p1, p2, p3, p4));
 	    invertNext = false;
 	    break;
+        default:
+            self.onWarning({message:'Unknown command "' + parts[1] + '" is ignored.', line:i, subModel:part});
+            break;
 	}
     }
 
@@ -1037,8 +1040,9 @@ LDR.GeometryBuilder.prototype.build = function(toBeBuilt) {
 		linkChild(partType, child);
 	    }
 	}
-	if(partType.children == 0)
+	if(partType.children == 0) {
 	    ready.push(partType);
+        }
     }
     for(var i = 0; i < toBeBuilt.length; i++) {
 	//console.log("To be built: " + toBeBuilt[i].ID);
@@ -1065,7 +1069,8 @@ LDR.GeometryBuilder.prototype.build = function(toBeBuilt) {
      */
     var nextRound = [];
     var totalBuilt = 0;
-    do { // Handle each in the ready list:	
+    do { // Handle each in the ready list:
+        //console.log('Geometry construction round. Number of part types ready: ' + ready.length);
 	totalBuilt += ready.length;
 	for(var i = 0; i < ready.length; i++) {
 	    var partType = ready[i];
@@ -1095,8 +1100,9 @@ LDR.GeometryBuilder.prototype.build = function(toBeBuilt) {
     } while(ready.length > 0);
 
     var elapsedTime = new Date()-startTime;
-    if(elapsedTime > 50)
+    if(elapsedTime > 50) {
 	console.log("Geometries for " + (totalBuilt-toBeBuilt.length) + " primitives from " + toBeBuilt.length + " parts built in " + elapsedTime + "ms.");
+    }
 }
 
 /*

@@ -240,8 +240,11 @@
         var partCanvasses = [];
         var listCanvasses = [];
 
-        var onPartsBuilt = function() {
-          console.log("Done loading parts list!");
+        var onLoad = function() {
+	  var geometryBuilder = new LDR.GeometryBuilder(ldrLoader, {});
+	  var toBeBuilt = geometryBuilder.getAllTopLevelToBeBuilt();
+	  geometryBuilder.build(toBeBuilt);
+
           var mainModel = ldrLoader.mainModel;
 
           builder = new LDR.PartsBulder(ldrLoader, mainModel, 0);
@@ -297,12 +300,6 @@
           buildItem(0);
         }
 
-        var onLoad = function() {
-	  var geometryBuilder = new LDR.GeometryBuilder(ldrLoader);
-	  var toBeBuilt = geometryBuilder.getAllTopLevelToBeBuilt();
-	  geometryBuilder.build({}, toBeBuilt, onPartsBuilt);
-        }
-
         var onError = function(msg) {
           console.dir(msg);
         };
@@ -323,11 +320,17 @@
       <div id="preview_background" onclick="pliPreviewer.hidePliPreview();"></div>
       <div id="preview_holder">
         <div id="preview_parent"><canvas id="preview" /></div>
+
         <div id="preview_info">
-	  <span class="preview_info_line"><a href="" target="_blank"><div id="preview_info_name">PART NAME</div></a></span>
-          <span class="preview_info_line">LDraw color: <div id="preview_info_color_ldraw">LDR COLOR</div></span>
-          <span class="preview_info_line">LEGO/LDD color: <div id="preview_info_color_lego">LDD COLOR</div></span>
-	</div>
+         <span class="preview_info_line">
+          <span id="preview_info_name">PART NAME</span>
+          <a id="preview_info_bh_link" href="" target="_blank">Go to part</a>
+                       or
+          <a id="preview_info_bl_link" href="" target="_blank">See on BrickLink</a>
+         </span>
+         <span class="preview_info_line">LDraw color: <div id="preview_info_color_ldraw">LDR COLOR</div></span>
+         <span class="preview_info_line">LEGO/LDD color: <div id="preview_info_color_lego">LDD COLOR</div></span>
+        </div>
       </div>
 
       <div id="big_parts"></div>

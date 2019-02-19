@@ -59,7 +59,11 @@
       // Three.js loader for LDraw models:
       var ldrLoader;
 
-      var onPartsBuilt = function() {
+      var onLoad = function() {
+	var geometryBuilder = new LDR.GeometryBuilder(ldrLoader, {});
+	var toBeBuilt = geometryBuilder.getAllTopLevelToBeBuilt();
+	geometryBuilder.build(toBeBuilt);
+
         var mainModel = ldrLoader.ldrPartTypes[ldrLoader.mainModel]; // Main model from the LDraw file (first model encountered)
 
         // Place model in scene:
@@ -68,7 +72,7 @@
         inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
 
         // Generate the mesh:
-        mainModel.generateThreePart(ldrLoader, 0, origo, inv, true, false, mc, false);
+        mainModel.generateThreePart(ldrLoader, 0, origo, inv, true, false, mc);
 
         // Find center of draw model:
         var b = mc.boundingBox;
@@ -79,12 +83,6 @@
 
 	camera.zoom = window.innerWidth/b.min.distanceTo(b.max);
         onWindowResize();
-      }
-
-      var onLoad = function() {
-	var geometryBuilder = new LDR.GeometryBuilder(ldrLoader);
-	var toBeBuilt = geometryBuilder.getAllTopLevelToBeBuilt();
-	geometryBuilder.build({}, toBeBuilt, onPartsBuilt);
       }
 
       var onError = function(msg) {
