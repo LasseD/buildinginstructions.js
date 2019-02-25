@@ -392,6 +392,9 @@ THREE.LDRLoader.prototype.parse = function(data) {
     }
 
     part.addStep(step);
+    if(part.ID === null && this.mainModel === undefined) {
+        part.ID = this.mainModel = 'main'; // No name given - use 'main'.
+    }
     this.ldrPartTypes[part.ID] = part;
 
     var parseEndTime = new Date();

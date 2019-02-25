@@ -1,6 +1,6 @@
 # buildinginstructions.js
 
-Render LEGO building instructions in the browser using [three.js](https://github.com/mrdoob/three.js/?PHPSESSID=3d110c25f9ee23ac1642f6f238ba357e) and the [LDraw parts library](http://www.ldraw.org).
+Render LEGO building instructions in the browser using [three.js](https://github.com/mrdoob/three.js) and the [LDraw parts library](http://www.ldraw.org).
 
 See this project visualized on [BrickHub.org](https://brickhub.org)
 
