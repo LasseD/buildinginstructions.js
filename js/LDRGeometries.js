@@ -1,3 +1,5 @@
+'use strict';
+
 /*
   Binary merge of the geometry streams.
  */
@@ -648,16 +650,12 @@ LDR.LDRGeometry.prototype.fromStep = function(loader, step, parent) {
 	g.fromPrimitives(step.lines, step.conditionalLines, step.triangles, step.quads, parent);
         geometries.push(g);
     }
-    for(var i = 0; i < step.ldrs.length; i++) {
+    function handleSubModel(subModel) {
         var g = new LDR.LDRGeometry(); 
-	g.fromPartDescription(loader, step.ldrs[i]);
+	g.fromPartDescription(loader, subModel);
         geometries.push(g);
     }
-    for(var i = 0; i < step.dats.length; i++) {
-        var g = new LDR.LDRGeometry(); 
-	g.fromPartDescription(loader, step.dats[i]);
-        geometries.push(g);
-    }
+    step.subModels.forEach(handleSubModel);
     this.replaceWith(LDR.mergeGeometries(geometries));
     this.cull = step.cull;
 }
@@ -678,11 +676,11 @@ LDR.LDRGeometry.prototype.fromPartType = function(loader, pt) {
 }
 
 LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
-    if(!loader.ldrPartTypes[pd.ID].geometry) {
-	console.dir(loader.ldrPartTypes[pd.ID]);
+    if(!loader.partTypes[pd.ID].geometry) {
+	console.dir(loader.partTypes[pd.ID]);
 	throw "Missing geometry on " + pd.ID;
     }
-    this.replaceWithDeep(loader.ldrPartTypes[pd.ID].geometry); // Assume pd.ID has prepared geometry.
+    this.replaceWithDeep(loader.partTypes[pd.ID].geometry); // Assume pd.ID has prepared geometry.
     this.cull = this.cull && pd.cull;
     var invert = pd.invertCCW != (pd.rotation.determinant() < 0);
 

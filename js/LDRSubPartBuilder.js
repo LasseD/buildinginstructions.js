@@ -159,7 +159,7 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
 	    var c = transformColor(line.line1 ? line.desc.colorID : line.c);
 	    var p1, p2, p3, p4;
 
-	    var subModel = line.line1 ? ldrLoader.ldrPartTypes[line.desc.ID] : new THREE.LDRPartType();
+	    var subModel = line.line1 ? ldrLoader.partTypes[line.desc.ID] : new THREE.LDRPartType();
 	    var step = new THREE.LDRStep();
 
 	    if(line.line1) {

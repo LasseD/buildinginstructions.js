@@ -36,15 +36,19 @@ LDR.StepBuilder = function(opaqueObject, transObject, ldrLoader, partDescs, isFo
     this.accumulatedBounds = []; // Accumulated bounds for each step
     
     var partDesc = partDescs[0];
-    this.part = ldrLoader.ldrPartTypes[partDesc.ID];
+    this.part = ldrLoader.partTypes[partDesc.ID];
 
     this.totalNumberOfSteps = this.part.steps.length;
     for(var i = 0; i < this.part.steps.length; i++) {
 	var step = this.part.steps[i];
-	if(step.ldrs.length > 0) {
+        if(step.subModels.length === 0) {
+            continue;
+        }
+
+	if(!step.subModels[0].isPart()) {
 	    var subDescs = [];
-	    for(var j = 0; j < step.ldrs.length; j++) {
-		var placed = step.ldrs[j].placeAt(partDesc);
+	    for(var j = 0; j < step.subModels.length; j++) {
+		var placed = step.subModels[j].placeAt(partDesc);
 		subDescs.push(placed);
 	    }
 	    var subStepBuilder = new LDR.StepBuilder(opaqueObject, transObject, ldrLoader, subDescs, false, storage);

@@ -11,21 +11,12 @@ onmessage = function(e) {
     var loader = e.data[1];
 
     // Prepare determinants:
-    for(var i = 0; i < partType.steps.length; i++) {
-	var step = partType.steps[i];
-	for(var j = 0; j < step.dats.length; j++) {
-	    var pd = step.dats[j];
-	    var r = new THREE.Matrix3();
-	    r.copy(pd.rotation);
-	    pd.rotation = r;
-	}
-	for(var j = 0; j < step.ldrs.length; j++) {
-	    var pd = step.ldrs[j];
-	    var r = new THREE.Matrix3();
-	    r.copy(pd.rotation);
-	    pd.rotation = r;
-	}
+    function handleSubModel(pd) {
+        var r = new THREE.Matrix3();
+        r.copy(pd.rotation);
+        pd.rotation = r; // Ensure determinant can be taken.
     }
+    partType.steps.forEach(step => step.subModels.forEach(handleSubModel));
 
     var geometry = new LDR.LDRGeometry();
     geometry.fromPartType(loader, partType);

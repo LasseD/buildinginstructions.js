@@ -19,11 +19,26 @@
  * - top is true for top-level ids, such as .ldr and .mpd.
  */
 THREE.LDRLoader = function(onLoad, options) {
+    var self = this;
     var nop = function(){};
-    options = options || {};
-    this.ldrPartTypes = {}; // id => part. id can be "parts/3001.dat", "model.mpd", etc.
+
+    this.partTypes = {}; // id => part. id can be "parts/3001.dat", "model.mpd", etc.
     this.unloadedFiles = 0;
-    this.onLoad = onLoad;
+    this.onLoad = function() {
+        for(var id in self.partTypes) {
+            if(self.partTypes.hasOwnProperty(id)) {
+                var partType = self.partTypes[id];
+                if(partType === true) {
+                    console.warn('Unloaded sub model: ' + id);
+                    continue;
+                }
+                partType.cleanUpSteps(self);
+            }
+        }
+        onLoad();
+    };
+
+    options = options || {};
     this.onProgress = options.onProgress || nop;
     this.onError = options.onError || nop;
     this.onWarning = options.onWarning || nop;
@@ -31,7 +46,7 @@ THREE.LDRLoader = function(onLoad, options) {
     this.loader = new THREE.FileLoader(options.manager || THREE.DefaultLoadingManager);
     this.saveFileLines = options.saveFileLines || false;
     this.mainModel;
-    var self = this;
+
     this.idToUrl = options.idToUrl || function(id, top) {
 	if(self.isTopLevelModel(id)){
 	    return id;
@@ -54,12 +69,12 @@ THREE.LDRLoader.prototype.load = function(id, top) {
     var url = this.idToUrl(id, top);
     id = id.replace('\\', '/'); // Sanitize id. 
 
-    if(this.ldrPartTypes[id]) { // Already loaded
+    if(this.partTypes[id]) { // Already loaded
 	this.reportProgress(id);
 	return;
     }
     var self = this;
-    self.ldrPartTypes[id] = true;
+    self.partTypes[id] = true;
 
     var onFileLoaded = function(text) {
 	self.parse(text);
@@ -111,21 +126,14 @@ THREE.LDRLoader.prototype.parse = function(data) {
     // Start parsing:
     var part = new THREE.LDRPartType();
     var step = new THREE.LDRStep();
-    var extraSteps = {}; // sub models are handled in additional, separate, steps. This is to support the limitation of only showing a single model on screen at any time.
     function closeStep(keepRotation) {
 	part.addStep(step);
 	var rot = step.rotation;
 	step = new THREE.LDRStep();
 	if(keepRotation)
 	    step.rotation = rot;
-
-	for (var key in extraSteps) {
-	    var extraStep = extraSteps[key];
-	    extraStep.rotation = rot;
-	    part.addStep(extraStep);
-	}
-	extraSteps = {};
     }
+    var toLoadImmediately = [];
 
     // State information:
     var previousComment;
@@ -184,15 +192,12 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    else if(!self.mainModel) { // First model
 		self.mainModel = part.ID = fileName;
 	    }
-	    else if(part.steps.length == 0 && step.empty && 
-		    Object.keys(extraSteps).length == 0 && self.mainModel === part.ID) {
+	    else if(part.steps.length == 0 && step.empty && self.mainModel === part.ID) {
 		console.log("Special case: Main model ID change from " + part.ID + " to " + fileName);
 		self.mainModel = part.ID = fileName;
 	    }
 	    else { // Close model and start new:
-		if(part.steps.length == 0 && step.empty && 
-		   Object.keys(extraSteps).length == 0 && part.ID && 
-		   !part.consistentFileAndName) {
+		if(part.steps.length == 0 && step.empty && part.ID && !part.consistentFileAndName) {
 		    console.log("Special case: Empty '" + part.ID + "' does not match '" + fileName + "' - Create new shallow part!");		
 		    // Create pseudo-model with just one of 'fileName' inside:
 		    var rotation = new THREE.Matrix3();
@@ -207,7 +212,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		}
 		closeStep(false);
 		if(part.ID) {
-		    self.ldrPartTypes[part.ID] = part;
+		    self.partTypes[part.ID] = part;
 		    self.onProgress(part.ID);
 		}
 		part = new THREE.LDRPartType();
@@ -308,28 +313,17 @@ THREE.LDRLoader.prototype.parse = function(data) {
 							subModelID,
 							localCull,
 						        invertNext);
-	    var isLDR = subModelID.endsWith('.ldr');
-	    if(isLDR) {
-		var prevStep = extraSteps['' + colorID + subModelID];
-		if(prevStep) {
-		    prevStep.addLDR(subModel); // Same color and type => add there.
-		}
-		else {
-		    var extraStep = new THREE.LDRStep();
-		    extraStep.addLDR(subModel);
-		    extraSteps['' + colorID + subModelID] = extraStep;
-		}
-	    }
-	    else {
-		step.addDAT(subModel); // DAT part - no step.
-	    }
-	    if(!isLDR) {
-		if(this.loadRelatedFilesImmediately) {
-		    this.load(subModelID, false); // Start loading the separate file immediately!
-		}
-	    }
-	    if(this.saveFileLines)
+            step.addSubModel(subModel); // DAT part - no step.
+
+            if(this.loadRelatedFilesImmediately) {
+                toLoadImmediately.push(subModelID);
+                this.load(subModelID, false); // Start loading the separate file immediately!
+            }
+
+	    if(this.saveFileLines) {
   		part.lines.push(new LDR.Line1(subModel));
+            }
+
 	    invertNext = false;
 	    break;
 	case 2: // Line "2 <colour> x1 y1 z1 x2 y2 z2"
@@ -395,17 +389,20 @@ THREE.LDRLoader.prototype.parse = function(data) {
     if(part.ID === null && this.mainModel === undefined) {
         part.ID = this.mainModel = 'main'; // No name given - use 'main'.
     }
-    this.ldrPartTypes[part.ID] = part;
+    this.partTypes[part.ID] = part;
+
+    // Start loading the separate file immediately:
+    toLoadImmediately.forEach(subModelID => self.load(subModelID, false));
 
     var parseEndTime = new Date();
     //console.log("LDraw file read in " + (parseEndTime-parseStartTime) + "ms.");
 };
 
 THREE.LDRLoader.prototype.removeGeometries = function() {
-    for(var ptID in this.ldrPartTypes) {
-	if(!this.ldrPartTypes.hasOwnProperty(ptID))
+    for(var ptID in this.partTypes) {
+	if(!this.partTypes.hasOwnProperty(ptID))
 	    continue; // Not a part.
-	var partType = this.ldrPartTypes[ptID];
+	var partType = this.partTypes[ptID];
 
 	if(partType === true)
 	    continue;
@@ -535,13 +532,12 @@ THREE.LDRStepRotation.prototype.getRotationMatrix = function(defaultMatrix) {
     return ret;
 }
 
-THREE.LDRStepIdx = 0;
+//THREE.LDRStepIdx = 0;
 THREE.LDRStep = function() {
-    this.idx = THREE.LDRStepIdx++;
+    //this.idx = THREE.LDRStepIdx++;
     this.empty = true;
     this.hasPrimitives = false;
-    this.ldrs = [];
-    this.dats = [];
+    this.subModels = [];
     this.lines = []; // {colorID, p1, p2}
     this.conditionalLines = []; // {colorID, p1, p2, p3, p4}
     this.triangles = []; // {colorID, p1, p2, p3}
@@ -552,21 +548,16 @@ THREE.LDRStep = function() {
 }
 
 THREE.LDRStep.prototype.removePrimitivesAndSubParts = function() {
-    delete this.ldrs;
-    delete this.dats;
+    delete this.subModels;
     delete this.lines;
     delete this.conditionalLines;
     delete this.triangles;
     delete this.quads;
 }
 
-THREE.LDRStep.prototype.addLDR = function(ldr) {
+THREE.LDRStep.prototype.addSubModel = function(subModel) {
     this.empty = false;
-    this.ldrs.push(ldr);
-}
-THREE.LDRStep.prototype.addDAT = function(dat) {
-    this.empty = false;
-    this.dats.push(dat);
+    this.subModels.push(subModel);
 }
 THREE.LDRStep.prototype.addLine = function(c, p1, p2) {
     this.empty = false;
@@ -592,16 +583,79 @@ THREE.LDRStep.prototype.addConditionalLine = function(c, p1, p2, p3, p4) {
 THREE.LDRStep.prototype.countParts = function(loader) {
     if(this.cnt >= 0)
 	return this.cnt;
-    this.cnt = this.dats.length;
-    for(var i = 0; i < this.ldrs.length; i++) {
-	var pt = loader.ldrPartTypes[this.ldrs[i].ID];
-	if(!pt) {
-	    console.warn("Unknown part (not DAT): " + this.ldrs[i].ID);
-	    continue;
-	}
-	this.cnt += pt.countParts(loader);
+    var cnt = 0;
+
+    this.subModels.forEach(function(subModel) {
+	var pt = loader.partTypes[subModel.ID];
+        if(!pt || pt === true) {
+	    console.warn("Unknown part type: " + subModel.ID);
+        }
+        else if(pt.isPart()) {
+            cnt++;
+        }
+        else {
+            cnt += pt.countParts(loader);
+        }
+    });
+
+    this.cnt = cnt;
+    return cnt;
+}
+
+/*
+  Split all color/partType into separate steps with one step containing only parts.
+  
+  this.subModels = [];
+  this.rotation = null;
+ */
+THREE.LDRStep.prototype.cleanUp = function(loader, newSteps) {
+    if(this.empty || this.hasPrimitives) {
+        newSteps.push(this);
+        return; // Primitive-containing or empty step - just keep existing.
     }
-    return this.cnt;
+
+    // Collect info:
+    var self = this;
+    var parts = [];
+    var subModelsByTypeAndColor = {};
+
+    function handleSubModel(subModelDesc) {
+        var subModel = loader.partTypes[subModelDesc.ID];
+        if(subModel.isPart()) {
+            parts.push(subModelDesc);
+        }
+        else { // Not a part:
+            subModel.cleanUpSteps(loader);
+            var key = subModel.color + '_' + subModel.ID;
+            if(subModelsByTypeAndColor.hasOwnProperty(key)) {
+                subModelsByTypeAndColor[key].push(subModelDesc);
+            }
+            else {
+                subModelsByTypeAndColor[key] = [subModelDesc];
+            }
+        }
+    }
+    this.subModels.forEach(handleSubModel);
+
+    function push(subModels) {
+        var newStep = new THREE.LDRStep();
+        newStep.empty = false;
+        newStep.subModels = subModels;
+        newStep.rotation = self.rotation;
+        newSteps.push(newStep);
+    }
+
+    // Split into separate steps if necessary:
+    for(var key in subModelsByTypeAndColor) {
+        if(subModelsByTypeAndColor.hasOwnProperty(key)) {
+            push(subModelsByTypeAndColor[key]);
+        }
+    }
+
+    // Finally add step for just the parts:
+    if(parts.length > 0) {
+        push(parts);
+    }
 }
 
 THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, rotation, cull, invertCCW, mc) {
@@ -630,13 +684,13 @@ THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, 
 
 	var subModelColor = transformColor(subModelDesc.colorID);
 	
-	var subModel = loader.ldrPartTypes[subModelDesc.ID];
+	var subModel = loader.partTypes[subModelDesc.ID];
 	if(subModel == undefined) {
 	    loader.onError("Unloaded sub model: " + subModelDesc.ID,);
 	    return;
 	}
 	if(subModel.replacement) {
-	    var replacementSubModel = loader.ldrPartTypes[subModel.replacement];
+	    var replacementSubModel = loader.partTypes[subModel.replacement];
 	    if(replacementSubModel == undefined) {
 		throw { 
 		    name: "UnloadedSubmodelException", 
@@ -655,14 +709,7 @@ THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, 
     }
     
     // Add submodels:
-    for(var i = 0; i < this.ldrs.length; i++) {
-	var subModelDesc = this.ldrs[i];
-	handleSubModel(subModelDesc);
-    }
-    for(var i = 0; i < this.dats.length; i++) {
-	var subModelDesc = this.dats[i];
-	handleSubModel(subModelDesc);
-    }
+    this.subModels.forEach(handleSubModel);
 }
 
 LDR.Line0 = function(txt) {
@@ -721,6 +768,24 @@ THREE.LDRPartType = function() {
     this.ldraw_org;
     this.geometry;
     this.cnt = -1;
+    this.cleanSteps = false;
+}
+
+/*
+  Clean up all steps.
+  This can cause additional steps (such as when a step contains both parts and sub models.
+ */
+THREE.LDRPartType.prototype.cleanUpSteps = function(loader) {
+    if(this.cleanSteps) {
+        return; // Already done.
+    }
+
+    var newSteps = [];
+
+    this.steps.forEach(step => step.cleanUp(loader, newSteps));
+
+    this.steps = newSteps;
+    this.cleanSteps = true;
 }
 
 THREE.LDRPartType.prototype.prepareGeometry = function(loader) {
@@ -939,48 +1004,36 @@ LDR.GeometryBuilder.prototype.getAllTopLevelToBeBuilt = function() {
 
     // Set 'isReplacing' on all parts whose geometries should be 
     // maintained because they replace other parts.
-    for(var ptID in this.loader.ldrPartTypes) {
-	if(!this.loader.ldrPartTypes.hasOwnProperty(ptID))
+    for(var ptID in this.loader.partTypes) {
+	if(!this.loader.partTypes.hasOwnProperty(ptID))
 	    continue; // Not a part.
-	var partType = this.loader.ldrPartTypes[ptID];
-	if(!partType.replacement)
-	    continue; // Not replaced.
-	for(var j = 0; j < partType.steps.length; j++) {
-	    var step = partType.steps[j];
-	    for(var k = 0; k < step.dats.length; k++) {
-		var id = step.dats[k].ID;
-		this.loader.ldrPartTypes[id].isReplacing = true;
-	    }
-	}
+	var partType = this.loader.partTypes[ptID];
+	if(partType.replacement) { // Mark all inside of replaced part as 'replacing':
+            partType.steps.forEach(step => step.subModels.forEach(sm => self.loader.partTypes[sm.ID].isReplacing = true));
+        }
     }
 
-    function mark(pt) {
+    function markToBeBuilt(pt) {
 	if(!pt.isPart() || pt.geometry || pt.markToBeBuilt)
 	    return;
 	toBeBuilt.push(pt);
 	pt.markToBeBuilt = true;
     }
 
-    for(var ptID in this.loader.ldrPartTypes) {
-	if(!this.loader.ldrPartTypes.hasOwnProperty(ptID))
+    for(var ptID in this.loader.partTypes) {
+	if(!this.loader.partTypes.hasOwnProperty(ptID))
 	    continue; // Not a part.
-	var partType = this.loader.ldrPartTypes[ptID];
+	var partType = this.loader.partTypes[ptID];
 	if(partType === true || partType.geometry) {
 	    continue;
 	}
 	if(partType.isPart()) {
-	    if(partType.isReplacing)
-		mark(partType);
+	    if(partType.isReplacing) {
+		markToBeBuilt(partType); // Mark all that are replacing as in need to be built.
+            }
 	}
-	else {
-	    // Mark all parts within:
-	    for(var j = 0; j < partType.steps.length; j++) {
-		var step = partType.steps[j];
-		for(var k = 0; k < step.dats.length; k++) {
-		    var id = step.dats[k].ID;
-		    mark(this.loader.ldrPartTypes[id]);
-		}
-	    }
+	else { // For non-parts: Mark all parts within:
+            partType.steps.forEach(step => step.subModels.forEach(sm => markToBeBuilt(self.loader.partTypes[sm.ID])));
 	}
     }
     return toBeBuilt;
@@ -988,11 +1041,12 @@ LDR.GeometryBuilder.prototype.getAllTopLevelToBeBuilt = function() {
 
 LDR.GeometryBuilder.prototype.buildStep = function(step) {
     var self = this;
-    var toBeBuilt = step.dats.map(pd => self.loader.ldrPartTypes[pd.ID]).filter(
+    var toBeBuilt = step.subModels.map(pd => self.loader.partTypes[pd.ID]).filter(
 	function(partType){
-	    if(partType.inStep)
+	    if(partType.inAnyStep) {
 		return false;
-	    partType.inStep = true;
+            }
+	    partType.inAnyStep = true; // Used to mark if already built in another step.
 	    return true;
 	}
     );
@@ -1028,21 +1082,12 @@ LDR.GeometryBuilder.prototype.build = function(toBeBuilt) {
 	partType.children = 0;
 	partType.prepared = true;
 
-	for(var j = 0; j < partType.steps.length; j++) {
-	    var step = partType.steps[j];
-	    for(var k = 0; k < step.ldrs.length; k++) {
-		var id = step.ldrs[k].ID;
-		var child = self.loader.ldrPartTypes[id];
-		prepare(child);
-		linkChild(partType, child);
-	    }
-	    for(var k = 0; k < step.dats.length; k++) {
-		var id = step.dats[k].ID;
-		var child = self.loader.ldrPartTypes[id];
-		prepare(child);
-		linkChild(partType, child);
-	    }
-	}
+        function handleChild(child) {
+            prepare(child);
+            linkChild(partType, child);
+        }
+        partType.steps.forEach(step => step.subModels.forEach(subModelDesc => handleChild(self.loader.partTypes[subModelDesc.ID])));
+
 	if(partType.children == 0) {
 	    ready.push(partType);
         }

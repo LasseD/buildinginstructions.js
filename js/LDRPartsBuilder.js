@@ -20,36 +20,37 @@ LDR.PartsBulder = function(ldrLoader, mainModelID, mainModelColor, onBuiltPart) 
     function build(multiplier, partID, colorID) {
 	if(colorID == 16)
 	    throw "Building with default color not allowed! Part ID: " + partID;
-	var model = ldrLoader.ldrPartTypes[partID];
+	var model = ldrLoader.partTypes[partID];
 	if(!model) {
 	    console.dir(ldrLoader);
 	    throw "model not loaded: " + partID;
 	}
-	for(var i = 0; i < model.steps.length; i++) {
-	    var step = model.steps[i];
-	    if(step.ldrs.length > 0) {
-		var ldr = step.ldrs[0];
-		if(ldr.ID === partID)
-		    throw "Error: recursive model: " + partID + " in step " + i;
-		build(multiplier*step.ldrs.length, ldr.ID, ldr.colorID == 16 ? colorID : ldr.colorID);
+
+        function handleStep(step) {
+            if(step.subModels.length == 0) {
+                return; // Empty step.
+            }
+            if(step.subModels[0].isPart()) {
+		var ldr = step.subModels[0];
+		build(multiplier*step.subModels.length, ldr.ID, ldr.colorID == 16 ? colorID : ldr.colorID);
+                return;
 	    }
-	    else if(step.dats.length > 0) {	
-		for(var j = 0; j < step.dats.length; j++) {
-		    var dat = step.dats[j];
-		    var datColorID = dat.colorID == 16 ? colorID : dat.colorID;
-		    var key = dat.ID.endsWith('.dat') ? dat.ID.substring(0, dat.ID.length-4) : dat.ID;
-		    key += '_' + datColorID;
-		    var pc = pcs[key];
-		    if(!pc) {
-			pc = new LDR.PartAndColor(key, dat.ID, datColorID, ldrLoader);
-			pcs[key] = pc;
-			pcKeys.push(key);
-		    }
-		    // Add count:
-		    pc.amount += multiplier;
-		}
+            for(var j = 0; j < step.subModels.length; j++) {
+                var dat = step.subModels[j];
+                var datColorID = dat.colorID == 16 ? colorID : dat.colorID;
+                var key = dat.ID.endsWith('.dat') ? dat.ID.substring(0, dat.ID.length-4) : dat.ID;
+                key += '_' + datColorID;
+                var pc = pcs[key];
+                if(!pc) {
+                    pc = new LDR.PartAndColor(key, dat.ID, datColorID, ldrLoader);
+                    pcs[key] = pc;
+                    pcKeys.push(key);
+                }
+                // Add count:
+                pc.amount += multiplier;
 	    }
-	}
+        }
+        model.steps.forEach(handleStep);
     }
     build(1, mainModelID, mainModelColor);
 
@@ -81,7 +82,7 @@ LDR.PartAndColor = function(key, partID, colorID, ldrLoader) {
     this.mesh; // Optional use.
     this.annotation;
 
-    this.partType = ldrLoader.ldrPartTypes[partID];
+    this.partType = ldrLoader.partTypes[partID];
     if(!this.partType) {
 	console.dir(ldrLoader);
 	throw "Unknown part type: " + partID;
@@ -91,14 +92,14 @@ LDR.PartAndColor = function(key, partID, colorID, ldrLoader) {
     // Use replacement part:
     if(this.partType.replacement) {
 	//console.log("Replacing: " + partID + " -> " + this.partType.replacement);
-	this.partType = ldrLoader.ldrPartTypes[this.partType.replacement];
+	this.partType = ldrLoader.partTypes[this.partType.replacement];
     }
     // Rotate for pli:
     var pliID = "pli_" + this.partType.ID.slice(0, -4);
     if(LDR.PLI && LDR.PLI[pliID]) {
 	var pliInfo = LDR.PLI[pliID];
 	var pliName = "pli_" + this.partID;
-	if(!ldrLoader.ldrPartTypes[pliName]) {
+	if(!ldrLoader.partTypes[pliName]) {
 	    var r = new THREE.Matrix3();
 	    r.set(pliInfo[0], pliInfo[1], pliInfo[2],
 		  pliInfo[3], pliInfo[4], pliInfo[5],
@@ -117,7 +118,7 @@ LDR.PartAndColor = function(key, partID, colorID, ldrLoader) {
 	    pt.author = this.partType.author;
 	    pt.license = this.partType.license;
 	    pt.steps.push(step);
-	    ldrLoader.ldrPartTypes[pliName] = pt;
+	    ldrLoader.partTypes[pliName] = pt;
 	    this.partType = pt;
 	    //console.log("Replaced PLI for " + pliName);
 	}
