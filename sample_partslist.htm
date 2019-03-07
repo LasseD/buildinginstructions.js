@@ -25,7 +25,8 @@
     <script src="js/LDRButtons.js"></script>
     <script src="js/LDRPLIPreview.js"></script>
     <script>
-      var modelTypeUrl = 'models/pyramid2.ldr';
+      var modelTypeUrl = 'models/fail1.mpd';
+      //var modelTypeUrl = 'models/pyramid2.ldr';
       var ldrOptions = new LDR.Options();
       var builder = null;
       var ldrLoader = null;
@@ -300,12 +301,8 @@
           buildItem(0);
         }
 
-        var onError = function(msg) {
-          console.dir(msg);
-        };
-
-        ldrLoader = new THREE.LDRLoader(onLoad, {onError:onError, loadRelatedFilesImmediately:true});
-        ldrLoader.load(modelTypeUrl, true);
+        ldrLoader = new THREE.LDRLoader(onLoad);
+        ldrLoader.load(modelTypeUrl);
     </script>
 
     <div id="all">

@@ -7,7 +7,7 @@ LDR.ICON_SIZE = 200;
   The LDRSubPartBulder is used for displaying a part and all of its sub parts, 
   primitives, and comment lines.
 */
-LDR.SubPartBulder = function(baseMC, table, redPoints, ldrLoader, partType, colorID, position, rotation, scene, subjectSize, onIconClick, from) {
+LDR.SubPartBulder = function(baseMC, table, redPoints, loader, partType, colorID, position, rotation, scene, subjectSize, onIconClick, from) {
     var self = this;
     this.baseMC = baseMC;
     this.table = table;
@@ -159,7 +159,7 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
 	    var c = transformColor(line.line1 ? line.desc.colorID : line.c);
 	    var p1, p2, p3, p4;
 
-	    var subModel = line.line1 ? ldrLoader.partTypes[line.desc.ID] : new THREE.LDRPartType();
+	    var subModel = line.line1 ? loader.partTypes[line.desc.ID] : new THREE.LDRPartType();
 	    var step = new THREE.LDRStep();
 
 	    if(line.line1) {
@@ -195,7 +195,7 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
 		var nextRotation = new THREE.Matrix3();
 		nextRotation.multiplyMatrices(this.r, line.desc.rotation);
 
-		subModel.generateThreePart(ldrLoader, c, nextPosition, nextRotation, line.desc.cull, line.desc.invertCCW, line.mc);
+		subModel.generateThreePart(loader, c, nextPosition, nextRotation, line.desc.cull, line.desc.invertCCW, line.mc);
 	    }
 	    else if(line.line2) {
 		LDR.makeEle(tr, 'td', 'line_type').innerHTML = 'Line';
@@ -249,8 +249,8 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
 
 	    if(!line.line1) {
 		subModel.addStep(step);
-		subModel.prepareGeometry(ldrLoader);
-		subModel.generateThreePart(ldrLoader, c, new THREE.Vector3(), new THREE.Matrix3(), line.cull, line.ccw, line.mc);
+		subModel.prepareGeometry(loader);
+		subModel.generateThreePart(loader, c, new THREE.Vector3(), new THREE.Matrix3(), line.cull, line.ccw, line.mc);
 	    }
 
 	    line.imageHolder = LDR.makeEle(tr, 'td', 'line_image');
