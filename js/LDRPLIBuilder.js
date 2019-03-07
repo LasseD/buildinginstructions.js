@@ -2,11 +2,11 @@
 
 LDR = LDR || {};
 
-LDR.PLIBuilder = function(ldrLoader, mainModelID, mainModelColor, pliElement, pliRenderElement) {
-    this.ldrLoader = ldrLoader;
+LDR.PLIBuilder = function(loader, mainModelID, mainModelColor, pliElement, pliRenderElement) {
+    this.loader = loader;
     this.pliElement = pliElement;
     this.pliRenderElement = pliRenderElement;
-    this.partsBuilder = new LDR.PartsBulder(ldrLoader, mainModelID, mainModelColor);
+    this.partsBuilder = new LDR.PartsBulder(loader, mainModelID, mainModelColor);
     this.fillHeight = false;
 
     // Register for options changes:
@@ -72,7 +72,7 @@ LDR.PLIBuilder.prototype.createSortedIcons = function(step, stepColorID) {
     var sortedIcons = [];
     for(var i = 0; i < step.subModels.length; i++) {
 	var dat = step.subModels[i];
-        if(!dat.isPart()) {
+        if(!this.loader.partTypes[dat.ID].isPart()) {
             continue;
         }
 	var partID = dat.ID;
@@ -86,7 +86,7 @@ LDR.PLIBuilder.prototype.createSortedIcons = function(step, stepColorID) {
 	else {
 	    var pc = this.getPC(key);
 	    var b = pc.getBounds();
-	    var type = this.ldrLoader.partTypes[partID];
+	    var type = this.loader.partTypes[partID];
 	    icon = {key: key,
 		    partID: partID, 
 		    colorID: colorID, 

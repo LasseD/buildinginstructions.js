@@ -580,6 +580,22 @@ THREE.LDRStep.prototype.addConditionalLine = function(c, p1, p2, p3, p4) {
     this.conditionalLines.push({colorID:c, p1:p1, p2:p2, p3:p3, p4:p4});
 }
 
+THREE.LDRStep.prototype.containsNonPartSubModels = function(loader) {
+    if(this.subModels.length === 0) {
+        return false;
+    }
+    var firstSubModel = loader.partTypes[this.subModels[0].ID];
+    return !firstSubModel.isPart();
+}
+
+THREE.LDRStep.prototype.containsPartSubModels = function(loader) {
+    if(this.subModels.length === 0) {
+        return false;
+    }
+    var firstSubModel = loader.partTypes[this.subModels[0].ID];
+    return firstSubModel.isPart();
+}
+
 THREE.LDRStep.prototype.countParts = function(loader) {
     if(this.cnt >= 0)
 	return this.cnt;
