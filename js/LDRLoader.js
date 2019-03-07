@@ -528,9 +528,9 @@ THREE.LDRStepRotation.prototype.getRotationMatrix = function(defaultMatrix) {
     return ret;
 }
 
-//THREE.LDRStepIdx = 0;
+THREE.LDRStepIdx = 0;
 THREE.LDRStep = function() {
-    //this.idx = THREE.LDRStepIdx++;
+    this.idx = THREE.LDRStepIdx++;
     this.empty = true;
     this.hasPrimitives = false;
     this.subModels = [];

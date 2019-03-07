@@ -20,6 +20,7 @@
     <script src="js/pli.js"></script>
     <script src="js/LDRSVG.js"></script>
     <script src="js/LDROptions.js"></script>
+    <script src="js/ClientStorage.js"></script>
     <script src="js/LDRGeometries.js"></script>
     <script src="js/LDRLoader.js"></script>
     <script src="js/LDRStepBuilder.js"></script>
@@ -31,10 +32,14 @@
     <script src="js/LDRMeasurer.js"></script>
     <canvas id="main_canvas"></canvas>
     <script>
-      var modelTypeUrl = 'models/fail1.mpd';
-      //var modelTypeUrl = 'models/spiral.ldr';
+      var pageStartTime = new Date();
+      //var modelTypeUrl = 'models/fail1.mpd';
+      var modelTypeUrl = 'models/spiral.ldr';
       var scene = new THREE.Scene(); // To add stuff to
-      scene.background = new THREE.Color( 0xffffff );
+      scene.background = new THREE.Color( 0xFFFFFF );
+      var storage;
+
+      //scene.add( new THREE.AxesHelper( 5 ) );
 
       var defaultZoom = 1; // Will be overwritten.
       var currentStep = 1;
@@ -53,12 +58,15 @@
         renderer.render(scene, camera);
       }
       document.body.appendChild(canvas);
-      LDR.Colors.canBeOld = true;
+
       var ldrOptions = new LDR.Options();
-      var ldrButtons = new LDR.Buttons(document.body, true, '1', null);
+      var ldrButtons = new LDR.Buttons(document.body, true, '1', null); // Use URL instead of null if available.
       var controls = new THREE.OrbitControls(camera, canvas);
       controls.noTriggerSize = 0.1;
       controls.addEventListener('change',render);
+
+      var stats;
+      //stats = new Stats(); document.body.appendChild(stats.dom);
 
       function resetCameraPosition() {
 	camera.lookAt(new THREE.Vector3());
@@ -83,10 +91,13 @@
       resetCameraPosition();
       window.addEventListener('resize', onWindowResize, false);
 
+      var adPeek = 120;
+      var lastRefresh = new Date();
+      
       function onWindowResize(){
         console.log("Resizing to " + window.innerWidth + ", " + window.innerHeight + " and device pixel ratio: " + window.devicePixelRatio);
         renderer.setPixelRatio(window.devicePixelRatio);
-	renderer.setSize(window.innerWidth-20, window.innerHeight);
+	renderer.setSize(window.innerWidth-20, window.innerHeight-adPeek);
         camera.left   = -canvas.clientWidth*0.95;
         camera.right  =  canvas.clientWidth*0.95;
         camera.top    =  canvas.clientHeight*0.95;
@@ -116,7 +127,7 @@
       baseObject.add(opaqueObject); // Draw non-trans before trans.
       baseObject.add(transObject);
       scene.add(baseObject);
-      var pliPreviewer = new LDR.PliPreviewer();
+      var pliPreviewer = new LDR.PliPreviewer(); // TODO: Use model id as parameter if available.
 
       var showPLI = false;
       function updateUIComponents(force) {
@@ -151,7 +162,7 @@
 	  pliBuilder.pliElement.style.visibility = 'visible';
 
 	  var maxWidth = window.innerWidth/window.devicePixelRatio;
-	  var maxHeight = (window.innerHeight - 320)/window.devicePixelRatio; // icons, mult and rotator.
+	  var maxHeight = (window.innerHeight - 320 - adPeek)/window.devicePixelRatio; // icons, mult and rotator.
 
 	  if(maxWidth >= maxHeight) {
 	    pliClickMap = pliBuilder.drawPLIForStep(true, step, stepColorID, maxWidth*0.4, maxHeight, maxSizePerPixel*0.6, force);
@@ -161,7 +172,7 @@
 	  }
 	  pliW = parseInt(pliElement.offsetWidth + pliElement.offsetLeft)+4; // 4 for border.
 	  pliH = parseInt(pliElement.offsetHeight);
-	  //console.log("Setting PLI size " + pliW + ", " + pliH + " from " + maxWidth + "/" + maxHeight + ", maxSizePerPixel=" + maxSizePerPixel);
+	  //console.log("Setting PLI size " + pliW + ", " + pliH + " from " + maxWidth + "/" + maxHeight + ", maxSizePerPixel=" + maxSizePerPixel + ', step=' + step);
       }
       function updateViewPort() {
           camera.position.set(10000, 7000, 10000);
@@ -209,11 +220,11 @@
 	  var viewPortHeight = window.innerHeight;
 	  if(pliBuilder.fillHeight) {
 	    viewPortWidth *= 0.6;
-	    viewPortHeight -= 100;
+	    viewPortHeight -= adPeek+100;
 	  }
 	  else {
 	    viewPortHeight *= 0.6;
-	    viewPortHeight -= 160;
+	    viewPortHeight -= adPeek+160;
 	  }
 
 	  var useAccumulatedBounds = true;
@@ -225,6 +236,15 @@
 	    useAccumulatedBounds = false;
 	    b = builder.getBounds();
 	    size = b.min.distanceTo(b.max);
+	    if(size < viewPortSize) {
+	      var b2 = new THREE.Box3(); b2.copy(b); b = b2;
+	      var bDiff = new THREE.Vector3(); bDiff.subVectors(b.max, b.min); // b.max-b.min
+	      // Move min and max: max = min + bDiff -> min + bDiff/2 + (bDiff/2*X) = min + bDiff - bDiff/2 + (bDiff/2*X) = max + (X-1)*bDiff/2
+	      bDiff.multiplyScalar(0.5*(viewPortSize/size-1));
+	      b.max.add(bDiff);
+	      b.min.sub(bDiff);
+	      size = viewPortSize;
+	    }
 	  }
           var newPosition;
 	  [newPosition, currentRotationMatrix] = builder.computeCameraPositionRotation(defaultMatrix, currentRotationMatrix, useAccumulatedBounds);
@@ -259,10 +279,10 @@
 	  viewPortHeight = window.innerHeight;
 	  if(pliBuilder.fillHeight) {
 	    viewPortWidth -= newPLIW;
-	    viewPortHeight -= 100;
+	    viewPortHeight -= adPeek+100;
 	  }
 	  else {
-	    viewPortHeight -= newPLIH+160;
+	    viewPortHeight -= adPeek+newPLIH+160;
 	  }
 	  var scaleX = window.innerWidth / viewPortWidth * 1.1; // 1.1 to scale down a bit
 	  var scaleY = window.innerHeight / viewPortHeight * 1.1;
@@ -284,9 +304,17 @@
     	      baseObject.position.y = newPosition.y;
     	      baseObject.position.z = newPosition.z;
 	      
+	      defaultZoom = newDefaultZoom;
+	      pliW = newPLIW;
+	      pliH = newPLIH;
+	      updateViewPort();
 	      updateCameraZoom();
 	      render();
 	      onDone && onDone(); onDone = false;
+	      if(new Date() - lastRefresh > 1000*60) {
+                refreshCache();
+		lastRefresh = new Date();
+	      }
 	  }
 	  
 	  var animationID;
@@ -357,6 +385,7 @@
 	      }
 
 	      render();
+	      stats && stats.update();
           }
 
 	  // Only animate if:
@@ -371,6 +400,19 @@
 	  }
       }
 
+      var windowStepCauseByHistoryManipulation = false;
+      var baseURL = 'sample_instructions.htm?step='; //"r.php?model=1&color=0&step=";
+
+      // Ensure mobile users can swipe right for next step:
+      var ensureSwipeForwardWorks = function() {
+	window.history.replaceState(currentStep, null, baseURL + currentStep);
+        if(currentStep != builder.totalNumberOfSteps) {
+          window.history.pushState(currentStep+1, null, baseURL + (currentStep+1));
+	  windowStepCauseByHistoryManipulation = true;
+	  window.history.go(-1); // Go back again.
+	}
+      }
+
       function clampStep(s) {
         if(s < 1)
 	  return 1;
@@ -379,11 +421,23 @@
 	return s;
       }
 
-      var handleStepsWalked = function(walkedSteps) {
-        currentStep = clampStep(currentStep + walkedSteps);
+      var accHelper, helper;
+      var handleStepsWalked = function(walkedSteps){
+        // Helper. Uncomment next lines for step bounding boxes:
+	/*if(helper)
+	  builder.baseObject.remove(helper);
+	if(accHelper)
+	  builder.baseObject.remove(accHelper);
+	accHelper = new THREE.Box3Helper(builder.getAccumulatedBounds(), 0x00FF00)
+	helper = new THREE.Box3Helper(builder.getBounds(), 0xFFCC00)
+	builder.baseObject.add(accHelper);
+	builder.baseObject.add(helper);//*/
+
+	currentStep = clampStep(currentStep + walkedSteps);
+	ensureSwipeForwardWorks();
 	if(walkedSteps != 1 && walkedSteps != -1)
-          realignModel(0);
-  	updateUIComponents(false);
+	  realignModel(0);
+	updateUIComponents(false);
 	render();
       };
       function goToStep(step) {
@@ -395,7 +449,6 @@
 	console.log("Going to " + step + " from " + currentStep);
 	builder.moveSteps(step-currentStep, handleStepsWalked);
       }
-
       function nextStep() {
         if(pliShownPreview)
 	  return; // Don't walk when showing stuff.
@@ -441,6 +494,7 @@
           }
 	  else if(e.keyCode == '27') { // ESC closes preview.
 	    hidePliPreview();
+            hideDone();
           }
       }
       
@@ -450,11 +504,23 @@
 	    pliShownPreview = null;
       }
 	
-      var onLoad = function() {
-	var geometryBuilder = new LDR.GeometryBuilder(ldrLoader, {});
-	var toBeBuilt = geometryBuilder.getAllTopLevelToBeBuilt();
-	geometryBuilder.build(toBeBuilt);
-
+      function hideDone() {
+        var fadeOutTime = 400;
+        $('#done_holder, #done_background').fadeOut(fadeOutTime);
+      }
+      var doneShown = false;
+      function clickDone() {
+        console.log("Showing done");
+        var fadeInTime = 400;
+        $('#done_holder, #done_background').fadeIn(fadeInTime);
+	if(doneShown)
+	  return;
+	doneShown = true;
+	$('#done_holder').load('ajax/done.php', {model:'1'});
+      }
+	
+      var onPartsRetrieved = function(ignoreWhatIsStillToBeBuilt) {
+        console.log("Done loading at " + (new Date()-pageStartTime) + "ms.");
 	var mainModel = ldrLoader.mainModel;
 	var origo = new THREE.Vector3();
 	var inv = new THREE.Matrix3(); 
@@ -468,17 +534,70 @@
 					0, 
 		                        pliElement,
 					document.getElementById('pli_render_canvas'));
-        builder = new LDR.StepBuilder(opaqueObject, transObject, ldrLoader, [pd], function(){render();}, true);
+        builder = new LDR.StepBuilder(opaqueObject, transObject, ldrLoader, [pd], true, storage);
 	builder.nextStep(false);
 	realignModel(0);
 	updateUIComponents(false);
 	render(); // Updates background color.
 
+        console.log("Render done after " + (new Date()-pageStartTime) + "ms.");
+
+	// Go to step indicated by parameter:
+	var stepFromParameters = 1;
+	stepFromParameters = clampStep(stepFromParameters);
+	if(stepFromParameters > 1)
+	  builder.moveSteps(stepFromParameters-1, handleStepsWalked);
+	else
+	  ensureSwipeForwardWorks();
+
+	// Register location changes:
+	window.addEventListener('popstate', function(e) {
+	  var step = e.state;
+	  if(windowStepCauseByHistoryManipulation || step === null) {
+	    //console.log("Ignoring history manipulating step to: " + step);
+	    windowStepCauseByHistoryManipulation = false;
+            return;
+	  }
+	  var diff = step - currentStep;
+  	  //console.log("Step from window: " + step + ", diff: " + diff);
+	  if(diff === 1) {
+	      nextStep();
+	  }
+	  else if(diff === -1) {
+	      prevStep();
+	  }
+	  else {
+            var handleStepsWalkedNoHistoryChange = function(walkedSteps){
+	      currentStep = clampStep(currentStep + walkedSteps);
+	      ensureSwipeForwardWorks();
+	      realignModel(0);
+	      updateUIComponents(false);
+            };
+	    builder.moveSteps(diff, handleStepsWalkedNoHistoryChange);
+	  }
+        });
+
 	// Enable pli preview:
         pliPreviewer.attachRenderer(document.getElementById('preview'));
       }
 
+      var onLoad = function() {
+	function onStorageReady() {
+  	  var geometryBuilder = new LDR.GeometryBuilder(ldrLoader, storage);
+	  var toBeBuilt = geometryBuilder.getAllTopLevelToBeBuilt();
+
+	  if(storage.db) {
+	    storage.retrievePartsFromStorage(toBeBuilt, onPartsRetrieved);
+	  }
+	  else {
+	    onAllToBeBuiltIdentified(toBeBuilt);
+	  }
+	}
+ 	storage = new LDR.STORAGE(onStorageReady);
+      }
+
       onWindowResize();
+      LDR.Colors.canBeOld = true;
       ldrLoader = new THREE.LDRLoader(onLoad);
       ldrLoader.load(modelTypeUrl);
     </script>
@@ -501,7 +620,7 @@
       }
 
       /*
-        Icon: {x, y, width, height, mult, key, partID, colorID, desc}
+        Icon: {x, y, width, height, mult, key, partID, colorID, desc, inlined}
        */
       function onPLIClick(e) {
         var x = e.layerX || e.clientX;
@@ -531,6 +650,11 @@
 	}
       }
       document.getElementById("pli").addEventListener('click', onPLIClick);
+
+      function refreshCache() {
+        console.log("Refresh cache");
+      }
+
       </script>
     </div>
 
@@ -539,13 +663,24 @@
         <div id="preview_holder">
           <div id="preview_parent"><canvas id="preview" /></div>
 	  <div id="preview_info">
-	    <span class="preview_info_line"><a href="" target="_blank"><div id="preview_info_name">PART NAME</div></a></span>
+	    <span class="preview_info_line">
+	     <span id="preview_info_name">PART NAME</span>
+	     <a id="preview_info_bh_link" href="" target="_blank">Go to part</a>
+	     or
+	     <a id="preview_info_bl_link" href="" target="_blank">See on BrickLink</a>
+            </span>
 	    <span class="preview_info_line">LDraw color: <div id="preview_info_color_ldraw">LDR COLOR</div></span>
 	    <span class="preview_info_line">LEGO/LDD color: <div id="preview_info_color_lego">LDD COLOR</div></span>
 	  </div>
         </div>
     </div>
     
+    <div id="done_section">
+        <div id="done_background" onclick="hideDone();"></div>
+        <div id="done_holder">
+        </div>
+    </div>
+
     <div id="green"></div>
 
     <div id="options" />
