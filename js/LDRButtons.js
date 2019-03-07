@@ -6,8 +6,10 @@ LDR.Buttons = function(element, addTopButtons, homeLink, mainImage) {
     
     // Lower buttons:
     this.backButton = this.createDiv('prev_button', 'prevStep();');
-    this.backButton.appendChild(LDR.SVG.makeLeftArrow());
-    element.appendChild(this.backButton);
+    this.backButton.appendChild(LDR.SVG.makeLeftArrow(!addTopButtons));
+    if(!addTopButtons) {
+        element.appendChild(this.backButton); // Add back button to row with camera buttons.
+    }
 
     this.cameraButtons = this.createDiv('camera_buttons');
     this.zoomOutButtonLarge = this.createDiv('zoom_out_button_large', 'zoomOut();');
@@ -43,8 +45,9 @@ LDR.Buttons = function(element, addTopButtons, homeLink, mainImage) {
     this.doneButton.append(LDR.SVG.makeCheckMark());
     lowerRightButtons.appendChild(this.doneButton);
 
-    if(addTopButtons)
+    if(addTopButtons) {
 	this.addTopButtonElements(element, homeLink, mainImage);
+    }
     this.hideElementsAccordingToOptions();
 
     this.fadeOutHandle;
@@ -70,16 +73,26 @@ LDR.Buttons = function(element, addTopButtons, homeLink, mainImage) {
 	self.fadingIn = true;
 	$('#camera_buttons').fadeTo(1000, 1, onFadeInComplete);
     };
-    $("canvas").mousemove(runCameraFading);
+    $("canvas, #camera_buttons").mousemove(runCameraFading);
+    $("#camera_buttons").click(runCameraFading);
+    onFadeInComplete();
 }
 
 LDR.Buttons.prototype.addTopButtonElements = function(element, homeLink, mainImage) {
     // Upper row of buttons (added last due to their absolute position):    
     this.topButtons = this.createDiv('top_buttons');
 
+    this.topButtons.appendChild(this.backButton);
+
     this.homeButton = this.createDiv('homeButton');
-    if(mainImage)
+    if(mainImage) {
 	this.homeButton.setAttribute('class', 'image');
+    }
+
+    this.stepToButton = this.createDiv('stepToContainer');
+    this.stepToButton.appendChild(this.makeStepTo());
+    this.topButtons.appendChild(this.stepToButton);
+
     var homeA = document.createElement('a');
     homeA.setAttribute('href', homeLink);
     homeA.setAttribute('class', 'homeAnchor');
@@ -93,10 +106,6 @@ LDR.Buttons.prototype.addTopButtonElements = function(element, homeLink, mainIma
 	this.homeButton.appendChild(LDR.SVG.makeHome());
     }
     this.topButtons.appendChild(homeA);
-
-    this.stepToButton = this.createDiv('stepToContainer');
-    this.stepToButton.appendChild(this.makeStepTo());
-    this.topButtons.appendChild(this.stepToButton);
 
     this.optionsButton = this.createDiv('optionsButton');
     this.optionsButton.appendChild(LDR.SVG.makeOptions());

@@ -6,7 +6,7 @@ LDR.SVG = LDR.SVG || {};
 LDR.SVG.NS = 'http://www.w3.org/2000/svg';
 
 // Left arrow used to go back one step:
-LDR.SVG.makeLeftArrow = function() {
+LDR.SVG.makeLeftArrow = function(withCircle) {
     var ret = document.createElementNS(LDR.SVG.NS, 'svg');
 
     var g = document.createElementNS(LDR.SVG.NS, 'g');
@@ -15,7 +15,9 @@ LDR.SVG.makeLeftArrow = function() {
     var pts = "20,50 50,20 50,35 80,35 80,65 50,65 50,80";
     var poly = LDR.SVG.makePolygon(pts);
     g.appendChild(poly);
-    g.appendChild(LDR.SVG.makeCircle(50, 50, 49));
+    if(withCircle) {
+        g.appendChild(LDR.SVG.makeCircle(50, 50, 49));
+    }
     return ret;
 }
 

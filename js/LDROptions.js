@@ -620,7 +620,7 @@ LDR.Options.prototype.appendShowPLIOptions = function(optionsBlock) {
 }
 
 LDR.Options.prototype.appendLROptions = function(optionsBlock) {
-    var group = this.addOptionsGroup(optionsBlock, 3, "Step Buttons");
+    var group = this.addOptionsGroup(optionsBlock, 3, "Button Size");
     var options = this;
     var onLRChange = function(idx) {
 	options.showLRButtons = idx;
@@ -639,18 +639,13 @@ LDR.Options.prototype.appendLROptions = function(optionsBlock) {
     var buttons = this.createButtons(group, 3, this.showLRButtons, onLRChange);
     
     /* 
-       Option 1: Right big
+       Option 1: Big
     */
     {
 	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
-	svg.setAttribute('viewBox', '0 0 400 200');
+	svg.setAttribute('viewBox', '0 0 200 200');
 	svg.setAttribute('class', 'ui_toggles');
-	var l = LDR.SVG.makeLeftArrow();
-	l.children[0].setAttribute('transform', 'translate(0 100)');
 	var r = LDR.SVG.makeRightArrowLarge();
-	r.children[0].setAttribute('transform', 'translate(200 0)');
-
-	svg.appendChild(l);
 	svg.appendChild(r);
 	buttons[0].appendChild(svg);
     }
@@ -659,11 +654,10 @@ LDR.Options.prototype.appendLROptions = function(optionsBlock) {
     */
     {
 	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
-	svg.setAttribute('viewBox', '0 -100 400 200');
+	svg.setAttribute('viewBox', '0 -100 200 200');
 	svg.setAttribute('class', 'ui_toggles');
-	svg.appendChild(LDR.SVG.makeLeftArrow());
 	var r = LDR.SVG.makeRightArrow();
-	r.children[0].setAttribute('transform', 'translate(300 0)');
+	r.children[0].setAttribute('transform', 'translate(100 0)');
 	svg.appendChild(r);
 	buttons[1].appendChild(svg);
     }

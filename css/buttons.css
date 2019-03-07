@@ -7,7 +7,7 @@
     -khtml-user-select: none; /* Linux */
     -ms-user-select: none; /* IE */
 }
-#prev_button {
+#preview_parent #prev_button {
     width: 100px;
     height: 100px;
     top: -120px;
@@ -93,7 +93,7 @@
     margin-bottom: -100px;
     overflow: hidden;
 }
-#frButton, #ffButton, #homeButton, #optionsButton {
+#frButton, #ffButton, #homeButton, #optionsButton, #top_buttons #prev_button {
     display: inline-block;
     width: 100px;
     height: 100px;
