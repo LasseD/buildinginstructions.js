@@ -31,7 +31,7 @@
   display: table;
   table-layout: fixed;
   width: 100%;
-  border-spacing: 2em;
+  border-spacing: 2vw;
   background-color: white;
 }
 .options_description_header {
@@ -59,7 +59,7 @@
 }
 .option_selected, .option {
   border: 2px solid black;
-  padding: 0.5em;
+  padding: 1vw;
   cursor: pointer;
 }
 .color_option {

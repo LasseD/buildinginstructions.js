@@ -8,6 +8,7 @@ LDR.SVG.NS = 'http://www.w3.org/2000/svg';
 // Left arrow used to go back one step:
 LDR.SVG.makeLeftArrow = function(withCircle) {
     var ret = document.createElementNS(LDR.SVG.NS, 'svg');
+    ret.setAttribute("viewBox", "0 0 100 100");
 
     var g = document.createElementNS(LDR.SVG.NS, 'g');
     ret.appendChild(g);
@@ -26,6 +27,7 @@ LDR.SVG.makeLeftArrow = function(withCircle) {
 LDR.SVG.makeRightArrowLarge = function() {
     var ret = document.createElementNS(LDR.SVG.NS, 'svg');
     ret.setAttribute("class", "next_large");
+    ret.setAttribute("viewBox", "0 0 200 200");
 
     var g = document.createElementNS(LDR.SVG.NS, 'g');
     ret.appendChild(g);
@@ -39,6 +41,7 @@ LDR.SVG.makeRightArrowLarge = function() {
 LDR.SVG.makeRightArrow = function() {
     var ret = document.createElementNS(LDR.SVG.NS, 'svg');
     ret.setAttribute("class", "next_normal");
+    ret.setAttribute("viewBox", "0 0 100 100");
 
     var g = document.createElementNS(LDR.SVG.NS, 'g');
     ret.appendChild(g);
@@ -77,6 +80,7 @@ LDR.SVG.makeUpArrow = function() {
 
 LDR.SVG.makeZoom = function(verticalLine, mult) {
     var ret = document.createElementNS(LDR.SVG.NS, 'svg');
+    ret.setAttribute("viewBox", "0 0 " + (mult*50) + " " + (50*mult));
 
     var g = document.createElementNS(LDR.SVG.NS, 'g');
     ret.appendChild(g);    
@@ -91,6 +95,7 @@ LDR.SVG.makeZoom = function(verticalLine, mult) {
 
 LDR.SVG.makeCamera = function(x, y, w) {
     var ret = document.createElementNS(LDR.SVG.NS, 'svg');
+    ret.setAttribute("viewBox", "0 0 " + w + " " + w);
 
     ret.appendChild(LDR.SVG.makeRect(x-w/3, y-w/6, w/2, w/3));
     
@@ -109,7 +114,7 @@ LDR.SVG.makeCamera = function(x, y, w) {
     ret.appendChild(LDR.SVG.makeLine(x-w/5, y-w/14, x+w/24, y-w/15));
 
     // Border
-    ret.appendChild(LDR.SVG.makeCircle(x, y+5, 49));
+    ret.appendChild(LDR.SVG.makeCircle(x, y+5, w/2.1));
     
     return ret;
 }
@@ -133,6 +138,7 @@ LDR.SVG.makeFF = function (x) {
 // Home button:
 LDR.SVG.makeHome = function () {
     var ret = document.createElementNS(LDR.SVG.NS, 'svg');
+    ret.setAttribute("viewBox", "0 0 100 100");
     var edgePoints = "50,20 80,50 75,50 75,80 25,80 25,50 20,50";
     ret.appendChild(LDR.SVG.makePolygon(edgePoints));
     ret.appendChild(LDR.SVG.makeRect(30, 50, 18, 30)); // Door
@@ -170,6 +176,7 @@ LDR.SVG.makeOptions = function () {
     ret.setAttribute('href', '#options');
 
     var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+    svg.setAttribute("viewBox", "0 0 100 100");
     ret.appendChild(svg);
 
     LDR.SVG.makeGear(58, 43, 22, 18, svg);

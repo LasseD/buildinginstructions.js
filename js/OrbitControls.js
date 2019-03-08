@@ -683,9 +683,10 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 	    var element = scope.domElement;
 
-	    var div = scope.object.zoom * element.clientWidth;
-	    panLeft(x*(scope.object.right-scope.object.left)/div, scope.object.matrix);
-	    panUp(y*(scope.object.top-scope.object.bottom)/div, scope.object.matrix);
+	    var divW = scope.object.zoom * element.clientWidth;
+	    var divH = scope.object.zoom * element.clientHeight;
+	    panUp(y*(scope.object.top-scope.object.bottom)/divH, scope.object.matrix);
+	    panLeft(x*(scope.object.right-scope.object.left)/divW, scope.object.matrix);
 
 	    scope.quickUpdate();
         }

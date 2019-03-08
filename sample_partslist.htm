@@ -7,7 +7,7 @@
     <link href="css/buttons.css" rel="stylesheet" type="text/css">
     <link href="css/options.css" rel="stylesheet" type="text/css">
     <link href="css/partslist.css" rel="stylesheet" type="text/css">
-    <meta name="viewport" content="width=device-width" />
+    <!--<meta name="viewport" content="width=device-width" />-->
   </head>
   <body>
     <script src="js/jquery.min.js"></script>
@@ -250,7 +250,15 @@
 
           builder = new LDR.PartsBulder(ldrLoader, mainModel, 0);
           pliPreviewer.attachRenderer(document.getElementById('preview'));
-          ldrButtons = new LDR.Buttons(pliPreviewer.canvas.parentNode, false);
+    var actions = {
+        prevStep: () => prevStep(),
+        nextStep: () => nextStep(),
+        zoomIn: () => zoomIn(),
+        zoomOut: () => zoomOut(),
+        resetCameraPosition: () => resetCameraPosition(),
+        clickDone: function(){},
+    };
+          ldrButtons = new LDR.Buttons(actions, pliPreviewer.canvas.parentNode, false);
 
           var sorter = function(a, b){
             var ca = a.getAttribute('color_id');

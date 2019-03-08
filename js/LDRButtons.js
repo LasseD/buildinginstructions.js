@@ -1,53 +1,49 @@
 'use strict';
 
-LDR.Buttons = function(element, addTopButtons, homeLink, mainImage) {
+LDR.Buttons = function(actions, element, addTopButtons, homeLink, mainImage) {
     var self = this;
     // Add buttons to element:
     
     // Lower buttons:
-    this.backButton = this.createDiv('prev_button', 'prevStep();');
+    this.backButton = this.createDiv('prev_button', actions.prevStep);
     this.backButton.appendChild(LDR.SVG.makeLeftArrow(!addTopButtons));
     if(!addTopButtons) {
         element.appendChild(this.backButton); // Add back button to row with camera buttons.
     }
 
     this.cameraButtons = this.createDiv('camera_buttons');
-    this.zoomOutButtonLarge = this.createDiv('zoom_out_button_large', 'zoomOut();');
+    this.zoomOutButtonLarge = this.createDiv('zoom_out_button_large', actions.zoomOut);
     this.zoomOutButtonLarge.appendChild(LDR.SVG.makeZoom(false, 2));
     this.cameraButtons.appendChild(this.zoomOutButtonLarge);
-    this.resetCameraButton = this.createDiv('reset_camera_button', 'resetCameraPosition();');
-    this.resetCameraButton.appendChild(LDR.SVG.makeCamera(50, 45, 80));
+    this.resetCameraButton = this.createDiv('reset_camera_button', actions.resetCameraPosition);
+    this.resetCameraButton.appendChild(LDR.SVG.makeCamera(50, 45, 100));
     this.cameraButtons.appendChild(this.resetCameraButton);
-    this.zoomInButton = this.createDiv('zoom_in_button', 'zoomIn();');
+    this.zoomInButton = this.createDiv('zoom_in_button', actions.zoomIn);
     this.zoomInButton.appendChild(LDR.SVG.makeZoom(true, 1));
     this.cameraButtons.appendChild(this.zoomInButton);
-    this.zoomOutButton = this.createDiv('zoom_out_button', 'zoomOut();');
+    this.zoomOutButton = this.createDiv('zoom_out_button', actions.zoomOut);
     this.zoomOutButton.appendChild(LDR.SVG.makeZoom(false, 1));
     this.cameraButtons.appendChild(this.zoomOutButton);
-    this.zoomInButtonLarge = this.createDiv('zoom_in_button_large', 'zoomIn();');
+    this.zoomInButtonLarge = this.createDiv('zoom_in_button_large', actions.zoomIn);
     this.zoomInButtonLarge.appendChild(LDR.SVG.makeZoom(true, 2));
     this.cameraButtons.appendChild(this.zoomInButtonLarge);
     element.appendChild(this.cameraButtons);
 
-    var lowerRightButtons = this.createDiv('lower_right_buttons');
-
-    this.nextButton = this.createDiv('next_button', 'nextStep();');
-    lowerRightButtons.append(this.nextButton);
-
-    this.rightArrowLarge = LDR.SVG.makeRightArrowLarge();
-    this.rightArrowNormal = LDR.SVG.makeRightArrow();
-    this.nextButton.appendChild(this.rightArrowLarge);
-    this.nextButton.appendChild(this.rightArrowNormal);
-
-    element.appendChild(lowerRightButtons);
-
-    this.doneButton = this.createDiv('done_button', 'clickDone();');
+    // Right lower corner buttons:
+    this.nextButton = this.createDiv('next_button', actions.nextStep);
+    this.nextButtonLarge = this.createDiv('next_button_large', actions.nextStep);
+    this.doneButton = this.createDiv('done_button', actions.clickDone);
+    this.nextButton.append(LDR.SVG.makeRightArrow());
+    this.nextButtonLarge.append(LDR.SVG.makeRightArrowLarge());
     this.doneButton.append(LDR.SVG.makeCheckMark());
-    lowerRightButtons.appendChild(this.doneButton);
+    element.appendChild(this.nextButton);
+    element.appendChild(this.nextButtonLarge);
+    element.appendChild(this.doneButton);
 
     if(addTopButtons) {
 	this.addTopButtonElements(element, homeLink, mainImage);
     }
+
     this.hideElementsAccordingToOptions();
 
     this.fadeOutHandle;
@@ -62,14 +58,17 @@ LDR.Buttons = function(element, addTopButtons, homeLink, mainImage) {
     }
 
     var runCameraFading = function() {
-	if(ldrOptions.showCameraButtons == 2)
+	if(ldrOptions.showCameraButtons == 2) {
 	    return; // Do not show anything.
-	if(self.fadingIn)
+        }
+	if(self.fadingIn) {
 	    return; // Currently fading in. Do nothing.
+        }
 
         $('#camera_buttons').stop(); // Stop fade out.
-	if(self.fadeOutHandle)
+	if(self.fadeOutHandle) {
 	    clearTimeout(self.fadeOutHandle);
+        }
 	self.fadingIn = true;
 	$('#camera_buttons').fadeTo(1000, 1, onFadeInComplete);
     };
@@ -116,24 +115,29 @@ LDR.Buttons.prototype.addTopButtonElements = function(element, homeLink, mainIma
 
 LDR.Buttons.prototype.hideElementsAccordingToOptions = function() {
     // LR Buttons:
-    if(ldrOptions.showLRButtons === 2) {
-	this.backButton.style.display = this.nextButton.style.display = 'none';
+    if(ldrOptions.showLRButtons == 2) { // None:
+	this.backButton.style.display = 
+        this.nextButton.style.display =
+        this.nextButtonLarge.style.display = 'none';
     }
-    else if(ldrOptions.showLRButtons === 0) {
-	this.rightArrowNormal.style.display = 'none';
+    else if(ldrOptions.showLRButtons == 0) { // Large:
+	this.nextButtonLarge.style.display = 'block';
+	this.nextButton.style.display = 'none';
     }
-    else {
-	this.rightArrowLarge.style.display = 'none';
+    else { // Normal:
+	this.nextButtonLarge.style.display = 'none';
+	this.nextButton.style.display = 'block'; 
     }
+
     // Camera Buttons:
-    if(ldrOptions.showCameraButtons === 2) {
+    if(ldrOptions.showCameraButtons == 2) {
 	this.zoomInButtonLarge.style.display = 'none';
 	this.zoomOutButtonLarge.style.display = 'none';
 	this.zoomInButton.style.display = 'none';
 	this.zoomOutButton.style.display = 'none';
 	this.resetCameraButton.style.visibility = 'hidden';
     }
-    else if(ldrOptions.showCameraButtons === 0) {
+    else if(ldrOptions.showCameraButtons == 0) {
 	this.zoomInButtonLarge.style.display = 'none';
 	this.zoomOutButtonLarge.style.display = 'none';
     }
@@ -155,8 +159,9 @@ LDR.Buttons.prototype.makeStepTo = function() {
 LDR.Buttons.prototype.createDiv = function(id, onclick) {
     var ret = document.createElement('div');
     ret.setAttribute('id', id);
-    if(onclick)
-	ret.setAttribute('onclick', onclick);
+    if(onclick) {
+        ret.addEventListener('click', onclick);
+    }
     return ret;
 }
 
@@ -164,15 +169,19 @@ LDR.Buttons.prototype.createDiv = function(id, onclick) {
 LDR.Buttons.prototype.atFirstStep = function() {
     this.backButton.style.visibility = 'hidden';
     this.nextButton.style.visibility = 'visible';
+    this.nextButtonLarge.style.visibility = 'visible';
     this.doneButton.style.visibility = 'hidden';
 }
 LDR.Buttons.prototype.atLastStep = function() {
     this.backButton.style.visibility = 'visible';
     this.nextButton.style.visibility = 'hidden';
+    this.nextButtonLarge.style.visibility = 'hidden';
     this.doneButton.style.visibility = 'visible';
 }
 LDR.Buttons.prototype.atAnyOtherStep = function() {
-    this.backButton.style.visibility = this.nextButton.style.visibility = 'visible';
+    this.backButton.style.visibility = 'visible';
+    this.nextButton.style.visibility = 'visible';
+    this.nextButtonLarge.style.visibility = 'visible';
     this.doneButton.style.visibility = 'hidden';
 }
 LDR.Buttons.prototype.setShownStep = function(step) {

@@ -7,98 +7,74 @@
     -khtml-user-select: none; /* Linux */
     -ms-user-select: none; /* IE */
 }
-#preview_parent #prev_button {
-    width: 100px;
-    height: 100px;
-    top: -120px;
-    margin-bottom: -120px;
-    margin-left: 20px;
-    float: left;
-    display: block;
-    visibility: hidden;
-}
 #camera_buttons {
-    position: relative;
-    display: block;
+    position: absolute;
+    bottom: 0;
     height: 100px;
-    max-width: 300px;
-    top: -120px;
-    margin-bottom: -120px;
-    margin-left: auto;
-    margin-right: auto;
+    width: 100%;
+    text-align: center;
 }
 #lower_right_buttons {
-    float: right;
-    transform: translate(0, -100%);
-    width: 200px;
-    height: 200px;
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 200px;
+  height: 200px;
 }
-#next_button, #done_button {
-    position: absolute;
-    right: 0;
-    top: 0;
-    width: 200px;
-    height: 200px;
-    visibility: hidden;
+#next_button, #next_button_large, #done_button {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 200px;
+  height: 200px;
+  visibility: hidden;
 }
-.next_large, .next_normal {
-    position: absolute;
-    right: 0;
-    bottom: 0;
+#next_button, #prev_button {
+  width: 100px;
+  height: 100px;
 }
 
 #reset_camera_button {
     display: inline-block;
     width: 100px;
     height: 100px;
-    left: 100px;
-    margin-bottom: -100px;
 }
 #zoom_in_button, #zoom_out_button {
-    display: block;
+    display: inline-block;
     width: 50px;
     height: 50px;
-    top: -104px;
-    margin-bottom: -104px;
-    left: 200px;
+}
+#zoom_in_button {
+    bottom: 50px;
 }
 #zoom_out_button {
-    top: 0px;
-    margin-bottom: -50px;
+  bottom: 0;
+  left: -50px;
 }
 #zoom_out_button_large {
-    display: block;
+    display: inline-block;
     width: 100px;
     height: 100px;
-    margin-bottom: -100px;
 }
 #zoom_in_button_large {
-    display: block;
-    top: -104px;
-    margin-bottom: -104px;
-    left: 200px;
+    display: inline-block;
     width: 100px;
     height: 100px;
 }
 #top_buttons {
-    display: block;
     text-align: center;
     position: absolute;
     top: 0;
-    left: 50%;
+    width: 100%;
     height: 100px;
-    min-width: 610px;
-    padding: 0;
-    transform: translate(-50%, 0);
-    margin-bottom: -100px;
-    overflow: hidden;
 }
-#frButton, #ffButton, #homeButton, #optionsButton, #top_buttons #prev_button {
+#optionsButton, #top_buttons #prev_button {
     display: inline-block;
     width: 100px;
     height: 100px;
     cursor: pointer;
 }
+
 /*
   Home button
 */
@@ -107,6 +83,7 @@
     height: 80px;
     width: 80px;
     border-radius: 42px;
+    cursor: pointer;
 }
 #homeButton.image {
     background-color: white;
@@ -126,8 +103,6 @@
     border-radius: 40px;
 }
 #homeButton svg {
-    left: -16px;
-    top: -20px;
     border-radius: 0;
 }
 .homeAnchor {
@@ -141,11 +116,10 @@
 #optionsButton a {
     display: block;
 }
-#frButton, #ffButton {
-    visibility: hidden;
-}
 
-/* SVG STUFF */
+/* 
+ SVG
+ */
 svg {
     position: relative;
     pointer-events: none;
@@ -153,29 +127,86 @@ svg {
 svg:hover {
     opacity: 1;
 }
-#next_button svg, #done_button svg {
+#next_button_large svg, #done_button svg {
     stroke: black;
     width: 200px;
     height: 200px;
 }
-#prev_button svg, #top_buttons svg, #camera_buttons svg, #next_button svg.next_normal {
+#prev_button svg, #top_buttons svg, #camera_buttons svg, #next_button svg {
+    stroke: black;
     width: 100px;
     height: 100px;  
-    stroke: black;
 }
 #zoom_in_button svg, #zoom_out_button svg {
     width: 50px;
     height: 50px;
 }
+
+/* 
+ Only for preview:
+ */
+#preview_parent #prev_button {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  visibility: hidden;
+}
 .preview svg {
-    display: block;
-    width: 100%;
+  display: block;
+  width: 100%;
 }
 
 line, polygon, rect, polyline, path, circle, ellipse {
     stroke-width: 2;
     stroke-linecap: round;
 }
-#camera_buttons line, #top_buttons polygon, polyline, #top_buttons circle, #camera_buttons circle, #camera_buttons rect, #top_buttons rect, #top_buttons path, .ui_toggles {
+#camera_buttons line, #top_buttons polygon, polyline, #top_buttons circle, #camera_buttons circle, #camera_buttons rect, #top_buttons rect, #top_buttons path, .ui_toggles, svg.next_large, svg.next_normal {
     stroke: black;
 }
+
+@media screen and (max-width: 500px) {
+  #top_buttons {
+    height: 20vw;
+  }
+  #lower_right_buttons, #next_button_large svg, #done_button svg, #next_button_large, #done_button {
+    width: 40vw;
+    height: 40vw;
+  }
+  #prev_button svg, #top_buttons svg, #camera_buttons svg, #next_button svg, #optionsButton, #top_buttons #prev_button, #next_button, #reset_camera_button, #zoom_out_button_large, #zoom_in_button_large {
+    width: 20vw;
+    height: 20vw;
+  }
+  #camera_buttons {
+    height: 20vw;
+  }
+  #zoom_in_button svg, #zoom_out_button svg, #zoom_in_button, #zoom_out_button {
+    width: 10vw;
+    height: 10vw;
+  }
+  #zoom_in_button {
+    bottom: 10vw;
+  }
+  #zoom_out_button {
+    left: -10vw;
+  }
+  #homeButton {
+    height: 16vw;
+    width: 16vw;
+    border-radius: 9vw;
+  }
+  #homeButton img, #homeButton svg {
+    border-radius: 8vw;
+  }
+  #homeButton svg {
+    left: -3vw;
+    top: 2vw;
+  }
+  .homeAnchor {
+    height: 18vw;
+    width: 18vw;
+    top: -2vw;
+  }
+
+}
+
+
