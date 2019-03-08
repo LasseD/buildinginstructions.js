@@ -31,7 +31,8 @@
     <script src="js/LDRMeasurer.js"></script>
     <canvas id="main_canvas"></canvas>
     <script>
-      var modelTypeUrl = 'models/pyramid20.ldr';
+      var modelTypeUrl = 'models/fail1.mpd';
+      //var modelTypeUrl = 'models/spiral.ldr';
       var scene = new THREE.Scene(); // To add stuff to
       scene.background = new THREE.Color( 0xffffff );
 
@@ -140,7 +141,7 @@
       }
       function updatePLI(force) {
 	  var [step,stepColorID] = builder.getCurrentStepAndColor();
-	  showPLI = ldrOptions.showPLI && step.dats.length > 0;
+	  showPLI = ldrOptions.showPLI && step.containsPartSubModels(ldrLoader);
 	  if(!showPLI) {
 	    pliBuilder.pliElement.style.visibility = 'hidden';
 	    pliW = pliH = 0;
@@ -481,7 +482,7 @@
       };
 
       onWindowResize();
-      ldrLoader = new THREE.LDRLoader(onLoad, {onError:onError, loadRelatedFilesImmediately:true});
+      ldrLoader = new THREE.LDRLoader(onLoad, {onError:onError, loadRelatedFilesImmediately:false});
       ldrLoader.load(modelTypeUrl, true);
     </script>
     <div id="instructions_decorations">

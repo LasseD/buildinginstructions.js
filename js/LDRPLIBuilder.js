@@ -2,11 +2,11 @@
 
 LDR = LDR || {};
 
-LDR.PLIBuilder = function(ldrLoader, mainModelID, mainModelColor, pliElement, pliRenderElement) {
-    this.ldrLoader = ldrLoader;
+LDR.PLIBuilder = function(loader, mainModelID, mainModelColor, pliElement, pliRenderElement) {
+    this.loader = loader;
     this.pliElement = pliElement;
     this.pliRenderElement = pliRenderElement;
-    this.partsBuilder = new LDR.PartsBulder(ldrLoader, mainModelID, mainModelColor);
+    this.partsBuilder = new LDR.PartsBulder(loader, mainModelID, mainModelColor);
     this.fillHeight = false;
 
     // Register for options changes:
@@ -70,8 +70,11 @@ LDR.PLIBuilder.prototype.render = function(key, w, h) {
 LDR.PLIBuilder.prototype.createSortedIcons = function(step, stepColorID) {
     var icons = {}; // key -> {key, partID, colorID, mult, desc}, key='part_id'_'color_id'
     var sortedIcons = [];
-    for(var i = 0; i < step.dats.length; i++) {
-	var dat = step.dats[i];
+    for(var i = 0; i < step.subModels.length; i++) {
+	var dat = step.subModels[i];
+        if(!this.loader.partTypes[dat.ID].isPart()) {
+            continue;
+        }
 	var partID = dat.ID;
 	var colorID = dat.colorID == 16 ? stepColorID : dat.colorID;
 	var key = partID.endsWith('.dat') ? partID.substring(0, partID.length-4) : partID;
@@ -83,7 +86,7 @@ LDR.PLIBuilder.prototype.createSortedIcons = function(step, stepColorID) {
 	else {
 	    var pc = this.getPC(key);
 	    var b = pc.getBounds();
-	    var type = this.ldrLoader.ldrPartTypes[partID];
+	    var type = this.loader.partTypes[partID];
 	    icon = {key: key,
 		    partID: partID, 
 		    colorID: colorID, 
@@ -99,6 +102,7 @@ LDR.PLIBuilder.prototype.createSortedIcons = function(step, stepColorID) {
 	    sortedIcons.push(icon);
 	}
     }
+
     var sorter = function(a, b){
 	var ca = a.desc;
 	var cb = b.desc;
@@ -110,6 +114,7 @@ LDR.PLIBuilder.prototype.createSortedIcons = function(step, stepColorID) {
 	return ia < ib ? -1 : (ib < ia ? 1 : 0);
     }
     sortedIcons.sort(sorter);
+
     return sortedIcons;
 }
 

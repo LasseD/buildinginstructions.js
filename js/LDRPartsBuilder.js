@@ -5,8 +5,8 @@ The LDRPartsBulder is used for displaying parts for LEGO models.
 */
 var LDR = LDR || {};
 
-LDR.PartsBulder = function(ldrLoader, mainModelID, mainModelColor, onBuiltPart) {
-    this.ldrLoader = ldrLoader;
+LDR.PartsBulder = function(loader, mainModelID, mainModelColor, onBuiltPart) {
+    this.loader = loader;
     this.mainModelID = mainModelID;
     this.mainModelColor = mainModelColor;
 
@@ -20,36 +20,34 @@ LDR.PartsBulder = function(ldrLoader, mainModelID, mainModelColor, onBuiltPart) 
     function build(multiplier, partID, colorID) {
 	if(colorID == 16)
 	    throw "Building with default color not allowed! Part ID: " + partID;
-	var model = ldrLoader.ldrPartTypes[partID];
+	var model = loader.partTypes[partID];
 	if(!model) {
-	    console.dir(ldrLoader);
+	    console.dir(loader);
 	    throw "model not loaded: " + partID;
 	}
-	for(var i = 0; i < model.steps.length; i++) {
-	    var step = model.steps[i];
-	    if(step.ldrs.length > 0) {
-		var ldr = step.ldrs[0];
-		if(ldr.ID === partID)
-		    throw "Error: recursive model: " + partID + " in step " + i;
-		build(multiplier*step.ldrs.length, ldr.ID, ldr.colorID == 16 ? colorID : ldr.colorID);
+
+        function handleStep(step) {
+            if(step.containsNonPartSubModels(loader)) {
+		var ldr = step.subModels[0];
+		build(multiplier*step.subModels.length, ldr.ID, ldr.colorID == 16 ? colorID : ldr.colorID);
+                return;
 	    }
-	    else if(step.dats.length > 0) {	
-		for(var j = 0; j < step.dats.length; j++) {
-		    var dat = step.dats[j];
-		    var datColorID = dat.colorID == 16 ? colorID : dat.colorID;
-		    var key = dat.ID.endsWith('.dat') ? dat.ID.substring(0, dat.ID.length-4) : dat.ID;
-		    key += '_' + datColorID;
-		    var pc = pcs[key];
-		    if(!pc) {
-			pc = new LDR.PartAndColor(key, dat.ID, datColorID, ldrLoader);
-			pcs[key] = pc;
-			pcKeys.push(key);
-		    }
-		    // Add count:
-		    pc.amount += multiplier;
-		}
+            for(var j = 0; j < step.subModels.length; j++) {
+                var dat = step.subModels[j];
+                var datColorID = dat.colorID == 16 ? colorID : dat.colorID;
+                var key = dat.ID.endsWith('.dat') ? dat.ID.substring(0, dat.ID.length-4) : dat.ID;
+                key += '_' + datColorID;
+                var pc = pcs[key];
+                if(!pc) {
+                    pc = new LDR.PartAndColor(key, dat.ID, datColorID, loader);
+                    pcs[key] = pc;
+                    pcKeys.push(key);
+                }
+                // Add count:
+                pc.amount += multiplier;
 	    }
-	}
+        }
+        model.steps.forEach(handleStep);
     }
     build(1, mainModelID, mainModelColor);
 
@@ -70,20 +68,20 @@ LDR.PartsBulder.prototype.updateMeshCollectors = function(baseObject) {
     }
 }
 
-LDR.PartAndColor = function(key, partID, colorID, ldrLoader) {
+LDR.PartAndColor = function(key, partID, colorID, loader) {
     this.key = key;
     this.partID = partID;
     this.colorID = colorID;
-    this.ldrLoader = ldrLoader;
+    this.loader = loader;
 
     this.meshCollector;
     this.amount = 0;
     this.mesh; // Optional use.
     this.annotation;
 
-    this.partType = ldrLoader.ldrPartTypes[partID];
+    this.partType = loader.partTypes[partID];
     if(!this.partType) {
-	console.dir(ldrLoader);
+	console.dir(loader);
 	throw "Unknown part type: " + partID;
     }
     this.inlined = this.partType.inlined;
@@ -91,14 +89,14 @@ LDR.PartAndColor = function(key, partID, colorID, ldrLoader) {
     // Use replacement part:
     if(this.partType.replacement) {
 	//console.log("Replacing: " + partID + " -> " + this.partType.replacement);
-	this.partType = ldrLoader.ldrPartTypes[this.partType.replacement];
+	this.partType = loader.partTypes[this.partType.replacement];
     }
     // Rotate for pli:
     var pliID = "pli_" + this.partType.ID.slice(0, -4);
     if(LDR.PLI && LDR.PLI[pliID]) {
 	var pliInfo = LDR.PLI[pliID];
 	var pliName = "pli_" + this.partID;
-	if(!ldrLoader.ldrPartTypes[pliName]) {
+	if(!loader.partTypes[pliName]) {
 	    var r = new THREE.Matrix3();
 	    r.set(pliInfo[0], pliInfo[1], pliInfo[2],
 		  pliInfo[3], pliInfo[4], pliInfo[5],
@@ -117,7 +115,7 @@ LDR.PartAndColor = function(key, partID, colorID, ldrLoader) {
 	    pt.author = this.partType.author;
 	    pt.license = this.partType.license;
 	    pt.steps.push(step);
-	    ldrLoader.ldrPartTypes[pliName] = pt;
+	    loader.partTypes[pliName] = pt;
 	    this.partType = pt;
 	    //console.log("Replaced PLI for " + pliName);
 	}
@@ -139,9 +137,9 @@ LDR.PartAndColor.prototype.ensureMeshCollector = function(baseObject) {
 	var r = new THREE.Matrix3(); 
 	r.set(1,0,0, 0,-1,0, 0,0,-1);
 
-	this.partType.generateThreePart(this.ldrLoader, this.colorID, p, r, true, false, this.meshCollector, false);
+	this.partType.generateThreePart(this.loader, this.colorID, p, r, true, false, this.meshCollector, false);
 	this.partType = undefined; // No use for it anymore.
-	this.ldrLoader = undefined;
+	this.loader = undefined;
     }
 }
 
