@@ -1,10 +1,18 @@
-body { 
-    margin: 0; 
-    padding: 0;
-    background-color: #ffffff;
+body {
+  margin: 0; 
+  padding: 0;
+  background-color: #FFF;
+}
+#main_canvas_holder, #main_canvas {
+  display: block;
+  position: relative;
+  top: 0;
+}
+#main_canvas_holder {
+  height: calc(100vh - 120px);
+  width: calc(100vw - 20px);
 }
 
-/* Instructions */
 #stepToContainer {
     display: inline-block;
     position: relative;
@@ -15,50 +23,20 @@ body {
     font-weight: bold;
     font-size: 60px;
     text-align: center;
-    width: 200px;
+    width: 150px;
     border: none;
     background: none;
-}
-#multiplier {
-    display: block;
-    visibility: hidden;
-    float: left;
-    position: relative;
-    top: -175px;
-    left: 25px;
-    font-family: sans-serif;
-    font-weight: bold;
-    font-size: 50px;
-    /*visibility: hidden;*/
-    color: black;
-}
-#rotator {
-    display: block;
-    float: left;
-    position: relative;
-    top: -210px;
-    left: 1em;
-    width: 100px;
-    height: 100px;
-    margin-right: -300px;
-    margin-bottom: -100px;
-    visibility: hidden;
 }
 
 /* Green */
 #green {
-    display: inline-block;
+    display: block;
     background-color: #DDD;
     height: 120px;
-    padding: 0;
-    width: 100%;
     vertical-align: top;
-    /*line-height: 150px;*/
-    margin: 0;
-    margin-top: -60px;
 }
 .green_container {
-    display: inline-block;
+    display: block;
 }
 
 .preview, .input_frame {
@@ -73,22 +51,43 @@ body {
 }
 
 /*
-  PLI
+  Decorations:
 */
-#pli {
-    display: inline;
-    visibility: hidden;
-    position: absolute;
-    margin-right: -100%;
-    margin-bottom: -100%;
-    left: 4px;
-    top: 100px;
-    
-    border: 2px solid black;
-    border-radius: 8px;
-    background-color: white;
-    cursor: pointer;
+#instructions_decorations {
+  position: absolute;
+  left: 0;
+  top: 100px;
 }
+#pli {
+  display: none;
+  border: 2px solid black;
+  border-radius: 8px;
+  background-color: #FFF;
+  cursor: pointer;
+  margin-left: 2px;
+}
+.decoration_holder {
+  display: inline;
+}
+#multiplier, #rotator {
+  vertical-align: top;
+  display: inline;
+  visibility: hidden;
+  font-family: sans-serif;
+  font-weight: bold;
+  font-size: 50px;
+  color: black;
+  margin-left: 4px;
+}
+#rotator svg {
+  vertical-align: top;
+  width: 100px;
+  height: 100px;
+}
+
+/*
+ Renderer for PLI
+ */
 #pli_render_canvas {
     position: fixed;
     left: 0;
@@ -102,3 +101,25 @@ body {
 #generated {
     display: none;
 }
+
+@media screen and (max-width: 500px) {
+  #stepToContainer {
+    top: -4vw;
+  }
+  #stepToContainer input {
+    font-size: 14vw; /*60px;*/
+    width: 30vw;
+  }
+  #instructions_decorations {
+    top: 20vw;
+  }
+  #multiplier {
+    font-size: 10vw;
+  }
+  #rotator svg {
+    width: 20vw;
+    height: 20vw;
+  }
+
+}
+

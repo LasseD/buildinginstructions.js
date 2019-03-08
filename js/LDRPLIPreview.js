@@ -94,8 +94,6 @@ LDR.PliPreviewer.prototype.showPliPreview = function(icon) {
 	bhA.setAttribute('href', "../p/part.php?from=" + this.modelID + "&id=" + encodeURI(partIdNoDat));
     }
     else {
-	console.log("EH");
-	console.log(icon.inlined);
 	bhA.setAttribute('href', '../p/' + partIdNoDat);
     }
 

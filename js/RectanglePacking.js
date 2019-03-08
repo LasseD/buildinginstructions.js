@@ -20,15 +20,15 @@ Algorithm.PackRectangles = function(fillHeight, maxWidth, maxHeight, rectangles,
 	maxRectangleSideLength = Math.max(maxRectangleSideLength, r.dx, r.dy);
 	maxSize = Math.max(maxSize, r.size);
     }
-    var maxRectangleWidth = maxSize/maxSizePerPixel;//maxRectangleSideLength vs maxSize vs maxSizePerPixel
-    //console.log("maxSize=" + maxSize + " => maxRectangleWidth=" + maxRectangleWidth);
+    var maxRectangleWidth = maxWidth;//maxRectangleSideLength vs maxSize vs maxSizePerPixel
+    //console.log("maxSize=" + maxSize + " => maxRectangleWidth=" + maxRectangleWidth + ', maxWidth=' + maxWidth);
+    var w, h;
 
-    // Binary search for maximum size:
-    while(minRectangleWidth < maxRectangleWidth-1) {
-	var rectangleWidth = (minRectangleWidth + maxRectangleWidth)/2;
+    function run(rectangleWidth) {
 	var scale = rectangleWidth/maxRectangleSideLength;
 	// Check fit:
-	var w = 0, h = 0, indentX = 0, indentY = 0; // indentXY = where to place the current rectangle.
+	w = h = 0;
+        var indentX = 0, indentY = 0; // indentXY = where to place the current rectangle.
 
 	if(fillHeight) {
 	    var maxW = MIN_WIDTH; // Max width in current column.
@@ -43,9 +43,11 @@ Algorithm.PackRectangles = function(fillHeight, maxWidth, maxHeight, rectangles,
 		    indentY = 0;
 		    maxW = Math.max(MIN_WIDTH, r.width);
 		}
-		else
+		else {
 		    maxW = Math.max(maxW, r.width);
-		r.x = indentX; r.y = indentY;
+                }
+		r.x = indentX;
+                r.y = indentY;
 		w = Math.max(w, indentX + r.width);
 		h = Math.max(h, indentY + r.height);
 		indentY += r.height + HEIGHT_ADD; // Place next
@@ -63,19 +65,31 @@ Algorithm.PackRectangles = function(fillHeight, maxWidth, maxHeight, rectangles,
 		    indentX = 0;
 		    maxH = r.height;
 		}
-		else
+		else {
 		    maxH = Math.max(maxH, r.height);
-		r.x = indentX; r.y = indentY;
+                }
+		r.x = indentX;
+                r.y = indentY;
 		w = Math.max(w, indentX + r.width);
 		h = Math.max(h, indentY + r.height);
 		indentX += r.width + WIDTH_ADD; // Place next
 	    }
 	}
-	if(w < maxWidth && h < maxHeight)
+
+	if(w < maxWidth && h < maxHeight) {
 	    minRectangleWidth = rectangleWidth;
-	else
+        }
+	else {
 	    maxRectangleWidth = rectangleWidth;
+        }        
     }
+
+    // Binary search for maximum size:
+    while(minRectangleWidth < maxRectangleWidth - 2.5) { // The larger the constant here, the quicker.
+	var rectangleWidth = (minRectangleWidth + maxRectangleWidth)*0.5;
+        run(rectangleWidth);
+    }
+    run(minRectangleWidth); // Ensure proper placement.
     //console.log(maxWidth + "/" + maxHeight + " -> " + w + "/" + h);
     return [w, h];
 }

@@ -619,52 +619,36 @@ LDR.Options.prototype.appendShowPLIOptions = function(optionsBlock) {
     }
 }
 
-LDR.Options.prototype.appendLROptions = function(optionsBlock) {
-    var group = this.addOptionsGroup(optionsBlock, 3, "Step Buttons");
+LDR.Options.prototype.appendLROptions = function(optionsBlock, ldrButtons) {
+    var group = this.addOptionsGroup(optionsBlock, 3, "Button Size");
     var options = this;
     var onLRChange = function(idx) {
 	options.showLRButtons = idx;
 	options.onChange();
 
-	ldrButtons.backButton.style.display = ldrButtons.nextButton.style.display = (idx === 2) ? 'none' : 'block';
-	if(idx === 0) {
-	    ldrButtons.rightArrowLarge.style.display = 'block';
-	    ldrButtons.rightArrowNormal.style.display = 'none';
-	}
-	else if(idx === 1) {
-	    ldrButtons.rightArrowLarge.style.display = 'none';
-	    ldrButtons.rightArrowNormal.style.display = 'block';
-	}
+        ldrButtons.nextButtonLarge.style.display = (idx != 0) ? 'none' : 'block';
+        ldrButtons.nextButton.style.display = (idx != 1) ? 'none' : 'block';
     };
     var buttons = this.createButtons(group, 3, this.showLRButtons, onLRChange);
     
     /* 
-       Option 1: Right big
+       Option 1: Big
     */
     {
 	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
-	svg.setAttribute('viewBox', '0 0 400 200');
+	svg.setAttribute('viewBox', '0 0 200 200');
 	svg.setAttribute('class', 'ui_toggles');
-	var l = LDR.SVG.makeLeftArrow();
-	l.children[0].setAttribute('transform', 'translate(0 100)');
 	var r = LDR.SVG.makeRightArrowLarge();
-	r.children[0].setAttribute('transform', 'translate(200 0)');
-
-	svg.appendChild(l);
 	svg.appendChild(r);
-	buttons[0].appendChild(svg);
+	buttons[0].appendChild(r);
     }
     /* 
        Option 2: Right normal
     */
     {
-	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
-	svg.setAttribute('viewBox', '0 -100 400 200');
+	var svg = LDR.SVG.makeRightArrow();
 	svg.setAttribute('class', 'ui_toggles');
-	svg.appendChild(LDR.SVG.makeLeftArrow());
-	var r = LDR.SVG.makeRightArrow();
-	r.children[0].setAttribute('transform', 'translate(300 0)');
-	svg.appendChild(r);
+	svg.children[0].setAttribute('transform', 'scale(0.5 0.5) translate(100 100)');
 	buttons[1].appendChild(svg);
     }
     /* 
@@ -679,24 +663,24 @@ LDR.Options.prototype.appendLROptions = function(optionsBlock) {
     }
 }
 
-LDR.Options.prototype.appendCameraOptions = function(optionsBlock) {
+LDR.Options.prototype.appendCameraOptions = function(optionsBlock, ldrButtons) {
     var group = this.addOptionsGroup(optionsBlock, 3, "Camera Buttons");
     var options = this;
     var onCameraChange = function(idx) {
 	options.showCameraButtons = idx;
 	options.onChange();
-
-	if(idx === 0) {
+        console.warn('Change Camera to ' + idx);
+	if(idx == 0) {
 	    ldrButtons.zoomInButtonLarge.style.display = 'none';
-	    ldrButtons.zoomInButton.style.display = 'block';
+	    ldrButtons.zoomInButton.style.display = 'inline-block';
 	    ldrButtons.zoomOutButtonLarge.style.display = 'none';
-	    ldrButtons.zoomOutButton.style.display = 'block';
+	    ldrButtons.zoomOutButton.style.display = 'inline-block';
 	    ldrButtons.resetCameraButton.style.visibility = 'visible';
 	}
-	else if(idx === 1) {
-	    ldrButtons.zoomInButtonLarge.style.display = 'block';
+	else if(idx == 1) {
+	    ldrButtons.zoomInButtonLarge.style.display = 'inline-block';
 	    ldrButtons.zoomInButton.style.display = 'none';
-	    ldrButtons.zoomOutButtonLarge.style.display = 'block';
+	    ldrButtons.zoomOutButtonLarge.style.display = 'inline-block';
 	    ldrButtons.zoomOutButton.style.display = 'none';
 	    ldrButtons.resetCameraButton.style.visibility = 'visible';
 	}
@@ -717,11 +701,11 @@ LDR.Options.prototype.appendCameraOptions = function(optionsBlock) {
 	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '0 0 300 100');
 	svg.setAttribute('class', 'ui_toggles');
-	svg.appendChild(LDR.SVG.makeCamera(100+25, 45, 80));
+	svg.appendChild(LDR.SVG.makeCamera(50, 45, 100));
 	var o = LDR.SVG.makeZoom(false, 1);
-	o.children[0].setAttribute('transform', 'translate(175 50)');
+	o.children[0].setAttribute('transform', 'scale(0.5 0.5) translate(100 50)');
 	var i = LDR.SVG.makeZoom(true, 1);
-	i.children[0].setAttribute('transform', 'translate(175 0)');
+	i.children[0].setAttribute('transform', 'scale(0.5 0.5) translate(100 0)');
 	svg.appendChild(o);
 	svg.appendChild(i);
 	buttons[0].appendChild(svg);
@@ -733,11 +717,11 @@ LDR.Options.prototype.appendCameraOptions = function(optionsBlock) {
 	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '0 0 300 100');
 	svg.setAttribute('class', 'ui_toggles');
-	svg.appendChild(LDR.SVG.makeCamera(100+50, 45, 80));
+	svg.appendChild(LDR.SVG.makeCamera(50, 45, 100));
 	var o = LDR.SVG.makeZoom(false, 2);
-	//o.children[0].setAttribute('transform', 'translate( 100)');
+	o.children[0].setAttribute('transform', 'translate(-100 0)');
 	var i = LDR.SVG.makeZoom(true, 2);
-	i.children[0].setAttribute('transform', 'translate(200 0)');
+	i.children[0].setAttribute('transform', 'translate(100 0)');
 	svg.appendChild(o);
 	svg.appendChild(i);
 	buttons[1].appendChild(svg);
