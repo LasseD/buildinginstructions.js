@@ -67,10 +67,10 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
     this.showPLI = false;
     
     // Variables for realignModel:
+    this.oldMultiplier = 1;
     this.currentMultiplier = 1;
     this.currentRotation = false;
-    this.updateMultiplier = null;
-    this.updateRotator = null;
+    this.updateRotator; // Function for updating rotator
     this.initialConfiguration = true;
 
     this.windowStepCauseByHistoryManipulation = false;
@@ -179,17 +179,11 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
  	self.storage = new LDR.STORAGE(onStorageReady);
     }
 
-    var multiplier = document.getElementById("multiplier");
-    this.updateMultiplier = function() {
-        multiplier.innerHTML = "x" + self.currentMultiplier;
-	multiplier.style.visibility = (self.currentMultiplier == 1) ? "hidden" : "visible";
-	multiplier.style['margin-right'] = (self.currentMultiplier == 1) ? "-40px" : "0";
-    }
-
     var rotator = document.getElementById("rotator");
     LDR.SVG.appendRotationCircle(0, 0, 18, rotator.childNodes[0]);
     this.updateRotator = function() {
 	rotator.style.visibility = self.currentRotation ? "visible" : "hidden";
+        rotator.style.transform = self.currentRotation ? "rotate(180deg)" : "rotate(0)";
     }
 
     document.getElementById("pli").addEventListener('click', e => self.onPLIClick(e));
@@ -198,6 +192,25 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
     this.onWindowResize();
     this.ldrLoader = new THREE.LDRLoader(onLoad);
     this.ldrLoader.load(modelUrl);
+}
+
+LDR.InstructionsManager.prototype.updateMultiplier = function(zoom) {
+    var changes = this.oldMultiplier !== this.currentMultiplier;
+    if(!changes) {
+        return;
+    }
+    var multiplier = $('#multiplier');
+    if(this.currentMultiplier === 1) {
+        multiplier[0].style.visibility = "hidden";
+        multiplier[0].innerHTML = '';
+    }
+    else {
+        multiplier[0].style.visibility = "visible";
+        multiplier[0].innerHTML = "x" + this.currentMultiplier;
+        multiplier[0].style['font-size'] = "15vw";
+        setTimeout(() => multiplier.animate({fontSize: "4vw"}, 200), 100);
+    }
+    this.oldMultiplier = this.currentMultiplier;
 }
 
 LDR.InstructionsManager.prototype.updateCameraZoom = function(zoom) {
@@ -255,7 +268,7 @@ LDR.InstructionsManager.prototype.zoomOut = function() {
 LDR.InstructionsManager.prototype.updateUIComponents = function(force) {
     this.currentMultiplier = this.builder.getMultiplierOfCurrentStep();
     this.currentRotation = this.builder.getRotationOfCurrentStep();
-    this.updateMultiplier && this.updateMultiplier();
+    this.updateMultiplier();
     this.updateRotator && this.updateRotator();
     this.setBackgroundColor(this.builder.getBackgroundColorOfCurrentStep());
     if(this.builder.isAtVeryLastStep()) {
