@@ -160,6 +160,9 @@ line, polygon, rect, polyline, path, circle, ellipse {
     stroke-width: 2;
     stroke-linecap: round;
 }
+#rotator path {
+    stroke-width: 6;
+}
 #camera_buttons line, #top_buttons polygon, polyline, #top_buttons circle, #camera_buttons circle, #camera_buttons rect, #top_buttons rect, #top_buttons path, .ui_toggles, svg.next_large, svg.next_normal {
     stroke: black;
 }

@@ -70,7 +70,6 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
     this.oldMultiplier = 1;
     this.currentMultiplier = 1;
     this.currentRotation = false;
-    this.updateRotator; // Function for updating rotator
     this.initialConfiguration = true;
 
     this.windowStepCauseByHistoryManipulation = false;
@@ -179,19 +178,24 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
  	self.storage = new LDR.STORAGE(onStorageReady);
     }
 
-    var rotator = document.getElementById("rotator");
-    LDR.SVG.appendRotationCircle(0, 0, 18, rotator.childNodes[0]);
-    this.updateRotator = function() {
-	rotator.style.visibility = self.currentRotation ? "visible" : "hidden";
-        rotator.style.transform = self.currentRotation ? "rotate(180deg)" : "rotate(0)";
-    }
-
     document.getElementById("pli").addEventListener('click', e => self.onPLIClick(e));
 
     this.setUpOptions();
     this.onWindowResize();
     this.ldrLoader = new THREE.LDRLoader(onLoad);
     this.ldrLoader.load(modelUrl);
+}
+
+LDR.InstructionsManager.prototype.updateRotator = function(zoom) {
+    var rotator = document.getElementById("rotator");
+    if(this.currentRotation) {
+        rotator.style.visibility = "visible";
+        var rotatorAnimation = document.getElementById("rotator_animation");
+        rotatorAnimation.beginElement();
+    }
+    else {
+        rotator.style.visibility = "hidden";
+    }
 }
 
 LDR.InstructionsManager.prototype.updateMultiplier = function(zoom) {
@@ -207,8 +211,8 @@ LDR.InstructionsManager.prototype.updateMultiplier = function(zoom) {
     else {
         multiplier[0].style.visibility = "visible";
         multiplier[0].innerHTML = "x" + this.currentMultiplier;
-        multiplier[0].style['font-size'] = "15vw";
-        setTimeout(() => multiplier.animate({fontSize: "4vw"}, 200), 100);
+        multiplier[0].style['font-size'] = "20vw";
+        setTimeout(() => multiplier.animate({fontSize: "8vw"}, 200), 100);
     }
     this.oldMultiplier = this.currentMultiplier;
 }
@@ -232,8 +236,13 @@ LDR.InstructionsManager.prototype.onWindowResize = function(){
     this.topButtonsHeight = document.getElementById('top_buttons').offsetHeight;
 
     console.log("Resizing to " + window.innerWidth + ", " + window.innerHeight + " top height: " + this.topButtonsHeight + " and device pixel ratio: " + window.devicePixelRatio);
-    this.renderer.setPixelRatio(window.devicePixelRatio);
-    this.renderer.setSize(window.innerWidth-20, window.innerHeight-this.adPeek);
+    var pixelRatio = window.devicePixelRatio;
+    var w = (window.innerWidth-20);
+    var h = (window.innerHeight-this.adPeek);
+    this.renderer.setPixelRatio(pixelRatio);
+    if(this.canvas.width !== w || this.canvas.height !== h) {
+        this.renderer.setSize(w, h, true);
+    }
     this.camera.left   = -this.canvas.clientWidth*0.95;
     this.camera.right  =  this.canvas.clientWidth*0.95;
     this.camera.top    =  this.canvas.clientHeight*0.95;
@@ -269,7 +278,7 @@ LDR.InstructionsManager.prototype.updateUIComponents = function(force) {
     this.currentMultiplier = this.builder.getMultiplierOfCurrentStep();
     this.currentRotation = this.builder.getRotationOfCurrentStep();
     this.updateMultiplier();
-    this.updateRotator && this.updateRotator();
+    this.updateRotator();
     this.setBackgroundColor(this.builder.getBackgroundColorOfCurrentStep());
     if(this.builder.isAtVeryLastStep()) {
         this.ldrButtons.atLastStep();
