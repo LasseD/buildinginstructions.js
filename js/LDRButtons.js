@@ -7,9 +7,6 @@ LDR.Buttons = function(actions, element, addTopButtons, homeLink, mainImage) {
     // Lower buttons:
     this.backButton = this.createDiv('prev_button', actions.prevStep);
     this.backButton.appendChild(LDR.SVG.makeLeftArrow(!addTopButtons));
-    if(!addTopButtons) {
-        element.appendChild(this.backButton); // Add back button to row with camera buttons.
-    }
 
     this.cameraButtons = this.createDiv('camera_buttons');
     this.zoomOutButtonLarge = this.createDiv('zoom_out_button_large', actions.zoomOut);
@@ -28,6 +25,10 @@ LDR.Buttons = function(actions, element, addTopButtons, homeLink, mainImage) {
     this.zoomInButtonLarge.appendChild(LDR.SVG.makeZoom(true, 2));
     this.cameraButtons.appendChild(this.zoomInButtonLarge);
     element.appendChild(this.cameraButtons);
+
+    if(!addTopButtons) {
+        element.appendChild(this.backButton); // Add back button to row with camera buttons.
+    }
 
     // Right lower corner buttons:
     this.nextButton = this.createDiv('next_button', actions.nextStep);

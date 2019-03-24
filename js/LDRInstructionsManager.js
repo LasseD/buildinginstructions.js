@@ -3,6 +3,7 @@
 LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, baseURL, stepFromParameters) {
     var startTime = new Date();
     var self = this;
+    this.modelID = modelID;
     this.refreshCache = refreshCache;
     this.baseURL = baseURL;
     LDR.Colors.canBeOld = true;
@@ -412,8 +413,8 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
     else {
         viewPortHeight -= newPLIH;
     }
-    var scaleX = (window.innerWidth) / viewPortWidth * 1; // 1.1 to scale down a bit
-    var scaleY = (window.innerHeight - this.adPeek) / viewPortHeight * 1;
+    var scaleX = (window.innerWidth) / viewPortWidth * 1.1; // 1.1 to scale down a bit
+    var scaleY = (window.innerHeight - this.adPeek) / viewPortHeight * 1.1;
     if(dx*scaleX > dy*scaleY) {
         this.defaultZoom = 2*this.camera.zoom/(dx*scaleX);
     }
@@ -619,7 +620,7 @@ LDR.InstructionsManager.prototype.clickDone = function() {
         return;
     }
     this.doneShown = true;
-    $('#done_holder').load('ajax/done.php', {model:'1'});
+    $('#done_holder').load('ajax/done.php', {model:'' + this.modelID});
 }
 
 /*
