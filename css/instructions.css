@@ -75,14 +75,13 @@ body {
   visibility: hidden;
   font-family: sans-serif;
   font-weight: bold;
-  font-size: 50px;
   color: black;
   margin-left: 4px;
 }
 #rotator svg {
   vertical-align: top;
-  width: 100px;
-  height: 100px;
+  width: 10vw;
+  height: 10vw;
 }
 
 /*
@@ -113,13 +112,5 @@ body {
   #instructions_decorations {
     top: 20vw;
   }
-  #multiplier {
-    font-size: 10vw;
-  }
-  #rotator svg {
-    width: 20vw;
-    height: 20vw;
-  }
-
 }
 

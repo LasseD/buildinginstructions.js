@@ -40,7 +40,28 @@
        <div id="multiplier">x1</div>
       </span>
       <span class="decoration_holder">
-       <div id="rotator"><svg viewbox="-30,-30,60,60"></svg></div>
+       <div id="rotator">
+         <svg viewbox="-52,-52,104,104" fill="none" stroke="black" stroke-width="12">
+          <g id="full_arrow">
+           <path id="half_arrow" d="M 25,-14 40,-10 48,-23 M 40,-10 C 30,-50 -30,-50 -40,-10 M 40,-10 Z" />
+           <g transform="scale(-1 -1)">
+            <use xlink:href="#half_arrow"/>
+           </g>
+          </g>
+          <animateTransform 
+           xlink:href="#full_arrow"
+           attributeName="transform" 
+           attributeType="XML"
+           id="rotator_animation"
+           type="rotate"
+           from="0 0 0"
+           to="180 0 0"
+           dur="0.4s"
+           begin="0"
+           repeatCount="1"
+           fill="freeze" />
+         </svg>
+       </div>
       </span>
      </div>
     </div>
