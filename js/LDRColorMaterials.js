@@ -1,39 +1,15 @@
 'use strict';
 
-/*
-  ColorAttribute: 
-    color: [r,g,b,a] (4)
-    color + edge color + dimmed (12)
-    x 496    
- */
-LDR.Colors.buildGLSLColors = function(defaultColorIdx) {
-    var v = [];
-    var black = new THREE.Vector4();
-    var white = new THREE.Vector4(1,1,1,1);
-    var color16 = new THREE.Color(LDR.Colors[16].value);
-    var old = new THREE.Vector4(color16.r, color16.g, color16.b, 1);
-
-    for(var i = 0; i < 496; i++) {
-	var colorObject = LDR.Colors[i];
-	if(i == 16 && defaultColorIdx != undefined) {
-	    colorObject = LDR.Colors[defaultColorIdx];
-	}
-	if(!colorObject) {
-	    v.push(old, old, old, old, old);
-	    continue;
-	}
-
-	var color = new THREE.Color(colorObject.value);
-	var edge = new THREE.Color(colorObject.edge ? colorObject.edge : 0x333333);
-	var dim = LDR.Colors.desaturateThreeColor(colorObject.value);
-	var alpha = colorObject.alpha ? colorObject.alpha/256.0 : 1;
-	v.push(new THREE.Vector4(color.r, color.g, color.b, alpha),
-	       old,
-	       new THREE.Vector4(dim.r, dim.g, dim.b, alpha),
-	       new THREE.Vector4(edge.r, edge.g, edge.b, alpha),
-	       LDR.Colors.isBlack(i) ? white : black);
+LDR.Colors.getHighContrastColor4 = function(colorID) {
+    if(colorID === 0 || colorID === 256 || colorID === 64 || colorID === 32 || colorID === 83) {
+	return new THREE.Vector4(1, 1, 1, 1);
     }
-    return v;
+    else if(colorID === 272 || colorID === 70) {
+        return new THREE.Vector4(1, 0, 0, 1);
+    } 
+    else {
+        return new THREE.Vector4(0, 0, 0, 1);
+    }
 }
 
 LDR.Colors.getColor4 = function(colorID) {
@@ -54,18 +30,6 @@ LDR.Colors.getDesaturatedColor4 = function(colorID) {
 				(colorObject.edge ? colorObject.edge : 0x333333));
     var alpha = colorObject.alpha ? colorObject.alpha/256.0 : 1;
     return new THREE.Vector4(color.r, color.g, color.b, alpha);
-}
-
-LDR.Colors.isBlack = function(colorID) {
-    return colorID == 0 || colorID == 256 || colorID == 64 || colorID == 32 || colorID == 83;
-}
-
-LDR.Colors.getHighContrastColor4 = function(colorID) {
-    if(colorID < 10000)
-	return LDR.Colors.getColor4(colorID); // No contrast for normal colors.
-    if(LDR.Colors.isBlack(colorID-10000))
-	return new THREE.Vector4(1, 1, 1, 1);
-    return new THREE.Vector4(0, 0, 0, 1);
 }
 
 LDR.Colors.int2RGB = function(i) {
@@ -111,7 +75,6 @@ LDR.Colors.isTrans = function(colorID) {
     return colorID == 16 || LDR.Colors[colorID >= 10000 ? colorID-10000 : colorID].alpha > 0;
 }
 
-LDR.Colors.defaultGLSLColors = LDR.Colors.buildGLSLColors();
 LDR.Colors.canBeOld = false;
 
 LDR.Colors.buildLineMaterial = function(colorManager, color, conditional) {

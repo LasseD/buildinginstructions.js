@@ -951,9 +951,11 @@ LDR.ColorManager = function() {
 
     this.overWrite = function(id) {
         var isEdge = id >= 10000;
-	var colorObject = LDR.Colors[isEdge ? id-10000 : id];
-	if(!colorObject)
+        var lowID = isEdge ? id-10000 : id;
+	var colorObject = LDR.Colors[lowID];
+	if(!colorObject) {
 	    throw "Unknown color: " + id;
+        }
 	this.lastSet = id;
 	var alpha = colorObject.alpha ? colorObject.alpha/256.0 : 1;
 	if(this.sixteen >= 0) {
@@ -963,9 +965,7 @@ LDR.ColorManager = function() {
 	if(this.edgeSixteen >= 0) {
 	    var color = new THREE.Color(colorObject.edge);
 	    this.shaderColors[this.edgeSixteen] = new THREE.Vector4(color.r, color.g, color.b, alpha);
-	    this.highContrastShaderColors[this.edgeSixteen] = LDR.Colors.isBlack(id) ? 
-		new THREE.Vector4(1, 1, 1, 1) :
-		new THREE.Vector4(0, 0, 0, 1);
+	    this.highContrastShaderColors[this.edgeSixteen] = LDR.Colors.getHighContrastColor4(lowID);
 	}
     }
 
@@ -992,9 +992,7 @@ LDR.ColorManager = function() {
 	f = this.shaderColors.length + 0.1;
 	this.map[id] = f;
 	this.shaderColors.push(new THREE.Vector4(color.r, color.g, color.b, alpha));
-	this.highContrastShaderColors.push(LDR.Colors.isBlack(lowID) ? 
-					   new THREE.Vector4(1, 1, 1, 1) :
-					   new THREE.Vector4(0, 0, 0, 1));
+	this.highContrastShaderColors.push(LDR.Colors.getHighContrastColor4(lowID));
 	return f;
     }
 }
