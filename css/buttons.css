@@ -112,9 +112,27 @@
     position: relative;
     top: -10px;
 }
-
 #optionsButton a {
     display: block;
+}
+#to_top {
+  display: none;
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 1000;
+  background-color: black;
+  opacity: 0.7;
+  border-radius: 10px;
+}
+#to_top svg {
+  width: 10vw;
+  height: 10vw;
+  stroke: white;
+  opacity: 1;
+}
+#to_top svg polygon, .options_footer svg polygon {
+  stroke-width: 4;
 }
 
 /* 
@@ -209,7 +227,10 @@ line, polygon, rect, polyline, path, circle, ellipse {
     width: 18vw;
     top: -2vw;
   }
-
+  #to_top svg {
+    width: 20vw;
+    height: 20vw;
+  }
 }
 
 

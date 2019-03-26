@@ -73,6 +73,7 @@ LDR.SVG.makeCheckMark = function() {
 LDR.SVG.makeUpArrow = function() {
     var pts = "50,20 80,50 65,50 65,80 35,80 35,50 20,50";
     var ret = document.createElementNS(LDR.SVG.NS, 'svg');
+    ret.setAttribute("viewBox", "0 0 100 100");
     var poly = LDR.SVG.makePolygon(pts);
     ret.appendChild(poly);
     return ret;

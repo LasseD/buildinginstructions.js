@@ -97,6 +97,22 @@ LDR.Options.prototype.appendHeader = function(optionsBlock) {
     headerDiv.setAttribute('id', 'options_header');
     optionsBlock.appendChild(headerDiv);
 
+    // To top button:
+    var toTop = document.createElement('a');
+    toTop.setAttribute('href', '#');
+    toTop.appendChild(LDR.SVG.makeUpArrow());    
+    toTop.id = 'to_top';
+    optionsBlock.append(toTop);
+    window.onscroll = function() {
+        if (document.body.scrollTop > window.innerHeight || 
+            document.documentElement.scrollTop > window.innerHeight) {
+            toTop.style.display = "block";
+        }
+        else {
+            toTop.style.display = "none";
+        }
+    }
+
     headerDiv.appendChild(LDR.SVG.makeOptions());
 }
 LDR.Options.prototype.appendFooter = function(optionsBlock) {
@@ -112,27 +128,16 @@ LDR.Options.prototype.appendFooter = function(optionsBlock) {
 LDR.Options.prototype.appendDescriptionBar = function(optionsBlock, columns, description) {
     var tr = document.createElement('tr');
     tr.setAttribute('class', 'options_description_header');
+    optionsBlock.appendChild(tr);
 
     var td = document.createElement('td');
     td.setAttribute('class', 'options_description');
     td.setAttribute('colspan', ""+columns);
+    tr.appendChild(td);
 
     var desc = document.createElement('span');
     desc.innerHTML = description;
-
-    var aHolder = document.createElement('span');
-    var a = document.createElement('a');
-    a.setAttribute('href', '#top');
-    var svg = LDR.SVG.makeUpArrow();
-    svg.setAttribute('viewBox', '20 20 60 60');
-    a.appendChild(svg);
-    aHolder.appendChild(a);
-
     td.appendChild(desc);
-    td.appendChild(aHolder);
-
-    tr.appendChild(td);
-    optionsBlock.appendChild(tr);
 }
 
 LDR.Options.prototype.appendOldBrickColorOptions = function(optionsBlock) {
@@ -270,6 +275,7 @@ LDR.Options.prototype.appendContrastOptions = function(optionsBlock) {
     var black = function(){return '#05131D';};
     var blackEdge1 = function(){return '#FFFFFF';};
     var blackEdge2 = function(){return '#595959';};
+    var brown = function(){return '#582A12';};
 
     /* 
        Option 1: High contrast:
@@ -278,8 +284,9 @@ LDR.Options.prototype.appendContrastOptions = function(optionsBlock) {
 	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '-100 -25 200 50');
 	buttons[0].appendChild(svg);
-	this.createSvgBlock(-LDR.Options.svgBlockWidth, 0, true, red, redEdge1, svg);
-	this.createSvgBlock(LDR.Options.svgBlockWidth, 0, true, black, blackEdge1, svg);
+	this.createSvgBlock(-LDR.Options.svgBlockWidth-2, 0, true, red, redEdge1, svg);
+	this.createSvgBlock(0, 0, true, brown, red, svg);
+	this.createSvgBlock(LDR.Options.svgBlockWidth+2, 0, true, black, blackEdge1, svg);
     }
     /* 
        Option 2: Only normal lines:
@@ -288,8 +295,9 @@ LDR.Options.prototype.appendContrastOptions = function(optionsBlock) {
 	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '-100 -25 200 50');
 	buttons[1].appendChild(svg);
-	this.createSvgBlock(-LDR.Options.svgBlockWidth, 0, true, red, redEdge2, svg);
-	this.createSvgBlock(LDR.Options.svgBlockWidth, 0, true, black, blackEdge2, svg);
+	this.createSvgBlock(-LDR.Options.svgBlockWidth-2, 0, true, red, redEdge2, svg);
+	this.createSvgBlock(0, 0, true, brown, blackEdge2, svg);
+	this.createSvgBlock(LDR.Options.svgBlockWidth+2, 0, true, black, blackEdge2, svg);
     }
     /* 
        Option 3: No lines:
@@ -298,8 +306,9 @@ LDR.Options.prototype.appendContrastOptions = function(optionsBlock) {
 	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '-100 -25 200 50');
 	buttons[2].appendChild(svg);
-	this.createSvgBlock(-LDR.Options.svgBlockWidth, 0, true, red, red, svg);
-	this.createSvgBlock(LDR.Options.svgBlockWidth, 0, true, black, black, svg);
+	this.createSvgBlock(-LDR.Options.svgBlockWidth-2, 0, true, red, red, svg);
+	this.createSvgBlock(0, 0, true, brown, brown, svg);
+	this.createSvgBlock(LDR.Options.svgBlockWidth+2, 0, true, black, black, svg);
     }
 }
 
