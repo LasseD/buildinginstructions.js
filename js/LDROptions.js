@@ -275,6 +275,7 @@ LDR.Options.prototype.appendContrastOptions = function(optionsBlock) {
     var black = function(){return '#05131D';};
     var blackEdge1 = function(){return '#FFFFFF';};
     var blackEdge2 = function(){return '#595959';};
+    var brown = function(){return '#582A12';};
 
     /* 
        Option 1: High contrast:
@@ -283,8 +284,9 @@ LDR.Options.prototype.appendContrastOptions = function(optionsBlock) {
 	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '-100 -25 200 50');
 	buttons[0].appendChild(svg);
-	this.createSvgBlock(-LDR.Options.svgBlockWidth, 0, true, red, redEdge1, svg);
-	this.createSvgBlock(LDR.Options.svgBlockWidth, 0, true, black, blackEdge1, svg);
+	this.createSvgBlock(-LDR.Options.svgBlockWidth-2, 0, true, red, redEdge1, svg);
+	this.createSvgBlock(0, 0, true, brown, red, svg);
+	this.createSvgBlock(LDR.Options.svgBlockWidth+2, 0, true, black, blackEdge1, svg);
     }
     /* 
        Option 2: Only normal lines:
@@ -293,8 +295,9 @@ LDR.Options.prototype.appendContrastOptions = function(optionsBlock) {
 	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '-100 -25 200 50');
 	buttons[1].appendChild(svg);
-	this.createSvgBlock(-LDR.Options.svgBlockWidth, 0, true, red, redEdge2, svg);
-	this.createSvgBlock(LDR.Options.svgBlockWidth, 0, true, black, blackEdge2, svg);
+	this.createSvgBlock(-LDR.Options.svgBlockWidth-2, 0, true, red, redEdge2, svg);
+	this.createSvgBlock(0, 0, true, brown, blackEdge2, svg);
+	this.createSvgBlock(LDR.Options.svgBlockWidth+2, 0, true, black, blackEdge2, svg);
     }
     /* 
        Option 3: No lines:
@@ -303,8 +306,9 @@ LDR.Options.prototype.appendContrastOptions = function(optionsBlock) {
 	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '-100 -25 200 50');
 	buttons[2].appendChild(svg);
-	this.createSvgBlock(-LDR.Options.svgBlockWidth, 0, true, red, red, svg);
-	this.createSvgBlock(LDR.Options.svgBlockWidth, 0, true, black, black, svg);
+	this.createSvgBlock(-LDR.Options.svgBlockWidth-2, 0, true, red, red, svg);
+	this.createSvgBlock(0, 0, true, brown, brown, svg);
+	this.createSvgBlock(LDR.Options.svgBlockWidth+2, 0, true, black, black, svg);
     }
 }
 
