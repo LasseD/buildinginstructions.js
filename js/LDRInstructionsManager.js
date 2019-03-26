@@ -695,6 +695,7 @@ LDR.InstructionsManager.prototype.hideDone = function() {
 LDR.InstructionsManager.prototype.setUpOptions = function() {
     var self = this;
     var optionsDiv = document.getElementById('options');
+
     ldrOptions.appendHeader(optionsDiv);    
     ldrOptions.appendOldBrickColorOptions(optionsDiv);
     ldrOptions.appendContrastOptions(optionsDiv);

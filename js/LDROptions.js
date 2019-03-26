@@ -97,6 +97,22 @@ LDR.Options.prototype.appendHeader = function(optionsBlock) {
     headerDiv.setAttribute('id', 'options_header');
     optionsBlock.appendChild(headerDiv);
 
+    // To top button:
+    var toTop = document.createElement('a');
+    toTop.setAttribute('href', '#');
+    toTop.appendChild(LDR.SVG.makeUpArrow());    
+    toTop.id = 'to_top';
+    optionsBlock.append(toTop);
+    window.onscroll = function() {
+        if (document.body.scrollTop > window.innerHeight || 
+            document.documentElement.scrollTop > window.innerHeight) {
+            toTop.style.display = "block";
+        }
+        else {
+            toTop.style.display = "none";
+        }
+    }
+
     headerDiv.appendChild(LDR.SVG.makeOptions());
 }
 LDR.Options.prototype.appendFooter = function(optionsBlock) {
@@ -112,27 +128,16 @@ LDR.Options.prototype.appendFooter = function(optionsBlock) {
 LDR.Options.prototype.appendDescriptionBar = function(optionsBlock, columns, description) {
     var tr = document.createElement('tr');
     tr.setAttribute('class', 'options_description_header');
+    optionsBlock.appendChild(tr);
 
     var td = document.createElement('td');
     td.setAttribute('class', 'options_description');
     td.setAttribute('colspan', ""+columns);
+    tr.appendChild(td);
 
     var desc = document.createElement('span');
     desc.innerHTML = description;
-
-    var aHolder = document.createElement('span');
-    var a = document.createElement('a');
-    a.setAttribute('href', '#top');
-    var svg = LDR.SVG.makeUpArrow();
-    svg.setAttribute('viewBox', '20 20 60 60');
-    a.appendChild(svg);
-    aHolder.appendChild(a);
-
     td.appendChild(desc);
-    td.appendChild(aHolder);
-
-    tr.appendChild(td);
-    optionsBlock.appendChild(tr);
 }
 
 LDR.Options.prototype.appendOldBrickColorOptions = function(optionsBlock) {
