@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8" />
+    <title>Sample Building Instructions</title>
+    <link href="css/instructions.css" rel="stylesheet" type="text/css" />
+    <link href="css/preview.css" rel="stylesheet" type="text/css">
+    <link href="css/buttons.css" rel="stylesheet" type="text/css" />
+    <link href="css/options.css" rel="stylesheet" type="text/css" />
+    <meta name="viewport" content="width=device-width" />
+  </head>
+  <body>
+    <div id="pli_render_canvas"></div>
+    <script src="js/jquery.min.js"></script>
+    <script src="js/three.min.js"></script>
+    <script src="js/OrbitControls.js"></script>
+    <script src="js/colors.js"></script>
+    <script src="js/LDRShaders.js"></script>    
+    <script src="js/LDRColorMaterials.js"></script>
+    <script src="js/pli.js"></script>
+    <script src="js/LDRSVG.js"></script>
+    <script src="js/LDROptions.js"></script>
+    <script src="js/ClientStorage.js"></script>
+    <script src="js/LDRGeometries.js"></script>
+    <script src="js/LDRLoader.js"></script>
+    <script src="js/LDRStepBuilder.js"></script>
+    <script src="js/LDRPartsBuilder.js"></script>
+    <script src="js/RectanglePacking.js"></script>
+    <script src="js/LDRPLIBuilder.js"></script>
+    <script src="js/LDRPLIPreview.js"></script>
+    <script src="js/LDRButtons.js"></script>
+    <script src="js/LDRMeasurer.js"></script>
+    <script src="js/LDRStepEditor.js"></script>
+    <script src="js/LDRInstructionsManager.js"></script>
+    <div id="main_canvas_holder">
+     <canvas id="main_canvas"></canvas>
+     <div id="instructions_decorations">
+      <canvas id="pli">
+      </canvas>
+      <span class="decoration_holder">
+       <div id="multiplier">x1</div>
+      </span>
+      <span class="decoration_holder">
+       <div id="rotator">
+         <svg viewbox="-52,-52,104,104" fill="none" stroke="black" stroke-width="12">
+          <g id="full_arrow">
+           <path id="half_arrow" d="M 25,-14 40,-10 48,-23 M 40,-10 C 30,-50 -30,-50 -40,-10 M 40,-10 Z" />
+           <g transform="scale(-1 -1)">
+            <use xlink:href="#half_arrow"/>
+           </g>
+          </g>
+          <animateTransform 
+           xlink:href="#full_arrow"
+           attributeName="transform" 
+           attributeType="XML"
+           id="rotator_animation"
+           type="rotate"
+           from="0 0 0"
+           to="180 0 0"
+           dur="0.4s"
+           begin="0"
+           repeatCount="1"
+           fill="freeze" />
+         </svg>
+       </div>
+      </span>
+     </div>
+    </div>
+    <div id="pli_preview_section">
+        <div id="preview_background" onclick="manager.hidePliPreview();"></div>
+        <div id="preview_holder">
+          <div id="preview_parent"><canvas id="preview" /></div>
+	  <div id="preview_info">
+	    <span class="preview_info_line">
+	     <span id="preview_info_name">PART NAME</span>
+	     <a id="preview_info_bh_link" href="" target="_blank">Go to part</a>
+	     or
+	     <a id="preview_info_bl_link" href="" target="_blank">See on BrickLink</a>
+            </span>
+	    <span class="preview_info_line">LDraw color: <div id="preview_info_color_ldraw">LDR COLOR</div></span>
+	    <span class="preview_info_line">LEGO/LDD color: <div id="preview_info_color_lego">LDD COLOR</div></span>
+	  </div>
+        </div>
+    </div>
+    <div id="done_section">
+        <div id="done_background" onclick="hideDone();"></div>
+        <div id="done_holder">
+        </div>
+    </div>
+    <div id="green"></div>
+    <div id="options" />
+    </div>
+    <script>
+      var modelUrl = 'models/spiral2.ldr';
+      //var modelUrl = 'models/pyramid10.ldr';
+      var baseURL = 'sample_editing.htm?step='; //"r.php?model=1&color=0&step=";
+
+      var manager;
+      var ldrOptions = new LDR.Options(); // Global scope for options.
+
+      function refreshCache() {
+        console.log("Refreshing cache - will be called once in a while.");
+      }
+
+      $(function() {
+        manager = new LDR.InstructionsManager(modelUrl, '?', null, refreshCache, baseURL, 1);
+        //manager.stats = new Stats(); document.body.appendChild(stats.dom);
+      });
+    </script>
+  </body>
+</html>

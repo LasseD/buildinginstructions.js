@@ -276,6 +276,13 @@ LDR.StepBuilder.prototype.getCurrentStepAndColor = function() {
     return subBuilder.getCurrentStepAndColor();
 }
 
+LDR.StepBuilder.prototype.getCurrentPartAndStepIndex = function() {
+    var subBuilder = this.subBuilders[this.current];
+    if(!subBuilder || subBuilder.isAtPlacementStep())
+	return [this.part, this.current];
+    return subBuilder.getCurrentPartAndStepIndex();
+}
+
 LDR.StepBuilder.prototype.getMultiplierOfCurrentStep = function() {
     var subBuilder = this.subBuilders[this.current];
     var ret = this.partDescs.length;

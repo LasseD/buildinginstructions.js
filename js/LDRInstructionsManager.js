@@ -3,6 +3,7 @@
 LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, baseURL, stepFromParameters) {
     var startTime = new Date();
     var self = this;
+    this.stepEditor; // Only set if LDRStepEditor.js is loaded.
     this.refreshCache = refreshCache;
     this.baseURL = baseURL;
     LDR.Colors.canBeOld = true;
@@ -126,7 +127,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
 	// Go to step indicated by parameter:
 	stepFromParameters = self.clampStep(stepFromParameters);
 	if(stepFromParameters > 1) {
-            self.builder.moveSteps(stepFromParameters-1, walked => self.handleStepsWalked(walked));
+            self.builder.moveSteps(stepFromParameters-1, self.handleStepsWalked);
         }
 	else {
             self.ensureSwipeForwardWorks();
@@ -149,18 +150,18 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
                     self.prevStep();
                 }
                 else {
-                    var handleStepsWalkedNoHistoryChange = function(walkedSteps){
-                        self.currentStep = self.clampStep(self.currentStep + walkedSteps);
-                        self.ensureSwipeForwardWorks();
-                        self.realignModel(0);
-                        self.updateUIComponents(false);
-                    };
-                    self.builder.moveSteps(diff, walked => handleStepsWalkedNoHistoryChange(walked));
+                    self.builder.moveSteps(diff, self.handleStepsWalked);
                 }
             });
 
 	// Enable pli preview:
         self.pliPreviewer.attachRenderer(document.getElementById('preview'));
+
+        // Enable editor:
+        if(LDR.StepEditor) {
+            self.stepEditor = new LDR.StepEditor(self.ldrLoader, self.builder);
+            self.stepEditor.createGuiComponents(document.getElementById('green'));
+        }
     }
 
     var onLoad = function() {
@@ -294,6 +295,7 @@ LDR.InstructionsManager.prototype.updateUIComponents = function(force) {
     this.updateViewPort();
     this.updateCameraZoom();
     this.render();
+    this.stepEditor && this.stepEditor.updateCurrentStep();
 }
 
 LDR.InstructionsManager.prototype.updatePLI = function(force) {
@@ -589,6 +591,7 @@ LDR.InstructionsManager.prototype.handleStepsWalked = function(walkedSteps){
     //}
     this.updateUIComponents(false);
     this.render();
+    // TODO: 
 };
 
 LDR.InstructionsManager.prototype.goToStep = function(step) {
@@ -599,7 +602,7 @@ LDR.InstructionsManager.prototype.goToStep = function(step) {
     step = this.clampStep(step);
     var diff = step - this.currentStep;
     console.log("Going to " + step + " from " + this.currentStep);
-    this.builder.moveSteps(step - this.currentStep, steps => this.handleStepsWalked(steps));
+    this.builder.moveSteps(step - this.currentStep, this.handleStepsWalked);
 }
 
 LDR.InstructionsManager.prototype.nextStep = function() {
@@ -614,7 +617,7 @@ LDR.InstructionsManager.prototype.nextStep = function() {
     this.realignModel(1, function(){
             self.builder.nextStep(false);	      
 	}, function() {
-	    self.handleStepsWalked(1, false);
+	    self.handleStepsWalked(1);
 	});
 }
 
@@ -630,7 +633,7 @@ LDR.InstructionsManager.prototype.prevStep = function() {
     this.realignModel(-1, function(){
             self.builder.prevStep(false);
 	}, function() {
-            self.handleStepsWalked(-1, false);
+            self.handleStepsWalked(-1);
 	});
 }
 
