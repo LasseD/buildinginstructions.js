@@ -124,8 +124,9 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	part.addStep(step);
 	var rot = step.rotation;
 	step = new THREE.LDRStep();
-	if(keepRotation)
-	    step.rotation = rot;
+	if(keepRotation && rot !== null) {
+	    step.rotation = rot.clone();
+        }
     }
     var toLoad = [];
 
@@ -469,6 +470,10 @@ THREE.LDRStepRotation.equals = function(a, b) {
     return (a.x === b.x) && (a.y === b.y) && (a.z === b.z) && (a.type === b.type);
 }
 
+THREE.LDRStepRotation.prototype.clone = function() {
+    return new THREE.LDRStepRotation(this.x, this.y, this.z, this.type);
+}
+
 // Get the rotation matrix by looking at the default camera position:
 THREE.LDRStepRotation.getAbsRotationMatrix = function() {
     var looker = new THREE.Object3D();
@@ -653,7 +658,7 @@ THREE.LDRStep.prototype.cleanUp = function(loader, newSteps) {
         var newStep = new THREE.LDRStep();
         newStep.empty = false;
         newStep.subModels = subModels;
-        newStep.rotation = self.rotation;
+        newStep.rotation = self.rotation ? self.rotation.clone() : null;
         newSteps.push(newStep);
     }
 

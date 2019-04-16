@@ -127,7 +127,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
 	// Go to step indicated by parameter:
 	stepFromParameters = self.clampStep(stepFromParameters);
 	if(stepFromParameters > 1) {
-            self.builder.moveSteps(stepFromParameters-1, self.handleStepsWalked);
+            self.builder.moveSteps(stepFromParameters-1, walked => self.handleStepsWalked(walked));
         }
 	else {
             self.ensureSwipeForwardWorks();
@@ -150,7 +150,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
                     self.prevStep();
                 }
                 else {
-                    self.builder.moveSteps(diff, self.handleStepsWalked);
+                    self.builder.moveSteps(diff, walked => self.handleStepsWalked(walked));
                 }
             });
 
@@ -159,7 +159,10 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
 
         // Enable editor:
         if(LDR.StepEditor) {
-            self.stepEditor = new LDR.StepEditor(self.ldrLoader, self.builder);
+            function onStepChange() {
+                self.handleStepsWalked(0);
+            }
+            self.stepEditor = new LDR.StepEditor(self.ldrLoader, self.builder, onStepChange);
             self.stepEditor.createGuiComponents(document.getElementById('green'));
         }
     }
@@ -602,7 +605,7 @@ LDR.InstructionsManager.prototype.goToStep = function(step) {
     step = this.clampStep(step);
     var diff = step - this.currentStep;
     console.log("Going to " + step + " from " + this.currentStep);
-    this.builder.moveSteps(step - this.currentStep, this.handleStepsWalked);
+    this.builder.moveSteps(step - this.currentStep, walked => this.handleStepsWalked(walked));
 }
 
 LDR.InstructionsManager.prototype.nextStep = function() {
