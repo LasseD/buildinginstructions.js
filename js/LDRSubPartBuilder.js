@@ -12,6 +12,7 @@ LDR.SubPartBulder = function(baseMC, table, redPoints, loader, partType, colorID
     this.baseMC = baseMC;
     this.table = table;
     this.redPoints = redPoints;
+    this.loader = loader;
     this.c = colorID;
     this.p = position;
     this.r = rotation;
@@ -159,7 +160,7 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
 	    var c = transformColor(line.line1 ? line.desc.colorID : line.c);
 	    var p1, p2, p3, p4;
 
-	    var subModel = line.line1 ? loader.partTypes[line.desc.ID] : new THREE.LDRPartType();
+	    var subModel = line.line1 ? this.loader.partTypes[line.desc.ID] : new THREE.LDRPartType();
 	    var step = new THREE.LDRStep();
 
 	    if(line.line1) {
@@ -195,7 +196,7 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
 		var nextRotation = new THREE.Matrix3();
 		nextRotation.multiplyMatrices(this.r, line.desc.rotation);
 
-		subModel.generateThreePart(loader, c, nextPosition, nextRotation, line.desc.cull, line.desc.invertCCW, line.mc);
+		subModel.generateThreePart(this.loader, c, nextPosition, nextRotation, line.desc.cull, line.desc.invertCCW, line.mc);
 	    }
 	    else if(line.line2) {
 		LDR.makeEle(tr, 'td', 'line_type').innerHTML = 'Line';
@@ -249,8 +250,8 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
 
 	    if(!line.line1) {
 		subModel.addStep(step);
-		subModel.prepareGeometry(loader);
-		subModel.generateThreePart(loader, c, new THREE.Vector3(), new THREE.Matrix3(), line.cull, line.ccw, line.mc);
+		subModel.prepareGeometry(this.loader);
+		subModel.generateThreePart(this.loader, c, new THREE.Vector3(), new THREE.Matrix3(), line.cull, line.ccw, line.mc);
 	    }
 
 	    line.imageHolder = LDR.makeEle(tr, 'td', 'line_image');

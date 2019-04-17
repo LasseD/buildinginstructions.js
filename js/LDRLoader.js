@@ -203,7 +203,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 								       fileName,
 								       true,
 								       false);
-		    step.addLDR(shallowSubModel);
+		    step.addSubModel(shallowSubModel);
 		}
 		closeStep(false);
 		if(part.ID) {

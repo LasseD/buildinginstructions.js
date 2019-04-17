@@ -1,4 +1,4 @@
-#prev_button, #next_button, #reset_camera_button, #zoom_in_button, #zoom_out_button, #zoom_in_button_large, #zoom_out_button_large, #done_button {
+#prev_button, #next_button, #next_button_large, #reset_camera_button, #zoom_in_button, #zoom_out_button, #zoom_in_button_large, #zoom_out_button_large, #done_button {
     position: relative;
     cursor: pointer;
     /* Prevent text select: */

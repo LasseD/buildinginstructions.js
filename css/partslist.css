@@ -100,8 +100,10 @@ td.list_image {
     border: 2px solid black;
     border-radius: 0.5em;
     padding: 0.5em;
-    margin-right: 1em;
+    margin-right: 0;
     margin-bottom: 1em;
+    margin-left: 1em;
+    margin-top: 0;
     width: 200px;
     height: 200px;
     cursor: pointer;

@@ -108,7 +108,7 @@ LDR.PartAndColor = function(key, partID, colorID, loader) {
 						   false,
 						   false);
 	    var step = new THREE.LDRStep();
-	    step.addDAT(dat);
+	    step.addSubModel(dat);
 	    var pt = new THREE.LDRPartType();
 	    pt.ID = pliName;
 	    pt.modelDescription = this.partType.modelDescription;
