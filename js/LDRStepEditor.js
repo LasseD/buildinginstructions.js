@@ -107,12 +107,13 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
         propagate(rot);
     }
 
-    // TODO: https://viralpatel.net/blogs/css-radio-button-checkbox-background/
     Ele = this.makeEle(parentEle, 'span', 'editor_control');
     function makeRotationRadioButton(value, onClick) {
+        var button = self.makeEle(Ele, 'input', 'editor_radio_button', onClick);
+
         var label = self.makeEle(Ele, 'label', 'editor_radio_label', null, value);
         label.setAttribute('for', value);
-        var button = self.makeEle(Ele, 'input', 'editor_radio_button', onClick);
+
         button.setAttribute('type', 'radio');
         button.setAttribute('id', value);
         button.setAttribute('name', 'rot_type');

@@ -114,3 +114,17 @@ body {
   }
 }
 
+/*
+  Editor:
+ */
+.editor_radio_button {
+  display: none; 
+}
+.editor_radio_button + .editor_radio_label {
+  display: inline-block;
+  padding: 0.2em 0.5em;
+}
+.editor_radio_button:checked + .editor_radio_label {
+  background-image: none;
+  background-color: #AAA;
+}
