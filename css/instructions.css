@@ -32,7 +32,7 @@ body {
 #green {
     display: block;
     background-color: #DDD;
-    height: 120px;
+    min-height: 120px;
     vertical-align: top;
 }
 .green_container {
@@ -117,14 +117,51 @@ body {
 /*
   Editor:
  */
+.editor_control {
+  display: block;
+  margin-top: 0.5em;
+  padding: 0.5em;
+  text-align: center;
+}
 .editor_radio_button {
   display: none; 
 }
 .editor_radio_button + .editor_radio_label {
   display: inline-block;
-  padding: 0.2em 0.5em;
+  background-color: #DDD;
+  margin-right: 1vw;
 }
 .editor_radio_button:checked + .editor_radio_label {
-  background-image: none;
   background-color: #AAA;
+}
+.editor_input {
+  width: 6vw;
+  text-align: center;
+  font-size: 3VW;
+  border: none;
+}
+.editor_button {
+  border: none;
+  margin: 0;
+  background-color: #DDD;
+}
+.save_button {
+  border: none;
+  margin: 0;
+  background-color: #AAA;
+  font-size: 5VW;
+}
+.editor_radio_label svg {
+  width: 9vw;
+  height: 3vw;
+  fill: #F66;
+  stroke-width: 1;
+  stroke: black;
+}
+.editor_button svg {
+  width: 3vw;
+  height: 3vw;
+  fill: #F66;
+  stroke-width: 1;
+  stroke: black;
 }

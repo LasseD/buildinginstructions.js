@@ -120,22 +120,6 @@ LDR.SVG.makeCamera = function(x, y, w) {
     return ret;
 }
 
-// Fast forward and fast reverse double-arrow buttons:
-LDR.SVG.makeFR = function (x) {
-    x = x || 0;
-    var ret = document.createElementNS(LDR.SVG.NS, 'svg');
-    ret.appendChild(LDR.SVG.makeTriangle(x+50, x+20));
-    ret.appendChild(LDR.SVG.makeTriangle(x+80, x+50));
-    return ret;
-}
-LDR.SVG.makeFF = function (x) {
-    x = x || 0;
-    var ret = document.createElementNS(LDR.SVG.NS, 'svg');
-    ret.appendChild(LDR.SVG.makeTriangle(x+20, x+50));
-    ret.appendChild(LDR.SVG.makeTriangle(x+50, x+80));
-    return ret;
-}
-
 // Home button:
 LDR.SVG.makeHome = function () {
     var ret = document.createElementNS(LDR.SVG.NS, 'svg');
@@ -211,13 +195,15 @@ LDR.SVG.makeLine = function(x1, y1, x2, y2, forceStroke) {
     ret.setAttribute('y2', y2);
     return ret;
 }
-LDR.SVG.makeRect = function(x, y, w, h) {
+LDR.SVG.makeRect = function(x, y, w, h, fill) {
     var ret = document.createElementNS(LDR.SVG.NS, 'rect');
     ret.setAttribute('x', x);
     ret.setAttribute('y', y);
     ret.setAttribute('width', w);
     ret.setAttribute('height', h);
-    ret.setAttribute('fill', 'none');
+    if(!fill) {
+        ret.setAttribute('fill', 'none');
+    }
     return ret;
 }
 LDR.SVG.makeRoundRect = function(x, y, w, h, r) {
@@ -299,4 +285,35 @@ LDR.SVG.makeOffIcon = function(x, y, w) {
     ret.setAttribute('d', pts);
     ret.setAttribute('fill', 'none');    
     return ret;
+}
+/**
+   Misc icons for buttons:
+ */
+LDR.SVG.makeArrow = function(x1, y1, x2, y2, svg) {
+    svg.append(LDR.SVG.makeLine(x1, y1, x2, y2, true));
+    var dx = (x2-x1)*0.3, dy = (y2-y1)*0.3;
+    var x3 = x2-dx, y3 = y2-dy;
+    svg.append(LDR.SVG.makeLine(x2, y2, x3-dy, y3-dx, true));
+    svg.append(LDR.SVG.makeLine(x2, y2, x3+dy, y3+dx, true));
+}
+LDR.SVG.makeBlock3D = function(x, y, parent) {
+    var dx2 = 15, dy = 25, dy2 = dy*0.3;
+
+    var pts1 = 'M ' + x + ' ' + (y - dy/2 + dy2) + 
+	' l' + dx2 + ' -' + dy2 + 
+	' v' + dy + 
+	' l-' + dx2 + ' ' + dy2 + 
+	' l-' + dx2 + ' -' + dy2 + 
+	' v-' + dy + 
+	' l' + dx2 + ' ' + dy2 + 
+	' v' + dy +
+        ' M ' +(x-dx2) + ' ' + (y-dy/2) + 
+	' l' + dx2 + ' -' + dy2 + 
+	' l' + dx2 + ' ' + dy2 + 
+	' l-' + dx2 + ' ' + dy2 + 
+	' Z';
+    var p = document.createElementNS(LDR.SVG.NS, 'path');
+    p.setAttribute('d', pts1);
+
+    parent.appendChild(p);
 }
