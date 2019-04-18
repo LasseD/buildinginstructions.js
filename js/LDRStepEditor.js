@@ -1,17 +1,19 @@
 'use strict';
 
 /**
-   Operations (! for MVP):
-   - addStep
-   - removeStep
-   ! modifyStepRotation: type[normal,ABS,REL,ADD,END], x, y, z
-   - dissolveSubModel
+   Operations:
+   - modify step rotation: type[normal,ABS,REL,END], x, y, z
+   - add step
+   - remove step
+   - dissolve sub model
    - save
-   - Move parts to previous/next
+   - Move parts to previous/next step
+   - Move parts to new previous/next step
  */
 LDR.StepEditor = function(loader, builder, onChange) {
-    if(!onChange)
+    if(!onChange) {
         throw "Missing callback for step changes!";
+    }
     this.loader = loader;
     this.builder = builder;
     this.onChange = onChange;
@@ -52,13 +54,30 @@ LDR.StepEditor.prototype.createGuiComponents = function(parentEle) {
     // TODO Other groups of GUI components: For moving parts (to next), creating and removing steps, dissolving sub-model
 
     var self = this;
+    
+    var saveEle;
     function save() {
         var fileContent = self.loader.toLDR();
-        console.log(fileContent);
-        // TODO: Send POST request with file.
+        saveEle.innerHTML = 'Saving...';
+        $.ajax({
+                url: 'ajax/save.htm',
+                type: 'POST',
+                data: {model: 1, content: fileContent},
+                dataType: "text",
+                success: function(result) {
+                    saveEle.innerHTML = 'SAVE ALL';
+                    console.dir(result);
+                },
+                error: function(xhr, status, error_message) {
+                    saveEle.innerHTML = 'ERROR! PRESS TO SAVE AGAIN';
+                    console.dir(xhr);
+                    console.warn(status);
+                    console.warn(error_message);
+                }
+            });
     }
     var saveParentEle = this.makeEle(parentEle, 'span', 'editor_control');
-    var saveEle = this.makeEle(saveParentEle, 'button', 'editor_button', save, 'SAVE ALL');
+    saveEle = this.makeEle(saveParentEle, 'button', 'editor_button', save, 'SAVE ALL');
     this.updateCurrentStep();
 }
 
