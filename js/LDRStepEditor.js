@@ -1,14 +1,15 @@
 'use strict';
 
 /**
-   Operations:
-   - modify step rotation: type[normal,ABS,REL,END], x, y, z
-   - add step
-   - remove step
-   - dissolve sub model
-   - save
-   - Move parts to previous/next step
-   - Move parts to new previous/next step
+   Finished Operations:
+   - save --- 1 button
+   - modify step rotation: type[normal,ABS,REL,END], x, y, z --- 4 buttons + 3*3 inputs
+   Operations on TODO-list:
+   - Open/Close editor in top bar (changes PLI - PLI always shown when editor opened)
+   - add step (left and right, move highlighted parts to new step) --- 2 buttons
+   - remove step (merge left or right) --- 2 buttons
+   - dissolve sub model --- 1 button
+   - Move parts to previous/next step --- 2 buttons
  */
 LDR.StepEditor = function(loader, builder, onChange) {
     if(!onChange) {
