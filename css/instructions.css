@@ -119,8 +119,7 @@ body {
  */
 .editor_control {
   display: block;
-  margin-top: 0.5em;
-  padding: 0.5em;
+  padding-top: 0.2em;
   text-align: center;
 }
 .editor_radio_button {
@@ -148,8 +147,13 @@ body {
 .save_button {
   border: none;
   margin: 0;
-  background-color: #AAA;
-  font-size: 5VW;
+  background-color: #4B4;
+  border: 0.3vw solid #2A2;
+  font-size: 3VW;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  margin-bottom: 0.5em;
 }
 .editor_radio_label svg {
   width: 9vw;
