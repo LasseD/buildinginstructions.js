@@ -3,7 +3,7 @@
 0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
 1 0 0 0 0 1 0 0 0 1 0 0 0 1 3001.dat
 0 STEP
-1 1 -20 -24 -20 0 0 -1 0 1 0 1 0 0 3001.dat
+1 1 -20.00001 -24.000001 -20.0000001 0 0 -1.001 0 1.002 0 1.003 0 0 3001.dat
 0 ROTSTEP 0 90 0 ADD
 1 2 0 -48 -40 1 0 0 0 1 0 0 0 1 3001.dat
 0 ROTSTEP 0 90 0 ADD
@@ -13,4 +13,5 @@
 0 ROTSTEP 0 90 0 ADD
 1 5 -20 -120 -20 0 0 1 0 1 0 -1 0 0 3001.dat
 0 ROTSTEP 0 90 0 ADD
+1 0 0.1 0.2 0.3 1 2 3 4 5 6 7 8 9 3001.dat
 0

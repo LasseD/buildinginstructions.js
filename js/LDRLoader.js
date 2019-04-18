@@ -132,6 +132,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 
     // State information:
     var previousComment;
+    var inHeader = true;
 
     var dataLines = data.split(/(\r\n)|\n/);
     for(var i = 0; i < dataLines.length; i++) {
@@ -140,8 +141,9 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    continue; // Empty line, or 'undefined' due to '\r\n' split.
 
 	var parts = line.split(" ").filter(x => x !== ''); // Remove empty strings.
-	if(parts.length <= 1)
+	if(parts.length <= 1) {
 	    continue; // Empty/ empty comment line
+        }
 	var lineType = parseInt(parts[0]);
 	if(lineType !== 0) {
 	    var colorID = parseInt(parts[1]);
@@ -159,13 +161,15 @@ THREE.LDRLoader.prototype.parse = function(data) {
 
 	var self = this;
 	function setModelDescription() {
-	    if(part.modelDescription || !previousComment)
+	    if(part.modelDescription || !previousComment) {
 		return;
+            }
 	    part.modelDescription = previousComment;
 	    if(previousComment.toLowerCase().startsWith("~moved to ")) {
 		var newID = previousComment.substring("~moved to ".length).toLowerCase();
-		if(!newID.endsWith(".dat"))
+		if(!newID.endsWith(".dat")) {
 		    newID += ".dat";
+                }
 		self.onWarning({message:'The part "' + part.ID + '" has been moved to "' + newID + '". Instructions and parts lists will show "' + newID + '".', line:i, subModel:part});
 		part.replacement = newID;
 	    }
@@ -211,6 +215,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		    self.onProgress(part.ID);
 		}
 		part = new THREE.LDRPartType();
+                inHeader = true;
 		part.ID = fileName;
 	    }
 	}
@@ -286,12 +291,18 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		previousComment = line.substring(2);
 	    }
 	    
-	    // TODO: LSynth commands
 	    // TODO: TEXMAP commands
 	    // TODO: Buffer exchange commands
 
-	    if(this.saveFileLines)
-		part.lines.push(new LDR.Line0(parts.slice(1).join(" ")));
+	    if(this.saveFileLines) {
+                var fileLine = new LDR.Line0(parts.slice(1).join(" "));
+                if(inHeader) {
+                    part.headerLines.push(fileLine);
+                }
+                else {
+                    step.fileLines.push(fileLine);
+                }
+            }
 	    break;
 	case 1: // 1 <colour> x y z a b c d e f g h i <file>
 	    for(var j = 2; j < 14; j++)
@@ -311,18 +322,21 @@ THREE.LDRLoader.prototype.parse = function(data) {
             step.addSubModel(subModel); // DAT part - no step.
             toLoad.push(subModelID);
 
+            inHeader = false;
 	    if(this.saveFileLines) {
-  		part.lines.push(new LDR.Line1(subModel));
+		step.fileLines.push(new LDR.Line1(subModel));
             }
-
 	    invertNext = false;
 	    break;
 	case 2: // Line "2 <colour> x1 y1 z1 x2 y2 z2"
 	    var p1 = new THREE.Vector3(parseFloat(parts[2]), parseFloat(parts[3]), parseFloat(parts[4]));
 	    var p2 = new THREE.Vector3(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
 	    step.addLine(colorID, p1, p2);
-	    if(this.saveFileLines)
-		part.lines.push(new LDR.Line2(colorID, p1, p2));
+
+            inHeader = false;
+	    if(this.saveFileLines) {
+		step.fileLines.push(new LDR.Line2(colorID, p1, p2));
+            }
 	    invertNext = false;
 	    break;
 	case 3: // 3 <colour> x1 y1 z1 x2 y2 z2 x3 y3 z3
@@ -338,8 +352,10 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		step.addTrianglePoints(colorID, p1, p2, p3);
 	    }
 
-	    if(this.saveFileLines)
-		part.lines.push(new LDR.Line3(colorID, p1, p2, p3, localCull, CCW !== invertNext));
+            inHeader = false;
+	    if(this.saveFileLines) {
+		step.fileLines.push(new LDR.Line3(colorID, p1, p2, p3, localCull, CCW !== invertNext));
+            }
 	    invertNext = false;
 	    break;
 	case 4: // 4 <colour> x1 y1 z1 x2 y2 z2 x3 y3 z3 x4 y4 z4
@@ -356,8 +372,10 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		step.addQuadPoints(colorID, p1, p2, p3, p4);
 	    }
 
-	    if(this.saveFileLines)
-		part.lines.push(new LDR.Line4(colorID, p1, p2, p3, p4, localCull, CCW !== invertNext));
+            inHeader = false;
+	    if(this.saveFileLines) {
+		step.fileLines.push(new LDR.Line4(colorID, p1, p2, p3, p4, localCull, CCW !== invertNext));
+            }
 	    invertNext = false;
 	    break;
 	case 5: // Conditional lines:
@@ -366,8 +384,10 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    var p3 = new THREE.Vector3(parseFloat(parts[8]), parseFloat(parts[9]), parseFloat(parts[10]));
 	    var p4 = new THREE.Vector3(parseFloat(parts[11]), parseFloat(parts[12]), parseFloat(parts[13]));
 	    step.addConditionalLine(colorID, p1, p2, p3, p4);
-	    if(this.saveFileLines)
-		part.lines.push(new LDR.Line5(colorID, p1, p2, p3, p4));
+            inHeader = false;
+	    if(this.saveFileLines) {
+		step.fileLines.push(new LDR.Line5(colorID, p1, p2, p3, p4));
+            }
 	    invertNext = false;
 	    break;
         default:
@@ -394,6 +414,21 @@ THREE.LDRLoader.prototype.parse = function(data) {
     //console.log("LDraw file read in " + (parseEndTime-parseStartTime) + "ms.");
 };
 
+THREE.LDRLoader.prototype.toLDR = function() {
+    var ret = this.partTypes[this.mainModel].toLDR();
+    for(var modelName in this.partTypes) {
+        if(!this.partTypes.hasOwnProperty(modelName)) {
+            continue;
+        }
+        var partType = this.partTypes[modelName];
+        if(partType === true || partType.inlined || partType.ID === this.mainModel) {
+            continue;
+        }
+        ret += partType.toLDR();
+    }
+    return ret;
+}
+
 THREE.LDRLoader.prototype.removeGeometries = function() {
     for(var ptID in this.partTypes) {
 	if(!this.partTypes.hasOwnProperty(ptID))
@@ -407,13 +442,15 @@ THREE.LDRLoader.prototype.removeGeometries = function() {
 	    partType.steps[i].removePrimitivesAndSubParts(); // Remove unused 'geometries'.
 	}
 
-	if(partType.geometry)
+	if(partType.geometry) {
 	    delete partType.geometry;
+        }
     }
 }
 
 /*
-  Part description: a part (ID) placed (position, rotation) with a given color (16/24 allowed) and invertCCW to allow for sub-parts in DAT-parts.
+  Part description: a part (ID) placed (position, rotation) with a
+  given color (16/24 allowed) and invertCCW to allow for sub-parts in DAT-parts.
 */
 THREE.LDRPartDescription = function(colorID, position, rotation, ID, cull, invertCCW) {
     this.colorID = colorID; // LDraw ID
@@ -434,6 +471,10 @@ THREE.LDRPartDescription.prototype.placedColor = function(pdColorID) {
     }
 
     return colorID;
+}
+
+THREE.LDRPartDescription.prototype.toLDR = function() {
+    return '1 ' + this.colorID + ' ' + this.position.toLDR() + ' ' + this.rotation.toLDR() + ' ' + this.ID + '\n';
 }
 
 THREE.LDRPartDescription.prototype.placeAt = function(pd) {
@@ -472,6 +513,10 @@ THREE.LDRStepRotation.equals = function(a, b) {
 
 THREE.LDRStepRotation.prototype.clone = function() {
     return new THREE.LDRStepRotation(this.x, this.y, this.z, this.type);
+}
+
+THREE.LDRStepRotation.prototype.toLDR= function() {
+    return '0 ROTSTEP ' + this.x + ' ' + this.y + ' ' + this.z + ' ' + this.type + '\n';
 }
 
 // Get the rotation matrix by looking at the default camera position:
@@ -546,6 +591,7 @@ THREE.LDRStep = function() {
     this.rotation = null;
     this.cull = true;
     this.cnt = -1;
+    this.fileLines = [];
 }
 
 THREE.LDRStep.prototype.removePrimitivesAndSubParts = function() {
@@ -554,6 +600,28 @@ THREE.LDRStep.prototype.removePrimitivesAndSubParts = function() {
     delete this.conditionalLines;
     delete this.triangles;
     delete this.quads;
+}
+
+THREE.LDRStep.prototype.toLDR= function(prevStepRotation) {
+    var ret = '';
+    this.fileLines.forEach(line => ret += line.toLDR());
+    if(!this.rotation) {
+        if(prevStepRotation) {
+            ret += '0 ROTSTEP END\n';
+        }
+        else {
+            ret += '0 STEP\n';
+        }
+    }
+    else { // We have a rotation. Check against prev:
+        if(THREE.LDRStepRotation.equals(this.rotation, prevStepRotation)) {
+            ret += '0 STEP\n';            
+        }
+        else {
+            ret += this.rotation.toLDR();
+        }
+    }
+    return ret;
 }
 
 THREE.LDRStep.prototype.addSubModel = function(subModel) {
@@ -659,6 +727,7 @@ THREE.LDRStep.prototype.cleanUp = function(loader, newSteps) {
         newStep.empty = false;
         newStep.subModels = subModels;
         newStep.rotation = self.rotation ? self.rotation.clone() : null;
+        subModels.forEach(subModel => newStep.fileLines.push(new LDR.Line1(subModel)));
         newSteps.push(newStep);
     }
 
@@ -733,9 +802,37 @@ LDR.Line0 = function(txt) {
     this.txt = txt;    
     this.line0 = true;
 }
+LDR.Line0.prototype.toLDR = function() {
+    return '0 ' + this.txt + '\n';
+}
+
 LDR.Line1 = function(desc) {
-    this.desc = desc;
+    this.desc = desc; // THREE.LDRPartDescription
     this.line1 = true;
+}
+LDR.Line1.prototype.toLDR = function() {
+    return this.desc.toLDR();
+}
+
+LDR.convertFloat = function(x) {
+    x = x.toFixed(6); // Allow at most 6 decimals.
+    for(var i = 0; i <= 6; i++) {
+        var tmp = parseFloat(x).toFixed(i);
+        if(parseFloat(tmp) === parseFloat(x)) {
+            return tmp; // Don't output too many '0's.
+        }
+    }
+    return x;
+}
+THREE.Vector3.prototype.toLDR = function() {
+    return LDR.convertFloat(this.x) + ' ' + LDR.convertFloat(this.y) + ' ' + LDR.convertFloat(this.z);
+}
+THREE.Matrix3.prototype.toLDR = function() {
+    var e = this.elements;
+    var rowMajor = [e[0], e[3], e[6],
+                    e[1], e[4], e[7],
+                    e[2], e[5], e[8]]
+    return rowMajor.map(LDR.convertFloat).join(' ');
 }
 LDR.Line2 = function(c, p1, p2) {
     this.c = c;
@@ -743,6 +840,10 @@ LDR.Line2 = function(c, p1, p2) {
     this.p2 = p2;
     this.line2 = true;
 }
+LDR.Line2.prototype.toLDR = function() {
+    return '2 ' + this.c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + '\n';
+}
+
 LDR.Line3 = function(c, p1, p2, p3, cull, ccw) {
     this.c = c;
     this.p1 = p1;
@@ -752,6 +853,10 @@ LDR.Line3 = function(c, p1, p2, p3, cull, ccw) {
     this.ccw = ccw;
     this.line3 = true;
 }
+LDR.Line3.prototype.toLDR = function() {
+    return '3 ' + this.c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + ' ' + this.p3.toLDR() + '\n';
+}
+
 LDR.Line4 = function(c, p1, p2, p3, p4, cull, ccw) {
     this.c = c;
     this.p1 = p1;
@@ -762,6 +867,10 @@ LDR.Line4 = function(c, p1, p2, p3, p4, cull, ccw) {
     this.ccw = ccw;
     this.line4 = true;
 }
+LDR.Line4.prototype.toLDR = function() {
+    return '4 ' + this.c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + ' ' + this.p3.toLDR() + ' ' + this.p4.toLDR() + '\n';
+}
+
 LDR.Line5 = function(c, p1, p2, p3, p4) {
     this.c = c;
     this.p1 = p1;
@@ -770,6 +879,9 @@ LDR.Line5 = function(c, p1, p2, p3, p4) {
     this.p4 = p4;
     this.line5 = true;
 }
+LDR.Line5.prototype.toLDR = function() {
+    return '4 ' + this.c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + ' ' + this.p3.toLDR() + ' ' + this.p4.toLDR() + '\n';
+}
 
 THREE.LDRPartType = function() {
     this.ID = null;
@@ -777,7 +889,7 @@ THREE.LDRPartType = function() {
     this.author;
     this.license;
     this.steps = [];
-    this.lines = [];
+    this.headerLines = [];
     this.lastRotation = null;
     this.replacement;
     this.isReplacing;
@@ -803,6 +915,14 @@ THREE.LDRPartType.prototype.cleanUpSteps = function(loader) {
 
     this.steps = newSteps;
     this.cleanSteps = true;
+}
+
+THREE.LDRPartType.prototype.toLDR = function() {
+    var ret = '';
+    this.headerLines.forEach(line => ret += line.toLDR());
+    this.steps.forEach((step, idx, a) => ret += step.toLDR(idx === 0 ? null : a[idx-1].rotation));
+    ret += '0\n';
+    return ret;
 }
 
 THREE.LDRPartType.prototype.prepareGeometry = function(loader) {

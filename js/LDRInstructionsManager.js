@@ -1,6 +1,6 @@
 'use strict';
 
-LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, baseURL, stepFromParameters) {
+LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, baseURL, stepFromParameters, options) {
     var startTime = new Date();
     var self = this;
     this.stepEditor; // Only set if LDRStepEditor.js is loaded.
@@ -187,7 +187,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
 
     this.setUpOptions();
     this.onWindowResize();
-    this.ldrLoader = new THREE.LDRLoader(onLoad);
+    this.ldrLoader = new THREE.LDRLoader(onLoad, options);
     this.ldrLoader.load(modelUrl);
 }
 

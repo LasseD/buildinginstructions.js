@@ -91,8 +91,8 @@
     <div id="options" />
     </div>
     <script>
-      var modelUrl = 'models/spiral2.ldr';
-      //var modelUrl = 'models/pyramid10.ldr';
+      //var modelUrl = 'models/spiral.ldr';
+      var modelUrl = 'models/fail1.mpd';
       var baseURL = 'sample_editing.htm?step='; //"r.php?model=1&color=0&step=";
 
       var manager;
@@ -103,7 +103,7 @@
       }
 
       $(function() {
-        manager = new LDR.InstructionsManager(modelUrl, '?', null, refreshCache, baseURL, 1);
+        manager = new LDR.InstructionsManager(modelUrl, '?', null, refreshCache, baseURL, 1, {saveFileLines: true});
         //manager.stats = new Stats(); document.body.appendChild(stats.dom);
       });
     </script>

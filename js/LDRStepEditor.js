@@ -51,12 +51,14 @@ LDR.StepEditor.prototype.createGuiComponents = function(parentEle) {
     this.createRotationGuiComponents(parentEle);
     // TODO Other groups of GUI components: For moving parts (to next), creating and removing steps, dissolving sub-model
 
+    var self = this;
     function save() {
+        var fileContent = self.loader.toLDR();
+        console.log(fileContent);
         // TODO: Send POST request with file.
     }
     var saveParentEle = this.makeEle(parentEle, 'span', 'editor_control');
-    var saveEle = this.makeEle(saveParentEle, 'button', 'editor_button', null, save);
-    saveEle.innerHTML = 'Save';
+    var saveEle = this.makeEle(saveParentEle, 'button', 'editor_button', save, 'SAVE ALL');
     this.updateCurrentStep();
 }
 
@@ -139,27 +141,38 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
     function onStepSelected() {
         var rot = self.step.rotation;
         if(!rot) {
-            X.value = Y.value = Z.value = "";
             if(self.stepIndex === 0 || !self.part.steps[self.stepIndex-1].rotation) {
                 Normal.checked = true;
+                rot = new THREE.LDRStepRotation(0, 0, 0, 'REL');
             }
             else {
                 // Previous step had a rotation, so this step must be an end step:
                 End.checked = true;
             }
         }
-        else {
-            if(rot.type === 'REL') {
+        else { // There is currently a rotation:
+            if(self.stepIndex === 0 ? (rot.type === 'REL' && rot.x === 0 && rot.y === 0 && rot.z === 0) :
+               THREE.LDRStepRotation.equals(rot, self.part.steps[self.stepIndex-1].rotation)) {
+                Normal.checked = true;
+            }
+            else if(rot.type === 'REL') {
                 Rel.checked = true;
             }
             else { // rot.type === 'ABS' as 'ADD' is unsupported.
                 Abs.checked = true;
             }
+        }
+
+        if(rot) {
             X.value = rot.x;
             Y.value = rot.y;
             Z.value = rot.z;
+            X.disabled = Y.disabled = Z.disabled = false;
         }
-        X.disabled = Y.disabled = Z.disabled = rot === null;
+        else {
+            X.value = Y.value = Z.value = "---";
+            X.disabled = Y.disabled = Z.disabled = true;
+        }
     }
     this.onStepSelectedListeners.push(onStepSelected);
 }
