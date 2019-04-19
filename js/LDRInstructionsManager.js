@@ -163,7 +163,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
             function onStepChange() {
                 self.handleStepsWalked(0);
             }
-            self.stepEditor = new LDR.StepEditor(self.ldrLoader, self.builder, onStepChange);
+            self.stepEditor = new LDR.StepEditor(self.ldrLoader, self.builder, onStepChange, self.modelID);
             self.stepEditor.createGuiComponents(document.getElementById('green'));
         }
     }

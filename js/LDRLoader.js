@@ -233,9 +233,6 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    else if(is("!LICENSE")) {
 		part.license = parts.slice(2).join(" ");
 	    }
-	    else if(is("!HISTORY")) {
-		// Ignore.
-	    }
 	    else if(is("!LDRAW_ORG")) {
 		part.ldraw_org = parts.slice(2).join(" ");
 	    }
@@ -283,8 +280,19 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		part.inlined = parts.length === 3 ? parts[2] : 'UNKNOWN';
 	    }
 	    else if(parts[1][0] === "!") {
-		invertNext = false;
-		self.onWarning({message:'Unknown LDraw command "' + parts[1] + '" is ignored.', line:i, subModel:part});
+		if(is("!HISTORY") ||
+		   is("!THEME") ||
+		   is("!HELP") ||
+		   is("!KEYWORDS") ||
+		   is("!LPUB") ||
+		   is("!LDCAD") ||
+		   is("!CATEGORY")) {
+		    // Ignore well known commands.
+		}
+		else {
+		    invertNext = false;
+		    self.onWarning({message:'Unknown LDraw command "' + parts[1] + '" is ignored.', line:i, subModel:part});
+		}
 	    }
 	    else {
 		invertNext = false;

@@ -11,13 +11,14 @@
    - dissolve sub model --- 1 button
    - Move parts to previous/next step --- 2 buttons
  */
-LDR.StepEditor = function(loader, builder, onChange) {
-    if(!onChange) {
-        throw "Missing callback for step changes!";
+LDR.StepEditor = function(loader, builder, onChange, modelID) {
+    if(!modelID) {
+        throw "Missing model ID!";
     }
     this.loader = loader;
     this.builder = builder;
     this.onChange = onChange;
+    this.modelID = modelID;
     this.onStepSelectedListeners = [];
 
     // Current state variables:
@@ -70,10 +71,10 @@ LDR.StepEditor.prototype.createGuiComponents = function(parentEle) {
         $.ajax({
                 url: 'ajax/save.htm',
                 type: 'POST',
-                data: {model: 1, content: fileContent},
+                data: {model: self.modelID, content: fileContent},
                 dataType: "text",
                 success: function(result) {
-                    saveEle.innerHTML = 'SAVE ALL';
+                    saveEle.innerHTML = 'SAVE';
                     console.dir(result);
                 },
                 error: function(xhr, status, error_message) {
@@ -85,7 +86,7 @@ LDR.StepEditor.prototype.createGuiComponents = function(parentEle) {
             });
     }
     var saveParentEle = this.makeEle(parentEle, 'span', 'editor_control');
-    saveEle = this.makeEle(saveParentEle, 'button', 'save_button', save, 'SAVE ALL');
+    saveEle = this.makeEle(saveParentEle, 'button', 'save_button', save, 'SAVE');
     this.updateCurrentStep();
 }
 
@@ -150,10 +151,10 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
         button.setAttribute('name', 'rot_type');
         return button;
     }
-    Normal = makeRotationRadioButton('STEP', makeNormal, this.makeStepIcon());
+    //Normal = makeRotationRadioButton('STEP', makeNormal, this.makeStepIcon());
     Rel = makeRotationRadioButton('REL', makeRel, this.makeRelIcon());
     Abs = makeRotationRadioButton('ABS', makeAbs, this.makeAbsIcon());
-    End = makeRotationRadioButton('END', makeEnd, this.makeEndIcon());
+    //End = makeRotationRadioButton('END', makeEnd, this.makeEndIcon());
 
     function makeXYZ(icon, sub, add, x1, y1, x2, y2) {
         function subOrAdd(fun) {
@@ -179,20 +180,21 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
         var rot = self.step.rotation;
         if(!rot) {
             rot = new THREE.LDRStepRotation(0, 0, 0, 'REL');
-            if(self.stepIndex === 0 || !self.part.steps[self.stepIndex-1].rotation) {
+	    Rel.checked = true;
+            /*if(self.stepIndex === 0 || !self.part.steps[self.stepIndex-1].rotation) {
                 Normal.checked = true;
             }
             else {
                 // Previous step had a rotation, so this step must be an end step:
                 End.checked = true;
-            }
+            }*/
         }
         else { // There is currently a rotation:
-            if(self.stepIndex === 0 ? (rot.type === 'REL' && rot.x === 0 && rot.y === 0 && rot.z === 0) :
+            /*if(self.stepIndex === 0 ? (rot.type === 'REL' && rot.x === 0 && rot.y === 0 && rot.z === 0) :
                THREE.LDRStepRotation.equals(rot, self.part.steps[self.stepIndex-1].rotation)) {
                 Normal.checked = true;
             }
-            else if(rot.type === 'REL') {
+            else*/ if(rot.type === 'REL') {
                 Rel.checked = true;
             }
             else { // rot.type === 'ABS' as 'ADD' is unsupported.
