@@ -286,6 +286,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		   is("!KEYWORDS") ||
 		   is("!LPUB") ||
 		   is("!LDCAD") ||
+		   is("!LEOCAD") ||
 		   is("!CATEGORY")) {
 		    // Ignore well known commands.
 		}
