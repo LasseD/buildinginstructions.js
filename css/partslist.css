@@ -179,7 +179,7 @@ td.list_image {
 .preview_info_line {
     display: block;
 }
-#preview_info_name, #preview_info_color_ldraw, #preview_info_color_lego {
+#preview_info_name, #preview_info_color_ldraw, #preview_info_color_lego, #preview_info_color_bricklink {
     display: inline;
 }
 
