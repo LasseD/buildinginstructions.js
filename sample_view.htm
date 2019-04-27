@@ -16,7 +16,7 @@
     <script src="js/LDRLoader.js"></script>
     <script>
       // The model to be rendered:
-      var modelTypeUrl = 'models/fail1.mpd';
+      var modelTypeUrl = 'models/fail2.mpd';
       //var modelTypeUrl = 'models/tristack.ldr';
 
       // Set up camera:
@@ -63,7 +63,6 @@
       var onLoad = function() {
 	var geometryBuilder = new LDR.GeometryBuilder(ldrLoader, {});
 	var toBeBuilt = geometryBuilder.getAllTopLevelToBeBuilt();
-        //console.log("To be built:"); console.dir(toBeBuilt);
 	geometryBuilder.build(toBeBuilt);
 
         var mainModel = ldrLoader.partTypes[ldrLoader.mainModel]; // Main model from the LDraw file (first model encountered)

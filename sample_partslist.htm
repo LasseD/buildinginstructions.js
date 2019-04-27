@@ -25,8 +25,8 @@
     <script src="js/LDRButtons.js"></script>
     <script src="js/LDRPLIPreview.js"></script>
     <script>
-      var modelTypeUrl = 'models/fail1.mpd';
-      //var modelTypeUrl = 'models/pyramid2.ldr';
+      //var modelTypeUrl = 'models/fail1.mpd';
+      var modelTypeUrl = 'models/pyramid2.ldr';
       var ldrOptions = new LDR.Options();
       var builder = null;
       var ldrLoader = null;
@@ -241,6 +241,37 @@
         var partCanvasses = [];
         var listCanvasses = [];
 
+        var buildXmlDownload = function() {
+          // HTML elements:
+          var parentEle = document.getElementById('other_actions');
+          var a = document.createElement('a');
+          parentEle.append(a);
+          var childEle = document.createElement('span');
+          a.append(childEle);
+          childEle.innerHTML = 'Download LDraw wanted list';
+
+          // Download-specific:
+          var content = '<INVENTORY>';
+          for(var i = 0; i < builder.pcKeys.length; i++) {
+            var info = builder.pcs[builder.pcKeys[i]];
+            var id = info.partID;
+            if(id.endsWith('.dat')) {
+              id = id.slice(0, -4);
+            }
+            content += '<ITEM>' +
+                        '<ITEMTYPE>P</ITEMTYPE>' + 
+                        '<ITEMID>' + id + '</ITEMID>' +
+                        '<COLOR>' + info.colorID + '</COLOR>' +
+                        '<MINQTY>' + info.amount + '</MINQTY>' +
+                       '</ITEM>';
+          }
+          content += '</INVENTORY>';
+
+          a.setAttribute('href', window.URL.createObjectURL(new Blob([content], {type: 'text/plain'})));
+          a.setAttribute('download', ldrLoader.mainModel + '.xml');
+          a.dataset.downloadurl = ['text/plain', a.download, a.href].join(':');
+        }
+
         var onLoad = function() {
 	  var geometryBuilder = new LDR.GeometryBuilder(ldrLoader, {});
 	  var toBeBuilt = geometryBuilder.getAllTopLevelToBeBuilt();
@@ -250,14 +281,14 @@
 
           builder = new LDR.PartsBulder(ldrLoader, mainModel, 0);
           pliPreviewer.attachRenderer(document.getElementById('preview'));
-    var actions = {
-        prevStep: () => prevStep(),
-        nextStep: () => nextStep(),
-        zoomIn: () => zoomIn(),
-        zoomOut: () => zoomOut(),
-        resetCameraPosition: () => resetCameraPosition(),
-        clickDone: function(){},
-    };
+          var actions = {
+            prevStep: () => prevStep(),
+            nextStep: () => nextStep(),
+            zoomIn: () => zoomIn(),
+            zoomOut: () => zoomOut(),
+            resetCameraPosition: () => resetCameraPosition(),
+            clickDone: function(){},
+          };
           ldrButtons = new LDR.Buttons(actions, pliPreviewer.canvas.parentNode, false);
 
           var sorter = function(a, b){
@@ -288,6 +319,7 @@
 
 	  function buildItem(i) {
 	    if(i === builder.pcKeys.length) {
+              buildXmlDownload();
 	      return; // done.
 	    }
             var baseObject = setItemInScene(i, iconScene);
@@ -378,6 +410,10 @@
 	   }
       </script>
     </div>
+ 
+    <span class="other_actions" id="other_actions">
+
+    </span>
 
     <div id="options" />
       <script>
