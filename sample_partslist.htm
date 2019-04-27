@@ -248,24 +248,24 @@
           parentEle.append(a);
           var childEle = document.createElement('span');
           a.append(childEle);
-          childEle.innerHTML = 'Download LDraw wanted list';
+          childEle.innerHTML = 'Download Bricklink wanted list';
 
           // Download-specific:
-          var content = '<INVENTORY>';
+          var content = '<INVENTORY>\n';
           for(var i = 0; i < builder.pcKeys.length; i++) {
             var info = builder.pcs[builder.pcKeys[i]];
             var id = info.partID;
             if(id.endsWith('.dat')) {
               id = id.slice(0, -4);
             }
-            content += '<ITEM>' +
-                        '<ITEMTYPE>P</ITEMTYPE>' + 
-                        '<ITEMID>' + id + '</ITEMID>' +
-                        '<COLOR>' + info.colorID + '</COLOR>' +
-                        '<MINQTY>' + info.amount + '</MINQTY>' +
-                       '</ITEM>';
+            content += ' <ITEM>\n' +
+                       '  <ITEMTYPE>P</ITEMTYPE>\n' + 
+                       '  <ITEMID>' + id + '</ITEMID>\n' +
+                       '  <COLOR>' + LDR.Colors[info.colorID].bricklink_id + '</COLOR>\n' +
+                       '  <MINQTY>' + info.amount + '</MINQTY>\n' +
+                       ' </ITEM>\n';
           }
-          content += '</INVENTORY>';
+          content += '</INVENTORY>\n';
 
           a.setAttribute('href', window.URL.createObjectURL(new Blob([content], {type: 'text/plain'})));
           a.setAttribute('download', ldrLoader.mainModel + '.xml');
@@ -413,7 +413,7 @@
     </div>
  
     <span class="other_actions" id="other_actions">
-
+     <a href="models/pyramid2.ldr"><span class="other_action">Download LDraw File</span></a>
     </span>
 
     <div id="options" />

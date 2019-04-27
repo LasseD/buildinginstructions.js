@@ -1,8 +1,9 @@
 html, body { 
-    margin: 0; 
-    padding: 0;
-    background-color: #222;
-    height: 100%
+  margin: 0; 
+  padding: 0;
+  background-color: #222;
+  height: 100%;
+  font-family: "Arial","Helvetica",sans-serif;
 }
 #icon_toggles {
   display: block;
@@ -356,4 +357,26 @@ input {
 }
 .note_field {
     display: none;
+}
+
+/*
+  Other actions
+ */
+.other_actions {
+  display: table;
+  table-layout: fixed;
+  border-spacing: 2em;
+  width: 100%;
+}
+.other_actions a {
+  color: white;
+  text-decoration: none;
+  display: table-cell;
+  text-align: center;
+  font-weight: bold;
+  background-color: #4BB;
+  font-size: 2em;
+  padding: 0.3em;
+  border: 0.2em solid #2BB;
+  vertical-align: middle;
 }
