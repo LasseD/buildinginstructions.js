@@ -3,7 +3,8 @@
 LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, baseURL, stepFromParameters, options) {
     var startTime = new Date();
     var self = this;
-    this.stepEditor; // Only set if LDRStepEditor.js is loaded.
+    this.stepEditor;
+    this.canEdit = options && options.canEdit; // Only set if LDRStepEditor.js is loaded.
     this.modelID = modelID;
     this.refreshCache = refreshCache;
     this.baseURL = baseURL;
@@ -33,7 +34,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
         resetCameraPosition: () => self.resetCameraPosition(),
         clickDone: () => self.clickDone(),
     };
-    this.ldrButtons = new LDR.Buttons(actions, canvasHolder, true, modelID, mainImage);
+    this.ldrButtons = new LDR.Buttons(actions, canvasHolder, true, modelID, mainImage, this.canEdit);
     this.controls = new THREE.OrbitControls(this.camera, this.canvas);
     this.controls.noTriggerSize = 0.1;
     this.controls.screenSpacePanning = true;
@@ -159,7 +160,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
         self.pliPreviewer.attachRenderer(document.getElementById('preview'));
 
         // Enable editor:
-        if(LDR.StepEditor) {
+        if(self.canEdit) {
             function onStepChange() {
                 self.handleStepsWalked(0);
             }

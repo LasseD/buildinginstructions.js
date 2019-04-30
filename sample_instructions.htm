@@ -30,6 +30,7 @@
     <script src="js/LDRPLIPreview.js"></script>
     <script src="js/LDRButtons.js"></script>
     <script src="js/LDRMeasurer.js"></script>
+    <script src="js/LDRStepEditor.js"></script>
     <script src="js/LDRInstructionsManager.js"></script>
     <div id="main_canvas_holder">
      <canvas id="main_canvas"></canvas>
@@ -91,6 +92,7 @@
     </div>
     <script>
       var modelUrl = 'models/fail1.mpd';
+      //var modelUrl = 'models/test.ldr';
       //var modelUrl = 'models/spiral2.ldr';
       //var modelUrl = 'models/pyramid10.ldr';
       var baseURL = 'sample_instructions.htm?step='; //"r.php?model=1&color=0&step=";
@@ -103,7 +105,8 @@
       }
 
       $(function() {
-        manager = new LDR.InstructionsManager(modelUrl, '?', null, refreshCache, baseURL, 1);
+        var options = {canEdit:false, saveFileLines:true};
+        manager = new LDR.InstructionsManager(modelUrl, '?', null, refreshCache, baseURL, 1, options);
         //manager.stats = new Stats(); document.body.appendChild(stats.dom);
       });
     </script>

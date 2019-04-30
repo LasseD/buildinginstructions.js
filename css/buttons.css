@@ -68,7 +68,7 @@
     width: 100%;
     height: 100px;
 }
-#optionsButton, #top_buttons #prev_button {
+#editButton, #optionsButton, #top_buttons #prev_button {
     display: inline-block;
     width: 100px;
     height: 100px;
@@ -112,7 +112,7 @@
     position: relative;
     top: -10px;
 }
-#optionsButton a {
+#optionsButton a, #editButton a {
     display: block;
 }
 #to_top {
@@ -133,6 +133,10 @@
 }
 #to_top svg polygon, .options_footer svg polygon {
   stroke-width: 4;
+}
+#editButton svg {
+  stroke: 1;
+  fill: none;
 }
 
 /* 
@@ -193,7 +197,7 @@ line, polygon, rect, polyline, path, circle, ellipse {
     width: 40vw;
     height: 40vw;
   }
-  #prev_button svg, #top_buttons svg, #camera_buttons svg, #next_button svg, #optionsButton, #top_buttons #prev_button, #next_button, #reset_camera_button, #zoom_out_button_large, #zoom_in_button_large {
+  #prev_button svg, #top_buttons svg, #camera_buttons svg, #next_button svg, #optionsButton, #editButton, #top_buttons #prev_button, #next_button, #reset_camera_button, #zoom_out_button_large, #zoom_in_button_large {
     width: 20vw;
     height: 20vw;
   }

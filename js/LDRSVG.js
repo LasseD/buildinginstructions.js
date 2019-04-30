@@ -317,3 +317,28 @@ LDR.SVG.makeBlock3D = function(x, y, parent) {
 
     parent.appendChild(p);
 }
+LDR.SVG.makeEdit = function() {
+    var ret = document.createElementNS(LDR.SVG.NS, 'svg');
+    ret.setAttribute("viewBox", "-50 -50 100 100");
+
+    var g = document.createElementNS(LDR.SVG.NS, 'g');
+    g.setAttribute('transform', 'matrix(0.6 0.5 -0.5 0.6 15 -15)');
+    ret.appendChild(g);
+    LDR.SVG.makePencil(6, 60, g);
+    
+    var pts = "M10,-25 -20,-25 -20,25 20,25 20,-10";
+    var p = document.createElementNS(LDR.SVG.NS, 'path');
+    p.setAttribute('d', pts);
+    ret.appendChild(p);
+
+    return ret;    
+}
+LDR.SVG.makePencil = function(w, h, parent) {
+    var h2 = h/2, h6 = h/6, w2 = w/2;
+    var pts = 'M-' + w2 + ' -' + (h2-h6) + ' h' + w + ' v-' + h6 + ' h-' + w + ' v' + h +
+    ' l ' + w2 + ' ' + h6 + ' l ' + w2 + ' -' + h6 + ' v-' + h;
+    var p = document.createElementNS(LDR.SVG.NS, 'path');
+    p.setAttribute('d', pts);
+
+    parent.appendChild(p);
+}

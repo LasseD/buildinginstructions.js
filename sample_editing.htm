@@ -91,20 +91,15 @@
     <div id="options" />
     </div>
     <script>
-      //var modelUrl = 'models/spiral.ldr';
-      var modelUrl = 'models/fail1.mpd';
-      var baseURL = 'sample_editing.htm?step='; //"r.php?model=1&color=0&step=";
+      var modelUrl = 'models/test.ldr';
+      var baseURL = 'sample_editing.htm?step=';
 
       var manager;
       var ldrOptions = new LDR.Options(); // Global scope for options.
 
-      function refreshCache() {
-        console.log("Refreshing cache - will be called once in a while.");
-      }
-
       $(function() {
-        manager = new LDR.InstructionsManager(modelUrl, '?', null, refreshCache, baseURL, 1, {saveFileLines: true});
-        //manager.stats = new Stats(); document.body.appendChild(stats.dom);
+        var options = {canEdit:true, saveFileLines:true};
+        manager = new LDR.InstructionsManager(modelUrl, '?', null, () => {}, baseURL, 1, options);
       });
     </script>
   </body>
