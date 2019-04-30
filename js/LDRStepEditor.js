@@ -5,11 +5,14 @@
    - save --- 1 button
    - modify step rotation: type[normal,ABS,REL,END], x, y, z --- 4 buttons + 3*3 inputs
    Operations on TODO-list:
-   - Open/Close editor in top bar (changes PLI - PLI always shown when editor opened)
+   - Open/Close editor in top bar
+    - PLI always shown when editor opened
+    - and parts shown individually
    - add step (left and right, move highlighted parts to new step) --- 2 buttons
    - remove step (merge left or right) --- 2 buttons
    - dissolve sub model --- 1 button
    - Move parts to previous/next step --- 2 buttons
+   - Move parts into sub model --- 1 button
  */
 LDR.StepEditor = function(loader, builder, onChange, modelID) {
     if(!modelID) {
@@ -20,6 +23,7 @@ LDR.StepEditor = function(loader, builder, onChange, modelID) {
     this.onChange = onChange;
     this.modelID = modelID;
     this.onStepSelectedListeners = [];
+    this.enabled = true;
 
     // Current state variables:
     this.part;
@@ -58,6 +62,10 @@ LDR.StepEditor.prototype.updateCurrentStep = function() {
     this.onStepSelectedListeners.forEach(listener => listener());
 }
 
+LDR.StepEditor.prototype.toggleEnabled = function() {
+    this.enabled = !this.enabled;
+}
+
 LDR.StepEditor.prototype.createGuiComponents = function(parentEle) {
     this.createRotationGuiComponents(parentEle);
     // TODO Other groups of GUI components: For moving parts (to next), creating and removing steps, dissolving sub-model
@@ -93,7 +101,6 @@ LDR.StepEditor.prototype.createGuiComponents = function(parentEle) {
 LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
     var self = this, Ele, Normal, Rel, Abs, End, X, Y, Z;
     function propagate(rot) {
-        console.log('Attempting propagation');
         for(var i = self.stepIndex+1; i < self.part.steps.length; i++) {
             var s = self.part.steps[i];
             if(!THREE.LDRStepRotation.equals(self.step.rotation, s.rotation)) {
@@ -171,7 +178,7 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
         ret.addEventListener('keydown', e => e.stopPropagation());
         return ret;
     }
-    var rotDiff = 45;
+    var rotDiff = 90;
     X = makeXYZ('X', rot => rot.x-=rotDiff, rot => rot.x+=rotDiff, -8, 11, -8, -5);
     Y = makeXYZ('Y', rot => rot.y-=rotDiff, rot => rot.y+=rotDiff, -10, 4, 10, 4);
     Z = makeXYZ('Z', rot => rot.z-=rotDiff, rot => rot.z+=rotDiff, 8, -5, 8, 11);

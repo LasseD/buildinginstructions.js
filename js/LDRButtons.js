@@ -42,7 +42,7 @@ LDR.Buttons = function(actions, element, addTopButtons, homeLink, mainImage, can
     element.appendChild(this.doneButton);
 
     if(addTopButtons) {
-	this.addTopButtonElements(element, homeLink, mainImage, canEdit);
+	this.addTopButtonElements(actions, element, homeLink, mainImage, canEdit);
     }
 
     this.hideElementsAccordingToOptions();
@@ -79,7 +79,7 @@ LDR.Buttons = function(actions, element, addTopButtons, homeLink, mainImage, can
     onFadeInComplete();
 }
 
-LDR.Buttons.prototype.addTopButtonElements = function(element, homeLink, mainImage, canEdit) {
+LDR.Buttons.prototype.addTopButtonElements = function(actions, element, homeLink, mainImage, canEdit) {
     // Upper row of buttons (added last due to their absolute position):    
     this.topButtons = this.createDiv('top_buttons');
 
@@ -112,6 +112,7 @@ LDR.Buttons.prototype.addTopButtonElements = function(element, homeLink, mainIma
     if(canEdit) {
         var editButton = this.createDiv('editButton');
         editButton.appendChild(LDR.SVG.makeEdit());
+        editButton.addEventListener('click', actions.toggleEditor);
         this.topButtons.appendChild(editButton);        
     }
 
