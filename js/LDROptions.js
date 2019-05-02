@@ -7,13 +7,11 @@ LDR.Options = function() {
     
     // Default values for options (in case of first visit or no cookies:
     this.showOldColors = 0; // 0 = all colors. 1 = single color old
-    this.showLines = 0; // 0 = all lines. 1 = normal lines. 2 = no lines.
     this.lineContrast = 1; // 0 = High contrast, 1 = LDraw. 2 = no lines.
     this.bgColor = 0xFFFFFF;
     this.pointColor = 0xFF0000;
     this.pointSize = 2;
     this.lineColor = 0x333333;
-    this.blackLineColor = 0x595959;
     this.oldColor = 0xFFFF6F;
     this.showLRButtons = 0; // 0=right big, 1=right normal, 2=both off
     this.showCameraButtons = 0; // 0=+- on right, 1=+- on sides, 2=off
@@ -56,25 +54,27 @@ LDR.Options.prototype.saveOptionsToCookie = function() {
     function addToKv(v) {
 	document.cookie = v + '=' + options[v] + '; expires=Wed, 3 Jun 2122 12:00:01 UTC; path=/';
     }
+    // Instructions and general options:
     addToKv("showOldColors");
-    addToKv("showLines");
     addToKv("lineContrast");
-    addToKv("lineColor");
-    addToKv("pointSize");
-    addToKv("blackLineColor");
-    addToKv("bgColor");
-    addToKv("pointColor");
-    addToKv("oldColor");
     addToKv("showPartsCallouts");
     addToKv("showStepRotationAnimations");
-    addToKv("showPartsCallouts");
     addToKv("showCameraButtons");
     addToKv("showLRButtons");
+    addToKv("showPLI");
+    addToKv("showEditor");
+    
+    // Parts list-specific:
     addToKv("partsListType");
     addToKv("showNotes");
-    addToKv("showPLI");
+
+    // View-specific:
     addToKv("rotateModel");
-    addToKv("showEditor");
+
+    // Part view-specific:
+    addToKv("pointColor");
+    addToKv("pointSize");
+    addToKv("bgColor");
 }
 
 LDR.Options.setOptionsSelected = function(node, callback) {
@@ -208,67 +208,18 @@ LDR.Options.prototype.appendOldBrickColorOptions = function(optionsBlock) {
     }
 }
 
-LDR.Options.prototype.appendLineOptions = function(optionsBlock) {
-    var group = this.addOptionsGroup(optionsBlock, 3, "Lines");
-    var options = this;
-    var onLinesChange = function(idx) {
-	options.showLines = idx;
-	options.onChange();
-    };
-    var buttons = this.createButtons(group, 3, this.showLines, onLinesChange);
-    
-    // Color functions:
-    var red = function(){return '#C91A09';};
-    var lineColor = function(options){
-	return LDR.Colors.int2Hex(options.lineColor);
-    };
-
-    /* 
-       Option 1: Both lines and conditional lines:
-    */
-    {
-	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
-	svg.setAttribute('viewBox', '-100 -25 200 50');
-	buttons[0].appendChild(svg);
-	this.createSvgBlock(-LDR.Options.svgBlockWidth, 0, true, red, lineColor, svg);
-	this.createSvgCylinder(LDR.Options.svgBlockWidth, 0, true, red, lineColor, svg);
-    }
-    /* 
-       Option 2: Only normal lines:
-    */
-    {
-	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
-	svg.setAttribute('viewBox', '-100 -25 200 50');
-	buttons[1].appendChild(svg);
-	this.createSvgBlock(-LDR.Options.svgBlockWidth, 0, true, red, lineColor, svg);
-	this.createSvgCylinder(LDR.Options.svgBlockWidth, 0, false, red, lineColor, svg);
-    }
-    /* 
-       Option 3: No lines:
-    */
-    {
-	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
-	svg.setAttribute('viewBox', '-100 -25 200 50');
-	buttons[2].appendChild(svg);
-	this.createSvgBlock(-LDR.Options.svgBlockWidth, 0, true, red, red, svg);
-	this.createSvgCylinder(LDR.Options.svgBlockWidth, 0, true, red, red, svg);
-    }
-}
-
 LDR.Options.prototype.appendContrastOptions = function(optionsBlock) {
-    var group = this.addOptionsGroup(optionsBlock, 3, "Contrast");
+    var group = this.addOptionsGroup(optionsBlock, 2, "Contrast");
     var options = this;
     var onChange = function(idx) {
 	options.lineContrast = idx;
         if(idx == 1)
           options.lineColor = 0x333333;
-        else if(idx == 0)
-          options.lineColor = 0;
         else
-          options.lineColor = -1;
+          options.lineColor = 0;
 	options.onChange();
     };
-    var buttons = this.createButtons(group, 3, this.lineContrast, onChange);
+    var buttons = this.createButtons(group, 2, this.lineContrast, onChange);
     
     // Color functions:
     var red = function(){return '#C91A09';};
@@ -291,7 +242,7 @@ LDR.Options.prototype.appendContrastOptions = function(optionsBlock) {
 	this.createSvgBlock(LDR.Options.svgBlockWidth+2, 0, true, black, blackEdge1, svg);
     }
     /* 
-       Option 2: Only normal lines:
+       Option 2: Standard LDraw lines:
     */
     {
 	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
@@ -301,88 +252,10 @@ LDR.Options.prototype.appendContrastOptions = function(optionsBlock) {
 	this.createSvgBlock(0, 0, true, brown, blackEdge2, svg);
 	this.createSvgBlock(LDR.Options.svgBlockWidth+2, 0, true, black, blackEdge2, svg);
     }
-    /* 
-       Option 3: No lines:
-    */
-    {
-	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
-	svg.setAttribute('viewBox', '-100 -25 200 50');
-	buttons[2].appendChild(svg);
-	this.createSvgBlock(-LDR.Options.svgBlockWidth-2, 0, true, red, red, svg);
-	this.createSvgBlock(0, 0, true, brown, brown, svg);
-	this.createSvgBlock(LDR.Options.svgBlockWidth+2, 0, true, black, black, svg);
-    }
 }
 
 /*
-Choose the colors of lines, lines for black parts and colors for old parts.
-*/
-LDR.Options.prototype.appendColorOptions = function(optionsBlock) {
-    var group = this.addOptionsGroup(optionsBlock, 3, "Colors");
-    var options = this;
-
-    // Color functions:
-    var red = function(){return '#C91A09';};
-    var green = function(){return '#257A3E';};
-    var blue = function(){return '#0055BF';};
-    var black = function(){return '#333333';};    
-    var rgb = [red, green, blue];
-
-    var lineColor = function(options){
-	return LDR.Colors.int2Hex(options.lineColor);
-    };
-    var blackLineColor = function(options){
-	return LDR.Colors.int2Hex(options.blackLineColor);
-    };
-    var oldColor = function(options){
-	return LDR.Colors.int2Hex(options.oldColor);
-    };
-
-    // Build html elements:
-    function createPreview(parent, fillColors, lineColor) {
-	var preview = document.createElement('span');
-	preview.setAttribute('class', 'preview');
-	parent.appendChild(preview);
-
-	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
-	svg.setAttribute('viewBox', '-100 -25 200 50');
-	preview.appendChild(svg);
-	for(var i = -1; i <= 1; i++) {
-	    options.createSvgBlock(i*LDR.Options.svgBlockWidth, 0, true, fillColors[(i+1)%fillColors.length], lineColor, svg);
-	}
-
-	return preview;
-    }
-    function createColorInput(parent, color, onChange) {
-	var input = document.createElement('input');
-	input.setAttribute('class', 'color_input');
-	input.setAttribute('type', 'color');
-	input.setAttribute('value', color);
-	input.addEventListener("input", onChange, false);
-	input.addEventListener("change", onChange, false);
-	parent.appendChild(input);
-	return input;
-    }
-    var onChange = function() {
-	options.lineColor = parseInt(input1.value.substring(1), 16);
-	options.blackLineColor = parseInt(input2.value.substring(1), 16);
-	options.oldColor = parseInt(input3.value.substring(1), 16);
-	options.onChange();
-    }
-
-    // Fill in data:
-    var preview1 = createPreview(group, rgb, lineColor);
-    var input1 = createColorInput(preview1, lineColor(options), onChange);
-
-    var preview2 = createPreview(group, [black], blackLineColor);
-    var input2 = createColorInput(preview2, blackLineColor(options), onChange);
-
-    var preview3 = createPreview(group, [oldColor], lineColor);
-    var input3 = createColorInput(preview3, oldColor(options), onChange);
-}
-
-/*
-Part color options (points and background color)
+  Part color options (points and background color)
 */
 LDR.Options.prototype.appendPartColorOptions = function(optionsBlock) {
     var group = this.addOptionsGroup(optionsBlock, 2, "Background and Point Color");
@@ -591,7 +464,7 @@ LDR.Options.prototype.appendShowPLIOptions = function(optionsBlock) {
     
     // Colors:
     var red = function(){return '#C91A09';};
-        var lineColor = function(options){
+    var lineColor = function(options){
 	return LDR.Colors.int2Hex(options.lineColor);
     };
 
