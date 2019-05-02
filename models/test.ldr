@@ -1,0 +1,8 @@
+0 Name: test.ldr
+0 Author: Lasse Deleuran [Lasse Deleuran]
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+1 0 0 0 0 1 0 0 0 1 0 0 0 1 4-4edge.dat
+0 STEP
+1 0 0 0 0 1 0 0 0 1 0 0 0 1 4-4edge.dat
+0 STEP
+0

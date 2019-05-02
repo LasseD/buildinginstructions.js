@@ -23,12 +23,21 @@ LDR.StepEditor = function(loader, builder, onChange, modelID) {
     this.onChange = onChange;
     this.modelID = modelID;
     this.onStepSelectedListeners = [];
-    this.enabled = true;
 
     // Current state variables:
     this.part;
     this.stepIndex;
     this.step;
+
+    function showOrHide(options) {
+        if(options.showEditor) {
+            $("#editor").show();
+        }
+        else{
+            $("#editor").hide();
+        }
+    }
+    ldrOptions.listeners.push(showOrHide);
     
     // Private function to make it easier to create GUI components:
     this.makeEle = function(parent, type, cls, onclick, innerHTML, icon) {
@@ -50,6 +59,7 @@ LDR.StepEditor = function(loader, builder, onChange, modelID) {
             ret.innerHTML = innerHTML;
         }
 
+        showOrHide(ldrOptions);
         return ret;
     }
 }
@@ -63,7 +73,8 @@ LDR.StepEditor.prototype.updateCurrentStep = function() {
 }
 
 LDR.StepEditor.prototype.toggleEnabled = function() {
-    this.enabled = !this.enabled;
+    ldrOptions.showEditor = 1-ldrOptions.showEditor;
+    ldrOptions.onChange();
 }
 
 LDR.StepEditor.prototype.createGuiComponents = function(parentEle) {
@@ -158,10 +169,8 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
         button.setAttribute('name', 'rot_type');
         return button;
     }
-    //Normal = makeRotationRadioButton('STEP', makeNormal, this.makeStepIcon());
     Rel = makeRotationRadioButton('REL', makeRel, this.makeRelIcon());
     Abs = makeRotationRadioButton('ABS', makeAbs, this.makeAbsIcon());
-    //End = makeRotationRadioButton('END', makeEnd, this.makeEndIcon());
 
     function makeXYZ(icon, sub, add, x1, y1, x2, y2) {
         function subOrAdd(fun) {
@@ -188,20 +197,9 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
         if(!rot) {
             rot = new THREE.LDRStepRotation(0, 0, 0, 'REL');
 	    Rel.checked = true;
-            /*if(self.stepIndex === 0 || !self.part.steps[self.stepIndex-1].rotation) {
-                Normal.checked = true;
-            }
-            else {
-                // Previous step had a rotation, so this step must be an end step:
-                End.checked = true;
-            }*/
         }
         else { // There is currently a rotation:
-            /*if(self.stepIndex === 0 ? (rot.type === 'REL' && rot.x === 0 && rot.y === 0 && rot.z === 0) :
-               THREE.LDRStepRotation.equals(rot, self.part.steps[self.stepIndex-1].rotation)) {
-                Normal.checked = true;
-            }
-            else*/ if(rot.type === 'REL') {
+            if(rot.type === 'REL') {
                 Rel.checked = true;
             }
             else { // rot.type === 'ABS' as 'ADD' is unsupported.

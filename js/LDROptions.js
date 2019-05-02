@@ -22,6 +22,7 @@ LDR.Options = function() {
     this.showNotes = 0; // 0=off, 1=on
     this.showPLI = 1; // 0=off, 1=on
     this.rotateModel = 0; // 0=off, 1=on
+    this.showEditor = 0; // 0=off, 1=on
 
     // Read values that might be in cookie:
     this.readOptionsFromCookie();
@@ -73,6 +74,7 @@ LDR.Options.prototype.saveOptionsToCookie = function() {
     addToKv("showNotes");
     addToKv("showPLI");
     addToKv("rotateModel");
+    addToKv("showEditor");
 }
 
 LDR.Options.setOptionsSelected = function(node, callback) {

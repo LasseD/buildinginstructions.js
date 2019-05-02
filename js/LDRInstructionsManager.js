@@ -33,7 +33,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
         zoomOut: () => self.zoomOut(),
         resetCameraPosition: () => self.resetCameraPosition(),
         clickDone: () => self.clickDone(),
-        toggleEditor: () => {if(self.stepEditor){self.stepEditor.toggleEnabled(); $("#editor").toggle();}}
+        toggleEditor: () => self.stepEditor && self.stepEditor.toggleEnabled(),
     };
     this.ldrButtons = new LDR.Buttons(actions, canvasHolder, true, modelID, mainImage, this.canEdit);
     this.controls = new THREE.OrbitControls(this.camera, this.canvas);
@@ -167,6 +167,9 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
             }
             self.stepEditor = new LDR.StepEditor(self.ldrLoader, self.builder, onStepChange, self.modelID);
             self.stepEditor.createGuiComponents(document.getElementById('editor'));
+            if(ldrOptions.showEditor === 1) {
+                $("#editor").show();
+            }
         }
     }
 
