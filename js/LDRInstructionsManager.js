@@ -55,7 +55,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
     this.defaultMatrix.set(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
 
     this.ldrLoader; // To be set once model is loaded.
-    this.builder; // Set in 'onPartsRetrieved'
+    this.stepHandler; // Set in 'onPartsRetrieved'
     this.pliElement = document.getElementById('pli');
     this.pliBuilder; // Set in 'onPartsRetrieved'
     this.pliHighlighted; // Set in onPLIClick. Indicates highlighted part for preview.
@@ -115,12 +115,13 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
 	var pd = new THREE.LDRPartDescription(0, origo, inv, mainModel, false);
 
 	self.pliBuilder = new LDR.PLIBuilder(self.ldrLoader,
+                                             self.canEdit,
                                              mainModel,
                                              0,
                                              self.pliElement,
                                              document.getElementById('pli_render_canvas'));
-        self.builder = new LDR.StepHandler(self.opaqueObject, self.transObject, self.ldrLoader, [pd], true, self.storage);
-	self.builder.nextStep(false);
+        self.stepHandler = new LDR.StepHandler(self.opaqueObject, self.transObject, self.ldrLoader, [pd], true, self.storage);
+	self.stepHandler.nextStep(false);
 	self.realignModel(0);
 	self.updateUIComponents(false);
 	self.render(); // Updates background color.
@@ -129,7 +130,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
 
 	// Go to step indicated by parameter:
 	if(stepFromParameters > 1) {
-            self.builder.moveSteps(stepFromParameters-1, () => self.handleStepsWalked());
+            self.stepHandler.moveSteps(stepFromParameters-1, () => self.handleStepsWalked());
         }
 	else {
             self.ensureSwipeForwardWorks();
@@ -152,7 +153,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
                     self.prevStep();
                 }
                 else {
-                    self.builder.moveSteps(diff, () => self.handleStepsWalked());
+                    self.stepHandler.moveSteps(diff, () => self.handleStepsWalked());
                 }
             });
 
@@ -161,7 +162,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
 
         // Enable editor:
         if(self.canEdit) {
-            self.stepEditor = new LDR.StepEditor(self.ldrLoader, self.builder, 
+            self.stepEditor = new LDR.StepEditor(self.ldrLoader, self.stepHandler, 
                                                  () => self.handleStepsWalked(), self.modelID);
             self.stepEditor.createGuiComponents(document.getElementById('editor'));
             if(ldrOptions.showEditor === 1) {
@@ -235,7 +236,7 @@ LDR.InstructionsManager.prototype.render = function() {
 }
 
 LDR.InstructionsManager.prototype.setBackgroundColor = function(c) {
-    this.scene.background = new THREE.Color( parseInt("0x" + c) );
+    this.scene.background = new THREE.Color(parseInt("0x" + c));
     document.body.style.backgroundColor = '#' + c;
 }
 
@@ -257,7 +258,7 @@ LDR.InstructionsManager.prototype.onWindowResize = function(){
     
     this.updateViewPort();
     this.updateCameraZoom();
-    if(this.builder) {
+    if(this.stepHandler) {
         this.realignModel(0);
         this.updateUIComponents(false);
     }
@@ -282,15 +283,15 @@ LDR.InstructionsManager.prototype.zoomOut = function() {
 }
 
 LDR.InstructionsManager.prototype.updateUIComponents = function(force) {
-    this.currentMultiplier = this.builder.getMultiplierOfCurrentStep();
-    this.currentRotation = this.builder.getRotationOfCurrentStep();
+    this.currentMultiplier = this.stepHandler.getMultiplierOfCurrentStep();
+    this.currentRotation = this.stepHandler.getRotationOfCurrentStep();
     this.updateMultiplier();
     this.updateRotator();
-    this.setBackgroundColor(this.builder.getBackgroundColorOfCurrentStep());
-    if(this.builder.isAtLastStep()) {
+    this.setBackgroundColor(this.stepHandler.getBackgroundColorOfCurrentStep());
+    if(this.stepHandler.isAtLastStep()) {
         this.ldrButtons.atLastStep();
     }
-    else if(this.builder.isAtFirstStep()) {
+    else if(this.stepHandler.isAtFirstStep()) {
         this.ldrButtons.atFirstStep();
     }
     else {
@@ -305,7 +306,7 @@ LDR.InstructionsManager.prototype.updateUIComponents = function(force) {
 }
 
 LDR.InstructionsManager.prototype.updatePLI = function(force) {
-    var [step,stepColorID] = this.builder.getCurrentStepAndColor();
+    var [step,stepColorID] = this.stepHandler.getCurrentStepAndColor();
     this.showPLI = (ldrOptions.showEditor || ldrOptions.showPLI) && step.containsPartSubModels(this.ldrLoader);
     if(!this.showPLI) {
         this.pliBuilder.pliElement.style.display = 'none';
@@ -359,19 +360,19 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
     var oldPLIH = this.pliH;
     var newPLIW, newPLIH;
     
-    var oldLevel = this.builder.getLevelOfCurrentStep();
+    var oldLevel = this.stepHandler.getLevelOfCurrentStep();
     var newLevel = oldLevel;
     var goBack = function(){}; // Used for single steps
-    if(stepDiff === 1 && this.builder.nextStep(true)) {
+    if(stepDiff === 1 && this.stepHandler.nextStep(true)) {
         goBack = function() {
-            newLevel = self.builder.getLevelOfCurrentStep();
-            self.builder.prevStep(true);
+            newLevel = self.stepHandler.getLevelOfCurrentStep();
+            self.stepHandler.prevStep(true);
         };
     }
-    else if(stepDiff === -1 && this.builder.prevStep(true)) {
+    else if(stepDiff === -1 && this.stepHandler.prevStep(true)) {
         goBack = function() {
-            newLevel = self.builder.getLevelOfCurrentStep();
-            self.builder.nextStep(true);
+            newLevel = self.stepHandler.getLevelOfCurrentStep();
+            self.stepHandler.nextStep(true);
         };
     }
     
@@ -387,14 +388,14 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
     }
     
     var useAccumulatedBounds = true;
-    var b = this.builder.getAccumulatedBounds();
+    var b = this.stepHandler.getAccumulatedBounds();
 
     var size = b.min.distanceTo(b.max);
     var viewPortSize = Math.sqrt(this.viewPortWidth*this.viewPortWidth + this.viewPortHeight*this.viewPortHeight);
     //console.log("size=" + size + ", screen size=" + viewPortSize + ", size/screen=" + (size/viewPortSize));
     if(size > viewPortSize) {
         useAccumulatedBounds = false;
-        b = this.builder.getBounds();
+        b = this.stepHandler.getBounds();
         size = b.min.distanceTo(b.max);
         if(size < viewPortSize) {
             var b2 = new THREE.Box3(); b2.copy(b); b = b2;
@@ -407,7 +408,7 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
         }
     }
     var newPosition;
-    [newPosition, this.currentRotationMatrix] = this.builder.computeCameraPositionRotation(this.defaultMatrix, this.currentRotationMatrix, useAccumulatedBounds);
+    [newPosition, this.currentRotationMatrix] = this.stepHandler.computeCameraPositionRotation(this.defaultMatrix, this.currentRotationMatrix, useAccumulatedBounds);
     
     // Find actual screen bounds:
     this.baseObject.setRotationFromMatrix(this.currentRotationMatrix);
@@ -562,7 +563,7 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
     // Ensure mobile users can swipe right for next step:
 LDR.InstructionsManager.prototype.ensureSwipeForwardWorks = function() {
     window.history.replaceState(this.currentStep, null, this.baseURL + this.currentStep);
-    if(!this.builder.isAtLastStep()) {
+    if(!this.stepHandler.isAtLastStep()) {
         window.history.pushState(this.currentStep+1, null, this.baseURL + (this.currentStep+1));
         this.windowStepCauseByHistoryManipulation = true;
         window.history.go(-1); // Go back again.
@@ -577,11 +578,11 @@ LDR.InstructionsManager.prototype.handleStepsWalked = function() {
     if(this.accHelper) {
         this.baseObject.remove(this.accHelper);
     }
-    this.accHelper = new THREE.Box3Helper(this.builder.getAccumulatedBounds(), 0x00FF00)
-    this.helper = new THREE.Box3Helper(this.builder.getBounds(), 0xFFCC00)
+    this.accHelper = new THREE.Box3Helper(this.stepHandler.getAccumulatedBounds(), 0x00FF00)
+    this.helper = new THREE.Box3Helper(this.stepHandler.getBounds(), 0xFFCC00)
     this.baseObject.add(this.accHelper);
     this.baseObject.add(this.helper);//*/
-    this.currentStep = this.builder.getCurrentStepIndex();
+    this.currentStep = this.stepHandler.getCurrentStepIndex();
     this.ensureSwipeForwardWorks();
     this.realignModel(0);
     this.updateUIComponents(false);
@@ -596,19 +597,19 @@ LDR.InstructionsManager.prototype.goToStep = function(step) {
     var diff = step - this.currentStep;
     console.log("Going to " + step + " from " + this.currentStep);
     var self = this;
-    this.builder.moveSteps(step - self.currentStep, () => self.handleStepsWalked());
+    this.stepHandler.moveSteps(step - self.currentStep, () => self.handleStepsWalked());
 }
 
 LDR.InstructionsManager.prototype.nextStep = function() {
     if(!ldrOptions.showEditor && this.pliHighlighted) {
         return; // Don't walk when showing preview.
     }
-    if(this.builder.isAtLastStep()) {
+    if(this.stepHandler.isAtLastStep()) {
         return;
     }
 
     var self = this;
-    this.realignModel(1, () => self.builder.nextStep(false), () => self.handleStepsWalked());
+    this.realignModel(1, () => self.stepHandler.nextStep(false), () => self.handleStepsWalked());
 }
 
 LDR.InstructionsManager.prototype.prevStep = function() {
@@ -617,7 +618,7 @@ LDR.InstructionsManager.prototype.prevStep = function() {
     }
 
     var self = this;
-    this.realignModel(-1, () => self.builder.prevStep(false), () => self.handleStepsWalked());
+    this.realignModel(-1, () => self.stepHandler.prevStep(false), () => self.handleStepsWalked());
 }
 
 LDR.InstructionsManager.prototype.clickDone = function() {
@@ -649,11 +650,11 @@ LDR.InstructionsManager.prototype.onPLIClick = function(e) {
            y <= icon.y+icon.height+12) {
             // Correct icon found!
 
-            if(ldrOptions.showEditor) {
+            if(this.canEdit && ldrOptions.showEditor) {
                 console.log('Clicked icon:');
                 console.dir(icon);
                 icon.part.ghost = !icon.part.ghost;
-                this.builder.updateMeshCollectors();
+                this.stepHandler.updateMeshCollectors();
                 this.updateUIComponents(true);
             }
             else { // Show preview if no editor:
@@ -702,7 +703,7 @@ LDR.InstructionsManager.prototype.setUpOptions = function() {
 
     ldrOptions.appendFooter(optionsDiv);
     ldrOptions.listeners.push(function() {
-      self.builder.updateMeshCollectors();
+      self.stepHandler.updateMeshCollectors();
       self.updateUIComponents(true);
     });
 }

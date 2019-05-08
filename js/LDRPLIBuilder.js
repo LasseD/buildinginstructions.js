@@ -2,8 +2,9 @@
 
 LDR = LDR || {};
 
-LDR.PLIBuilder = function(loader, mainModelID, mainModelColor, pliElement, pliRenderElement) {
+LDR.PLIBuilder = function(loader, canEdit, mainModelID, mainModelColor, pliElement, pliRenderElement) {
     this.loader = loader;
+    this.canEdit = canEdit;
     this.pliElement = pliElement;
     this.pliRenderElement = pliRenderElement;
     this.partsBuilder = new LDR.PartsBulder(loader, mainModelID, mainModelColor);
@@ -83,7 +84,7 @@ LDR.PLIBuilder.prototype.createClickMap = function(step, stepColorID) {
 	key += '_' + colorID;
 
 	let icon = icons[key];
-	if(!this.groupParts && icon) {
+	if(this.groupParts && icon) {
 	    icon.mult++;
 	}
 	else {
@@ -107,7 +108,7 @@ LDR.PLIBuilder.prototype.createClickMap = function(step, stepColorID) {
 	}
     }
 
-    let sorter = function(a, b){
+    let sorter = function(a, b) {
 	let ca = a.desc;
 	let cb = b.desc;
 	if(ca != cb) {
@@ -121,7 +122,7 @@ LDR.PLIBuilder.prototype.createClickMap = function(step, stepColorID) {
 }
 
 LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, maxWidth, maxHeight, maxSizePerPixel, force) {
-    let groupParts = ldrOptions.showEditor;
+    let groupParts = !(this.canEdit && ldrOptions.showEditor);
     // Ensure no re-draw if not necessary:
     if(!force && 
        this.lastStep && this.lastStep.idx === step.idx && 
@@ -163,7 +164,7 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, ma
 	}
 	// Draw multipliers:
 	context.fillStyle = "#000";
-        if(!self.groupParts) {
+        if(self.groupParts) {
             self.clickMap.forEach(icon => context.fillText(icon.mult + "x", (icon.x + 5)*window.devicePixelRatio,
                                                            (icon.y+icon.height+24)*window.devicePixelRatio));
         }
