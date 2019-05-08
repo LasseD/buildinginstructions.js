@@ -468,6 +468,7 @@ THREE.LDRPartDescription = function(colorID, position, rotation, ID, cull, inver
     this.ID = ID.toLowerCase(); // part.dat lowercase
     this.cull = cull;
     this.invertCCW = invertCCW;
+    this.ghost = false; // For editor.
 }
 
 THREE.LDRPartDescription.prototype.placedColor = function(pdColorID) {
@@ -754,7 +755,7 @@ THREE.LDRStep.prototype.cleanUp = function(loader, newSteps) {
 }
 
 THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, rotation, cull, invertCCW, mc) {
-    //console.log("Creating three part for " + this.ldrs.length + " sub models and " + this.dats.length + " DAT parts in color " + colorID + ", cull: " + cull + ", invertion: " + invertCCW);
+    //console.log("STEP: Creating three part for " + this.subModels.length + " sub models in color " + colorID + ", cull: " + cull + ", invertion: " + invertCCW);
     var ownInversion = (rotation.determinant() < 0) !== invertCCW; // Adjust for inversed matrix!
     var ownCull = cull && this.cull;
     
@@ -800,7 +801,7 @@ THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, 
 	var nextPosition = transformPoint(subModelDesc.position);
 	var nextRotation = new THREE.Matrix3();
 	nextRotation.multiplyMatrices(rotation, subModelDesc.rotation);
-	subModel.generateThreePart(loader, subModelColor, nextPosition, nextRotation, subModelCull, subModelInversion, mc);
+	subModel.generateThreePart(loader, subModelColor, nextPosition, nextRotation, subModelCull, subModelInversion, mc, subModelDesc);
     }
     
     // Add submodels:
@@ -816,7 +817,7 @@ LDR.Line0.prototype.toLDR = function() {
 }
 
 LDR.Line1 = function(desc) {
-    this.desc = desc; // THREE.LDRPartDescription
+    this.desc = desc; // LDRPartDescription
     this.line1 = true;
 }
 LDR.Line1.prototype.toLDR = function() {
@@ -981,7 +982,7 @@ THREE.LDRPartType.prototype.addStep = function(step) {
     this.lastRotation = step.rotation;
 }
     
-THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, inv, mc) {
+THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, inv, mc, pd) {
     if(!this.geometry) {
 	if(this.isPart()) {
 	    //console.log("BUILDING MISSED GEOMETRY FOR " + this.ID);
@@ -990,7 +991,7 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 	}
 	else {
 	    for(var i = 0; i < this.steps.length; i++) {
-		this.steps[i].generateThreePart(loader, c, p, r, cull, inv, mc);
+		this.steps[i].generateThreePart(loader, c, p, r, cull, inv, mc); // Build parts within.
 	    }
 	    return;
 	}
@@ -1037,10 +1038,12 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 	var material = mc.getTriangleMaterial(this.geometry.triangleColorManager, c, LDR.Colors.isTrans(c));
 	var mesh = new THREE.Mesh(this.geometry.triangleGeometry, material);
 	mesh.applyMatrix(m4);
-	if(LDR.Colors.isTrans(c))
-	    mc.addTrans(mesh);
-	else
-	    mc.addOpaque(mesh);
+	if(LDR.Colors.isTrans(c)) {
+	    mc.addTrans(mesh, pd);
+        }
+	else {
+	    mc.addOpaque(mesh, pd);
+        }
 
 	if(!expanded) {
 	    var b = this.geometry.triangleGeometry.boundingBox;
@@ -1301,7 +1304,11 @@ LDR.GeometryBuilder.prototype.build = function(toBeBuilt) {
 
 /*
   MeshCollector holds references to meshes (and similar Three.js structures for lines).
-  A Mesh Collector handles updates of meshes (change in options, visibility and 'old').
+  A Mesh Collector handles updates of meshes. This includes;
+  - Changes in options (coloring of old parts, edge colors)
+  - visibility
+  - 'old': A part placed in 'earlier steps' can be colored 'old' to highlight new parts
+  - 'ghost': 'Ghosted' parts will be shown by their lines only (no faces).
 */
 LDR.MeshCollector = function(opaqueObject, transObject) {
     if(!transObject)
@@ -1310,7 +1317,7 @@ LDR.MeshCollector = function(opaqueObject, transObject) {
     this.transObject = transObject; // To be painted last.
 
     this.lineMeshes = []; // Including conditional line meshes.
-    this.triangleMeshes = [];
+    this.triangleMeshes = []; // {mesh,part} - objects.
 
     this.cntMaterials = 0;
     this.lineMaterials = {}; // [color,isConditional] or cnt -> managers
@@ -1350,8 +1357,9 @@ LDR.MeshCollector.prototype.getTriangleMaterial = function(colorManager, color, 
     else {
 	key = color + "|" + isTrans;
     }
-    if(this.triangleMaterials.hasOwnProperty(key))
+    if(this.triangleMaterials.hasOwnProperty(key)) {
 	return this.triangleMaterials[key];
+    }
     var m = new LDR.Colors.buildTriangleMaterial(colorManager, color, isTrans);
     this.triangleMaterials[key] = m;
     //console.log("Constructed (triangle) material " + this.cntMaterials + " for key " + key);
@@ -1362,12 +1370,12 @@ LDR.MeshCollector.prototype.addLines = function(mesh) {
     this.lineMeshes.push(mesh);
     this.opaqueObject.add(mesh);
 }
-LDR.MeshCollector.prototype.addOpaque = function(mesh) {
-    this.triangleMeshes.push(mesh);
+LDR.MeshCollector.prototype.addOpaque = function(mesh, part) {
+    this.triangleMeshes.push({mesh:mesh, part:part});
     this.opaqueObject.add(mesh);
 }
-LDR.MeshCollector.prototype.addTrans = function(mesh) {
-    this.triangleMeshes.push(mesh);
+LDR.MeshCollector.prototype.addTrans = function(mesh, part) {
+    this.triangleMeshes.push({mesh:mesh, part:part});
     this.transObject.add(mesh);
 }
 
@@ -1377,12 +1385,12 @@ LDR.MeshCollector.prototype.addTrans = function(mesh) {
  */
 LDR.MeshCollector.prototype.updateMeshVisibility = function() {
     var v = this.visible;
-    for(var i = 0; i < this.triangleMeshes.length; i++) {
-	this.triangleMeshes[i].visible = v;
-    }
-    v = ldrOptions.lineContrast < 2 && this.visible;
     for(var i = 0; i < this.lineMeshes.length; i++) {
 	this.lineMeshes[i].visible = v;
+    }
+    for(var i = 0; i < this.triangleMeshes.length; i++) {
+        var obj = this.triangleMeshes[i];
+        obj.mesh.visible = v && (this.old || !(obj.part && obj.part.ghost)); // Do not show faces for ghosted parts.
     }
 }
 
@@ -1404,11 +1412,11 @@ LDR.MeshCollector.prototype.setOldValue = function(old) {
     if(!LDR.Colors.canBeOld) {
 	return;
     }
-    for(var i = 0; i < this.triangleMeshes.length; i++) {
-	this.triangleMeshes[i].material.uniforms.old.value = old;
-    }
     for(var i = 0; i < this.lineMeshes.length; i++) {
 	this.lineMeshes[i].material.uniforms.old.value = old;
+    }
+    for(var i = 0; i < this.triangleMeshes.length; i++) {
+	this.triangleMeshes[i].mesh.material.uniforms.old.value = old;
     }
 }
 
@@ -1454,8 +1462,8 @@ LDR.MeshCollector.prototype.update = function(old) {
 	    this.colorLinesHighContrast();
         }
     }
-    if(old != this.old || ldrOptions.showOldColors != this.showOldColors) {
-	this.setOldValue(old && ldrOptions.showOldColors == 1);
+    if(old !== this.old || ldrOptions.showOldColors !== this.showOldColors) {
+	this.setOldValue(old && ldrOptions.showOldColors === 1);
     }
     this.updateState(old);
 }
@@ -1476,7 +1484,7 @@ LDR.MeshCollector.prototype.overwriteColor = function(color) {
     }
 
     for(var i = 0; i < this.triangleMeshes.length; i++) {
-	handle(this.triangleMeshes[i].material, false);
+	handle(this.triangleMeshes[i].mesh.material, false);
     }
     for(var i = 0; i < this.lineMeshes.length; i++) {
 	handle(this.lineMeshes[i].material, true);
@@ -1488,7 +1496,7 @@ LDR.MeshCollector.prototype.draw = function(old) {
     this.updateMeshVisibility();
 }
 
-LDR.MeshCollector.prototype.isVisible = function(v) {
+LDR.MeshCollector.prototype.isVisible = function() {
     return this.visible;
 }
 
@@ -1496,8 +1504,10 @@ LDR.MeshCollector.prototype.isVisible = function(v) {
   Update meshes and set own visibility indicator.
 */
 LDR.MeshCollector.prototype.setVisible = function(v) {
-    if(this.visible === v)
+    console.log('Setting visibility ' + v);
+    if(this.visible === v && this.old) { // If not old, ghosting might have changed.
 	return;
+    }
     this.visible = v;
     this.updateMeshVisibility();
 }

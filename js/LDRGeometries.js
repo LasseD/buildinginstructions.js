@@ -197,20 +197,6 @@ LDR.LDRGeometry.prototype.unpack = function(packed) {
     extract(4, this.quads);
 }
 
-/*
-LDR.charsPrinted = 0;
-LDR.LDRGeometry.prototype.serialize = function() {
-    var ret = JSON.stringify(this);
-    LDR.charsPrinted += ret.length;
-    console.log("Printed " + ret.length + " -> " + LDR.charsPrinted);
-    return ret;
-}
-
-LDR.LDRGeometry.prototype.deserialize = function(txt) {
-    var obj = JSON.parse(txt); // TODO: Optimize
-    this.replaceWith(obj);
-}*/
-
 LDR.LDRGeometry.prototype.buildVertexAttribute = function(rotation) {
     var vertices = [];
     for(var i = 0; i < this.vertices.length; i++) {

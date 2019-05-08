@@ -58,7 +58,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
     this.builder; // Set in 'onPartsRetrieved'
     this.pliElement = document.getElementById('pli');
     this.pliBuilder; // Set in 'onPartsRetrieved'
-    this.pliShownPreview; // Set in onPLIClick
+    this.pliHighlighted; // Set in onPLIClick. Indicates highlighted part for preview.
 
     this.baseObject = new THREE.Group();
     this.opaqueObject = new THREE.Group();
@@ -309,7 +309,7 @@ LDR.InstructionsManager.prototype.updateUIComponents = function(force) {
 
 LDR.InstructionsManager.prototype.updatePLI = function(force) {
     var [step,stepColorID] = this.builder.getCurrentStepAndColor();
-    this.showPLI = ldrOptions.showPLI && step.containsPartSubModels(this.ldrLoader);
+    this.showPLI = (ldrOptions.showEditor || ldrOptions.showPLI) && step.containsPartSubModels(this.ldrLoader);
     if(!this.showPLI) {
         this.pliBuilder.pliElement.style.display = 'none';
         this.pliW = this.pliH = 0;
@@ -604,8 +604,8 @@ LDR.InstructionsManager.prototype.handleStepsWalked = function(walkedSteps){
 };
 
 LDR.InstructionsManager.prototype.goToStep = function(step) {
-    if(this.pliShownPreview) {
-        return; // Don't walk when showing stuff.
+    if(!ldrOptions.showEditor && this.pliHighlighted) {
+        return; // Don't walk when showing preview.
     }
 
     step = this.clampStep(step);
@@ -615,8 +615,8 @@ LDR.InstructionsManager.prototype.goToStep = function(step) {
 }
 
 LDR.InstructionsManager.prototype.nextStep = function() {
-    if(this.pliShownPreview) {
-        return; // Don't walk when showing stuff.
+    if(!ldrOptions.showEditor && this.pliHighlighted) {
+        return; // Don't walk when showing preview.
     }
     if(this.builder.isAtVeryLastStep()) {
         return;
@@ -631,8 +631,8 @@ LDR.InstructionsManager.prototype.nextStep = function() {
 }
 
 LDR.InstructionsManager.prototype.prevStep = function() {
-    if(this.pliShownPreview) {
-        return; // Don't walk when showing stuff.
+    if(!ldrOptions.showEditor && this.pliHighlighted) {
+        return; // Don't walk when showing preview.
     }
     if(this.builder.isAtFirstStep()) {
         return;
@@ -673,16 +673,26 @@ LDR.InstructionsManager.prototype.onPLIClick = function(e) {
         if(x >= icon.x && y >= icon.y && 
            x <= icon.x+icon.width+5 &&
            y <= icon.y+icon.height+12) {
-            // Correct icon found! Now show preview:
-            this.pliPreviewer.scene.remove(this.pliShownPreview);
-            var pc = this.pliBuilder.getPC(icon.key);
-            this.pliShownPreview = pc.mesh;
-            this.pliPreviewer.scene.add(this.pliShownPreview);
-            this.pliPreviewer.showPliPreview(icon);
-            var b = pc.getBounds();
-            var size = b.min.distanceTo(b.max) * 0.6;
-            this.pliPreviewer.subjectSize = size;
-            this.pliPreviewer.onResize();
+            // Correct icon found!
+
+            if(ldrOptions.showEditor) {
+                console.log('Clicked icon:');
+                console.dir(icon);
+                icon.part.ghost = !icon.part.ghost;
+                this.builder.updateMeshCollectors();
+                this.updateUIComponents(true);
+            }
+            else { // Show preview if no editor:
+                this.pliPreviewer.scene.remove(this.pliHighlighted);
+                var pc = this.pliBuilder.getPC(icon.key);
+                this.pliHighlighted = pc.mesh;
+                this.pliPreviewer.scene.add(this.pliHighlighted);
+                this.pliPreviewer.showPliPreview(icon);
+                var b = pc.getBounds();
+                var size = b.min.distanceTo(b.max) * 0.6;
+                this.pliPreviewer.subjectSize = size;
+                this.pliPreviewer.onResize();
+            }
             
             return;
         }
@@ -691,8 +701,8 @@ LDR.InstructionsManager.prototype.onPLIClick = function(e) {
 
 LDR.InstructionsManager.prototype.hidePliPreview = function() {
     this.pliPreviewer.hidePliPreview();
-    this.pliPreviewer.scene.remove(this.pliShownPreview);
-    this.pliShownPreview = null;
+    this.pliPreviewer.scene.remove(this.pliHighlighted);
+    this.pliHighlighted = null;
 }
 
 LDR.InstructionsManager.prototype.hideDone = function() {

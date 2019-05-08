@@ -41,7 +41,7 @@ LDR.StepBuilder = function(opaqueObject, transObject, loader, partDescs, isForMa
     this.totalNumberOfSteps = this.part.steps.length;
     for(var i = 0; i < this.part.steps.length; i++) {
 	var step = this.part.steps[i];
-        if(step.containsNonPartSubModels(loader)) {
+        if(step.containsNonPartSubModels(loader)) { // All are sub models (not parts):
             var subDescs = step.subModels.map(subModel => subModel.placeAt(partDesc));
             var subStepBuilder = new LDR.StepBuilder(opaqueObject, transObject, loader, subDescs, false, storage);
             this.subBuilders.push(subStepBuilder);
@@ -155,7 +155,7 @@ LDR.StepBuilder.prototype.nextStep = function(doNotEraseForSubModels) {
 	    var step = this.part.steps[this.current];
 
 	    this.geometryBuilder.buildStep(step); // Ensure geometries
-	    step.generateThreePart(this.loader, pd.colorID, pd.position, pd.rotation, true, false, meshCollector, false, false);
+	    step.generateThreePart(this.loader, pd.colorID, pd.position, pd.rotation, true, false, meshCollector);
 	    this.meshCollectors[this.current] = meshCollector;
 	    this.setCurrentBounds(meshCollector.boundingBox);
 

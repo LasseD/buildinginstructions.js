@@ -8,13 +8,14 @@ LDR.PLIBuilder = function(loader, mainModelID, mainModelColor, pliElement, pliRe
     this.pliRenderElement = pliRenderElement;
     this.partsBuilder = new LDR.PartsBulder(loader, mainModelID, mainModelColor);
     this.fillHeight = false;
+    this.groupParts = true;
     this.clickMap;
 
     // Register for options changes:
-    var self = this;
+    let self = this;
     ldrOptions.listeners.push(function() {
 	if(self.lastStep) {
-	    self.drawPLIForStep(self.fillHeight, self.lastStep, self.lastColorID,
+	    self.drawPLIForStep(self.groupParts, self.fillHeight, self.lastStep, self.lastColorID,
 				self.lastMaxWidth, self.lastMaxHeight, true);
 	}
     });
@@ -34,15 +35,15 @@ LDR.PLIBuilder = function(loader, mainModelID, mainModelColor, pliElement, pliRe
 }
 
 LDR.PLIBuilder.prototype.getPC = function(key) {
-    var pc = this.partsBuilder.pcs[key];
+    let pc = this.partsBuilder.pcs[key];
     if(!pc.mesh) {
 	pc.mesh = new THREE.Group();
 	pc.draw(pc.mesh);
-	var elementCenter = new THREE.Vector3();
-	var b = pc.getBounds();
+	let elementCenter = new THREE.Vector3();
+	let b = pc.getBounds();
 	b.getCenter(elementCenter);
 	pc.mesh.position.sub(elementCenter);
-	var [dx,dy] = this.measurer.measure(b, pc.mesh.matrixWorld);
+	let [dx,dy] = this.measurer.measure(b, pc.mesh.matrixWorld);
 	pc.dx = dx;
 	pc.dy = dy;
     }
@@ -58,7 +59,7 @@ LDR.PLIBuilder.prototype.updateCamera = function(w, h) {
 }
 
 LDR.PLIBuilder.prototype.render = function(key, w, h) {
-    var pc = this.getPC(key);
+    let pc = this.getPC(key);
     pc.meshCollector.draw(false);
     
     this.scene.add(pc.mesh);
@@ -69,25 +70,26 @@ LDR.PLIBuilder.prototype.render = function(key, w, h) {
 }
 
 LDR.PLIBuilder.prototype.createClickMap = function(step, stepColorID) {
-    var icons = {}; // key -> {key, partID, colorID, mult, desc}, key='part_id'_'color_id'
+    let icons = {}; // key -> {key, partID, colorID, mult, desc}, key='part_id'_'color_id'
     this.clickMap = [];
-    for(var i = 0; i < step.subModels.length; i++) {
-	var dat = step.subModels[i];
+    for(let i = 0; i < step.subModels.length; i++) {
+	let dat = step.subModels[i];
         if(!this.loader.partTypes[dat.ID].isPart()) {
-            continue;
+            continue; // Do not show sub models.
         }
-	var partID = dat.ID;
-	var colorID = dat.colorID == 16 ? stepColorID : dat.colorID;
-	var key = partID.endsWith('.dat') ? partID.substring(0, partID.length-4) : partID;
+	let partID = dat.ID;
+	let colorID = dat.colorID == 16 ? stepColorID : dat.colorID;
+	let key = partID.endsWith('.dat') ? partID.substring(0, partID.length-4) : partID;
 	key += '_' + colorID;
-	var icon = icons[key];
-	if(icon) {
+
+	let icon = icons[key];
+	if(!this.groupParts && icon) {
 	    icon.mult++;
 	}
 	else {
-	    var pc = this.getPC(key);
-	    var b = pc.getBounds();
-	    var type = this.loader.partTypes[partID];
+	    let pc = this.getPC(key);
+	    let b = pc.getBounds();
+	    let type = this.loader.partTypes[partID];
 	    icon = {key: key,
 		    partID: partID, 
 		    colorID: colorID, 
@@ -97,81 +99,87 @@ LDR.PLIBuilder.prototype.createClickMap = function(step, stepColorID) {
 		    dx: pc.dx,
 		    dy: pc.dy,
 		    size: b.min.distanceTo(b.max),
-		    inlined: pc.inlined
+		    inlined: pc.inlined,
+                    part: dat, // Used by editor.
 		   };
 	    icons[key] = icon;
 	    this.clickMap.push(icon);
 	}
     }
 
-    var sorter = function(a, b){
-	var ca = a.desc;
-	var cb = b.desc;
+    let sorter = function(a, b){
+	let ca = a.desc;
+	let cb = b.desc;
 	if(ca != cb) {
 	    return ca < cb ? -1 : 1;
 	}
-	var ia = a.colorID;
-	var ib = b.colorID;
+	let ia = a.colorID;
+	let ib = b.colorID;
 	return ia < ib ? -1 : (ib < ia ? 1 : 0);
     }
     this.clickMap.sort(sorter);
 }
 
 LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, maxWidth, maxHeight, maxSizePerPixel, force) {
-    if(!force && this.lastStep && 
-       this.lastStep.idx === step.idx && 
-       this.lastColorID === colorID &&
-       this.lastMaxWidth == maxWidth && this.lastMaxHeight == maxHeight &&
-       this.fillHeight == fillHeight) {
+    let groupParts = ldrOptions.showEditor;
+    // Ensure no re-draw if not necessary:
+    if(!force && 
+       this.lastStep && this.lastStep.idx === step.idx && 
+       this.lastColorID === colorID && this.lastGroupParts === groupParts &&
+       this.lastMaxWidth === maxWidth && this.lastMaxHeight === maxHeight &&
+       this.fillHeight === fillHeight) {
 	return;
     }
+    this.groupParts = groupParts;
+    this.fillHeight = fillHeight;
     this.lastStep = step;
     this.lastColorID = colorID;
     this.lastMaxWidth = maxWidth;
     this.lastMaxHeight = maxHeight;
-    this.fillHeight = fillHeight;
 
     // Find, sort and set up icons to show:
     this.createClickMap(step, colorID);
-    var [W,H] = Algorithm.PackRectangles(fillHeight, maxWidth, maxHeight, this.clickMap, maxSizePerPixel); // Previously max size window.innerWidth/5
+    let [W,H] = Algorithm.PackRectangles(fillHeight, maxWidth, maxHeight, this.clickMap, maxSizePerPixel); // Previously max size window.innerWidth/5
     this.pliElement.width = (12+W)*window.devicePixelRatio;
     this.pliElement.height = (28+H)*window.devicePixelRatio;
     this.pliElement.style.width = (W+12)+"px";
     this.pliElement.style.height = (H+21)+"px";
 
-    var context = this.pliElement.getContext('2d');
+    let context = this.pliElement.getContext('2d');
 
     context.font = parseInt(25*window.devicePixelRatio) + "px sans-serif";
     context.fillStyle = "black";
-    var scaleDown = 0.95; // To make icons not fill out the complete allocated cells.
-    var self = this;
-    function delay() {
+    let scaleDown = 0.95; // To make icons not fill out the complete allocated cells.
+    let self = this;
+    let delay = function() {
 	context.clearRect(0, 0, self.pliElement.width, self.pliElement.height);
 	// Draw icon:
-	for(var i = 0; i < self.clickMap.length; i++) {
-	    var icon = self.clickMap[i];
-	    var w = parseInt(icon.width*scaleDown);
-	    var h = parseInt(icon.height*scaleDown);
+	for(let i = 0; i < self.clickMap.length; i++) {
+	    let icon = self.clickMap[i];
+	    let w = parseInt(icon.width*scaleDown);
+	    let h = parseInt(icon.height*scaleDown);
             self.render(icon.key, w, h);
 	    context.drawImage(self.renderer.domElement, (icon.x+8)*window.devicePixelRatio, (icon.y+5)*window.devicePixelRatio);
 	}
-	// Draw multiplier:
+	// Draw multipliers:
 	context.fillStyle = "#000";
-        self.clickMap.forEach(icon => context.fillText(icon.mult + "x", (icon.x + 5)*window.devicePixelRatio, 
-                                                       (icon.y+icon.height+24)*window.devicePixelRatio));
+        if(!self.groupParts) {
+            self.clickMap.forEach(icon => context.fillText(icon.mult + "x", (icon.x + 5)*window.devicePixelRatio, 
+                                                           (icon.y+icon.height+24)*window.devicePixelRatio));
+        }
 	// Draw Annotation:
 	context.lineWidth = "1";
 	context.font = parseInt(18*window.devicePixelRatio) + "px Lucida Console";
-	for(var i = 0; i < self.clickMap.length; i++) {
-	    var icon = self.clickMap[i];
+	for(let i = 0; i < self.clickMap.length; i++) {
+	    let icon = self.clickMap[i];
 	    if(!icon.annotation) {
 		continue;
             }
-	    var len = icon.annotation.length;
-	    var x = (icon.x + icon.width - len*10 - 9)*window.devicePixelRatio;
-	    var y = (icon.y + icon.height + 4)*window.devicePixelRatio;
-	    var w = (len*10 + 9)*window.devicePixelRatio;
-	    var h = 19*window.devicePixelRatio;
+	    let len = icon.annotation.length;
+	    let x = (icon.x + icon.width - len*10 - 9)*window.devicePixelRatio;
+	    let y = (icon.y + icon.height + 4)*window.devicePixelRatio;
+	    let w = (len*10 + 9)*window.devicePixelRatio;
+	    let h = 19*window.devicePixelRatio;
 	    context.beginPath();
 	    context.fillStyle = "#CFF";
 	    if(icon.desc.startsWith('Technic Axle'))
@@ -185,6 +193,22 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, ma
 	    y += 16*window.devicePixelRatio;
 	    context.fillText(icon.annotation, x, y);
 	}
+        // Draw highlight:
+        if(ldrOptions.showEditor) {
+            self.clickMap.forEach(icon => {
+                    if(!icon.part.ghost) {
+                        return; // Do not draw highlight.
+                    }
+                    const lineWidth = 8;
+                    const x = parseInt(icon.x*window.devicePixelRatio+lineWidth);
+                    const y = parseInt(icon.y*window.devicePixelRatio+lineWidth);
+                    const w = parseInt(icon.width*window.devicePixelRatio-2*lineWidth);
+                    const h = parseInt(icon.height*window.devicePixelRatio-2*lineWidth);
+                    context.strokeStyle = "#5DD";
+                    context.lineWidth = ''+lineWidth;
+                    context.strokeRect(x, y, w, h);
+                });
+        }
     }
     setTimeout(delay, 10); // Ensure not blocking
 }
