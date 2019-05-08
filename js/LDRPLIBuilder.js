@@ -15,7 +15,7 @@ LDR.PLIBuilder = function(loader, mainModelID, mainModelColor, pliElement, pliRe
     let self = this;
     ldrOptions.listeners.push(function() {
 	if(self.lastStep) {
-	    self.drawPLIForStep(self.groupParts, self.fillHeight, self.lastStep, self.lastColorID,
+	    self.drawPLIForStep(self.fillHeight, self.lastStep, self.lastColorID,
 				self.lastMaxWidth, self.lastMaxHeight, true);
 	}
     });
@@ -164,7 +164,7 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, ma
 	// Draw multipliers:
 	context.fillStyle = "#000";
         if(!self.groupParts) {
-            self.clickMap.forEach(icon => context.fillText(icon.mult + "x", (icon.x + 5)*window.devicePixelRatio, 
+            self.clickMap.forEach(icon => context.fillText(icon.mult + "x", (icon.x + 5)*window.devicePixelRatio,
                                                            (icon.y+icon.height+24)*window.devicePixelRatio));
         }
 	// Draw Annotation:
@@ -199,13 +199,12 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, ma
                     if(!icon.part.ghost) {
                         return; // Do not draw highlight.
                     }
-                    const lineWidth = 8;
-                    const x = parseInt(icon.x*window.devicePixelRatio+lineWidth);
-                    const y = parseInt(icon.y*window.devicePixelRatio+lineWidth);
-                    const w = parseInt(icon.width*window.devicePixelRatio-2*lineWidth);
-                    const h = parseInt(icon.height*window.devicePixelRatio-2*lineWidth);
+                    const x = parseInt((icon.x+8)*window.devicePixelRatio);
+                    const y = parseInt((icon.y+5)*window.devicePixelRatio);
+                    const w = parseInt((icon.width)*window.devicePixelRatio);
+                    const h = parseInt((icon.height)*window.devicePixelRatio);
                     context.strokeStyle = "#5DD";
-                    context.lineWidth = ''+lineWidth;
+                    context.lineWidth = '4';
                     context.strokeRect(x, y, w, h);
                 });
         }

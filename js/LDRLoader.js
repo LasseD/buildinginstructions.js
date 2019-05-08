@@ -1504,7 +1504,6 @@ LDR.MeshCollector.prototype.isVisible = function() {
   Update meshes and set own visibility indicator.
 */
 LDR.MeshCollector.prototype.setVisible = function(v) {
-    console.log('Setting visibility ' + v);
     if(this.visible === v && this.old) { // If not old, ghosting might have changed.
 	return;
     }

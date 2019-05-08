@@ -17,7 +17,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
     //this.scene.add( new THREE.AxesHelper( 5 ) );
 
     this.defaultZoom = 1; // Will be overwritten.
-    this.currentStep = 1; // TODO: Fix stepping into void.
+    this.currentStep = 1; // Shown current step.
     this.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000 ); // Orthographics for LEGO
     this.pliW = 0;
     this.pliH = 0;
@@ -119,7 +119,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
                                              0,
                                              self.pliElement,
                                              document.getElementById('pli_render_canvas'));
-        self.builder = new LDR.StepBuilder(self.opaqueObject, self.transObject, self.ldrLoader, [pd], true, self.storage);
+        self.builder = new LDR.StepHandler(self.opaqueObject, self.transObject, self.ldrLoader, [pd], true, self.storage);
 	self.builder.nextStep(false);
 	self.realignModel(0);
 	self.updateUIComponents(false);
@@ -128,9 +128,8 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
         console.log("Render done after " + (new Date()-startTime) + "ms.");
 
 	// Go to step indicated by parameter:
-	stepFromParameters = self.clampStep(stepFromParameters);
 	if(stepFromParameters > 1) {
-            self.builder.moveSteps(stepFromParameters-1, walked => self.handleStepsWalked(walked));
+            self.builder.moveSteps(stepFromParameters-1, () => self.handleStepsWalked());
         }
 	else {
             self.ensureSwipeForwardWorks();
@@ -153,7 +152,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
                     self.prevStep();
                 }
                 else {
-                    self.builder.moveSteps(diff, walked => self.handleStepsWalked(walked));
+                    self.builder.moveSteps(diff, () => self.handleStepsWalked());
                 }
             });
 
@@ -162,10 +161,8 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
 
         // Enable editor:
         if(self.canEdit) {
-            function onStepChange() {
-                self.handleStepsWalked(0);
-            }
-            self.stepEditor = new LDR.StepEditor(self.ldrLoader, self.builder, onStepChange, self.modelID);
+            self.stepEditor = new LDR.StepEditor(self.ldrLoader, self.builder, 
+                                                 () => self.handleStepsWalked(), self.modelID);
             self.stepEditor.createGuiComponents(document.getElementById('editor'));
             if(ldrOptions.showEditor === 1) {
                 $("#editor").show();
@@ -290,7 +287,7 @@ LDR.InstructionsManager.prototype.updateUIComponents = function(force) {
     this.updateMultiplier();
     this.updateRotator();
     this.setBackgroundColor(this.builder.getBackgroundColorOfCurrentStep());
-    if(this.builder.isAtVeryLastStep()) {
+    if(this.builder.isAtLastStep()) {
         this.ldrButtons.atLastStep();
     }
     else if(this.builder.isAtFirstStep()) {
@@ -391,6 +388,7 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
     
     var useAccumulatedBounds = true;
     var b = this.builder.getAccumulatedBounds();
+
     var size = b.min.distanceTo(b.max);
     var viewPortSize = Math.sqrt(this.viewPortWidth*this.viewPortWidth + this.viewPortHeight*this.viewPortHeight);
     //console.log("size=" + size + ", screen size=" + viewPortSize + ", size/screen=" + (size/viewPortSize));
@@ -564,24 +562,14 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
     // Ensure mobile users can swipe right for next step:
 LDR.InstructionsManager.prototype.ensureSwipeForwardWorks = function() {
     window.history.replaceState(this.currentStep, null, this.baseURL + this.currentStep);
-    if(this.currentStep != this.builder.totalNumberOfSteps) {
+    if(!this.builder.isAtLastStep()) {
         window.history.pushState(this.currentStep+1, null, this.baseURL + (this.currentStep+1));
         this.windowStepCauseByHistoryManipulation = true;
         window.history.go(-1); // Go back again.
     }
 }
 
-LDR.InstructionsManager.prototype.clampStep = function(s) {
-    if(s < 1) {
-        return 1;
-    }
-    if(s > this.builder.totalNumberOfSteps) {
-        return this.builder.totalNumberOfSteps;
-    }
-    return s;
-}
-
-LDR.InstructionsManager.prototype.handleStepsWalked = function(walkedSteps){
+LDR.InstructionsManager.prototype.handleStepsWalked = function() {
     // Helper. Uncomment next lines for step bounding boxes:
     /*if(this.helper) {
         this.baseObject.remove(this.helper);
@@ -593,14 +581,11 @@ LDR.InstructionsManager.prototype.handleStepsWalked = function(walkedSteps){
     this.helper = new THREE.Box3Helper(this.builder.getBounds(), 0xFFCC00)
     this.baseObject.add(this.accHelper);
     this.baseObject.add(this.helper);//*/
-    this.currentStep = this.clampStep(this.currentStep + walkedSteps);
+    this.currentStep = this.builder.getCurrentStepIndex();
     this.ensureSwipeForwardWorks();
-    //if(walkedSteps != 1 && walkedSteps != -1) {
-        this.realignModel(0);
-    //}
+    this.realignModel(0);
     this.updateUIComponents(false);
     this.render();
-    // TODO: 
 };
 
 LDR.InstructionsManager.prototype.goToStep = function(step) {
@@ -608,42 +593,31 @@ LDR.InstructionsManager.prototype.goToStep = function(step) {
         return; // Don't walk when showing preview.
     }
 
-    step = this.clampStep(step);
     var diff = step - this.currentStep;
     console.log("Going to " + step + " from " + this.currentStep);
-    this.builder.moveSteps(step - this.currentStep, walked => this.handleStepsWalked(walked));
+    var self = this;
+    this.builder.moveSteps(step - self.currentStep, () => self.handleStepsWalked());
 }
 
 LDR.InstructionsManager.prototype.nextStep = function() {
     if(!ldrOptions.showEditor && this.pliHighlighted) {
         return; // Don't walk when showing preview.
     }
-    if(this.builder.isAtVeryLastStep()) {
+    if(this.builder.isAtLastStep()) {
         return;
     }
 
     var self = this;
-    this.realignModel(1, function(){
-            self.builder.nextStep(false);	      
-	}, function() {
-	    self.handleStepsWalked(1);
-	});
+    this.realignModel(1, () => self.builder.nextStep(false), () => self.handleStepsWalked());
 }
 
 LDR.InstructionsManager.prototype.prevStep = function() {
     if(!ldrOptions.showEditor && this.pliHighlighted) {
         return; // Don't walk when showing preview.
     }
-    if(this.builder.isAtFirstStep()) {
-        return;
-    }
 
     var self = this;
-    this.realignModel(-1, function(){
-            self.builder.prevStep(false);
-	}, function() {
-            self.handleStepsWalked(-1);
-	});
+    this.realignModel(-1, () => self.builder.prevStep(false), () => self.handleStepsWalked());
 }
 
 LDR.InstructionsManager.prototype.clickDone = function() {

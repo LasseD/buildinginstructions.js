@@ -3,16 +3,16 @@
 /**
    Finished Operations:
    - save --- 1 button
-   - modify step rotation: type[normal,ABS,REL,END], x, y, z --- 4 buttons + 3*3 inputs
-   Operations on TODO-list:
+   - modify step rotation: ABS,REL, x, y, z --- 2 buttons + 3*3 inputs
    - Open/Close editor in top bar
     - PLI always shown when editor opened
     - and parts shown individually
-   - add step (left and right, move highlighted parts to new step) --- 2 buttons
+   Operations on TODO-list:
+   - add step (left and right, move highlighted parts to new step) --- 2 + 2 buttons (with and without parts)
    - remove step (merge left or right) --- 2 buttons
-   - dissolve sub model --- 1 button
+   - dissolve sub model at current location --- 1 button
    - Move parts to previous/next step --- 2 buttons
-   - Move parts into sub model --- 1 button
+   - Group parts into sub model --- 1 button
  */
 LDR.StepEditor = function(loader, builder, onChange, modelID) {
     if(!modelID) {

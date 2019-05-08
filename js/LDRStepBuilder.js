@@ -1,11 +1,9 @@
 'use strict';
 
 /*
-The LDRStepBulder is used for displaying step-by-step building instructions.
+The StepHandler is used for displaying step-by-step building instructions.
 
-An LDRStepBulder object represents one or more a placed parts (LDRPartDescription).
-
-If more than one placed part, the color and ID are assumed to be the same as it represents a step where more than once submodel is placed onto a model. Only the first placed part is shown being built, while the rest are added in a "placement step". In this step all placed parts are place onto their parent model.
+If a StepHandler more than one placed part, the color and ID are assumed to be the same as it represents a step where more than once submodel is placed onto a model. Only the first placed part is shown being built, while the rest are added in a "placement step". In this step all placed parts are place onto their parent model.
 
 "current" is used to keep track of the currently shown step. If a model has X steps, then "current" can take the values:
 - -1 to indicate that the model is not yet being being built (at the "pre step")
@@ -15,21 +13,21 @@ If more than one placed part, the color and ID are assumed to be the same as it 
 The builder supports the operations:
 - nextStep: Single step forward (if possible)
 - prevStep: Single step back (if possible)
-- fastForward: Go to last step of currently-active model. Unless at placement-step, then do it for next model.
-- fastReverse: Go to first step of currently-active model. Unless at placement-step, then do it for next model.
 - moveSteps: Go forward/back a specific number of steps.
+- Various methods for trieving information regarding the current step (depth, quantities, etc.)
 */
 var LDR = LDR || {};
 
-LDR.StepBuilder = function(opaqueObject, transObject, loader, partDescs, isForMainModel, storage) {
+LDR.StepHandler = function(opaqueObject, transObject, loader, partDescs, isForMainModel, storage) {
     this.opaqueObject = opaqueObject;
     this.transObject = transObject;
     this.loader = loader;
     this.partDescs = partDescs;
+    this.isForMainModel = isForMainModel; // If true, then prevent stepping to current === -1.
     this.geometryBuilder = new LDR.GeometryBuilder(loader, storage);
 
     this.meshCollectors = []; // One for each step. null to represent non-built obejcts
-    this.subBuilders = []; // One for each step. null to represent no step builder.
+    this.subStepHandlers = []; // One for each step. null to represent no step builder.
     this.current = -1; // Índex of currently-shown step (call nextStep() to initialize)
     this.extraParts = partDescs.length > 1; // Replace with actual mesh builder once loaded.
     this.bounds = []; // Bounds for each step
@@ -38,17 +36,15 @@ LDR.StepBuilder = function(opaqueObject, transObject, loader, partDescs, isForMa
     var partDesc = partDescs[0];
     this.part = loader.partTypes[partDesc.ID];
 
-    this.totalNumberOfSteps = this.part.steps.length;
     for(var i = 0; i < this.part.steps.length; i++) {
 	var step = this.part.steps[i];
         if(step.containsNonPartSubModels(loader)) { // All are sub models (not parts):
             var subDescs = step.subModels.map(subModel => subModel.placeAt(partDesc));
-            var subStepBuilder = new LDR.StepBuilder(opaqueObject, transObject, loader, subDescs, false, storage);
-            this.subBuilders.push(subStepBuilder);
-            this.totalNumberOfSteps += subStepBuilder.totalNumberOfSteps; 
+            var subStepHandler = new LDR.StepHandler(opaqueObject, transObject, loader, subDescs, false, storage);
+            this.subStepHandlers.push(subStepHandler);
         }
         else {
-            this.subBuilders.push(null);
+            this.subStepHandlers.push(null);
         }
 	this.meshCollectors.push(null);
 	this.bounds.push(null);
@@ -56,18 +52,54 @@ LDR.StepBuilder = function(opaqueObject, transObject, loader, partDescs, isForMa
     }
     this.bounds.push(null); // One more for placement step.
     this.accumulatedBounds.push(null); // One more for placement step.
-    if(isForMainModel && partDescs.length > 1)
-	this.totalNumberOfSteps++;
-    //console.log("Builder for " + partDesc.ID + " with " + this.part.steps.length + " normal steps. Total: " + this.totalNumberOfSteps);
+    //console.log("Builder for " + partDesc.ID + " with " + this.part.steps.length + " normal steps.");
+    if(isForMainModel) {
+        this.recomputeStepIndices(1);
+    }
 }
 
-LDR.StepBuilder.prototype.computeCameraPositionRotation = function(defaultMatrix, currentRotationMatrix, useAccumulatedBounds) {
-    if(this.current === -1 || this.current === this.subBuilders.length)
+LDR.StepHandler.prototype.recomputeStepIndices = function(firstShownIndex) {
+    this.totalNumberOfSteps = this.part.steps.length;
+    this.firstShownIndex = firstShownIndex;
+    var shownIndex = firstShownIndex;
+    for(var i = 0; i < this.subStepHandlers.length; i++) {
+        let subHandler = this.subStepHandlers[i];
+        if(subHandler) {
+            subHandler.recomputeStepIndices(shownIndex);
+            this.totalNumberOfSteps += subHandler.totalNumberOfSteps;
+            shownIndex += subHandler.totalNumberOfSteps+1;
+        }
+        else {
+            shownIndex++;
+        }
+    }
+}
+
+LDR.StepHandler.prototype.getCurrentStepIndex = function() {    
+    var subStepHandler = this.subStepHandlers[this.current];
+    if(subStepHandler) {
+        return subStepHandler.getCurrentStepIndex();
+    }
+    var ret = this.firstShownIndex;
+    for(var i = 0; i < this.current; i++) {
+        let subStepHandler = this.subStepHandlers[i];
+        if(subStepHandler) {
+            ret += subStepHandler.totalNumberOfSteps+1;
+        }
+        else {
+            ret++;
+        }
+    }
+    return ret;
+}
+
+LDR.StepHandler.prototype.computeCameraPositionRotation = function(defaultMatrix, currentRotationMatrix, useAccumulatedBounds) {
+    if(this.current === -1 || this.current === this.subStepHandlers.length)
 	throw "Can't reposition in void for step " + this.current + " in " + this.part.ID;
 
-    var subBuilder = this.subBuilders[this.current];
-    if((subBuilder !== null) && !subBuilder.isAtPlacementStep()) {
-	return subBuilder.computeCameraPositionRotation(defaultMatrix, currentRotationMatrix, useAccumulatedBounds); // Delegate to subBuilder.
+    var subStepHandler = this.subStepHandlers[this.current];
+    if((subStepHandler !== null) && !subStepHandler.isAtPlacementStep()) {
+	return subStepHandler.computeCameraPositionRotation(defaultMatrix, currentRotationMatrix, useAccumulatedBounds); // Delegate to subStepHandler.
     }
 
     var stepRotation = this.part.steps[this.current].rotation;
@@ -120,17 +152,17 @@ LDR.StepBuilder.prototype.computeCameraPositionRotation = function(defaultMatrix
  If stepping into a sub model: 
   - Ghost everything earlier (show again once sub-model is done)
 */
-LDR.StepBuilder.prototype.nextStep = function(doNotEraseForSubModels) {
+LDR.StepHandler.prototype.nextStep = function(doNotEraseForSubModels) {
     if(this.isAtPlacementStep()) {
 	return false; // Dont walk past placement step.
     }
-    var subBuilder = this.current === -1 ? null : this.subBuilders[this.current];
+    var subStepHandler = this.current === -1 ? null : this.subStepHandlers[this.current];
     var meshCollector = this.current === -1 ? null : this.meshCollectors[this.current];
-    var willStep = (subBuilder === null) || subBuilder.isAtPlacementStep();
+    var willStep = (subStepHandler === null) || subStepHandler.isAtPlacementStep();
 
     // Special case: Step to placement step.
-    if((this.current === this.subBuilders.length-1) && willStep) { 
-	this.updateMeshCollectors(false); // Make whole subBuilder new (for placement):
+    if((this.current === this.subStepHandlers.length-1) && willStep) { 
+	this.updateMeshCollectors(false); // Make whole subStepHandler new (for placement):
 	this.drawExtras();
 	this.current++;
 	return true;
@@ -138,16 +170,16 @@ LDR.StepBuilder.prototype.nextStep = function(doNotEraseForSubModels) {
 
     // Step to next:
     if(willStep) {
-	if(subBuilder)
-	    subBuilder.updateMeshCollectors(true); // Make previous step 'old'.
+	if(subStepHandler)
+	    subStepHandler.updateMeshCollectors(true); // Make previous step 'old'.
 	else if(meshCollector)
 	    meshCollector.draw(true); // Make previous step 'old'.
 	this.current++; // Point to next step.
-	subBuilder = this.subBuilders[this.current];
+	subStepHandler = this.subStepHandlers[this.current];
     }
 
     // Build what is new:
-    if(subBuilder === null) { // Only build DAT-parts:
+    if(subStepHandler === null) { // Only build DAT-parts:
 	var meshCollector = this.meshCollectors[this.current];
 	if(meshCollector === null) {
 	    var pd = this.partDescs[0];
@@ -168,16 +200,16 @@ LDR.StepBuilder.prototype.nextStep = function(doNotEraseForSubModels) {
 	}
     }
     else { // LDR sub-models:
-	if(subBuilder.current === -1) {
+	if(subStepHandler.current === -1) {
 	    // We have just stepped into this sub-model: Set all previous steps to invisible (they are already marked as old):
 	    if(!doNotEraseForSubModels)
 		this.setVisibleUpTo(false, this.current);
 	}
-	subBuilder.nextStep(doNotEraseForSubModels);
-	if(subBuilder.isAtPlacementStep()) {
+	subStepHandler.nextStep(doNotEraseForSubModels);
+	if(subStepHandler.isAtPlacementStep()) {
 	    // Add bounds:
 	    if(this.bounds[this.current] === null) {
-		var b = subBuilder.accumulatedBounds[subBuilder.subBuilders.length];
+		var b = subStepHandler.accumulatedBounds[subStepHandler.subStepHandlers.length];
 		this.setCurrentBounds(b);
 	    }
 
@@ -192,20 +224,20 @@ LDR.StepBuilder.prototype.nextStep = function(doNotEraseForSubModels) {
 /*
 This function is for setting correct visibility after having stepped without updating visibilities:
 */
-LDR.StepBuilder.prototype.cleanUpAfterWalking = function() {
-    var subBuilder = this.current === -1 ? null : this.subBuilders[this.current];
-    if(subBuilder) {
-	subBuilder.cleanUpAfterWalking();
+LDR.StepHandler.prototype.cleanUpAfterWalking = function() {
+    var subStepHandler = this.current === -1 ? null : this.subStepHandlers[this.current];
+    if(subStepHandler) {
+	subStepHandler.cleanUpAfterWalking();
     }
 
-    if(subBuilder && !subBuilder.isAtPlacementStep()) {
-	// Currently showing a subBuilder not at its placement step: Clear everything else!
-	for(var i = 0; i < this.subBuilders.length; i++) {
+    if(subStepHandler && !subStepHandler.isAtPlacementStep()) {
+	// Currently showing a subStepHandler not at its placement step: Clear everything else!
+	for(var i = 0; i < this.subStepHandlers.length; i++) {
 	    var t = this.meshCollectors[i];
 	    if(t !== null && t.isVisible()) {
 		t.setVisible(false);
 	    }
-	    var s = this.subBuilders[i];
+	    var s = this.subStepHandlers[i];
 	    if(s && i != this.current) {
 		s.setVisible(false);
 	    }
@@ -215,14 +247,14 @@ LDR.StepBuilder.prototype.cleanUpAfterWalking = function() {
 	}
     }
     else {
-	// Currently in a non-subBuilder step, or placement step: Clear all after this step:
-	for(var i = 0; i < this.subBuilders.length; i++) {
+	// Currently in a non-subStepHandler step, or placement step: Clear all after this step:
+	for(var i = 0; i < this.subStepHandlers.length; i++) {
 	    var t = this.meshCollectors[i];
 	    var v = i <= this.current; // Make everything up to current step visible.
 	    if(t !== null && t.isVisible() !== v) {
 		t.setVisible(v);
 	    }
-	    var s = this.subBuilders[i];
+	    var s = this.subStepHandlers[i];
 	    if(s) {
 		s.setVisible(v);
 	    }
@@ -233,27 +265,30 @@ LDR.StepBuilder.prototype.cleanUpAfterWalking = function() {
     }
 }
 
-LDR.StepBuilder.prototype.getAccumulatedBounds = function() {    
-    var subBuilder = this.subBuilders[this.current];
-    if(subBuilder && !subBuilder.isAtPlacementStep()) {
-	var ret = subBuilder.getAccumulatedBounds();
+LDR.StepHandler.prototype.getAccumulatedBounds = function() {
+    if(this.current === -1) {
+        throw "Can't get bounds for pre step!";
+    }
+    var subStepHandler = this.subStepHandlers[this.current];
+    if(subStepHandler && !subStepHandler.isAtPlacementStep()) {
+	var ret = subStepHandler.getAccumulatedBounds();
 	if(ret)
 	    return ret;
     }
     return this.accumulatedBounds[this.current];
 }
 
-LDR.StepBuilder.prototype.getBounds = function() {
-    var subBuilder = this.subBuilders[this.current];
-    if(subBuilder && !subBuilder.isAtPlacementStep()) {
-	var ret = subBuilder.getBounds();
+LDR.StepHandler.prototype.getBounds = function() {
+    var subStepHandler = this.subStepHandlers[this.current];
+    if(subStepHandler && !subStepHandler.isAtPlacementStep()) {
+	var ret = subStepHandler.getBounds();
 	if(ret)
 	    return ret;
     }
     return this.bounds[this.current];
 }
 
-LDR.StepBuilder.prototype.setCurrentBounds = function(b) {
+LDR.StepHandler.prototype.setCurrentBounds = function(b) {
     if(this.current === 0) {
 	if(!b)
 	    throw "Illegal state: Empty first step!";
@@ -271,31 +306,31 @@ LDR.StepBuilder.prototype.setCurrentBounds = function(b) {
     }
 }
 
-LDR.StepBuilder.prototype.getCurrentStepAndColor = function() {
-    var subBuilder = this.subBuilders[this.current];
-    if(!subBuilder || subBuilder.isAtPlacementStep())
+LDR.StepHandler.prototype.getCurrentStepAndColor = function() {
+    var subStepHandler = this.subStepHandlers[this.current];
+    if(!subStepHandler || subStepHandler.isAtPlacementStep())
 	return [this.part.steps[this.current], this.partDescs[0].colorID];
-    return subBuilder.getCurrentStepAndColor();
+    return subStepHandler.getCurrentStepAndColor();
 }
 
-LDR.StepBuilder.prototype.getCurrentPartAndStepIndex = function() {
-    var subBuilder = this.subBuilders[this.current];
-    if(!subBuilder || subBuilder.isAtPlacementStep())
+LDR.StepHandler.prototype.getCurrentPartAndStepIndex = function() {
+    var subStepHandler = this.subStepHandlers[this.current];
+    if(!subStepHandler || subStepHandler.isAtPlacementStep())
 	return [this.part, this.current];
-    return subBuilder.getCurrentPartAndStepIndex();
+    return subStepHandler.getCurrentPartAndStepIndex();
 }
 
-LDR.StepBuilder.prototype.getMultiplierOfCurrentStep = function() {
-    var subBuilder = this.subBuilders[this.current];
+LDR.StepHandler.prototype.getMultiplierOfCurrentStep = function() {
+    var subStepHandler = this.subStepHandlers[this.current];
     var ret = this.partDescs.length;
-    if(!subBuilder || subBuilder.isAtPlacementStep())
-	return ret; // If a subBuilder is not active (or at placement step), then return the number of parts this subBuilder returns. 
-    return ret * subBuilder.getMultiplierOfCurrentStep();
+    if(!subStepHandler || subStepHandler.isAtPlacementStep())
+	return ret; // If a subStepHandler is not active (or at placement step), then return the number of parts this subStepHandler returns. 
+    return ret * subStepHandler.getMultiplierOfCurrentStep();
 }
 
-LDR.StepBuilder.prototype.getRotationOfCurrentStep = function() {
-    var subBuilder = this.subBuilders[this.current];
-    if(!subBuilder || subBuilder.isAtPlacementStep()) {
+LDR.StepHandler.prototype.getRotationOfCurrentStep = function() {
+    var subStepHandler = this.subStepHandlers[this.current];
+    if(!subStepHandler || subStepHandler.isAtPlacementStep()) {
 	if(this.current === 0 || 
            THREE.LDRStepRotation.equals(this.part.steps[this.current].rotation,
                                         this.part.steps[this.current-1].rotation)) {
@@ -304,24 +339,24 @@ LDR.StepBuilder.prototype.getRotationOfCurrentStep = function() {
 	return this.part.steps[this.current].rotation || 
 	       this.part.steps[this.current-1].rotation;
     }
-    return subBuilder.getRotationOfCurrentStep();
+    return subStepHandler.getRotationOfCurrentStep();
 }
 
 LDR.BackgroundColors = Array("ffffff", "FFFF88", "CCFFCC", "FFBB99", "99AAFF", "FF99FF", "D9FF99", "FFC299");
-LDR.StepBuilder.prototype.getBackgroundColorOfCurrentStep = function() {
+LDR.StepHandler.prototype.getBackgroundColorOfCurrentStep = function() {
     var level = this.getLevelOfCurrentStep();
     return LDR.BackgroundColors[level%LDR.BackgroundColors.length];
 }
 
-LDR.StepBuilder.prototype.getLevelOfCurrentStep = function() {
-    var subBuilder = this.subBuilders[this.current];
-    if(!subBuilder || subBuilder.isAtPlacementStep())
+LDR.StepHandler.prototype.getLevelOfCurrentStep = function() {
+    var subStepHandler = this.subStepHandlers[this.current];
+    if(!subStepHandler || subStepHandler.isAtPlacementStep())
 	return 0;
-    return 1+subBuilder.getLevelOfCurrentStep();
+    return 1+subStepHandler.getLevelOfCurrentStep();
 }
 
-LDR.StepBuilder.prototype.drawExtras = function() {
-    var len = this.subBuilders.length;
+LDR.StepHandler.prototype.drawExtras = function() {
+    var len = this.subStepHandlers.length;
     if(!this.extraParts) { // No extra parts to draw: Copy from previous step:
 	if(!this.bounds[len]) {
 	    this.accumulatedBounds[len] = this.accumulatedBounds[len-1];
@@ -356,8 +391,8 @@ LDR.StepBuilder.prototype.drawExtras = function() {
 /*
  takes a step back in the building instructions (see nextStep()).
 */
-LDR.StepBuilder.prototype.prevStep = function(doNotEraseForSubModels) {
-    if(this.isAtPreStep()) {
+LDR.StepHandler.prototype.prevStep = function(doNotEraseForSubModels) {
+    if(this.isAtPreStep() || (this.isForMainModel && this.current === 0)) {
 	return false; // Can't move further. Fallback.
     }
 
@@ -367,12 +402,12 @@ LDR.StepBuilder.prototype.prevStep = function(doNotEraseForSubModels) {
 	    this.extraParts.setVisible(false);
 	}
 	// Update all previous steps to be old:
-	for(var i = 0; i < this.subBuilders.length-1; i++) {
+	for(var i = 0; i < this.subStepHandlers.length-1; i++) {
 	    var t = this.meshCollectors[i];
 	    if(t !== null) {
 		t.draw(true);
 	    }
-	    var s = this.subBuilders[i];
+	    var s = this.subStepHandlers[i];
 	    if(s) {
 		s.updateMeshCollectors(true);
 	    }
@@ -382,18 +417,18 @@ LDR.StepBuilder.prototype.prevStep = function(doNotEraseForSubModels) {
 	return true;
     }
 
-    var subBuilder = this.subBuilders[this.current];
-    if(subBuilder === null) { // Remove standard step:
+    var subStepHandler = this.subStepHandlers[this.current];
+    if(subStepHandler === null) { // Remove standard step:
     	var meshCollector = this.meshCollectors[this.current];
 	meshCollector.setVisible(false);
 	this.stepBack();
     }
-    else { // There is a subBuilder, so we have to step inside of it:
-	if(subBuilder.isAtPlacementStep() && !doNotEraseForSubModels) {
+    else { // There is a subStepHandler, so we have to step inside of it:
+	if(subStepHandler.isAtPlacementStep() && !doNotEraseForSubModels) {
 	    this.setVisibleUpTo(false, this.current);
 	}
-	subBuilder.prevStep(doNotEraseForSubModels);
-	if(subBuilder.isAtPreStep()) {
+	subStepHandler.prevStep(doNotEraseForSubModels);
+	if(subStepHandler.isAtPreStep()) {
 	    if(!doNotEraseForSubModels)
 		this.setVisibleUpTo(true, this.current);
 	    this.stepBack();
@@ -402,21 +437,22 @@ LDR.StepBuilder.prototype.prevStep = function(doNotEraseForSubModels) {
     return true;
 }
 
-LDR.StepBuilder.prototype.stepBack = function() {    
+LDR.StepHandler.prototype.stepBack = function() {    
     this.current--;
-    if(this.current === -1)
+    if(this.current === -1) {
 	return;
+    }
     var t = this.meshCollectors[this.current];
-    if(t !== null) {
+    if(t) {
 	t.draw(false);
     }
-    var s = this.subBuilders[this.current];
+    var s = this.subStepHandlers[this.current];
     if(s) {
 	s.updateMeshCollectors(false);
     }
 }
 
-LDR.StepBuilder.prototype.moveSteps = function(steps, onDone) {
+LDR.StepHandler.prototype.moveSteps = function(steps, onDone) {
     var walked = 0;
     while(true) {
 	if(steps === 0 || !(steps > 0 ? this.nextStep(true) : this.prevStep(true))) {
@@ -435,51 +471,51 @@ LDR.StepBuilder.prototype.moveSteps = function(steps, onDone) {
     }
 }
 
-LDR.StepBuilder.prototype.isAtPreStep = function() {
+LDR.StepHandler.prototype.isAtPreStep = function() {
     return this.current === -1;
 }
-LDR.StepBuilder.prototype.isAtFirstStep = function() {
-    var subBuilder = this.subBuilders[0];
-    return this.current === 0 && ((subBuilder === null) || subBuilder.isAtFirstStep());
-}
-LDR.StepBuilder.prototype.isAtPlacementStep = function() {
-    return this.current === this.subBuilders.length;
-}
-LDR.StepBuilder.prototype.isAtLastStep = function() {
-    if(this.isAtPlacementStep())
-	return true;
-    if(this.current < this.subBuilders.length-1)
-	return false;
-    var subBuilder = this.subBuilders[this.current];
-    return (subBuilder === null) || subBuilder.isAtPlacementStep();    
-}
-LDR.StepBuilder.prototype.isAtVeryLastStep = function() {
-    return this.isAtLastStep() && !this.extraParts;
+
+LDR.StepHandler.prototype.isAtFirstStep = function() {
+    var subStepHandler = this.subStepHandlers[0];
+    return this.current === 0 && ((subStepHandler === null) || subStepHandler.isAtFirstStep());
 }
 
-LDR.StepBuilder.prototype.setVisibleUpTo = function(v, idx) {
+LDR.StepHandler.prototype.isAtPlacementStep = function() {
+    return this.current === this.subStepHandlers.length;
+}
+
+LDR.StepHandler.prototype.isAtLastStep = function() {
+    if(this.isAtPlacementStep())
+	return true;
+    if(this.current < this.subStepHandlers.length-1)
+	return false;
+    var subStepHandler = this.subStepHandlers[this.current];
+    return (subStepHandler === null) || subStepHandler.isAtPlacementStep();    
+}
+
+LDR.StepHandler.prototype.setVisibleUpTo = function(v, idx) {
     for(var i = 0; i < idx; i++) {
 	var t = this.meshCollectors[i];
 	if(t) {
 	    t.setVisible(v);
 	    continue;
 	}
-	var s = this.subBuilders[i];
+	var s = this.subStepHandlers[i];
 	if(s) {
 	    s.setVisible(v);
 	}
     }
 }
 
-LDR.StepBuilder.prototype.setVisible = function(v) {
-    this.setVisibleUpTo(v, this.subBuilders.length);
+LDR.StepHandler.prototype.setVisible = function(v) {
+    this.setVisibleUpTo(v, this.subStepHandlers.length);
     if(this.extraParts && this.extraParts.isMeshCollector) {
 	this.extraParts.setVisible(v);
     }
 }
 
-LDR.StepBuilder.prototype.updateMeshCollectors = function(old) {
-    for(var i = 0; i < this.subBuilders.length; i++) {
+LDR.StepHandler.prototype.updateMeshCollectors = function(old) {
+    for(var i = 0; i < this.subStepHandlers.length; i++) {
 	var t = this.meshCollectors[i];
 	if(t !== null) {
 	    var tOld = old;
@@ -488,7 +524,7 @@ LDR.StepBuilder.prototype.updateMeshCollectors = function(old) {
             }
 	    t.draw(tOld);
 	}
-	var s = this.subBuilders[i];
+	var s = this.subStepHandlers[i];
 	if(s) {
 	    s.updateMeshCollectors(old);
 	}
@@ -501,13 +537,13 @@ LDR.StepBuilder.prototype.updateMeshCollectors = function(old) {
     }
 }
 
-LDR.StepBuilder.prototype.destroy = function() {
-    for(var i = 0; i < this.subBuilders.length; i++) {
+LDR.StepHandler.prototype.destroy = function() {
+    for(var i = 0; i < this.subStepHandlers.length; i++) {
 	var t = this.meshCollectors[i];
 	if(t !== null) {
 	    t.destroy();
 	}
-	var s = this.subBuilders[i];
+	var s = this.subStepHandlers[i];
 	if(s) {
 	    s.destroy();
 	}
