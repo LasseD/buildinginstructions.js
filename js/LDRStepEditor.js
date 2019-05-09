@@ -11,8 +11,8 @@
    Operations on TODO-list:
    - add step (left and right, move highlighted parts to new step) --- 2 + 2 buttons (with and without parts)
    - remove step (merge left or right) --- 2 buttons
-   - dissolve sub model at current location --- 1 button
    - Move parts to previous/next step --- 2 buttons
+   - inline sub model at current location --- 1 button
    - Group parts into sub model --- 1 button
    - Color highlighted parts --- 1 button
  */
@@ -220,7 +220,7 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
 LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
     var self = this;
     var Ele = this.makeEle(parentEle, 'span', 'editor_control');
-    var Remove = this.makeEle(Ele, 'button', 'editor_button', () => {self.stepHandler.removeGhosted(); self.onChange();}, 'REMOVE');//, self.makeBoxArrowIcon(x1, y1, x2, y2));
+    var Remove = this.makeEle(Ele, 'button', 'pli_button1', () => {self.stepHandler.removeGhosted(); self.onChange();}, 'REMOVE', self.makeRemovePartsIcon());
 
     function onlyShowButtonsIfPartsAreHighlighted() {
         var anyHighlighted = self.step.subModels.some(pd => pd.ghost);
@@ -282,6 +282,10 @@ LDR.StepEditor.prototype.makeEndIcon = function() {
 
     return svg;
 }
+
+/*
+  Show a box and an arrow from x1,y1 to x2,y2
+ */
 LDR.StepEditor.prototype.makeBoxArrowIcon = function(x1, y1, x2, y2) {
     var svg = document.createElementNS(LDR.SVG.NS, 'svg');
     svg.setAttribute('viewBox', '-20 -20 40 40');
@@ -289,3 +293,28 @@ LDR.StepEditor.prototype.makeBoxArrowIcon = function(x1, y1, x2, y2) {
     LDR.SVG.makeArrow(x1, y1, x2, y2, svg);
     return svg;
 }
+
+/**
+  Element editing icons
+*/
+LDR.StepEditor.prototype.addPLIIcon = function(svg, startX, options) {
+    svg.append(LDR.SVG.makeRoundRect(-60+startX, -30, 120, 60, 10));
+    for(var x = -1; x <= 1; x+=2) {
+        LDR.SVG.makeBlock3D(x*30 + startX, 0, svg);
+    }
+    if(options.ghost) {
+        var highlight = LDR.SVG.makeRect(5, -23, 48, 48);
+        highlight.setAttribute('stroke', '#5DD');
+        svg.append(highlight);
+    }
+}
+
+LDR.StepEditor.prototype.makeRemovePartsIcon = function() {
+    var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+    svg.setAttribute('viewBox', '-60 -30 120 60');
+    this.addPLIIcon(svg, 0, {ghost:true});
+    svg.appendChild(LDR.SVG.makeLine(0, -30, 60, 30, true));
+    svg.appendChild(LDR.SVG.makeLine(0, 30, 60, -30, true));
+    return svg;
+}
+
