@@ -1390,7 +1390,7 @@ LDR.MeshCollector.prototype.updateMeshVisibility = function() {
     }
     for(var i = 0; i < this.triangleMeshes.length; i++) {
         var obj = this.triangleMeshes[i];
-        obj.mesh.visible = v && (this.old || !(obj.part && obj.part.ghost)); // Do not show faces for ghosted parts.
+        obj.mesh.visible = v && (this.old || !(obj.part && obj.part.ghost && ldrOptions.showEditor)); // Do not show faces for ghosted parts.
     }
 }
 
