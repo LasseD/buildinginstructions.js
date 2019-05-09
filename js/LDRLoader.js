@@ -1014,7 +1014,7 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 	var material = mc.getLineMaterial(this.geometry.lineColorManager, c, false);
 	var normalLines = new THREE.LineSegments(this.geometry.lineGeometry, material);
 	normalLines.applyMatrix(m4);
-	mc.addLines(normalLines);
+	mc.addLines(normalLines, pd);
 
 	var b = this.geometry.lineGeometry.boundingBox;
 	mc.expandBoundingBox(b, m4);
@@ -1025,7 +1025,7 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 	var material = mc.getLineMaterial(this.geometry.lineColorManager, c, true);
 	var conditionalLines = new THREE.LineSegments(this.geometry.conditionalLineGeometry, material);
 	conditionalLines.applyMatrix(m4);
-	mc.addLines(conditionalLines);
+	mc.addLines(conditionalLines, pd);
 
 	if(!expanded) {
 	    var b = this.geometry.conditionalLineGeometry.boundingBox;
@@ -1316,8 +1316,8 @@ LDR.MeshCollector = function(opaqueObject, transObject) {
     this.opaqueObject = opaqueObject;
     this.transObject = transObject; // To be painted last.
 
-    this.lineMeshes = []; // Including conditional line meshes.
-    this.triangleMeshes = []; // {mesh,part} - objects.
+    this.lineMeshes = []; // {mesh,part}. Includes conditional line meshes.
+    this.triangleMeshes = []; // {mesh,part}
 
     this.cntMaterials = 0;
     this.lineMaterials = {}; // [color,isConditional] or cnt -> managers
@@ -1366,16 +1366,16 @@ LDR.MeshCollector.prototype.getTriangleMaterial = function(colorManager, color, 
     return m;
 }
 
-LDR.MeshCollector.prototype.addLines = function(mesh) {
-    this.lineMeshes.push(mesh);
+LDR.MeshCollector.prototype.addLines = function(mesh, part) {
+    this.lineMeshes.push({mesh:mesh, part:part, opaque:true});
     this.opaqueObject.add(mesh);
 }
 LDR.MeshCollector.prototype.addOpaque = function(mesh, part) {
-    this.triangleMeshes.push({mesh:mesh, part:part});
+    this.triangleMeshes.push({mesh:mesh, part:part, opaque:true});
     this.opaqueObject.add(mesh);
 }
 LDR.MeshCollector.prototype.addTrans = function(mesh, part) {
-    this.triangleMeshes.push({mesh:mesh, part:part});
+    this.triangleMeshes.push({mesh:mesh, part:part, opaque:false});
     this.transObject.add(mesh);
 }
 
@@ -1386,7 +1386,7 @@ LDR.MeshCollector.prototype.addTrans = function(mesh, part) {
 LDR.MeshCollector.prototype.updateMeshVisibility = function() {
     var v = this.visible;
     for(var i = 0; i < this.lineMeshes.length; i++) {
-	this.lineMeshes[i].visible = v;
+	this.lineMeshes[i].mesh.visible = v;
     }
     for(var i = 0; i < this.triangleMeshes.length; i++) {
         var obj = this.triangleMeshes[i];
@@ -1413,7 +1413,7 @@ LDR.MeshCollector.prototype.setOldValue = function(old) {
 	return;
     }
     for(var i = 0; i < this.lineMeshes.length; i++) {
-	this.lineMeshes[i].material.uniforms.old.value = old;
+	this.lineMeshes[i].mesh.material.uniforms.old.value = old;
     }
     for(var i = 0; i < this.triangleMeshes.length; i++) {
 	this.triangleMeshes[i].mesh.material.uniforms.old.value = old;
@@ -1422,7 +1422,7 @@ LDR.MeshCollector.prototype.setOldValue = function(old) {
 
 LDR.MeshCollector.prototype.colorLinesLDraw = function() {
     for(var i = 0; i < this.lineMeshes.length; i++) {
-	var m = this.lineMeshes[i].material;
+	var m = this.lineMeshes[i].mesh.material;
 	var colors = m.colorManager.shaderColors;
 	if(colors.length === 1) {
 	    m.uniforms.color.value = colors[0];
@@ -1435,7 +1435,7 @@ LDR.MeshCollector.prototype.colorLinesLDraw = function() {
 
 LDR.MeshCollector.prototype.colorLinesHighContrast = function() {
     for(var i = 0; i < this.lineMeshes.length; i++) {
-	var m = this.lineMeshes[i].material;
+	var m = this.lineMeshes[i].mesh.material;
 	var colors = m.colorManager.highContrastShaderColors;
 	if(colors.length === 1) {
 	    m.uniforms.color.value = colors[0];
@@ -1477,17 +1477,19 @@ LDR.MeshCollector.prototype.overwriteColor = function(color) {
 	var c = m.colorManager;
 	c.overWrite(color);
 	var colors = !edge || ldrOptions.lineContrast > 0 ? c.shaderColors : c.highContrastShaderColors;
-	if(colors.length === 1)
+	if(colors.length === 1) {
 	    m.uniforms.color.value = colors[0];
-	else
+        }
+	else {
 	    m.uniforms.colors.value = colors;
+        }
     }
 
     for(var i = 0; i < this.triangleMeshes.length; i++) {
 	handle(this.triangleMeshes[i].mesh.material, false);
     }
     for(var i = 0; i < this.lineMeshes.length; i++) {
-	handle(this.lineMeshes[i].material, true);
+	handle(this.lineMeshes[i].mesh.material, true);
     }
 }
 
@@ -1509,4 +1511,28 @@ LDR.MeshCollector.prototype.setVisible = function(v) {
     }
     this.visible = v;
     this.updateMeshVisibility();
+}
+
+LDR.MeshCollector.prototype.removeGhostedParts = function() {
+    var self = this;
+    function removeFromObjects(obj) {
+        if(obj.opaque) {
+            self.opaqueObject.remove(obj.mesh);
+        }
+        else {
+            self.transObject.remove(obj.mesh);
+        }
+    }
+
+    // Handle lines:
+    var lineObjects = this.lineMeshes.filter(obj => obj.part && obj.part.ghost);
+    lineObjects.forEach(removeFromObjects);
+    this.lineMeshes = this.lineMeshes.filter(obj => !(obj.part && obj.part.ghost));
+
+    // Handle triangles:
+    var triangleObjects = this.triangleMeshes.filter(obj => obj.part && obj.part.ghost);
+    lineObjects.forEach(removeFromObjects);
+    this.triangleMeshes = this.triangleMeshes.filter(obj => !(obj.part && obj.part.ghost));
+
+    return [lineObjects,triangleObjects];
 }

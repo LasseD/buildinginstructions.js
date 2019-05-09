@@ -531,8 +531,9 @@ LDR.StepHandler.prototype.updateMeshCollectors = function(old) {
     }
     if(this.extraParts && this.extraParts.isMeshCollector) {
 	var tOld = old;
-	if(tOld === undefined)
+	if(tOld === undefined) {
 	    tOld = this.extraParts.old;
+        }
 	this.extraParts.draw(tOld);
     }
 }
@@ -548,4 +549,21 @@ LDR.StepHandler.prototype.destroy = function() {
 	    s.destroy();
 	}
     }  
+}
+
+//
+// Editor operations:
+//
+LDR.StepHandler.prototype.removeGhosted = function() {
+    var step = this.part.steps[this.current];
+    var mc = this.meshCollectors[this.current];
+    if(!step || !mc) {
+        console.warn('Not at a step where parts can be removed.');
+        return [[], [], []]; // Empty result set
+    }
+    // Remove ghosted parts from both step and mc:
+    var removedPartDescriptions = step.subModels.filter(pd => pd.ghost);
+    step.subModels = step.subModels.filter(pd => !pd.ghost); // Update step.
+    var [lineObjects, triangleObjects] = mc.removeGhostedParts();
+    return [removedPartDescriptions, lineObjects, triangleObjects];
 }

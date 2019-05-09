@@ -1,25 +1,27 @@
 'use strict';
 
 /**
-   Finished Operations:
-   - save --- 1 button
-   - modify step rotation: ABS,REL, x, y, z --- 2 buttons + 3*3 inputs
+   Operations:
    - Open/Close editor in top bar
     - PLI always shown when editor opened
     - and parts shown individually
+   - modify step rotation: ABS,REL, x, y, z --- 2 buttons + 3*3 inputs
+   - Remove highlighted parts --- 1 button
+   - save --- 1 button
    Operations on TODO-list:
    - add step (left and right, move highlighted parts to new step) --- 2 + 2 buttons (with and without parts)
    - remove step (merge left or right) --- 2 buttons
    - dissolve sub model at current location --- 1 button
    - Move parts to previous/next step --- 2 buttons
    - Group parts into sub model --- 1 button
+   - Color highlighted parts --- 1 button
  */
-LDR.StepEditor = function(loader, builder, onChange, modelID) {
+LDR.StepEditor = function(loader, stepHandler, onChange, modelID) {
     if(!modelID) {
         throw "Missing model ID!";
     }
     this.loader = loader;
-    this.builder = builder;
+    this.stepHandler = stepHandler;
     this.onChange = onChange;
     this.modelID = modelID;
     this.onStepSelectedListeners = [];
@@ -65,7 +67,7 @@ LDR.StepEditor = function(loader, builder, onChange, modelID) {
 }
 
 LDR.StepEditor.prototype.updateCurrentStep = function() {
-    var [part, stepIndex] = this.builder.getCurrentPartAndStepIndex();
+    var [part, stepIndex] = this.stepHandler.getCurrentPartAndStepIndex();
     this.part = part;
     this.stepIndex = stepIndex;
     this.step = part.steps[stepIndex];
@@ -79,7 +81,8 @@ LDR.StepEditor.prototype.toggleEnabled = function() {
 
 LDR.StepEditor.prototype.createGuiComponents = function(parentEle) {
     this.createRotationGuiComponents(parentEle);
-    // TODO Other groups of GUI components: For moving parts (to next), creating and removing steps, dissolving sub-model
+    //this.createStepGuiComponents(parentEle); // TODO!
+    this.createPartGuiComponents(parentEle);
 
     var self = this;
     
@@ -212,6 +215,20 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
         Z.value = rot.z;
     }
     this.onStepSelectedListeners.push(onStepSelected);
+}
+
+LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
+    var self = this;
+    var Ele = this.makeEle(parentEle, 'span', 'editor_control');
+    var Remove = this.makeEle(Ele, 'button', 'editor_button', () => {self.stepHandler.removeGhosted(); self.onChange();}, 'REMOVE');//, self.makeBoxArrowIcon(x1, y1, x2, y2));
+
+    function onlyShowButtonsIfPartsAreHighlighted() {
+        var anyHighlighted = self.step.subModels.some(pd => pd.ghost);
+        var display = anyHighlighted ? 'inline' : 'none';
+        Remove.style.display = display;
+        //Color.style.display = display;
+    }
+    this.onStepSelectedListeners.push(onlyShowButtonsIfPartsAreHighlighted);
 }
 
 /**
