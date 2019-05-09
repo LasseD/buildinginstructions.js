@@ -162,7 +162,7 @@ LDR.StepHandler.prototype.nextStep = function(doNotEraseForSubModels) {
 
     // Special case: Step to placement step.
     if((this.current === this.subStepHandlers.length-1) && willStep) { 
-	this.updateMeshCollectors(false); // Make whole subStepHandler new (for placement):
+	this.updateMeshCollectors(false); // Make whole dtepHandler new (for placement):
 	this.drawExtras();
 	this.current++;
 	return true;
@@ -170,10 +170,12 @@ LDR.StepHandler.prototype.nextStep = function(doNotEraseForSubModels) {
 
     // Step to next:
     if(willStep) {
-	if(subStepHandler)
+	if(subStepHandler) {
 	    subStepHandler.updateMeshCollectors(true); // Make previous step 'old'.
-	else if(meshCollector)
+	}
+	else if(meshCollector) {
 	    meshCollector.draw(true); // Make previous step 'old'.
+	}
 	this.current++; // Point to next step.
 	subStepHandler = this.subStepHandlers[this.current];
     }
@@ -392,8 +394,8 @@ LDR.StepHandler.prototype.drawExtras = function() {
  takes a step back in the building instructions (see nextStep()).
 */
 LDR.StepHandler.prototype.prevStep = function(doNotEraseForSubModels) {
-    if(this.isAtPreStep() || (this.isForMainModel && this.current === 0)) {
-	return false; // Can't move further. Fallback.
+    if(this.isAtPreStep()) {
+	return false; // Can't move back (also. Prevent walking to pre-step)
     }
 
     // Step down from placement step:
@@ -440,6 +442,9 @@ LDR.StepHandler.prototype.prevStep = function(doNotEraseForSubModels) {
 LDR.StepHandler.prototype.stepBack = function() {    
     this.current--;
     if(this.current === -1) {
+	if(this.isForMainModel) {
+	    this.nextStep(); // Ensure main step handler can't go back to placement step.
+	}
 	return;
     }
     var t = this.meshCollectors[this.current];
