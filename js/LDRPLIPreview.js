@@ -1,5 +1,5 @@
 /*
-  Icon: {x, y, width, height, mult, key, partID, colorID, desc}
+  Icon: {x, y, width, height, mult, key, part, colorID, desc}
  */
 LDR.PliPreviewer = function(modelID) {
     this.modelID = modelID;
@@ -76,7 +76,7 @@ LDR.PliPreviewer.prototype.zoomOut = function() {
     this.render();    
 }
  
-LDR.PliPreviewer.prototype.showPliPreview = function(icon) {    
+LDR.PliPreviewer.prototype.showPliPreview = function(icon) {
     var colorID = icon.colorID;
     var color = LDR.Colors[colorID];
 
