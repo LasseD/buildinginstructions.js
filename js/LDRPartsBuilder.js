@@ -96,12 +96,13 @@ LDR.PartAndColor = function(key, part, colorID, loader) {
     if(LDR.PLI && LDR.PLI[pliID]) {
 	var pliInfo = LDR.PLI[pliID];
 	var pliName = "pli_" + this.part.ID;
+	var pt;
 	if(!loader.partTypes[pliName]) {
 	    var r = new THREE.Matrix3();
 	    r.set(pliInfo[0], pliInfo[1], pliInfo[2],
 		  pliInfo[3], pliInfo[4], pliInfo[5],
 		  pliInfo[6], pliInfo[7], pliInfo[8]);
-	    var dat = new THREE.LDRPartDescription(colorID, 
+	    var dat = new THREE.LDRPartDescription(16, 
 						   new THREE.Vector3(),
 						   r,
 						   this.part.ID,
@@ -109,16 +110,19 @@ LDR.PartAndColor = function(key, part, colorID, loader) {
 						   false); // Potentially rotated PLI.
 	    var step = new THREE.LDRStep();
 	    step.addSubModel(dat);
-	    var pt = new THREE.LDRPartType();
+	    pt = new THREE.LDRPartType();
 	    pt.ID = pliName;
 	    pt.modelDescription = this.partType.modelDescription;
 	    pt.author = this.partType.author;
 	    pt.license = this.partType.license;
 	    pt.steps.push(step);
 	    loader.partTypes[pliName] = pt;
-	    this.partType = pt;
 	    //console.log("Replaced PLI for " + pliName);
 	}
+	else {
+	    pt = loader.partTypes[pliName];
+	}
+	this.partType = pt;
     }
     // Annotate:
     if(LDR.Annotations && LDR.Annotations[pliID]) {
