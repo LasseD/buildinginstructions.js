@@ -1,8 +1,6 @@
 'use strict';
 
-var LDR = LDR || {};
 LDR.SVG = LDR.SVG || {};
-
 LDR.SVG.NS = 'http://www.w3.org/2000/svg';
 
 // Left arrow used to go back one step:

@@ -40,6 +40,7 @@ LDR.StepEditor = function(loader, stepHandler, onChange, modelID) {
         }
     }
     ldrOptions.listeners.push(showOrHide);
+    showOrHide(ldrOptions);
     
     // Private function to make it easier to create GUI components:
     this.makeEle = function(parent, type, cls, onclick, innerHTML, icon) {
@@ -61,7 +62,6 @@ LDR.StepEditor = function(loader, stepHandler, onChange, modelID) {
             ret.innerHTML = innerHTML;
         }
 
-        showOrHide(ldrOptions);
         return ret;
     }
 }
@@ -219,14 +219,19 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
 
 LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
     var self = this;
-    var Ele = this.makeEle(parentEle, 'span', 'editor_control');
-    var Remove = this.makeEle(Ele, 'button', 'pli_button1', () => {self.stepHandler.removeGhosted(); self.onChange();}, 'REMOVE', self.makeRemovePartsIcon());
+
+    var colorPicker = new LDR.ColorPicker(colorID => {self.stepHandler.colorGhosted(colorID); self.onChange();});
+
+    var ele = this.makeEle(parentEle, 'span', 'editor_control');
+    var removeButton = this.makeEle(ele, 'button', 'pli_button1', () => {self.stepHandler.removeGhosted(); self.onChange();}, 'REMOVE', self.makeRemovePartsIcon());
+    var colorButton = colorPicker.createButton(colorID => {if(colorID===undefined)return; self.stepHandler.colorGhosted(colorID); self.onChange();});
+    ele.append(colorButton);
 
     function onlyShowButtonsIfPartsAreHighlighted() {
         var anyHighlighted = self.step.subModels.some(pd => pd.ghost);
         var display = anyHighlighted ? 'inline' : 'none';
-        Remove.style.display = display;
-        //Color.style.display = display;
+        removeButton.style.display = display;
+        //colorButton.style.display = display;
     }
     this.onStepSelectedListeners.push(onlyShowButtonsIfPartsAreHighlighted);
 }

@@ -30,6 +30,7 @@
     <script src="js/LDRPLIPreview.js"></script>
     <script src="js/LDRButtons.js"></script>
     <script src="js/LDRMeasurer.js"></script>
+    <script src="js/LDRColorPicker.js"></script>
     <script src="js/LDRStepEditor.js"></script>
     <script src="js/LDRInstructionsManager.js"></script>
     <div id="main_canvas_holder">
@@ -67,9 +68,9 @@
      </div>
     </div>
     <div id="pli_preview_section">
-        <div id="preview_background" onclick="manager.hidePliPreview();"></div>
-        <div id="preview_holder">
-          <div id="preview_parent"><canvas id="preview" /></div>
+        <div id="preview_background" class="background" onclick="manager.hidePliPreview();"></div>
+        <div id="preview_holder" class="holder">
+          <div id="preview_parent"><canvas id="preview"/></div>
 	  <div id="preview_info">
 	    <span class="preview_info_line">
 	     <span id="preview_info_name">PART NAME</span>
@@ -84,8 +85,13 @@
         </div>
     </div>
     <div id="done_section">
-        <div id="done_background" onclick="hideDone();"></div>
-        <div id="done_holder">
+        <div id="done_background" class="background" onclick="$('#done_section').hide();"></div>
+        <div id="done_holder" class="holder">
+        </div>
+    </div>
+    <div id="color_picker">
+        <div id="color_picker_background" class="background" onclick="$('#color_picker').hide();"></div>
+        <div id="color_picker_holder" class="holder">
         </div>
     </div>
     <div id="green">

@@ -68,6 +68,12 @@
 .color_option input {
     width: 100%;
 }
+.color_input {
+    display: block;
+    width: 100%;
+    cursor: pointer;
+}
+
 .option_selected {
   border: 2px solid #008A00;
   background-color: #DDFFDD;

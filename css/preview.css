@@ -1,7 +1,7 @@
 /*
-  Overlay 'preview' for parts:
+  Overlay 'preview':
  */
-#preview_background {
+.background {
     display: none;
     position: fixed;
     top: 0;
@@ -13,7 +13,7 @@
     filter: alpha(opacity=70);
     z-index: 9;
 }
-#preview_holder {
+.holder {
     display: none;
     position: fixed;
     width: 80%;

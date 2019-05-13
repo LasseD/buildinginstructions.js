@@ -567,3 +567,8 @@ LDR.StepHandler.prototype.removeGhosted = function() {
     var [lineObjects, triangleObjects] = mc.removeGhostedParts();
     return [removedPartDescriptions, lineObjects, triangleObjects];
 }
+
+LDR.StepHandler.prototype.colorGhosted = function(colorID) {
+    // Set new materials on ghosted parts:
+    // TODO!
+}
