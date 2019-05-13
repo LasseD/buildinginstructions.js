@@ -231,7 +231,7 @@ LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
         var anyHighlighted = self.step.subModels.some(pd => pd.ghost);
         var display = anyHighlighted ? 'inline' : 'none';
         removeButton.style.display = display;
-        //colorButton.style.display = display;
+        colorButton.style.display = display;
     }
     this.onStepSelectedListeners.push(onlyShowButtonsIfPartsAreHighlighted);
 }

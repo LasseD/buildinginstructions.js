@@ -156,7 +156,7 @@ body {
 .editor_button, .pli_button1, .pli_button2, .pli_button3 {
   border: none;
   margin: 0;
-  padding: 0;
+  padding: 0 0.5vw;
   background-color: #DDD;
   cursor: pointer;
 }
