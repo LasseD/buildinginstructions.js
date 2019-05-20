@@ -1,8 +1,8 @@
 'use strict';
 
 LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, baseURL, stepFromParameters, options) {
-    var startTime = new Date();
-    var self = this;
+    let startTime = new Date();
+    let self = this;
     this.stepEditor;
     this.canEdit = options && options.canEdit; // Only set if LDRStepEditor.js is loaded.
     this.modelID = modelID;
@@ -25,8 +25,8 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
     this.canvas = document.getElementById('main_canvas');
     this.renderer = new THREE.WebGLRenderer({antialias:true, canvas:this.canvas});
 
-    var canvasHolder = document.getElementById('main_canvas_holder');
-    var actions = {
+    let canvasHolder = document.getElementById('main_canvas_holder');
+    let actions = {
         prevStep: () => self.prevStep(),
         nextStep: () => self.nextStep(),
         zoomIn: () => self.zoomIn(),
@@ -90,7 +90,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
 	    return;
         }
         if(e.keyCode == '13') { // ENTER
-	    var stepToGoTo = parseInt(self.ldrButtons.stepInput.value);
+	    let stepToGoTo = parseInt(self.ldrButtons.stepInput.value);
 	    self.goToStep(stepToGoTo);
         }
         else if(e.keyCode == '37') { // Left:
@@ -106,13 +106,13 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
     }
     document.onkeydown = handleKeyDown;
       
-    var onPartsRetrieved = function(ignoreWhatIsStillToBeBuilt) {
+    let onPartsRetrieved = function(ignoreWhatIsStillToBeBuilt) {
         console.log("Done loading at " + (new Date()-startTime) + "ms.");
-	var mainModel = self.ldrLoader.mainModel;
-	var origo = new THREE.Vector3();
-	var inv = new THREE.Matrix3(); inv.set(1,0,0, 0,1,0, 0,0,1); // Invert Y-axis
+	let mainModel = self.ldrLoader.mainModel;
+	let origo = new THREE.Vector3();
+	let inv = new THREE.Matrix3(); inv.set(1,0,0, 0,1,0, 0,0,1); // Invert Y-axis
 
-	var pd = new THREE.LDRPartDescription(0, origo, inv, mainModel, false);
+	let pd = new THREE.LDRPartDescription(0, origo, inv, mainModel, false);
 
 	self.pliBuilder = new LDR.PLIBuilder(self.ldrLoader,
                                              self.canEdit,
@@ -138,13 +138,13 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
 
 	// Register location changes:
 	window.addEventListener('popstate', function(e) {
-                var step = e.state;
+                let step = e.state;
                 if(self.windowStepCauseByHistoryManipulation || step === null) {
                     //console.log("Ignoring history manipulating step to: " + step);
                     self.windowStepCauseByHistoryManipulation = false;
                     return;
                 }
-                var diff = step - self.currentStep;
+                let diff = step - self.currentStep;
                 //console.log("Step from window: " + step + ", diff: " + diff);
                 if(diff === 1) {
                     self.nextStep();
@@ -175,10 +175,10 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
         }
     }
 
-    var onLoad = function() {
+    let onLoad = function() {
 	function onStorageReady() {
-            var geometryBuilder = new LDR.GeometryBuilder(self.ldrLoader, self.storage);
-            var toBeBuilt = geometryBuilder.getAllTopLevelToBeBuilt();
+            let geometryBuilder = new LDR.GeometryBuilder(self.ldrLoader, self.storage);
+            let toBeBuilt = geometryBuilder.getAllTopLevelToBeBuilt();
 
             if(self.storage.db) {
                 self.storage.retrievePartsFromStorage(toBeBuilt, onPartsRetrieved);
@@ -199,10 +199,11 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
 }
 
 LDR.InstructionsManager.prototype.updateRotator = function(zoom) {
-    var rotator = document.getElementById("rotator");
-    if(this.currentRotation) {
+    let rotator = document.getElementById("rotator");
+    let showRotator = this.stepHandler.getShowRotatorForCurrentStep();
+    if(showRotator) {
         rotator.style.visibility = "visible";
-        var rotatorAnimation = document.getElementById("rotator_animation");
+        let rotatorAnimation = document.getElementById("rotator_animation");
         rotatorAnimation.beginElement();
     }
     else {
@@ -211,11 +212,11 @@ LDR.InstructionsManager.prototype.updateRotator = function(zoom) {
 }
 
 LDR.InstructionsManager.prototype.updateMultiplier = function(zoom) {
-    var changes = this.oldMultiplier !== this.currentMultiplier;
+    let changes = this.oldMultiplier !== this.currentMultiplier;
     if(!changes) {
         return;
     }
-    var multiplier = $('#multiplier');
+    let multiplier = $('#multiplier');
     if(this.currentMultiplier === 1) {
         multiplier[0].style.visibility = "hidden";
         multiplier[0].innerHTML = '';
@@ -248,9 +249,9 @@ LDR.InstructionsManager.prototype.onWindowResize = function(){
     this.topButtonsHeight = document.getElementById('top_buttons').offsetHeight;
 
     console.log("Resizing to " + window.innerWidth + ", " + window.innerHeight + " top height: " + this.topButtonsHeight + " and device pixel ratio: " + window.devicePixelRatio);
-    var pixelRatio = window.devicePixelRatio;
-    var w = (window.innerWidth-20);
-    var h = (window.innerHeight-this.adPeek);
+    let pixelRatio = window.devicePixelRatio;
+    let w = (window.innerWidth-20);
+    let h = (window.innerHeight-this.adPeek);
     this.renderer.setPixelRatio(pixelRatio);
     if(this.canvas.width !== w || this.canvas.height !== h) {
         this.renderer.setSize(w, h, true);
@@ -288,7 +289,6 @@ LDR.InstructionsManager.prototype.zoomOut = function() {
 
 LDR.InstructionsManager.prototype.updateUIComponents = function(force) {
     this.currentMultiplier = this.stepHandler.getMultiplierOfCurrentStep();
-    this.currentRotation = this.stepHandler.getRotationOfCurrentStep();
     this.updateMultiplier();
     this.updateRotator();
     this.setBackgroundColor(this.stepHandler.getBackgroundColorOfCurrentStep());
@@ -310,7 +310,7 @@ LDR.InstructionsManager.prototype.updateUIComponents = function(force) {
 }
 
 LDR.InstructionsManager.prototype.updatePLI = function(force) {
-    var step = this.stepHandler.getCurrentStep();
+    let step = this.stepHandler.getCurrentStep();
     this.showPLI = (ldrOptions.showEditor || ldrOptions.showPLI) && step.containsPartSubModels(this.ldrLoader);
     if(!this.showPLI) {
         this.pliBuilder.pliElement.style.display = 'none';
@@ -319,8 +319,8 @@ LDR.InstructionsManager.prototype.updatePLI = function(force) {
     }
     this.pliBuilder.pliElement.style.display = 'inline';
     
-    var maxWidth = window.innerWidth - this.pliElement.offsetLeft - 18;
-    var maxHeight = (window.innerHeight - 130 - this.adPeek);
+    let maxWidth = window.innerWidth - this.pliElement.offsetLeft - 18;
+    let maxHeight = (window.innerHeight - 130 - this.adPeek);
     
     if(window.innerWidth > window.innerHeight) {
         this.pliBuilder.drawPLIForStep(true, step, maxWidth*0.4, maxHeight, this.maxSizePerPixel, force);
@@ -334,11 +334,11 @@ LDR.InstructionsManager.prototype.updatePLI = function(force) {
 }
 
 LDR.InstructionsManager.prototype.updateViewPort = function() {
-    //var size = this.renderer.getSize(); console.log('Updating viewport. PLI=' + this.pliW + 'x' + this.pliH + ' canvas: ' + size.width + 'x' + size.height + ' top ' + this.topButtonsHeight + ', pixel ratio: ' + window.devicePixelRatio);
+    //let size = this.renderer.getSize(); console.log('Updating viewport. PLI=' + this.pliW + 'x' + this.pliH + ' canvas: ' + size.width + 'x' + size.height + ' top ' + this.topButtonsHeight + ', pixel ratio: ' + window.devicePixelRatio);
     this.camera.position.set(10000, 7000, 10000);
 
-    var dx = 0;
-    var dy = this.topButtonsHeight/2;// * window.devicePixelRatio;
+    let dx = 0;
+    let dy = this.topButtonsHeight/2;// * window.devicePixelRatio;
 
     if(!this.pliBuilder || this.pliW == 0) {
         // No move
@@ -354,19 +354,19 @@ LDR.InstructionsManager.prototype.updateViewPort = function() {
 }
 
 LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, onDone) {
-    var self = this;
-    var oldRotationMatrix = this.currentRotationMatrix;
-    var oldPosition = new THREE.Vector3();
+    let self = this;
+    let oldRotationMatrix = this.currentRotationMatrix;
+    let oldPosition = new THREE.Vector3();
     oldPosition.copy(this.baseObject.position);
 
     // PLI:
-    var oldPLIW = this.pliW;
-    var oldPLIH = this.pliH;
-    var newPLIW, newPLIH;
+    let oldPLIW = this.pliW;
+    let oldPLIH = this.pliH;
+    let newPLIW, newPLIH;
     
-    var oldLevel = this.stepHandler.getLevelOfCurrentStep();
-    var newLevel = oldLevel;
-    var goBack = function(){}; // Used for single steps
+    let oldLevel = this.stepHandler.getLevelOfCurrentStep();
+    let newLevel = oldLevel;
+    let goBack = function(){}; // Used for single steps
     if(stepDiff === 1 && this.stepHandler.nextStep(true)) {
         goBack = function() {
             newLevel = self.stepHandler.getLevelOfCurrentStep();
@@ -380,8 +380,8 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
         };
     }
     
-    var viewPortWidth = window.innerWidth;
-    var viewPortHeight = window.innerHeight - this.adPeek;// - 100;
+    let viewPortWidth = window.innerWidth;
+    let viewPortHeight = window.innerHeight - this.adPeek;// - 100;
     if(this.pliH > 0) { // Adjust for pli.
         if(this.pliBuilder.fillHeight) {
             viewPortWidth *= 0.6;
@@ -391,19 +391,19 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
         }
     }
     
-    var useAccumulatedBounds = true;
-    var b = this.stepHandler.getAccumulatedBounds();
+    let useAccumulatedBounds = true;
+    let b = this.stepHandler.getAccumulatedBounds();
 
-    var size = b.min.distanceTo(b.max);
-    var viewPortSize = Math.sqrt(this.viewPortWidth*this.viewPortWidth + this.viewPortHeight*this.viewPortHeight);
+    let size = b.min.distanceTo(b.max);
+    let viewPortSize = Math.sqrt(this.viewPortWidth*this.viewPortWidth + this.viewPortHeight*this.viewPortHeight);
     //console.log("size=" + size + ", screen size=" + viewPortSize + ", size/screen=" + (size/viewPortSize));
     if(size > viewPortSize) {
         useAccumulatedBounds = false;
         b = this.stepHandler.getBounds();
         size = b.min.distanceTo(b.max);
         if(size < viewPortSize) {
-            var b2 = new THREE.Box3(); b2.copy(b); b = b2;
-            var bDiff = new THREE.Vector3(); bDiff.subVectors(b.max, b.min); // b.max-b.min
+            let b2 = new THREE.Box3(); b2.copy(b); b = b2;
+            let bDiff = new THREE.Vector3(); bDiff.subVectors(b.max, b.min); // b.max-b.min
             // Move min and max: max = min + bDiff -> min + bDiff/2 + (bDiff/2*X) = min + bDiff - bDiff/2 + (bDiff/2*X) = max + (X-1)*bDiff/2
             bDiff.multiplyScalar(0.5*(viewPortSize/size-1));
             b.max.add(bDiff);
@@ -411,14 +411,14 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
             size = viewPortSize;
         }
     }
-    var newPosition;
+    let newPosition;
     [newPosition, this.currentRotationMatrix] = this.stepHandler.computeCameraPositionRotation(this.defaultMatrix, this.currentRotationMatrix, useAccumulatedBounds);
     
     // Find actual screen bounds:
     this.baseObject.setRotationFromMatrix(this.currentRotationMatrix);
     this.baseObject.updateMatrixWorld(true);
-    var measurer = new LDR.Measurer(this.camera);
-    var [dx,dy] = measurer.measure(b, this.baseObject.matrixWorld);
+    let measurer = new LDR.Measurer(this.camera);
+    let [dx,dy] = measurer.measure(b, this.baseObject.matrixWorld);
     
     // Update maxSizePerPixel:
     /*if(dx*window.innerWidth/viewPortWidth > dy*window.innerHeight/viewPortHeight) {
@@ -430,16 +430,16 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
     this.updatePLI(false); newPLIW = this.pliW, newPLIH = this.pliH;
     
     goBack();
-    var rotationChanges = !this.currentRotationMatrix.equals(oldRotationMatrix);
-    var ignorePos = new THREE.Vector3(); // Ignore
-    var newRot = new THREE.Quaternion();
-    var ignoreScale = new THREE.Vector3(); // Ignore
+    let rotationChanges = !this.currentRotationMatrix.equals(oldRotationMatrix);
+    let ignorePos = new THREE.Vector3(); // Ignore
+    let newRot = new THREE.Quaternion();
+    let ignoreScale = new THREE.Vector3(); // Ignore
     this.currentRotationMatrix.decompose(ignorePos, newRot, ignoreScale);
     
-    var positionChanges = !oldPosition.equals(newPosition) || 
+    let positionChanges = !oldPosition.equals(newPosition) || 
     oldPLIW !== newPLIW || oldPLIH !== newPLIH;
     
-    var oldDefaultZoom = this.defaultZoom;
+    let oldDefaultZoom = this.defaultZoom;
     viewPortWidth = window.innerWidth;
     viewPortHeight = window.innerHeight - this.adPeek - this.topButtonsHeight;
     if(this.pliBuilder.fillHeight) {
@@ -448,16 +448,16 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
     else {
         viewPortHeight -= newPLIH;
     }
-    var scaleX = (window.innerWidth) / viewPortWidth * 1.1; // 1.1 to scale down a bit
-    var scaleY = (window.innerHeight - this.adPeek) / viewPortHeight * 1.1;
+    let scaleX = (window.innerWidth) / viewPortWidth * 1.1; // 1.1 to scale down a bit
+    let scaleY = (window.innerHeight - this.adPeek) / viewPortHeight * 1.1;
     if(dx*scaleX > dy*scaleY) {
         this.defaultZoom = 2*this.camera.zoom/(dx*scaleX);
     }
     else {
         this.defaultZoom = 2*this.camera.zoom/(dy*scaleY);
     }
-    var newDefaultZoom = this.defaultZoom;
-    var zoomChanges = oldDefaultZoom !== newDefaultZoom;
+    let newDefaultZoom = this.defaultZoom;
+    let zoomChanges = oldDefaultZoom !== newDefaultZoom;
     
     function finalize() {
         self.initialConfiguration = false;
@@ -481,27 +481,27 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
         }
     }
     
-    var animationID;
-    var startTime = new Date();
-    var animationTimeRotationMS = rotationChanges ? (2-ldrOptions.showStepRotationAnimations)*300 : 0; // First rotate, 
-    var animationTimePositionMS = positionChanges ? (2-ldrOptions.showStepRotationAnimations)*150 : 0; // then move and zoom
+    let animationID;
+    let startTime = new Date();
+    let animationTimeRotationMS = rotationChanges ? (2-ldrOptions.showStepRotationAnimations)*300 : 0; // First rotate, 
+    let animationTimePositionMS = positionChanges ? (2-ldrOptions.showStepRotationAnimations)*150 : 0; // then move and zoom
     if(stepDiff != 0 && newLevel !== oldLevel && newLevel-oldLevel === stepDiff) {
         animationTimeRotationMS = 0; // Don't rotate when stepping in.
         animationTimePositionMS = 0;
     }
-    var animationTimeMS = animationTimePositionMS+animationTimeRotationMS;
-    var lastPosition = oldPosition;
+    let animationTimeMS = animationTimePositionMS+animationTimeRotationMS;
+    let lastPosition = oldPosition;
     function animate() {
         animationID = requestAnimationFrame(animate);
         
-        var diffMS = new Date() - startTime;
+        let diffMS = new Date() - startTime;
         if(diffMS >= animationTimeMS) {
             cancelAnimationFrame(animationID); 
             finalize();
             return; // Done.
         }
         
-        var progress = diffMS / animationTimeMS;
+        let progress = diffMS / animationTimeMS;
         self.defaultZoom = oldDefaultZoom + (newDefaultZoom-oldDefaultZoom)*progress;
         self.pliW = oldPLIW + (newPLIW-oldPLIW)*progress;
         self.pliH = oldPLIH + (newPLIH-oldPLIH)*progress;
@@ -511,16 +511,16 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
         if(diffMS < animationTimeRotationMS) { // Rotate first.
             progress = diffMS/animationTimeRotationMS;
             
-            var oldPos = new THREE.Vector3();
-            var oldRot = new THREE.Quaternion();
-            var oldScale = new THREE.Vector3();
+            let oldPos = new THREE.Vector3();
+            let oldRot = new THREE.Quaternion();
+            let oldScale = new THREE.Vector3();
             oldRotationMatrix.decompose(oldPos, oldRot, oldScale);
-            var angleToTurn = oldRot.angleTo(newRot);
+            let angleToTurn = oldRot.angleTo(newRot);
             oldRot.rotateTowards(newRot, angleToTurn*progress*1.1); // *1.1 Ensure it is fully turned.
             
-            var invOldM4 = new THREE.Matrix4();
+            let invOldM4 = new THREE.Matrix4();
             invOldM4.getInverse(oldRotationMatrix);
-            var tmpM4 = new THREE.Matrix4();
+            let tmpM4 = new THREE.Matrix4();
             tmpM4.compose(oldPos, oldRot, oldScale);
             
             oldPos.copy(oldPosition);
@@ -539,7 +539,7 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
             onRotated && onRotated(); onRotated = false;
             progress = (diffMS-animationTimeRotationMS)/animationTimePositionMS;
             
-            var tmpPosition = new THREE.Vector3();
+            let tmpPosition = new THREE.Vector3();
             tmpPosition.subVectors(newPosition, lastPosition).multiplyScalar(progress).add(lastPosition);
             
             // Update camera and baseObject:
@@ -598,9 +598,9 @@ LDR.InstructionsManager.prototype.goToStep = function(step) {
         return; // Don't walk when showing preview.
     }
 
-    var diff = step - this.currentStep;
+    let diff = step - this.currentStep;
     console.log("Going to " + step + " from " + this.currentStep);
-    var self = this;
+    let self = this;
     this.stepHandler.moveSteps(step - self.currentStep, () => self.handleStepsWalked());
 }
 
@@ -612,7 +612,7 @@ LDR.InstructionsManager.prototype.nextStep = function() {
         return;
     }
 
-    var self = this;
+    let self = this;
     this.realignModel(1, () => self.stepHandler.nextStep(false), () => self.handleStepsWalked());
 }
 
@@ -621,12 +621,12 @@ LDR.InstructionsManager.prototype.prevStep = function() {
         return; // Don't walk when showing preview.
     }
 
-    var self = this;
+    let self = this;
     this.realignModel(-1, () => self.stepHandler.prevStep(false), () => self.handleStepsWalked());
 }
 
 LDR.InstructionsManager.prototype.clickDone = function() {
-    var fadeInTime = 400;
+    let fadeInTime = 400;
     $('#done_holder, #done_background').fadeIn(fadeInTime);
     if(this.doneShown) {
         return;
@@ -639,16 +639,16 @@ LDR.InstructionsManager.prototype.clickDone = function() {
   Icon: {x, y, width, height, mult, key, partID, colorID, desc, inlined}
 */
 LDR.InstructionsManager.prototype.onPLIClick = function(e) {
-    var x = e.layerX || e.clientX;
-    var y = e.layerY || e.clientY;
+    let x = e.layerX || e.clientX;
+    let y = e.layerY || e.clientY;
     //console.warn("Click " + x +","+y); console.dir(this.pliBuilder); console.dir(this);
     if(!this.pliBuilder || !this.pliBuilder.clickMap) {
         return;
     }
 
     // Find clicked icon:
-    for(var i = 0; i < this.pliBuilder.clickMap.length; i++) {
-        var icon = this.pliBuilder.clickMap[i];
+    for(let i = 0; i < this.pliBuilder.clickMap.length; i++) {
+        let icon = this.pliBuilder.clickMap[i];
         if(x >= icon.x && y >= icon.y && 
            x <= icon.x+icon.width+5 &&
            y <= icon.y+icon.height+12) {
@@ -664,12 +664,12 @@ LDR.InstructionsManager.prototype.onPLIClick = function(e) {
             else { // Show preview if no editor:
                 this.pliPreviewer.scene.remove(this.pliHighlighted);
                 console.dir(icon); console.warn('TODO: Take mesh and bounds from partType');
-                var pc = this.pliBuilder.getPC(icon.key);
+                let pc = this.pliBuilder.getPC(icon.key);
                 this.pliHighlighted = pc.mesh;
                 this.pliPreviewer.scene.add(this.pliHighlighted);
                 this.pliPreviewer.showPliPreview(icon);
-                var b = pc.getBounds();
-                var size = b.min.distanceTo(b.max) * 0.6;
+                let b = pc.getBounds();
+                let size = b.min.distanceTo(b.max) * 0.6;
                 this.pliPreviewer.subjectSize = size;
                 this.pliPreviewer.onResize();
             }
@@ -686,7 +686,7 @@ LDR.InstructionsManager.prototype.hidePliPreview = function() {
 }
 
 LDR.InstructionsManager.prototype.hideDone = function() {
-    var fadeOutTime = 400;
+    let fadeOutTime = 400;
     $('#done_holder, #done_background').fadeOut(fadeOutTime);
 }
 	
@@ -695,8 +695,8 @@ LDR.InstructionsManager.prototype.hideDone = function() {
   Assumes ldrOptions in global scope.
  */
 LDR.InstructionsManager.prototype.setUpOptions = function() {
-    var self = this;
-    var optionsDiv = document.getElementById('options');
+    let self = this;
+    let optionsDiv = document.getElementById('options');
 
     ldrOptions.appendHeader(optionsDiv);    
     ldrOptions.appendOldBrickColorOptions(optionsDiv);

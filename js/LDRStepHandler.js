@@ -36,8 +36,8 @@ LDR.StepHandler = function(opaqueObject, transObject, loader, partDescs, isForMa
 	let step = this.part.steps[i];
         if(step.containsNonPartSubModels(loader)) { // All are sub models (not parts):
             let subDescs = step.subModels.map(subModel => subModel.placeAt(partDesc));
-            let subStepHandler = new LDR.StepHandler(opaqueObject, transObject, loader, subDescs, false, storage);
-            this.steps.push(new LDR.StepInfo(subStepHandler));
+            let sh = new LDR.StepHandler(opaqueObject, transObject, loader, subDescs, false, storage);
+            this.steps.push(new LDR.StepInfo(sh, step));
         }
         else {
             this.steps.push(new LDR.StepInfo(null, step.cloneColored(partDesc.colorID)));
@@ -218,7 +218,7 @@ LDR.StepHandler.prototype.nextStep = function(doNotEraseForSubModels) {
 	if(subStepHandler.isAtPlacementStep()) {
 	    // Add bounds:
 	    if(!step.bounds) {
-		let b = subStepHandler.accumulatedBounds[subStepHandler.subStepHandlers.length];
+		let b = subStepHandler.steps[subStepHandler.length].accumulatedBounds;
 		this.setCurrentBounds(b);
 	    }
 
@@ -283,6 +283,62 @@ LDR.StepHandler.prototype.cleanUpAfterWalking = function() {
     }
 }
 
+LDR.StepHandler.prototype.getCurrentStep = function() {
+    return this.getCurrentStepInfo()[2];
+}
+
+LDR.StepHandler.prototype.getCurrentStepInfo = function() {
+    let step = this.steps[this.current];
+    let subStepHandler = step.stepHandler;
+    if(!subStepHandler || subStepHandler.isAtPlacementStep()) {
+	return [this.part, this.current, step.step];
+    }
+    return subStepHandler.getCurrentStepInfo();
+}
+
+LDR.StepHandler.prototype.getMultiplierOfCurrentStep = function() {
+    let step = this.steps[this.current];
+    let subStepHandler = step.stepHandler;
+    let ret = this.partDescs.length;
+    if(!subStepHandler || subStepHandler.isAtPlacementStep()) {
+	return ret; // If a subStepHandler is not active (or at placement step), then return the number of parts this subStepHandler returns. 
+    }
+    return ret * subStepHandler.getMultiplierOfCurrentStep();
+}
+
+/*
+  Determine if the rotation icon should e shown for the current step.
+ */
+LDR.StepHandler.prototype.getShowRotatorForCurrentStep = function() {
+    let step = this.steps[this.current];
+    let subStepHandler = step.stepHandler;
+    if(subStepHandler && !subStepHandler.isAtPlacementStep()) {
+        return subStepHandler.getShowRotatorForCurrentStep(); // Let sub step handler handle it.
+    }
+    if(this.current === 0) {
+        return false; // No rotator for first step.
+    }
+    if(THREE.LDRStepRotation.equals(step.step.rotation, this.steps[this.current-1].step.rotation)) {
+        return false; // No rotator for steps without change in rotation.
+    }
+    return (step.step && step.step.rotation) || this.steps[this.current-1].step.rotation;
+}
+
+LDR.BackgroundColors = Array("FFFFFF", "FFFF88", "CCFFCC", "FFBB99", "99AAFF", "FF99FF", "D9FF99", "FFC299");
+LDR.StepHandler.prototype.getBackgroundColorOfCurrentStep = function() {
+    let level = this.getLevelOfCurrentStep();
+    return LDR.BackgroundColors[level%LDR.BackgroundColors.length];
+}
+
+LDR.StepHandler.prototype.getLevelOfCurrentStep = function() {
+    let step = this.steps[this.current];
+    let subStepHandler = step.stepHandler;
+    if(!subStepHandler || subStepHandler.isAtPlacementStep()) {
+	return 0;
+    }
+    return 1+subStepHandler.getLevelOfCurrentStep();
+}
+
 LDR.StepHandler.prototype.getAccumulatedBounds = function() {
     if(this.current === -1) {
         throw "Can't get bounds for pre step!";
@@ -330,65 +386,6 @@ LDR.StepHandler.prototype.setCurrentBounds = function(b) {
     }
 }
 
-LDR.StepHandler.prototype.getCurrentStep = function() {
-    let step = this.steps[this.current];    
-    let subStepHandler = step.stepHandlers;
-    if(!subStepHandler || subStepHandler.isAtPlacementStep()) {
-        console.dir(this);
-        console.dir(step);
-	return step.step;
-    }
-    return subStepHandler.getCurrentStep();
-}
-
-LDR.StepHandler.prototype.getCurrentStepInfo = function() {
-    let step = this.steps[this.current];
-    let subStepHandler = step.stepHandler;
-    if(!subStepHandler || subStepHandler.isAtPlacementStep()) {
-	return [this.part, this.current, step.step];
-    }
-    return subStepHandler.getCurrentStepInfo();
-}
-
-LDR.StepHandler.prototype.getMultiplierOfCurrentStep = function() {
-    let step = this.steps[this.current];
-    let subStepHandler = step.stepHandlers;
-    let ret = this.partDescs.length;
-    if(!subStepHandler || subStepHandler.isAtPlacementStep()) {
-	return ret; // If a subStepHandler is not active (or at placement step), then return the number of parts this subStepHandler returns. 
-    }
-    return ret * subStepHandler.getMultiplierOfCurrentStep();
-}
-
-LDR.StepHandler.prototype.getRotationOfCurrentStep = function() {
-    let step = this.steps[this.current];
-    let subStepHandler = step.subStepHandler;
-    if(!subStepHandler || subStepHandler.isAtPlacementStep()) {
-	if(this.current === 0 || 
-           THREE.LDRStepRotation.equals(step.step.rotation,
-                                        this.steps[this.current-1].step.rotation)) {
-	    return false;
-        }
-	return step.step.rotation || this.steps[this.current-1].step.rotation;
-    }
-    return subStepHandler.getRotationOfCurrentStep();
-}
-
-LDR.BackgroundColors = Array("FFFFFF", "FFFF88", "CCFFCC", "FFBB99", "99AAFF", "FF99FF", "D9FF99", "FFC299");
-LDR.StepHandler.prototype.getBackgroundColorOfCurrentStep = function() {
-    let level = this.getLevelOfCurrentStep();
-    return LDR.BackgroundColors[level%LDR.BackgroundColors.length];
-}
-
-LDR.StepHandler.prototype.getLevelOfCurrentStep = function() {
-    let step = this.steps[this.current];
-    let subStepHandler = step.subStepHandler;
-    if(!subStepHandler || subStepHandler.isAtPlacementStep()) {
-	return 0;
-    }
-    return 1+subStepHandler.getLevelOfCurrentStep();
-}
-
 LDR.StepHandler.prototype.drawExtras = function() {
     var step = this.steps[this.length];
     if(!this.hasExtraParts) { // No extra parts to draw: Copy from previous step:
@@ -414,11 +411,11 @@ LDR.StepHandler.prototype.drawExtras = function() {
 	}
 
 	let b = step.meshCollector.boundingBox;
-	this.accumulatedBounds[this.length].expandByPoint(b.min);
-	this.accumulatedBounds[this.length].expandByPoint(b.max);
+	this.steps[this.length].accumulatedBounds.expandByPoint(b.min);
+	this.steps[this.length].accumulatedBounds.expandByPoint(b.max);
     }
-    else {
-	this.extraParts.setVisible(true);
+    else if(this.hasExtraParts) {
+	this.steps[this.length].meshCollector.setVisible(true);
     }
 }
 
@@ -483,11 +480,11 @@ LDR.StepHandler.prototype.stepBack = function() {
 	return;
     }
     let step = this.steps[this.current];
-    let mc = mesh.meshCollector;
+    let mc = step.meshCollector;
     if(mc) {
 	mc.draw(false);
     }
-    let sh = step.subStepHandler;
+    let sh = step.stepHandler;
     if(sh) {
 	sh.updateMeshCollectors(false);
     }
@@ -561,7 +558,7 @@ LDR.StepHandler.prototype.setVisible = function(v) {
     }
     var mc = this.steps[this.length].meshCollector;
     if(mc) {
-        mc.setCisible(v);
+        mc.setVisible(v);
     }
 }
 
