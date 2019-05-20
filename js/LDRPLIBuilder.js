@@ -125,11 +125,12 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
     let groupParts = !(this.canEdit && ldrOptions.showEditor);
     // Ensure no re-draw if not necessary:
     if(!force && 
-       this.lastStep && this.lastStep.idx === step.idx && this.lastGroupParts === groupParts &&
+       this.lastStep && this.lastStep.idx === step.idx && this.groupParts === groupParts &&
        this.lastMaxWidth === maxWidth && this.lastMaxHeight === maxHeight &&
        this.fillHeight === fillHeight) {
 	return;
     }
+    console.warn('Drawing PLI '+fillHeight+', '+step.idx+', '+maxWidth+', '+maxHeight+', '+maxSizePerPixel+', '+force);
     this.groupParts = groupParts;
     this.fillHeight = fillHeight;
     this.lastStep = step;
@@ -162,13 +163,13 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
 	}
 	// Draw multipliers:
 	context.fillStyle = "#000";
+	context.lineWidth = "1";
+	context.font = parseInt(18*window.devicePixelRatio) + "px Lucida Console";
         if(self.groupParts) {
             self.clickMap.forEach(icon => context.fillText(icon.mult + "x", (icon.x + 5)*window.devicePixelRatio,
                                                            (icon.y+icon.height+24)*window.devicePixelRatio));
         }
 	// Draw Annotation:
-	context.lineWidth = "1";
-	context.font = parseInt(18*window.devicePixelRatio) + "px Lucida Console";
 	for(let i = 0; i < self.clickMap.length; i++) {
 	    let icon = self.clickMap[i];
 	    if(!icon.annotation) {
@@ -181,10 +182,12 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
 	    let h = 19*window.devicePixelRatio;
 	    context.beginPath();
 	    context.fillStyle = "#CFF";
-	    if(icon.desc.startsWith('Technic Axle'))
+	    if(icon.desc.startsWith('Technic Axle')) {
 		context.arc(x+w*0.45, y+h*0.5, w/2, 0, 2*Math.PI, false);
-	    else
+            }
+	    else {
 		context.rect(x, y, w, h);
+            }
 	    context.fill();
 	    context.stroke();
 	    context.fillStyle = "#25E";
