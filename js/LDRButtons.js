@@ -1,7 +1,7 @@
 'use strict';
 
 LDR.Buttons = function(actions, element, addTopButtons, homeLink, mainImage, canEdit) {
-    var self = this;
+    let self = this;
     // Add buttons to element:
     
     // Lower buttons:
@@ -49,17 +49,17 @@ LDR.Buttons = function(actions, element, addTopButtons, homeLink, mainImage, can
 
     this.fadeOutHandle;
     this.fadingIn = false;
-    var fadeOut = function() {
+    let fadeOut = function() {
 	self.fadeOutHandle = undefined;
 	$('#camera_buttons').fadeTo(1000, 0);
     }
-    var onFadeInComplete = function() {
+    let onFadeInComplete = function() {
 	self.fadingIn = false;
         self.fadeOutHandle = setTimeout(fadeOut, 1000);
     }
     fadeOut();
 
-    var runCameraFading = function() {
+    let runCameraFading = function() {
 	if(ldrOptions.showCameraButtons == 2) {
 	    return; // Do not show anything.
         }
@@ -94,12 +94,12 @@ LDR.Buttons.prototype.addTopButtonElements = function(actions, element, homeLink
     this.stepToButton.appendChild(this.makeStepTo());
     this.topButtons.appendChild(this.stepToButton);
 
-    var homeA = document.createElement('a');
+    let homeA = document.createElement('a');
     homeA.setAttribute('href', homeLink);
     homeA.setAttribute('class', 'homeAnchor');
     homeA.appendChild(this.homeButton);
     if(mainImage) {
-	var img = document.createElement('img');
+	let img = document.createElement('img');
 	img.setAttribute('src', mainImage);
 	this.homeButton.appendChild(img);
     }
@@ -110,7 +110,7 @@ LDR.Buttons.prototype.addTopButtonElements = function(actions, element, homeLink
 
     // Edit:
     if(canEdit) {
-        var editButton = this.createDiv('editButton');
+        let editButton = this.createDiv('editButton');
         editButton.appendChild(LDR.SVG.makeEdit());
         editButton.addEventListener('click', actions.toggleEditor);
         this.topButtons.appendChild(editButton);        
@@ -168,7 +168,7 @@ LDR.Buttons.prototype.makeStepTo = function() {
 
 // Primitive helper methods for creating elements for buttons:
 LDR.Buttons.prototype.createDiv = function(id, onclick) {
-    var ret = document.createElement('div');
+    let ret = document.createElement('div');
     ret.setAttribute('id', id);
     if(onclick) {
         ret.addEventListener('click', onclick);

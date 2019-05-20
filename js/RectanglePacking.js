@@ -7,34 +7,34 @@ var Algorithm = Algorithm || {};
  */
 Algorithm.PackRectangles = function(fillHeight, maxWidth, maxHeight, rectangles, maxSizePerPixel) {
     // Compute rectangleWidth by increasing minRectangleWidth as much as possible:
-    var len = rectangles.length;
-    var minRectangleWidth = 1;
-    var WIDTH_ADD = 4; // Add for width when fillWidth
-    var HEIGHT_ADD = 20; // Add for height to include multiplication.
-    var MIN_WIDTH = 25;
+    let len = rectangles.length;
+    let minRectangleWidth = 1;
+    let WIDTH_ADD = 4; // Add for width when fillWidth
+    let HEIGHT_ADD = 20; // Add for height to include multiplication.
+    let MIN_WIDTH = 25;
 
-    var maxRectangleSideLength = 0;
-    var maxSize = 0;
-    for(var i = 0; i < rectangles.length; i++) {
-	var r = rectangles[i];
+    let maxRectangleSideLength = 0;
+    let maxSize = 0;
+    for(let i = 0; i < rectangles.length; i++) {
+	let r = rectangles[i];
 	maxRectangleSideLength = Math.max(maxRectangleSideLength, r.dx, r.dy);
 	maxSize = Math.max(maxSize, r.size);
     }
-    var maxRectangleWidth = maxWidth;
+    let maxRectangleWidth = maxWidth;
     //console.log("maxSize=" + maxSize + " => maxRectangleWidth=" + maxRectangleWidth + ', maxWidth=' + maxWidth);
-    var w, h;
+    let w, h;
 
     function run(rectangleWidth) {
-	var scale = rectangleWidth/maxRectangleSideLength;
+	let scale = rectangleWidth/maxRectangleSideLength;
 	// Check fit:
 	w = h = 0;
-        var indentX = 0, indentY = 0; // indentXY = where to place the current rectangle.
+        let indentX = 0, indentY = 0; // indentXY = where to place the current rectangle.
 
 	if(fillHeight) {
-	    var maxW = MIN_WIDTH; // Max width in current column.
+	    let maxW = MIN_WIDTH; // Max width in current column.
 	    // Test that we can build the BOM:
-	    for(var i = 0; i < rectangles.length; i++) {
-		var r = rectangles[i];
+	    for(let i = 0; i < rectangles.length; i++) {
+		let r = rectangles[i];
 		r.width = scale*r.dx;
 		r.height = scale*r.dy;
 
@@ -54,9 +54,9 @@ Algorithm.PackRectangles = function(fillHeight, maxWidth, maxHeight, rectangles,
 	    }
 	}
 	else {
-	    var maxH = 0;
-	    for(var i = 0; i < rectangles.length; i++) {
-		var r = rectangles[i];
+	    let maxH = 0;
+	    for(let i = 0; i < rectangles.length; i++) {
+		let r = rectangles[i];
 		r.width = scale*r.dx;
 		r.height = scale*r.dy;
 
@@ -86,7 +86,7 @@ Algorithm.PackRectangles = function(fillHeight, maxWidth, maxHeight, rectangles,
 
     // Binary search for maximum size:
     while(minRectangleWidth < maxRectangleWidth - 2.5) { // The larger the constant here, the quicker.
-	var rectangleWidth = (minRectangleWidth + maxRectangleWidth)*0.5;
+	let rectangleWidth = (minRectangleWidth + maxRectangleWidth)*0.5;
         run(rectangleWidth);
     }
     run(minRectangleWidth); // Ensure proper placement.

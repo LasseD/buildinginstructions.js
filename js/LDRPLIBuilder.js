@@ -130,7 +130,6 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
        this.fillHeight === fillHeight) {
 	return;
     }
-    console.warn('Drawing PLI '+fillHeight+', '+step.idx+', '+maxWidth+', '+maxHeight+', '+maxSizePerPixel+', '+force);
     this.groupParts = groupParts;
     this.fillHeight = fillHeight;
     this.lastStep = step;

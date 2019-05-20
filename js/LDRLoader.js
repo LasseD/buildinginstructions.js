@@ -22,14 +22,14 @@
  *  - id is the part id to be translated.
  */
 THREE.LDRLoader = function(onLoad, options) {
-    var self = this;
+    let self = this;
 
     this.partTypes = {}; // id => part. id is typically something like "parts/3001.dat", and "model.mpd".
     this.unloadedFiles = 0;
     this.onLoad = function() {
-        for(var id in self.partTypes) {
+        for(let id in self.partTypes) {
             if(self.partTypes.hasOwnProperty(id)) {
-                var partType = self.partTypes[id];
+                let partType = self.partTypes[id];
                 if(partType === true) {
                     console.warn('Unloaded sub model: ' + id);
                     continue;
@@ -67,7 +67,7 @@ THREE.LDRLoader = function(onLoad, options) {
 THREE.LDRLoader.prototype.load = function(id, top) {
     if(!top)
 	id = id.toLowerCase();
-    var url = this.idToUrl(id, top);
+    let url = this.idToUrl(id, top);
     id = id.replace('\\', '/'); // Sanitize id. 
 
     if(this.partTypes[id]) { // Already loaded
@@ -76,10 +76,10 @@ THREE.LDRLoader.prototype.load = function(id, top) {
         }
 	return;
     }
-    var self = this;
+    let self = this;
     self.partTypes[id] = true;
 
-    var onFileLoaded = function(text) {
+    let onFileLoaded = function(text) {
 	self.parse(text);
 	self.unloadedFiles--; // Warning - might have concurrency issue when two threads simultaneously update this!
 	self.reportProgress(id);
@@ -110,43 +110,44 @@ THREE.LDRLoader.prototype.reportProgress = function(id) {
  * data is the plain text file content.
  */
 THREE.LDRLoader.prototype.parse = function(data) {
-    var parseStartTime = new Date();
+    let parseStartTime = new Date();
 
     // BFC Parameters:
-    var CCW = true; // Assume CCW as default
-    var localCull = false; // Do not cull by default - wait for BFC CERTIFY
-    var invertNext = false; // Don't assume that first line needs inverted.
+    let CCW = true; // Assume CCW as default
+    let localCull = false; // Do not cull by default - wait for BFC CERTIFY
+    let invertNext = false; // Don't assume that first line needs inverted.
 
     // Start parsing:
-    var part = new THREE.LDRPartType();
-    var step = new THREE.LDRStep();
+    let part = new THREE.LDRPartType();
+    let step = new THREE.LDRStep();
     function closeStep(keepRotation) {
 	part.addStep(step);
-	var rot = step.rotation;
+	let rot = step.rotation;
 	step = new THREE.LDRStep();
 	if(keepRotation && rot !== null) {
 	    step.rotation = rot.clone();
         }
     }
-    var toLoad = [];
+    let toLoad = [];
 
     // State information:
-    var previousComment;
-    var inHeader = true;
+    let previousComment;
+    let inHeader = true;
 
-    var dataLines = data.split(/(\r\n)|\n/);
-    for(var i = 0; i < dataLines.length; i++) {
-	var line = dataLines[i];
+    let dataLines = data.split(/(\r\n)|\n/);
+    for(let i = 0; i < dataLines.length; i++) {
+	let line = dataLines[i];
 	if(!line)
 	    continue; // Empty line, or 'undefined' due to '\r\n' split.
 
-	var parts = line.split(" ").filter(x => x !== ''); // Remove empty strings.
+	let parts = line.split(" ").filter(x => x !== ''); // Remove empty strings.
 	if(parts.length <= 1) {
 	    continue; // Empty/ empty comment line
         }
-	var lineType = parseInt(parts[0]);
+	let lineType = parseInt(parts[0]);
+        let colorID;
 	if(lineType !== 0) {
-	    var colorID = parseInt(parts[1]);
+	    colorID = parseInt(parts[1]);
 	    if(LDR.Colors[colorID] === undefined) {
 		this.onWarning({message:'Unknown color "' + colorID + '". Black (0) will be shown instead.', line:i, subModel:part});
 		colorID = 0;
@@ -154,7 +155,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	}
 	//console.log("Parsing line " + i + " of type " + lineType + ": " + line); // Useful if you encounter parse errors.
 
-	var l3 = parts.length >= 3;
+	let l3 = parts.length >= 3;
 	function is(type) {
 	    return l3 && type === parts[1];
 	}
@@ -166,7 +167,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
             }
 	    part.modelDescription = previousComment;
 	    if(previousComment.toLowerCase().startsWith("~moved to ")) {
-		var newID = previousComment.substring("~moved to ".length).toLowerCase();
+		let newID = previousComment.substring("~moved to ".length).toLowerCase();
 		if(!newID.endsWith(".dat")) {
 		    newID += ".dat";
                 }
@@ -199,9 +200,9 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		if(part.steps.length === 0 && step.empty && part.ID && !part.consistentFileAndName) {
 		    console.log("Special case: Empty '" + part.ID + "' does not match '" + fileName + "' - Create new shallow part!");		
 		    // Create pseudo-model with just one of 'fileName' inside:
-		    var rotation = new THREE.Matrix3();
+		    let rotation = new THREE.Matrix3();
 		    rotation.set(1, 0, 0, 0, 1, 0, 0, 0, 1);
-		    var shallowSubModel = new THREE.LDRPartDescription(16, 
+		    let shallowSubModel = new THREE.LDRPartDescription(16, 
 								       new THREE.Vector3(),
 								       rotation, 
 								       fileName,
@@ -220,6 +221,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    }
 	}
 
+        let p1, p2, p3, p4; // Used in switch.
 	switch(lineType) {
 	case 0:
 	    if(is("FILE") || is("file") || is("Name:")) {
@@ -238,7 +240,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    }
 	    else if(parts[1] === "BFC") {
 		// BFC documentation: http://www.ldraw.org/article/415
-		var option = parts[2];
+		let option = parts[2];
 		switch(option) {
 		case "CERTIFY":
 		    part.certifiedBFC = true;
@@ -304,7 +306,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    // TODO: Buffer exchange commands
 
 	    if(this.saveFileLines) {
-                var fileLine = new LDR.Line0(parts.slice(1).join(" "));
+                let fileLine = new LDR.Line0(parts.slice(1).join(" "));
                 if(inHeader) {
                     part.headerLines.push(fileLine);
                 }
@@ -314,15 +316,16 @@ THREE.LDRLoader.prototype.parse = function(data) {
             }
 	    break;
 	case 1: // 1 <colour> x y z a b c d e f g h i <file>
-	    for(var j = 2; j < 14; j++)
+	    for(let j = 2; j < 14; j++) {
 		parts[j] = parseFloat(parts[j]);
-	    var position = new THREE.Vector3(parts[2], parts[3], parts[4]);
-	    var rotation = new THREE.Matrix3();
+            }
+	    let position = new THREE.Vector3(parts[2], parts[3], parts[4]);
+	    let rotation = new THREE.Matrix3();
 	    rotation.set(parts[5],  parts[6],  parts[7], 
 			 parts[8],  parts[9],  parts[10], 
 			 parts[11], parts[12], parts[13]);
-	    var subModelID = parts.slice(14).join(" ").toLowerCase().replace('\\', '/');
-	    var subModel = new THREE.LDRPartDescription(colorID, 
+	    let subModelID = parts.slice(14).join(" ").toLowerCase().replace('\\', '/');
+	    let subModel = new THREE.LDRPartDescription(colorID, 
 							position, 
 							rotation, 
 							subModelID,
@@ -338,8 +341,8 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    invertNext = false;
 	    break;
 	case 2: // Line "2 <colour> x1 y1 z1 x2 y2 z2"
-	    var p1 = new THREE.Vector3(parseFloat(parts[2]), parseFloat(parts[3]), parseFloat(parts[4]));
-	    var p2 = new THREE.Vector3(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
+	    p1 = new THREE.Vector3(parseFloat(parts[2]), parseFloat(parts[3]), parseFloat(parts[4]));
+	    p2 = new THREE.Vector3(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
 	    step.addLine(colorID, p1, p2);
 
             inHeader = false;
@@ -349,9 +352,9 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    invertNext = false;
 	    break;
 	case 3: // 3 <colour> x1 y1 z1 x2 y2 z2 x3 y3 z3
-	    var p1 = new THREE.Vector3(parseFloat(parts[2]), parseFloat(parts[3]), parseFloat(parts[4]));
-	    var p2 = new THREE.Vector3(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
-	    var p3 = new THREE.Vector3(parseFloat(parts[8]), parseFloat(parts[9]), parseFloat(parts[10]));
+	    p1 = new THREE.Vector3(parseFloat(parts[2]), parseFloat(parts[3]), parseFloat(parts[4]));
+	    p2 = new THREE.Vector3(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
+	    p3 = new THREE.Vector3(parseFloat(parts[8]), parseFloat(parts[9]), parseFloat(parts[10]));
 	    if(!part.certifiedBFC || !localCull)
 		step.cull = false; // Ensure no culling when step is handled.
 	    if(CCW === invertNext) {
@@ -368,10 +371,10 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    invertNext = false;
 	    break;
 	case 4: // 4 <colour> x1 y1 z1 x2 y2 z2 x3 y3 z3 x4 y4 z4
-	    var p1 = new THREE.Vector3(parseFloat(parts[2]), parseFloat(parts[3]), parseFloat(parts[4]));
-	    var p2 = new THREE.Vector3(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
-	    var p3 = new THREE.Vector3(parseFloat(parts[8]), parseFloat(parts[9]), parseFloat(parts[10]));
-	    var p4 = new THREE.Vector3(parseFloat(parts[11]), parseFloat(parts[12]), parseFloat(parts[13]));
+	    p1 = new THREE.Vector3(parseFloat(parts[2]), parseFloat(parts[3]), parseFloat(parts[4]));
+	    p2 = new THREE.Vector3(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
+	    p3 = new THREE.Vector3(parseFloat(parts[8]), parseFloat(parts[9]), parseFloat(parts[10]));
+	    p4 = new THREE.Vector3(parseFloat(parts[11]), parseFloat(parts[12]), parseFloat(parts[13]));
 	    if(!part.certifiedBFC || !localCull)
 		step.cull = false; // Ensure no culling when step is handled.
 	    if(CCW === invertNext) {
@@ -388,10 +391,10 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    invertNext = false;
 	    break;
 	case 5: // Conditional lines:
-	    var p1 = new THREE.Vector3(parseFloat(parts[2]), parseFloat(parts[3]), parseFloat(parts[4]));
-	    var p2 = new THREE.Vector3(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
-	    var p3 = new THREE.Vector3(parseFloat(parts[8]), parseFloat(parts[9]), parseFloat(parts[10]));
-	    var p4 = new THREE.Vector3(parseFloat(parts[11]), parseFloat(parts[12]), parseFloat(parts[13]));
+	    p1 = new THREE.Vector3(parseFloat(parts[2]), parseFloat(parts[3]), parseFloat(parts[4]));
+	    p2 = new THREE.Vector3(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
+	    p3 = new THREE.Vector3(parseFloat(parts[8]), parseFloat(parts[9]), parseFloat(parts[10]));
+	    p4 = new THREE.Vector3(parseFloat(parts[11]), parseFloat(parts[12]), parseFloat(parts[13]));
 	    step.addConditionalLine(colorID, p1, p2, p3, p4);
             inHeader = false;
 	    if(this.saveFileLines) {
@@ -412,24 +415,24 @@ THREE.LDRLoader.prototype.parse = function(data) {
     this.partTypes[part.ID] = part;
 
     // Start loading the separate file immediately:
-    toLoad.forEach(function(id) {
-            var partType = self.partTypes[id];
+    toLoad.forEach(id => {
+            let partType = self.partTypes[id];
             if(!partType) {
                 self.load(id);
             }
         });
 
-    var parseEndTime = new Date();
+    let parseEndTime = new Date();
     //console.log("LDraw file read in " + (parseEndTime-parseStartTime) + "ms.");
 };
 
 THREE.LDRLoader.prototype.toLDR = function() {
-    var ret = this.partTypes[this.mainModel].toLDR();
-    for(var modelName in this.partTypes) {
+    let ret = this.partTypes[this.mainModel].toLDR();
+    for(let modelName in this.partTypes) {
         if(!this.partTypes.hasOwnProperty(modelName)) {
             continue;
         }
-        var partType = this.partTypes[modelName];
+        let partType = this.partTypes[modelName];
         if(partType === true || partType.inlined || partType.ID === this.mainModel) {
             continue;
         }
@@ -439,15 +442,15 @@ THREE.LDRLoader.prototype.toLDR = function() {
 }
 
 THREE.LDRLoader.prototype.removeGeometries = function() {
-    for(var ptID in this.partTypes) {
+    for(let ptID in this.partTypes) {
 	if(!this.partTypes.hasOwnProperty(ptID))
 	    continue; // Not a part.
-	var partType = this.partTypes[ptID];
+	let partType = this.partTypes[ptID];
 
 	if(partType === true) {
 	    continue; // No content to remove.
         }
-	for(var i = 0; i < partType.steps.length; i++) {
+	for(let i = 0; i < partType.steps.length; i++) {
 	    partType.steps[i].removePrimitivesAndSubParts(); // Remove unused 'geometries'.
 	}
 
@@ -477,7 +480,7 @@ THREE.LDRPartDescription.prototype.cloneColored = function(colorID) {
 }
 
 THREE.LDRPartDescription.prototype.placedColor = function(pdColorID) {
-    var colorID = this.colorID;
+    let colorID = this.colorID;
     if(colorID === 16) {
         colorID = pdColorID;
     }
@@ -494,17 +497,17 @@ THREE.LDRPartDescription.prototype.toLDR = function() {
 
 THREE.LDRPartDescription.prototype.placeAt = function(pd) {
     // Compute augmented colorID, position, rotation, ID
-    var colorID = this.placedColor(pd.colorID);
+    let colorID = this.placedColor(pd.colorID);
     
-    var position = new THREE.Vector3();
+    let position = new THREE.Vector3();
     position.copy(this.position);
     position.applyMatrix3(pd.rotation);
     position.add(pd.position);
 
-    var rotation = new THREE.Matrix3();
+    let rotation = new THREE.Matrix3();
     rotation.multiplyMatrices(pd.rotation, this.rotation);
 
-    var invert = this.invertCCW === pd.invertCCW;
+    let invert = this.invertCCW === pd.invertCCW;
 
     return new THREE.LDRPartDescription(colorID, position, rotation, this.ID, this.cull, invert);
 }
@@ -517,8 +520,8 @@ THREE.LDRStepRotation = function(x, y, z, type) {
 }
 
 THREE.LDRStepRotation.equals = function(a, b) {
-    var aNull = a === null;
-    var bNull = b === null;
+    let aNull = a === null;
+    let bNull = b === null;
     if(aNull && bNull)
 	return true;
     if(aNull !== bNull)
@@ -536,13 +539,13 @@ THREE.LDRStepRotation.prototype.toLDR= function() {
 
 // Get the rotation matrix by looking at the default camera position:
 THREE.LDRStepRotation.getAbsRotationMatrix = function() {
-    var looker = new THREE.Object3D();
+    let looker = new THREE.Object3D();
     looker.position.x = -10000;
     looker.position.y = -7000;
     looker.position.z = -10000;
     looker.lookAt(new THREE.Vector3());
     looker.updateMatrix();
-    var m0 = new THREE.Matrix4();
+    let m0 = new THREE.Matrix4();
     m0.extractRotation(looker.matrix);
     return m0;
 }
@@ -553,33 +556,33 @@ THREE.LDRStepRotation.ABS = THREE.LDRStepRotation.getAbsRotationMatrix();
 */
 THREE.LDRStepRotation.prototype.getRotationMatrix = function(defaultMatrix) {
     //console.log("Rotating for " + this.x + ", " + this.y + ", " + this.z);
-    var wx = this.x / 180.0 * Math.PI;
-    var wy = -this.y / 180.0 * Math.PI;
-    var wz = -this.z / 180.0 * Math.PI;
+    let wx = this.x / 180.0 * Math.PI;
+    let wy = -this.y / 180.0 * Math.PI;
+    let wz = -this.z / 180.0 * Math.PI;
 
-    var s1 = Math.sin(wx);
-    var s2 = Math.sin(wy);
-    var s3 = Math.sin(wz);
-    var c1 = Math.cos(wx);
-    var c2 = Math.cos(wy);
-    var c3 = Math.cos(wz);
+    let s1 = Math.sin(wx);
+    let s2 = Math.sin(wy);
+    let s3 = Math.sin(wz);
+    let c1 = Math.cos(wx);
+    let c2 = Math.cos(wy);
+    let c3 = Math.cos(wz);
 
-    var a = c2 * c3;
-    var b = -c2 * s3;
-    var c = s2;
-    var d = c1 * s3 + s1 * s2 * c3;
-    var e = c1 * c3 - s1 * s2 * s3;
-    var f = -s1 * c2;
-    var g = s1 * s3 - c1 * s2 * c3;
-    var h = s1 * c3 + c1 * s2 * s3;
-    var i = c1 * c2;
+    let a = c2 * c3;
+    let b = -c2 * s3;
+    let c = s2;
+    let d = c1 * s3 + s1 * s2 * c3;
+    let e = c1 * c3 - s1 * s2 * s3;
+    let f = -s1 * c2;
+    let g = s1 * s3 - c1 * s2 * c3;
+    let h = s1 * c3 + c1 * s2 * s3;
+    let i = c1 * c2;
 
-    var rotationMatrix = new THREE.Matrix4();
+    let rotationMatrix = new THREE.Matrix4();
     rotationMatrix.set(a, b, c, 0,
 		       d, e, f, 0,
 		       g, h, i, 0,
 		       0, 0, 0, 1);
-    var ret = new THREE.Matrix4();
+    let ret = new THREE.Matrix4();
     if(this.type === "REL") {
 	ret.multiplyMatrices(defaultMatrix, rotationMatrix);
     }
@@ -624,7 +627,7 @@ THREE.LDRStep.prototype.cloneColored = function(colorID) {
     if(this.hasPrimitives) {
         throw "Cannot clone step with primitives!";
     }
-    var ret = new THREE.LDRStep();
+    let ret = new THREE.LDRStep();
 
     ret.empty = this.empty;
     ret.hasPrimitives = false;
@@ -638,7 +641,7 @@ THREE.LDRStep.prototype.cloneColored = function(colorID) {
 }
 
 THREE.LDRStep.prototype.toLDR= function(prevStepRotation) {
-    var ret = '';
+    let ret = '';
     this.fileLines.forEach(line => ret += line.toLDR());
     if(!this.rotation) {
         if(prevStepRotation) {
@@ -688,7 +691,7 @@ THREE.LDRStep.prototype.containsNonPartSubModels = function(loader) {
     if(this.subModels.length === 0) {
         return false;
     }
-    var firstSubModel = loader.partTypes[this.subModels[0].ID];
+    let firstSubModel = loader.partTypes[this.subModels[0].ID];
     return !firstSubModel.isPart();
 }
 
@@ -696,17 +699,17 @@ THREE.LDRStep.prototype.containsPartSubModels = function(loader) {
     if(this.subModels.length === 0) {
         return false;
     }
-    var firstSubModel = loader.partTypes[this.subModels[0].ID];
+    let firstSubModel = loader.partTypes[this.subModels[0].ID];
     return firstSubModel.isPart();
 }
 
 THREE.LDRStep.prototype.countParts = function(loader) {
     if(this.cnt >= 0)
 	return this.cnt;
-    var cnt = 0;
+    let cnt = 0;
 
     this.subModels.forEach(function(subModel) {
-	var pt = loader.partTypes[subModel.ID];
+	let pt = loader.partTypes[subModel.ID];
         if(!pt || pt === true) {
 	    console.warn("Unknown part type: " + subModel.ID);
         }
@@ -735,18 +738,18 @@ THREE.LDRStep.prototype.cleanUp = function(loader, newSteps) {
     }
 
     // Collect info:
-    var self = this;
-    var parts = [];
-    var subModelsByTypeAndColor = {};
+    let self = this;
+    let parts = [];
+    let subModelsByTypeAndColor = {};
 
     function handleSubModel(subModelDesc) {
-        var subModel = loader.partTypes[subModelDesc.ID];
+        let subModel = loader.partTypes[subModelDesc.ID];
         if(subModel.isPart()) {
             parts.push(subModelDesc);
         }
         else { // Not a part:
             subModel.cleanUpSteps(loader);
-            var key = subModel.color + '_' + subModel.ID;
+            let key = subModel.color + '_' + subModel.ID;
             if(subModelsByTypeAndColor.hasOwnProperty(key)) {
                 subModelsByTypeAndColor[key].push(subModelDesc);
             }
@@ -758,7 +761,7 @@ THREE.LDRStep.prototype.cleanUp = function(loader, newSteps) {
     this.subModels.forEach(handleSubModel);
 
     function push(subModels) {
-        var newStep = new THREE.LDRStep();
+        let newStep = new THREE.LDRStep();
         newStep.empty = false;
         newStep.subModels = subModels;
         newStep.rotation = self.rotation ? self.rotation.clone() : null;
@@ -767,7 +770,7 @@ THREE.LDRStep.prototype.cleanUp = function(loader, newSteps) {
     }
 
     // Split into separate steps if necessary:
-    for(var key in subModelsByTypeAndColor) {
+    for(let key in subModelsByTypeAndColor) {
         if(subModelsByTypeAndColor.hasOwnProperty(key)) {
             push(subModelsByTypeAndColor[key]);
         }
@@ -781,10 +784,10 @@ THREE.LDRStep.prototype.cleanUp = function(loader, newSteps) {
 
 THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, rotation, cull, invertCCW, mc) {
     //console.log("STEP: Creating three part for " + this.subModels.length + " sub models in color " + colorID + ", cull: " + cull + ", invertion: " + invertCCW);
-    var ownInversion = (rotation.determinant() < 0) !== invertCCW; // Adjust for inversed matrix!
-    var ownCull = cull && this.cull;
+    let ownInversion = (rotation.determinant() < 0) !== invertCCW; // Adjust for inversed matrix!
+    let ownCull = cull && this.cull;
     
-    var transformColor = function(subColorID) {
+    let transformColor = function(subColorID) {
 	if(subColorID === 16)
 	    return colorID; // Main color
 	else if(subColorID === 24)
@@ -792,26 +795,26 @@ THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, 
 	return subColorID;
     }
 
-    var transformPoint = function(p) {
-	var ret = new THREE.Vector3(p.x, p.y, p.z);
+    let transformPoint = function(p) {
+	let ret = new THREE.Vector3(p.x, p.y, p.z);
 	ret.applyMatrix3(rotation);
 	ret.add(position);
 	return ret;
     }
     
     function handleSubModel(subModelDesc) {
-	var subModelInversion = invertCCW !== subModelDesc.invertCCW;
-	var subModelCull = subModelDesc.cull && ownCull; // Cull only if both sub model, this step and the inherited cull info is true!
+	let subModelInversion = invertCCW !== subModelDesc.invertCCW;
+	let subModelCull = subModelDesc.cull && ownCull; // Cull only if both sub model, this step and the inherited cull info is true!
 
-	var subModelColor = transformColor(subModelDesc.colorID);
+	let subModelColor = transformColor(subModelDesc.colorID);
 	
-	var subModel = loader.partTypes[subModelDesc.ID];
+	let subModel = loader.partTypes[subModelDesc.ID];
 	if(subModel === undefined) {
 	    loader.onError("Unloaded sub model: " + subModelDesc.ID,);
 	    return;
 	}
 	if(subModel.replacement) {
-	    var replacementSubModel = loader.partTypes[subModel.replacement];
+	    let replacementSubModel = loader.partTypes[subModel.replacement];
 	    if(replacementSubModel === undefined) {
 		throw { 
 		    name: "UnloadedSubmodelException", 
@@ -823,8 +826,8 @@ THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, 
 	    }
 	    subModel = replacementSubModel;
 	}
-	var nextPosition = transformPoint(subModelDesc.position);
-	var nextRotation = new THREE.Matrix3();
+	let nextPosition = transformPoint(subModelDesc.position);
+	let nextRotation = new THREE.Matrix3();
 	nextRotation.multiplyMatrices(rotation, subModelDesc.rotation);
 	subModel.generateThreePart(loader, subModelColor, nextPosition, nextRotation, subModelCull, subModelInversion, mc, subModelDesc);
     }
@@ -851,8 +854,8 @@ LDR.Line1.prototype.toLDR = function() {
 
 LDR.convertFloat = function(x) {
     x = x.toFixed(6); // Allow at most 6 decimals.
-    for(var i = 0; i <= 6; i++) {
-        var tmp = parseFloat(x).toFixed(i);
+    for(let i = 0; i <= 6; i++) {
+        let tmp = parseFloat(x).toFixed(i);
         if(parseFloat(tmp) === parseFloat(x)) {
             return tmp; // Don't output too many '0's.
         }
@@ -863,8 +866,8 @@ THREE.Vector3.prototype.toLDR = function() {
     return LDR.convertFloat(this.x) + ' ' + LDR.convertFloat(this.y) + ' ' + LDR.convertFloat(this.z);
 }
 THREE.Matrix3.prototype.toLDR = function() {
-    var e = this.elements;
-    var rowMajor = [e[0], e[3], e[6],
+    let e = this.elements;
+    let rowMajor = [e[0], e[3], e[6],
                     e[1], e[4], e[7],
                     e[2], e[5], e[8]]
     return rowMajor.map(LDR.convertFloat).join(' ');
@@ -944,7 +947,7 @@ THREE.LDRPartType.prototype.cleanUpSteps = function(loader) {
         return; // Already done.
     }
 
-    var newSteps = [];
+    let newSteps = [];
 
     this.steps.forEach(step => step.cleanUp(loader, newSteps));
 
@@ -953,7 +956,7 @@ THREE.LDRPartType.prototype.cleanUpSteps = function(loader) {
 }
 
 THREE.LDRPartType.prototype.toLDR = function() {
-    var ret = '';
+    let ret = '';
     this.headerLines.forEach(line => ret += line.toLDR());
     this.steps.forEach((step, idx, a) => ret += step.toLDR(idx === 0 ? null : a[idx-1].rotation));
     ret += '0\n';
@@ -969,7 +972,7 @@ THREE.LDRPartType.prototype.prepareGeometry = function(loader) {
     this.geometry = new LDR.LDRGeometry();
     this.geometry.fromPartType(loader, this);
     // Clean up this:
-    for(var i = 0; i < this.steps.length; i++) {
+    for(let i = 0; i < this.steps.length; i++) {
 	this.steps[i].removePrimitivesAndSubParts(); // Remove unused 'geometries'.
     }
 }
@@ -991,12 +994,12 @@ THREE.LDRPartType.prototype.addStep = function(step) {
         }
     }
     
-    var sameRotation = THREE.LDRStepRotation.equals(step.rotation, this.lastRotation);
+    let sameRotation = THREE.LDRStepRotation.equals(step.rotation, this.lastRotation);
     if(step.empty && sameRotation) {
 	return; // No change.
     }
     if(this.steps.length > 0) {
-	var prevStep = this.steps[this.steps.length-1];
+	let prevStep = this.steps[this.steps.length-1];
 	if(prevStep.empty && sameRotation) {
 	    // Special case: Merge into previous step:
 	    this.steps[this.steps.length-1] = step;
@@ -1015,7 +1018,7 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 	    this.geometry.fromPartType(loader, this);
 	}
 	else {
-	    for(var i = 0; i < this.steps.length; i++) {
+	    for(let i = 0; i < this.steps.length; i++) {
 		this.steps[i].generateThreePart(loader, c, p, r, cull, inv, mc); // Build parts within.
 	    }
 	    return;
@@ -1025,8 +1028,8 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 
     this.geometry.buildGeometriesAndColors();
     
-    var m4 = new THREE.Matrix4();
-    var m3e = r.elements;
+    let m4 = new THREE.Matrix4();
+    let m3e = r.elements;
     m4.set(
 	m3e[0], m3e[3], m3e[6], p.x,
 	m3e[1], m3e[4], m3e[7], p.y,
@@ -1034,34 +1037,34 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 	0, 0, 0, 1
     );
     
-    var expanded = false;
+    let expanded = false;
     if(this.geometry.lineGeometry) {
-	var material = mc.getLineMaterial(this.geometry.lineColorManager, c, false);
-	var normalLines = new THREE.LineSegments(this.geometry.lineGeometry, material);
+	let material = mc.getLineMaterial(this.geometry.lineColorManager, c, false);
+	let normalLines = new THREE.LineSegments(this.geometry.lineGeometry, material);
 	normalLines.applyMatrix(m4);
 	mc.addLines(normalLines, pd, false);
 
-	var b = this.geometry.lineGeometry.boundingBox;
+	let b = this.geometry.lineGeometry.boundingBox;
 	mc.expandBoundingBox(b, m4);
 	expanded = true;
     }
     
     if(this.geometry.conditionalLineGeometry) {
-	var material = mc.getLineMaterial(this.geometry.lineColorManager, c, true);
-	var conditionalLines = new THREE.LineSegments(this.geometry.conditionalLineGeometry, material);
+	let material = mc.getLineMaterial(this.geometry.lineColorManager, c, true);
+	let conditionalLines = new THREE.LineSegments(this.geometry.conditionalLineGeometry, material);
 	conditionalLines.applyMatrix(m4);
 	mc.addLines(conditionalLines, pd, true);
 
 	if(!expanded) {
-	    var b = this.geometry.conditionalLineGeometry.boundingBox;
+	    let b = this.geometry.conditionalLineGeometry.boundingBox;
 	    mc.expandBoundingBox(b, m4);
 	    expanded = true;
 	}
     }
     
     if(this.geometry.triangleGeometry) {
-	var material = mc.getTriangleMaterial(this.geometry.triangleColorManager, c, LDR.Colors.isTrans(c));
-	var mesh = new THREE.Mesh(this.geometry.triangleGeometry, material);
+	let material = mc.getTriangleMaterial(this.geometry.triangleColorManager, c, LDR.Colors.isTrans(c));
+	let mesh = new THREE.Mesh(this.geometry.triangleGeometry, material);
 	mesh.applyMatrix(m4);
 	if(LDR.Colors.isTrans(c)) {
 	    mc.addTrans(mesh, pd);
@@ -1071,7 +1074,7 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
         }
 
 	if(!expanded) {
-	    var b = this.geometry.triangleGeometry.boundingBox;
+	    let b = this.geometry.triangleGeometry.boundingBox;
 	    mc.expandBoundingBox(b, m4);
 	}
     }
@@ -1085,7 +1088,7 @@ THREE.LDRPartType.prototype.countParts = function(loader) {
     if(this.cnt >= 0)
 	return this.cnt;
     this.cnt = 0;
-    for(var i = 0; i < this.steps.length; i++) {
+    for(let i = 0; i < this.steps.length; i++) {
 	this.cnt += this.steps[i].countParts(loader);
     }
     return this.cnt;
@@ -1099,12 +1102,12 @@ LDR.ColorManager = function() {
     this.edgeSixteen = -1;
 
     this.clone = function() {
-	var ret = new LDR.ColorManager();
+	let ret = new LDR.ColorManager();
 	ret.shaderColors.push(...this.shaderColors);
 	ret.highContrastShaderColors.push(...this.highContrastShaderColors);
 	ret.sixteen = this.sixteen;
 	ret.edgeSixteen = this.edgeSixteen;
-	for(var c in this.map) {
+	for(let c in this.map) {
 	    if(this.map.hasOwnProperty(c))
 		ret.map[c] = this.map[c];
 	}
@@ -1112,27 +1115,27 @@ LDR.ColorManager = function() {
     }
 
     this.overWrite = function(id) {
-        var isEdge = id >= 10000;
-        var lowID = isEdge ? id-10000 : id;
-	var colorObject = LDR.Colors[lowID];
+        let isEdge = id >= 10000;
+        let lowID = isEdge ? id-10000 : id;
+	let colorObject = LDR.Colors[lowID];
 	if(!colorObject) {
 	    throw "Unknown color: " + id;
         }
 	this.lastSet = id;
-	var alpha = colorObject.alpha ? colorObject.alpha/256.0 : 1;
+	let alpha = colorObject.alpha ? colorObject.alpha/256.0 : 1;
 	if(this.sixteen >= 0) {
-	    var color = new THREE.Color(isEdge ? colorObject.edge : colorObject.value);
+	    let color = new THREE.Color(isEdge ? colorObject.edge : colorObject.value);
 	    this.shaderColors[this.sixteen] = new THREE.Vector4(color.r, color.g, color.b, alpha);
 	}
 	if(this.edgeSixteen >= 0) {
-	    var color = new THREE.Color(colorObject.edge);
+	    let color = new THREE.Color(colorObject.edge);
 	    this.shaderColors[this.edgeSixteen] = new THREE.Vector4(color.r, color.g, color.b, alpha);
 	    this.highContrastShaderColors[this.edgeSixteen] = LDR.Colors.getHighContrastColor4(lowID);
 	}
     }
 
     this.get = function(id) {
-	var f = this.map[id];
+	let f = this.map[id];
 	if(f) {
 	    return f;
 	}
@@ -1143,14 +1146,14 @@ LDR.ColorManager = function() {
 	    this.edgeSixteen = this.shaderColors.length;
         }
 
-	var isEdge = id >= 10000;
-	var lowID = isEdge ? id-10000 : id;
-	var colorObject = LDR.Colors[lowID];
+	let isEdge = id >= 10000;
+	let lowID = isEdge ? id-10000 : id;
+	let colorObject = LDR.Colors[lowID];
 	if(!colorObject) {
 	    throw "Unknown color " + lowID + " from " + id;
 	}
-	var color = new THREE.Color(isEdge ? colorObject.edge : colorObject.value);
-	var alpha = colorObject.alpha ? colorObject.alpha/256.0 : 1;
+	let color = new THREE.Color(isEdge ? colorObject.edge : colorObject.value);
+	let alpha = colorObject.alpha ? colorObject.alpha/256.0 : 1;
 	f = this.shaderColors.length + 0.1;
 	this.map[id] = f;
 	this.shaderColors.push(new THREE.Vector4(color.r, color.g, color.b, alpha));
@@ -1173,15 +1176,15 @@ LDR.GeometryBuilder = function(loader, storage) {
   Find all parts that are referenced directly from non-parts.
  */
 LDR.GeometryBuilder.prototype.getAllTopLevelToBeBuilt = function() {
-    var toBeBuilt = [];
-    var self = this;
+    let toBeBuilt = [];
+    let self = this;
 
     // Set 'isReplacing' on all parts whose geometries should be 
     // maintained because they replace other parts.
-    for(var ptID in this.loader.partTypes) {
+    for(let ptID in this.loader.partTypes) {
 	if(!this.loader.partTypes.hasOwnProperty(ptID))
 	    continue; // Not a part.
-	var partType = this.loader.partTypes[ptID];
+	let partType = this.loader.partTypes[ptID];
 	if(partType.replacement) { // Mark all inside of replaced part as 'replacing':
             partType.steps.forEach(step => step.subModels.forEach(sm => self.loader.partTypes[sm.ID].isReplacing = true));
         }
@@ -1194,10 +1197,10 @@ LDR.GeometryBuilder.prototype.getAllTopLevelToBeBuilt = function() {
 	pt.markToBeBuilt = true;
     }
 
-    for(var ptID in this.loader.partTypes) {
+    for(let ptID in this.loader.partTypes) {
 	if(!this.loader.partTypes.hasOwnProperty(ptID))
 	    continue; // Not a part.
-	var partType = this.loader.partTypes[ptID];
+	let partType = this.loader.partTypes[ptID];
 	if(partType === true || partType.geometry) {
 	    continue;
 	}
@@ -1214,8 +1217,8 @@ LDR.GeometryBuilder.prototype.getAllTopLevelToBeBuilt = function() {
 }
 
 LDR.GeometryBuilder.prototype.buildStep = function(step) {
-    var self = this;
-    var toBeBuilt = step.subModels.map(pd => self.loader.partTypes[pd.ID]).filter(
+    let self = this;
+    let toBeBuilt = step.subModels.map(pd => self.loader.partTypes[pd.ID]).filter(
 	function(partType){
 	    if(partType.inAnyStep) {
 		return false;
@@ -1231,13 +1234,13 @@ LDR.GeometryBuilder.prototype.buildStep = function(step) {
   This function builds the partTypes in the list 'toBeBuilt'. It does so my running in rounds of ready geometries, since this allows for multiple threads/workers to handle part types simultaneously.
  */
 LDR.GeometryBuilder.prototype.build = function(toBeBuilt) {
-    var startTime = new Date();
+    let startTime = new Date();
     /* Set up for part types:
        - children = count of unhandled children (dats within a step)
        - parents = ID's of parents
      */
-    var ready = []; // partTypes without children (all children have geometries).
-    var self = this;
+    let ready = []; // partTypes without children (all children have geometries).
+    let self = this;
 
     function linkChild(parent, child) {
 	if(child.geometry)
@@ -1266,13 +1269,13 @@ LDR.GeometryBuilder.prototype.build = function(toBeBuilt) {
 	    ready.push(partType);
         }
     }
-    for(var i = 0; i < toBeBuilt.length; i++) {
+    for(let i = 0; i < toBeBuilt.length; i++) {
 	//console.log("To be built: " + toBeBuilt[i].ID);
 	prepare(toBeBuilt[i]);
     }
 
-    var transaction, objectStore;
-    var partsWritten = 0;
+    let transaction, objectStore;
+    let partsWritten = 0;
     if(this.storage.db) {
 	transaction = this.storage.db.transaction(["parts"], "readwrite");
 	transaction.oncomplete = function(event) {
@@ -1289,17 +1292,17 @@ LDR.GeometryBuilder.prototype.build = function(toBeBuilt) {
     /*
       Run in rounds:
      */
-    var nextRound = [];
-    var totalBuilt = 0;
+    let nextRound = [];
+    let totalBuilt = 0;
     do { // Handle each in the ready list:
         //console.log('Geometry construction round. Number of part types ready: ' + ready.length);
 	totalBuilt += ready.length;
-	for(var i = 0; i < ready.length; i++) {
-	    var partType = ready[i];
-	    for(var ptID in partType.parents) {
+	for(let i = 0; i < ready.length; i++) {
+	    let partType = ready[i];
+	    for(let ptID in partType.parents) {
 		if(!partType.parents.hasOwnProperty(ptID))
 		    continue; // Not a part.
-		var parent = partType.parents[ptID];
+		let parent = partType.parents[ptID];
 		parent.children--;
 		if(parent.children === 0) {
 		    nextRound.push(parent);
@@ -1309,7 +1312,7 @@ LDR.GeometryBuilder.prototype.build = function(toBeBuilt) {
 
 	    partType.prepareGeometry(this.loader);
 	    if(partType.markToBeBuilt && objectStore && partType.inlined === "OFFICIAL") {
-		var slimPartType = {
+		let slimPartType = {
 		    ID:partType.ID,
 		    g:partType.geometry.pack(),
 		    d:partType.modelDescription
@@ -1321,7 +1324,7 @@ LDR.GeometryBuilder.prototype.build = function(toBeBuilt) {
 	nextRound = [];
     } while(ready.length > 0);
 
-    var elapsedTime = new Date()-startTime;
+    let elapsedTime = new Date()-startTime;
     if(elapsedTime > 50) {
 	console.log("Geometries for " + (totalBuilt-toBeBuilt.length) + " primitives from " + toBeBuilt.length + " parts built in " + elapsedTime + "ms.");
     }
@@ -1356,8 +1359,8 @@ LDR.MeshCollector = function(opaqueObject, transObject) {
 }
 
 LDR.MeshCollector.prototype.getLineMaterial = function(colorManager, color, conditional) {
-    var len = colorManager.shaderColors.length;
-    var key;
+    let len = colorManager.shaderColors.length;
+    let key;
     if(len > 1) {
 	this.cntMaterials++;
 	key = this.cntMaterials;
@@ -1368,15 +1371,15 @@ LDR.MeshCollector.prototype.getLineMaterial = function(colorManager, color, cond
     if(this.lineMaterials.hasOwnProperty(key)) {
 	return this.lineMaterials[key];
     }
-    var m = new LDR.Colors.buildLineMaterial(colorManager, color, conditional);
+    let m = new LDR.Colors.buildLineMaterial(colorManager, color, conditional);
     this.lineMaterials[key] = m;
     //console.log("Constructed (line) material " + this.cntMaterials + " for key " + key);
     return m;
 }
 
 LDR.MeshCollector.prototype.getTriangleMaterial = function(colorManager, color, isTrans) {
-    var len = colorManager.shaderColors.length;
-    var key;
+    let len = colorManager.shaderColors.length;
+    let key;
     if(len > 1) {
 	this.cntMaterials++;
 	key = this.cntMaterials;
@@ -1387,7 +1390,7 @@ LDR.MeshCollector.prototype.getTriangleMaterial = function(colorManager, color, 
     if(this.triangleMaterials.hasOwnProperty(key)) {
 	return this.triangleMaterials[key];
     }
-    var m = new LDR.Colors.buildTriangleMaterial(colorManager, color, isTrans);
+    let m = new LDR.Colors.buildTriangleMaterial(colorManager, color, isTrans);
     this.triangleMaterials[key] = m;
     //console.log("Constructed (triangle) material " + this.cntMaterials + " for key " + key);
     return m;
@@ -1411,18 +1414,18 @@ LDR.MeshCollector.prototype.addTrans = function(mesh, part) {
   visibility of this meshCollector.
  */
 LDR.MeshCollector.prototype.updateMeshVisibility = function() {
-    var v = this.visible;
-    for(var i = 0; i < this.lineMeshes.length; i++) {
+    let v = this.visible;
+    for(let i = 0; i < this.lineMeshes.length; i++) {
 	this.lineMeshes[i].mesh.visible = v;
     }
-    for(var i = 0; i < this.triangleMeshes.length; i++) {
-        var obj = this.triangleMeshes[i];
+    for(let i = 0; i < this.triangleMeshes.length; i++) {
+        let obj = this.triangleMeshes[i];
         obj.mesh.visible = v && (this.old || !(obj.part && obj.part.ghost && ldrOptions.showEditor)); // Do not show faces for ghosted parts.
     }
 }
 
 LDR.MeshCollector.prototype.expandBoundingBox = function(boundingBox, m) {
-    var b = new THREE.Box3();
+    let b = new THREE.Box3();
     b.copy(boundingBox);
     b.applyMatrix4(m);
 
@@ -1439,18 +1442,18 @@ LDR.MeshCollector.prototype.setOldValue = function(old) {
     if(!LDR.Colors.canBeOld) {
 	return;
     }
-    for(var i = 0; i < this.lineMeshes.length; i++) {
+    for(let i = 0; i < this.lineMeshes.length; i++) {
 	this.lineMeshes[i].mesh.material.uniforms.old.value = old;
     }
-    for(var i = 0; i < this.triangleMeshes.length; i++) {
+    for(let i = 0; i < this.triangleMeshes.length; i++) {
 	this.triangleMeshes[i].mesh.material.uniforms.old.value = old;
     }
 }
 
 LDR.MeshCollector.prototype.colorLinesLDraw = function() {
-    for(var i = 0; i < this.lineMeshes.length; i++) {
-	var m = this.lineMeshes[i].mesh.material;
-	var colors = m.colorManager.shaderColors;
+    for(let i = 0; i < this.lineMeshes.length; i++) {
+	let m = this.lineMeshes[i].mesh.material;
+	let colors = m.colorManager.shaderColors;
 	if(colors.length === 1) {
 	    m.uniforms.color.value = colors[0];
         }
@@ -1461,9 +1464,9 @@ LDR.MeshCollector.prototype.colorLinesLDraw = function() {
 }
 
 LDR.MeshCollector.prototype.colorLinesHighContrast = function() {
-    for(var i = 0; i < this.lineMeshes.length; i++) {
-	var m = this.lineMeshes[i].mesh.material;
-	var colors = m.colorManager.highContrastShaderColors;
+    for(let i = 0; i < this.lineMeshes.length; i++) {
+	let m = this.lineMeshes[i].mesh.material;
+	let colors = m.colorManager.highContrastShaderColors;
 	if(colors.length === 1) {
 	    m.uniforms.color.value = colors[0];
         }
@@ -1507,7 +1510,7 @@ LDR.MeshCollector.prototype.overwriteColor = function(color) {
         const m = obj.mesh.material;
         const c = m.colorManager;
 	c.overWrite(color);
-	var colors = !edge || ldrOptions.lineContrast > 0 ? c.shaderColors : c.highContrastShaderColors;
+	let colors = !edge || ldrOptions.lineContrast > 0 ? c.shaderColors : c.highContrastShaderColors;
 	if(colors.length === 1) {
 	    m.uniforms.color.value = colors[0];
         }
@@ -1516,10 +1519,10 @@ LDR.MeshCollector.prototype.overwriteColor = function(color) {
         }
     }
 
-    for(var i = 0; i < this.triangleMeshes.length; i++) {
+    for(let i = 0; i < this.triangleMeshes.length; i++) {
 	handle(this.triangleMeshes[i], false);
     }
-    for(var i = 0; i < this.lineMeshes.length; i++) {
+    for(let i = 0; i < this.lineMeshes.length; i++) {
 	handle(this.lineMeshes[i], true);
     }
     this.overwrittenColor = color;
@@ -1546,15 +1549,15 @@ LDR.MeshCollector.prototype.setVisible = function(v) {
 }
 
 LDR.MeshCollector.prototype.getGhostedParts = function() {
-    var lineObjects = this.lineMeshes.filter(obj => obj.part && obj.part.ghost);
-    var triangleObjects = this.triangleMeshes.filter(obj => obj.part && obj.part.ghost);
+    let lineObjects = this.lineMeshes.filter(obj => obj.part && obj.part.ghost);
+    let triangleObjects = this.triangleMeshes.filter(obj => obj.part && obj.part.ghost);
     return [lineObjects,triangleObjects];
 }
 
 LDR.MeshCollector.prototype.removeGhostedParts = function() {
-    var [lineObjects,triangleObjects] = this.getGhostedParts();
+    let [lineObjects,triangleObjects] = this.getGhostedParts();
 
-    var self = this;
+    let self = this;
     function removeFromObjects(obj) {
         if(obj.opaque) {
             self.opaqueObject.remove(obj.mesh);

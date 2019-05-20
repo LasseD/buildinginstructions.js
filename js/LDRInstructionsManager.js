@@ -594,7 +594,7 @@ LDR.InstructionsManager.prototype.handleStepsWalked = function() {
 };
 
 LDR.InstructionsManager.prototype.goToStep = function(step) {
-    if(!ldrOptions.showEditor && this.pliHighlighted) {
+    if(this.pliHighlighted) {
         return; // Don't walk when showing preview.
     }
 
@@ -605,7 +605,7 @@ LDR.InstructionsManager.prototype.goToStep = function(step) {
 }
 
 LDR.InstructionsManager.prototype.nextStep = function() {
-    if(!ldrOptions.showEditor && this.pliHighlighted) {
+    if(this.pliHighlighted) {
         return; // Don't walk when showing preview.
     }
     if(this.stepHandler.isAtLastStep()) {
@@ -617,7 +617,7 @@ LDR.InstructionsManager.prototype.nextStep = function() {
 }
 
 LDR.InstructionsManager.prototype.prevStep = function() {
-    if(!ldrOptions.showEditor && this.pliHighlighted) {
+    if(this.pliHighlighted) {
         return; // Don't walk when showing preview.
     }
 

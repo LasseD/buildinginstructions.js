@@ -10,7 +10,7 @@ LDR.STORAGE = function(onDone) {
 	db.createObjectStore("models", {keyPath: "ID"});
     };
 
-    var self = this;
+    let self = this;
     this.req.onerror = function(event) {
 	console.warn('DB Error: ' + event.target.errorCode);
 	console.dir(event);
@@ -27,13 +27,13 @@ LDR.STORAGE = function(onDone) {
   Attempts to fetch all in array 'parts' and calls onDone(stillToBeBuilt) on completion.
  */
 LDR.STORAGE.prototype.retrievePartsFromStorage = function(parts, onDone) {
-    var stillToBeBuilt = [];
+    let stillToBeBuilt = [];
     
-    var transaction = this.db.transaction(["parts"]);
-    var objectStore = transaction.objectStore("parts");
+    let transaction = this.db.transaction(["parts"]);
+    let objectStore = transaction.objectStore("parts");
 
-    var self = this;
-    var remaining = parts.length;
+    let self = this;
+    let remaining = parts.length;
 
     function onHandled() {
 	remaining--;
@@ -47,7 +47,7 @@ LDR.STORAGE.prototype.retrievePartsFromStorage = function(parts, onDone) {
 
     function fetch(part) {
 	//console.log('Fetching ' + part.ID);
-	var request = objectStore.get(part.ID);
+	let request = objectStore.get(part.ID);
 	request.onerror = function(event) {
 	    stillToBeBuilt.push(part);
 	    console.warn(part.ID + " retrieval error from indexedDB!");
@@ -55,7 +55,7 @@ LDR.STORAGE.prototype.retrievePartsFromStorage = function(parts, onDone) {
 	    onHandled();
 	};
 	request.onsuccess = function(event) {
-	    var result = request.result;
+	    let result = request.result;
 	    if(result) {
 		//console.log("Fetched " + part.ID + " from indexedDB");
 		part.geometry = new LDR.LDRGeometry();

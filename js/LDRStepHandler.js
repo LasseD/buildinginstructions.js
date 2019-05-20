@@ -34,14 +34,12 @@ LDR.StepHandler = function(opaqueObject, transObject, loader, partDescs, isForMa
 
     for(let i = 0; i < this.length; i++) {
 	let step = this.part.steps[i];
+        let sh = null;
         if(step.containsNonPartSubModels(loader)) { // All are sub models (not parts):
             let subDescs = step.subModels.map(subModel => subModel.placeAt(partDesc));
-            let sh = new LDR.StepHandler(opaqueObject, transObject, loader, subDescs, false, storage);
-            this.steps.push(new LDR.StepInfo(sh, step));
+            sh = new LDR.StepHandler(opaqueObject, transObject, loader, subDescs, false, storage);
         }
-        else {
-            this.steps.push(new LDR.StepInfo(null, step.cloneColored(partDesc.colorID)));
-        }
+        this.steps.push(new LDR.StepInfo(sh, step.cloneColored(partDesc.colorID)));
     }
     this.steps.push(new LDR.StepInfo()); // One more for placement step.
     //console.log("Builder for " + partDesc.ID + " with " + this.part.steps.length + " normal steps.");
@@ -254,7 +252,7 @@ LDR.StepHandler.prototype.cleanUpAfterWalking = function() {
 	    }
 	}
 	if(this.hasExtraParts) {
-            var s = this.steps[this.length];
+            let s = this.steps[this.length];
             if(s.meshCollector) {
                 s.meshCollector.setVisible(false);
             }
@@ -275,7 +273,7 @@ LDR.StepHandler.prototype.cleanUpAfterWalking = function() {
 	    }
 	}
 	if(this.hasExtraParts) {
-            var s = this.steps[this.length];
+            let s = this.steps[this.length];
             if(s.meshCollector) {
                 s.meshCollector.setVisible(this.isAtPlacementStep());
             }
@@ -387,7 +385,7 @@ LDR.StepHandler.prototype.setCurrentBounds = function(b) {
 }
 
 LDR.StepHandler.prototype.drawExtras = function() {
-    var step = this.steps[this.length];
+    let step = this.steps[this.length];
     if(!this.hasExtraParts) { // No extra parts to draw: Copy from previous step:
 	if(!step.bounds) {
 	    step.accumulatedBounds = this.steps[this.length-1].accumulatedBounds;
@@ -556,7 +554,7 @@ LDR.StepHandler.prototype.setVisible = function(v) {
     if(!this.hasExtraParts) {
         return;
     }
-    var mc = this.steps[this.length].meshCollector;
+    let mc = this.steps[this.length].meshCollector;
     if(mc) {
         mc.setVisible(v);
     }
@@ -581,7 +579,7 @@ LDR.StepHandler.prototype.updateMeshCollectors = function(old) {
     if(!this.hasExtraParts) {
         return;
     }
-    var mc = this.steps[this.length].meshCollector;
+    let mc = this.steps[this.length].meshCollector;
     if(mc) {
 	let tOld = old;
 	if(tOld === undefined) {
