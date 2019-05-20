@@ -7,7 +7,7 @@ LDR.PLIBuilder = function(loader, canEdit, mainModelID, mainModelColor, pliEleme
     this.canEdit = canEdit;
     this.pliElement = pliElement;
     this.pliRenderElement = pliRenderElement;
-    this.partsBuilder = new LDR.PartsBulder(loader, mainModelID, mainModelColor);
+    this.partsBuilder = new LDR.PartsBuilder(loader, mainModelID, mainModelColor);
     this.fillHeight = false;
     this.groupParts = true;
     this.clickMap;
@@ -16,7 +16,7 @@ LDR.PLIBuilder = function(loader, canEdit, mainModelID, mainModelColor, pliEleme
     let self = this;
     ldrOptions.listeners.push(function() {
 	if(self.lastStep) {
-	    self.drawPLIForStep(self.fillHeight, self.lastStep, self.lastColorID,
+	    self.drawPLIForStep(self.fillHeight, self.lastStep,
 				self.lastMaxWidth, self.lastMaxHeight, true);
 	}
     });
@@ -37,16 +37,18 @@ LDR.PLIBuilder = function(loader, canEdit, mainModelID, mainModelColor, pliEleme
 
 LDR.PLIBuilder.prototype.getPC = function(key) {
     let pc = this.partsBuilder.pcs[key];
-    if(!pc.mesh) {
-	pc.mesh = new THREE.Group();
-	pc.draw(pc.mesh);
+    if(!pc.partType.mesh) { // Ensure size is computed.
+        const pt = pc.partType;
+	pt.mesh = new THREE.Group();
+        pc.ensureMeshCollector(pt.mesh);
+	pc.colorAndDraw();
 	let elementCenter = new THREE.Vector3();
 	let b = pc.getBounds();
 	b.getCenter(elementCenter);
-	pc.mesh.position.sub(elementCenter);
-	let [dx,dy] = this.measurer.measure(b, pc.mesh.matrixWorld);
-	pc.dx = dx;
-	pc.dy = dy;
+	pt.mesh.position.sub(elementCenter);
+	let [dx,dy] = this.measurer.measure(b, pt.mesh.matrixWorld);
+	pt.dx = dx;
+	pt.dy = dy;
     }
     return pc;
 }
@@ -61,16 +63,16 @@ LDR.PLIBuilder.prototype.updateCamera = function(w, h) {
 
 LDR.PLIBuilder.prototype.render = function(key, w, h) {
     let pc = this.getPC(key);
-    pc.meshCollector.draw(false);
+    pc.colorAndDraw();
     
-    this.scene.add(pc.mesh);
+    this.scene.add(pc.partType.mesh);
     this.renderer.setSize(w+1, h+1); // +1 to ensure edges are in frame in case of rounding down.
-    this.updateCamera(pc.dx, pc.dy);
+    this.updateCamera(pc.partType.dx, pc.partType.dy);
     this.renderer.render(this.scene, this.camera);
-    this.scene.remove(pc.mesh);
+    this.scene.remove(pc.partType.mesh);
 }
 
-LDR.PLIBuilder.prototype.createClickMap = function(step, stepColorID) {
+LDR.PLIBuilder.prototype.createClickMap = function(step) {
     let icons = {}; // key -> {key, partID, colorID, mult, desc}, key='part_id'_'color_id'
     this.clickMap = [];
     for(let i = 0; i < step.subModels.length; i++) {
@@ -79,28 +81,28 @@ LDR.PLIBuilder.prototype.createClickMap = function(step, stepColorID) {
             continue; // Do not show sub models.
         }
 	let partID = dat.ID;
-	let colorID = dat.colorID == 16 ? stepColorID : dat.colorID;
+	let colorID = dat.colorID;
 	let key = partID.endsWith('.dat') ? partID.substring(0, partID.length-4) : partID;
 	key += '_' + colorID;
 
 	let icon = icons[key];
-	if(this.groupParts && icon) {
-	    icon.mult++;
+        if(this.groupParts && icon) {
+            icon.mult++;
 	}
 	else {
 	    let pc = this.getPC(key);
 	    let b = pc.getBounds();
 	    let type = this.loader.partTypes[partID];
 	    icon = {key: key,
-		    partID: partID, 
-		    colorID: colorID, 
-		    mult: 1, 
+		    partID: partID,
+		    colorID: colorID,
+                    mult: 1,
 		    desc: type.modelDescription,
-		    annotation: pc.annotation,
-		    dx: pc.dx,
-		    dy: pc.dy,
+		    annotation: pc.partType.annotation,
+		    dx: pc.partType.dx,
+		    dy: pc.partType.dy,
 		    size: b.min.distanceTo(b.max),
-		    inlined: pc.inlined,
+		    inlined: pc.partType.inlined,
                     part: dat, // Used by editor.
 		   };
 	    icons[key] = icon;
@@ -111,22 +113,19 @@ LDR.PLIBuilder.prototype.createClickMap = function(step, stepColorID) {
     let sorter = function(a, b) {
 	let ca = a.desc;
 	let cb = b.desc;
-	if(ca != cb) {
+	if(ca !== cb) {
 	    return ca < cb ? -1 : 1;
 	}
-	let ia = a.colorID;
-	let ib = b.colorID;
-	return ia < ib ? -1 : (ib < ia ? 1 : 0);
+	return a.colorID - b.colorID;
     }
     this.clickMap.sort(sorter);
 }
 
-LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, maxWidth, maxHeight, maxSizePerPixel, force) {
+LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, maxHeight, maxSizePerPixel, force) {
     let groupParts = !(this.canEdit && ldrOptions.showEditor);
     // Ensure no re-draw if not necessary:
     if(!force && 
-       this.lastStep && this.lastStep.idx === step.idx && 
-       this.lastColorID === colorID && this.lastGroupParts === groupParts &&
+       this.lastStep && this.lastStep.idx === step.idx && this.lastGroupParts === groupParts &&
        this.lastMaxWidth === maxWidth && this.lastMaxHeight === maxHeight &&
        this.fillHeight === fillHeight) {
 	return;
@@ -134,12 +133,11 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, colorID, ma
     this.groupParts = groupParts;
     this.fillHeight = fillHeight;
     this.lastStep = step;
-    this.lastColorID = colorID;
     this.lastMaxWidth = maxWidth;
     this.lastMaxHeight = maxHeight;
 
     // Find, sort and set up icons to show:
-    this.createClickMap(step, colorID);
+    this.createClickMap(step);
     let [W,H] = Algorithm.PackRectangles(fillHeight, maxWidth, maxHeight, this.clickMap, maxSizePerPixel); // Previously max size window.innerWidth/5
     this.pliElement.width = (12+W)*window.devicePixelRatio;
     this.pliElement.height = (28+H)*window.devicePixelRatio;

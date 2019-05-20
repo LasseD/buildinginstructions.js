@@ -162,8 +162,12 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
 
         // Enable editor:
         if(self.canEdit) {
+            function onStepChanged() {
+                self.handleStepsWalked();
+                self.updateUIComponents(true); // TODO: Doesn't work.
+            }
             self.stepEditor = new LDR.StepEditor(self.ldrLoader, self.stepHandler, 
-                                                 () => self.handleStepsWalked(), self.modelID);
+                                                 onStepChanged, self.modelID);
             self.stepEditor.createGuiComponents(document.getElementById('editor'));
             if(ldrOptions.showEditor === 1) {
                 $("#editor").show();
@@ -306,7 +310,7 @@ LDR.InstructionsManager.prototype.updateUIComponents = function(force) {
 }
 
 LDR.InstructionsManager.prototype.updatePLI = function(force) {
-    var [step,stepColorID] = this.stepHandler.getCurrentStepAndColor();
+    var step = this.stepHandler.getCurrentStep();
     this.showPLI = (ldrOptions.showEditor || ldrOptions.showPLI) && step.containsPartSubModels(this.ldrLoader);
     if(!this.showPLI) {
         this.pliBuilder.pliElement.style.display = 'none';
@@ -319,10 +323,10 @@ LDR.InstructionsManager.prototype.updatePLI = function(force) {
     var maxHeight = (window.innerHeight - 130 - this.adPeek);
     
     if(window.innerWidth > window.innerHeight) {
-        this.pliBuilder.drawPLIForStep(true, step, stepColorID, maxWidth*0.4, maxHeight, this.maxSizePerPixel, force);
+        this.pliBuilder.drawPLIForStep(true, step, maxWidth*0.4, maxHeight, this.maxSizePerPixel, force);
     }
     else {
-        this.pliBuilder.drawPLIForStep(false, step, stepColorID, maxWidth, maxHeight*0.35, this.maxSizePerPixel, force);
+        this.pliBuilder.drawPLIForStep(false, step, maxWidth, maxHeight*0.35, this.maxSizePerPixel, force);
     }
     this.pliW = parseInt(this.pliElement.offsetWidth + this.pliElement.offsetLeft)+6; // 6 for border.
     this.pliH = parseInt(this.pliElement.offsetHeight);
@@ -659,6 +663,7 @@ LDR.InstructionsManager.prototype.onPLIClick = function(e) {
             }
             else { // Show preview if no editor:
                 this.pliPreviewer.scene.remove(this.pliHighlighted);
+                console.dir(icon); console.warn('TODO: Take mesh and bounds from partType');
                 var pc = this.pliBuilder.getPC(icon.key);
                 this.pliHighlighted = pc.mesh;
                 this.pliPreviewer.scene.add(this.pliHighlighted);

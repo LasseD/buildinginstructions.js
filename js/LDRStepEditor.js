@@ -67,10 +67,10 @@ LDR.StepEditor = function(loader, stepHandler, onChange, modelID) {
 }
 
 LDR.StepEditor.prototype.updateCurrentStep = function() {
-    var [part, stepIndex] = this.stepHandler.getCurrentPartAndStepIndex();
+    var [part, stepIndex, step] = this.stepHandler.getCurrentStepInfo();
     this.part = part;
     this.stepIndex = stepIndex;
-    this.step = part.steps[stepIndex];
+    this.step = step;
     this.onStepSelectedListeners.forEach(listener => listener());
 }
 
@@ -322,4 +322,3 @@ LDR.StepEditor.prototype.makeRemovePartsIcon = function() {
     svg.appendChild(LDR.SVG.makeLine(0, 30, 60, -30, true));
     return svg;
 }
-

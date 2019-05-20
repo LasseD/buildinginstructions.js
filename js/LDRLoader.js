@@ -451,8 +451,8 @@ THREE.LDRLoader.prototype.removeGeometries = function() {
 	    partType.steps[i].removePrimitivesAndSubParts(); // Remove unused 'geometries'.
 	}
 
-	if(partType.geometry) {
-	    delete partType.geometry;
+	if(!this.saveFileLines && partType.geometry) {
+	    delete partType.geometry; // Only delete geometries when file lines are not saved as this indicates that data is not reused.
         }
     }
 }
@@ -469,6 +469,11 @@ THREE.LDRPartDescription = function(colorID, position, rotation, ID, cull, inver
     this.cull = cull;
     this.invertCCW = invertCCW;
     this.ghost = false; // For editor.
+}
+
+THREE.LDRPartDescription.prototype.cloneColored = function(colorID) {
+    return new THREE.LDRPartDescription(this.colorID === 16 ? colorID : this.colorID, this.position,
+                                        this.rotation, this.ID, this.cull, this.invertCCW);
 }
 
 THREE.LDRPartDescription.prototype.placedColor = function(pdColorID) {
@@ -610,6 +615,26 @@ THREE.LDRStep.prototype.removePrimitivesAndSubParts = function() {
     delete this.conditionalLines;
     delete this.triangles;
     delete this.quads;
+}
+
+THREE.LDRStep.prototype.cloneColored = function(colorID) {
+    if(colorID === 16 || colorID === 24) {
+        throw "Cannot clone colored with special color 16 or 24!";
+    }
+    if(this.hasPrimitives) {
+        throw "Cannot clone step with primitives!";
+    }
+    var ret = new THREE.LDRStep();
+
+    ret.empty = this.empty;
+    ret.hasPrimitives = false;
+    ret.subModels = this.subModels.map(subModel => subModel.cloneColored(colorID));
+    ret.rotation = this.rotation;
+    ret.cull = true;
+    ret.cnt = this.cnt;
+    ret.fileLines = this.fileLines;
+
+    return ret;
 }
 
 THREE.LDRStep.prototype.toLDR= function(prevStepRotation) {
@@ -1014,7 +1039,7 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 	var material = mc.getLineMaterial(this.geometry.lineColorManager, c, false);
 	var normalLines = new THREE.LineSegments(this.geometry.lineGeometry, material);
 	normalLines.applyMatrix(m4);
-	mc.addLines(normalLines, pd);
+	mc.addLines(normalLines, pd, false);
 
 	var b = this.geometry.lineGeometry.boundingBox;
 	mc.expandBoundingBox(b, m4);
@@ -1025,7 +1050,7 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 	var material = mc.getLineMaterial(this.geometry.lineColorManager, c, true);
 	var conditionalLines = new THREE.LineSegments(this.geometry.conditionalLineGeometry, material);
 	conditionalLines.applyMatrix(m4);
-	mc.addLines(conditionalLines, pd);
+	mc.addLines(conditionalLines, pd, true);
 
 	if(!expanded) {
 	    var b = this.geometry.conditionalLineGeometry.boundingBox;
@@ -1311,8 +1336,9 @@ LDR.GeometryBuilder.prototype.build = function(toBeBuilt) {
   - 'ghost': 'Ghosted' parts will be shown by their lines only (no faces).
 */
 LDR.MeshCollector = function(opaqueObject, transObject) {
-    if(!transObject)
+    if(!transObject) {
 	throw "Missing parameters on MeshCollector";
+    }
     this.opaqueObject = opaqueObject;
     this.transObject = transObject; // To be painted last.
 
@@ -1339,8 +1365,9 @@ LDR.MeshCollector.prototype.getLineMaterial = function(colorManager, color, cond
     else {
 	key = color + "|" + conditional;
     }
-    if(this.lineMaterials.hasOwnProperty(key))
+    if(this.lineMaterials.hasOwnProperty(key)) {
 	return this.lineMaterials[key];
+    }
     var m = new LDR.Colors.buildLineMaterial(colorManager, color, conditional);
     this.lineMaterials[key] = m;
     //console.log("Constructed (line) material " + this.cntMaterials + " for key " + key);
@@ -1366,8 +1393,8 @@ LDR.MeshCollector.prototype.getTriangleMaterial = function(colorManager, color, 
     return m;
 }
 
-LDR.MeshCollector.prototype.addLines = function(mesh, part) {
-    this.lineMeshes.push({mesh:mesh, part:part, opaque:true});
+LDR.MeshCollector.prototype.addLines = function(mesh, part, conditional) {
+    this.lineMeshes.push({mesh:mesh, part:part, opaque:true, conditional:conditional});
     this.opaqueObject.add(mesh);
 }
 LDR.MeshCollector.prototype.addOpaque = function(mesh, part) {
@@ -1472,9 +1499,13 @@ LDR.MeshCollector.prototype.update = function(old) {
   This is a temporary function used by single parts render. 
   To be decomissioned when colors are moved to an attribute.
  */
-LDR.MeshCollector.prototype.overwriteColor = function(color) {    
-    function handle(m, edge) {
-	var c = m.colorManager;
+LDR.MeshCollector.prototype.overwriteColor = function(color) {
+    if(this.overwrittenColor === color) {
+        return;
+    }
+    function handle(obj, edge) {
+        const m = obj.mesh.material;
+        const c = m.colorManager;
 	c.overWrite(color);
 	var colors = !edge || ldrOptions.lineContrast > 0 ? c.shaderColors : c.highContrastShaderColors;
 	if(colors.length === 1) {
@@ -1486,11 +1517,12 @@ LDR.MeshCollector.prototype.overwriteColor = function(color) {
     }
 
     for(var i = 0; i < this.triangleMeshes.length; i++) {
-	handle(this.triangleMeshes[i].mesh.material, false);
+	handle(this.triangleMeshes[i], false);
     }
     for(var i = 0; i < this.lineMeshes.length; i++) {
-	handle(this.lineMeshes[i].mesh.material, true);
+	handle(this.lineMeshes[i], true);
     }
+    this.overwrittenColor = color;
 }
 
 LDR.MeshCollector.prototype.draw = function(old) {
@@ -1513,7 +1545,15 @@ LDR.MeshCollector.prototype.setVisible = function(v) {
     this.updateMeshVisibility();
 }
 
+LDR.MeshCollector.prototype.getGhostedParts = function() {
+    var lineObjects = this.lineMeshes.filter(obj => obj.part && obj.part.ghost);
+    var triangleObjects = this.triangleMeshes.filter(obj => obj.part && obj.part.ghost);
+    return [lineObjects,triangleObjects];
+}
+
 LDR.MeshCollector.prototype.removeGhostedParts = function() {
+    var [lineObjects,triangleObjects] = this.getGhostedParts();
+
     var self = this;
     function removeFromObjects(obj) {
         if(obj.opaque) {
@@ -1525,12 +1565,10 @@ LDR.MeshCollector.prototype.removeGhostedParts = function() {
     }
 
     // Handle lines:
-    var lineObjects = this.lineMeshes.filter(obj => obj.part && obj.part.ghost);
     lineObjects.forEach(removeFromObjects);
     this.lineMeshes = this.lineMeshes.filter(obj => !(obj.part && obj.part.ghost));
 
     // Handle triangles:
-    var triangleObjects = this.triangleMeshes.filter(obj => obj.part && obj.part.ghost);
     lineObjects.forEach(removeFromObjects);
     this.triangleMeshes = this.triangleMeshes.filter(obj => !(obj.part && obj.part.ghost));
 
