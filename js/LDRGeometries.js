@@ -22,18 +22,22 @@ LDR.mergeGeometries = function(geometries) {
   A vertex is sorted by {x,y,z,c}.
  */
 LDR.vertexSorter = function(a, b) {
-    if(a.x != b.x)
+    if(a.x != b.x) {
 	return a.x - b.x;
-    if(a.y != b.y)
+    }
+    if(a.y != b.y) {
 	return a.y - b.y;
+    }
     return a.z - b.z;
 }
 
 LDR.vertexLessThan = function(a, b) {
-    if(a.x != b.x)
+    if(a.x != b.x) {
 	return a.x < b.x;
-    if(a.y != b.y)
+    }
+    if(a.y != b.y) {
 	return a.y < b.y;
+    }
     return a.z < b.z;
 }
 
@@ -58,8 +62,9 @@ LDR.LDRGeometry.prototype.serialize = function() {
     let ret = '1'; // version
 
     function format(x) {
-	if(x == Math.round(x))
+	if(x == Math.round(x)) {
 	    return x;
+        }
 	return x.toFixed(3);
     }
 
@@ -104,8 +109,9 @@ LDR.LDRGeometry.prototype.pack = function() {
     // Lines:
     function handle(x, size) {
 	for(let c in x) {
-	    if(!x.hasOwnProperty(c))
+	    if(!x.hasOwnProperty(c)) {
 		continue; // Not a part.
+            }
 	    let primitives = x[c];
 	    arrayI.push(c, primitives.length);
 	    for(let i = 0; i < primitives.length; i++) {
@@ -132,17 +138,20 @@ LDR.LDRGeometry.prototype.pack = function() {
 
 LDR.LDRGeometry.prototype.deserialize = function(txt) {
     let a = Float32Array.from(txt.split(/\,/));
-    if(a[0] != 1)
+    if(a[0] != 1) {
 	throw 'version error!';
+    }
 
     let sizeF = a[1];
     let arrayF = [], arrayI = [];
     let idx = 2;
-    for(let i = 0; i < sizeF; i++)
+    for(let i = 0; i < sizeF; i++) {
 	arrayF.push(a[idx++]);
+    }
     let sizeI = a[idx++];
-    for(let i = 0; i < sizeI; i++)
+    for(let i = 0; i < sizeI; i++) {
 	arrayI.push(a[idx++]);
+    }
 
     let packed = {f:arrayF, i:arrayI};
     this.unpack(packed);
@@ -154,11 +163,13 @@ LDR.LDRGeometry.prototype.unpack = function(packed) {
     let idxI = 0, idxF = 0;
 
     while(true) {
-	if(idxI >= arrayI.length)
+	if(idxI >= arrayI.length) {
 	    throw 'Deserialization error 1!';
+        }
 	let numVertices = arrayI[idxI++];
-	if(numVertices < 0)
+	if(numVertices < 0) {
 	    break;
+        }
 	let x = arrayF[idxF++];
 	for(let i = 0; i < numVertices; i++) {
 	    let v = {x:x, y:arrayF[idxF++], z:arrayF[idxF++]};
@@ -169,8 +180,9 @@ LDR.LDRGeometry.prototype.unpack = function(packed) {
 
     function extract(size, into) {
 	while(true) {
-	    if(idxI >= arrayI.length)
+	    if(idxI >= arrayI.length) {
 		throw 'Deserialization error!';
+            }
 	    let ret = [];
 	    let c = arrayI[idxI++];
 	    if(c < 0) {
@@ -225,21 +237,23 @@ LDR.LDRGeometry.prototype.buildGeometriesAndColors = function() {
     // First handle line vertices:
     let allLineColors = [];
     for(let c in this.lines) {
-	if(!this.lines.hasOwnProperty(c))
+	if(!this.lines.hasOwnProperty(c)) {
 	    continue; // Not a color.
+        }
 	allLineColors.push(c);
     }
     for(let c in this.conditionalLines) {
-	if(!this.conditionalLines.hasOwnProperty(c) || this.lines.hasOwnProperty(c))
+	if(!this.conditionalLines.hasOwnProperty(c) || this.lines.hasOwnProperty(c)) {
 	    continue; // Not a color.
+        }
 	allLineColors.push(c);
     }
 
     let colorIdx = 0;
     let self = this;
-    function handleVertex(vertices, idx, fc) {
+    let handleVertex = function(vertices, idx, fc) {
 	let v = self.vertices[idx];
-	if(v.c != colorIdx) {
+	if(v.c !== colorIdx) {
 	    v.c = colorIdx;
 	    v.idx = vertices.length/4;
 	    vertices.push(v.x, v.y, v.z, fc);
@@ -312,12 +326,14 @@ LDR.LDRGeometry.prototype.buildGeometriesAndColors = function() {
 
     let allTriangleColors = [];
     for(let c in this.triangles) {
-	if(this.triangles.hasOwnProperty(c))
+	if(this.triangles.hasOwnProperty(c)) {
 	    allTriangleColors.push(c);
+        }
     }
     for(let c in this.quads) {
-	if(this.quads.hasOwnProperty(c) && !this.triangles.hasOwnProperty(c))
+	if(this.quads.hasOwnProperty(c) && !this.triangles.hasOwnProperty(c)) {
 	    allTriangleColors.push(c);
+        }
     }
 
     let triangleVertexAttribute, triangleVertices = [], triangleIndices = [];
@@ -410,15 +426,17 @@ LDR.LDRGeometry.prototype.buildGeometryForConditionalLines = function(multiColor
 	p2s.push(line.p2.x, line.p2.y, line.p2.z, line.p1.x, line.p1.y, line.p1.z);
 	p3s.push(line.p3.x, line.p3.y, line.p3.z, line.p3.x, line.p3.y, line.p3.z);
 	p4s.push(line.p4.x, line.p4.y, line.p4.z, line.p4.x, line.p4.y, line.p4.z);
-	if(multiColored)
+	if(multiColored) {
 	    colorIndices.push(line.fc, line.fc); // 2 points.
+        }
     }
     this.conditionalLineGeometry.addAttribute('position', new THREE.BufferAttribute(new Float32Array(p1s), 3));
     this.conditionalLineGeometry.addAttribute('p2', new THREE.BufferAttribute(new Float32Array(p2s), 3));
     this.conditionalLineGeometry.addAttribute('p3', new THREE.BufferAttribute(new Float32Array(p3s), 3));
     this.conditionalLineGeometry.addAttribute('p4', new THREE.BufferAttribute(new Float32Array(p4s), 3));
-    if(multiColored)
+    if(multiColored) {
 	this.conditionalLineGeometry.addAttribute('colorIndex', new THREE.BufferAttribute(new Float32Array(colorIndices), 1));
+    }
 
     this.conditionalLineGeometry.computeBoundingBox();
 }
@@ -439,8 +457,9 @@ LDR.LDRGeometry.prototype.replaceWithDeep = function(g) {
     }
 
     for(let c in g.lines) {
-	if(!g.lines.hasOwnProperty(c))
+	if(!g.lines.hasOwnProperty(c)) {
 	    continue;
+        }
 	let primitives = g.lines[c];
 	let ps = [];
 	for(let i = 0; i < primitives.length; i++) {
@@ -450,8 +469,9 @@ LDR.LDRGeometry.prototype.replaceWithDeep = function(g) {
 	this.lines[c] = ps;
     }
     for(let c in g.conditionalLines) {
-	if(!g.conditionalLines.hasOwnProperty(c))
+	if(!g.conditionalLines.hasOwnProperty(c)) {
 	    continue;
+        }
 	let primitives = g.conditionalLines[c];
 	let ps = [];
 	for(let i = 0; i < primitives.length; i++) {
@@ -461,8 +481,9 @@ LDR.LDRGeometry.prototype.replaceWithDeep = function(g) {
 	this.conditionalLines[c] = ps;
     }
     for(let c in g.triangles) {
-	if(!g.triangles.hasOwnProperty(c))
+	if(!g.triangles.hasOwnProperty(c)) {
 	    continue;
+        }
 	let primitives = g.triangles[c];
 	let ps = [];
 	for(let i = 0; i < primitives.length; i++) {
@@ -472,8 +493,9 @@ LDR.LDRGeometry.prototype.replaceWithDeep = function(g) {
 	this.triangles[c] = ps;
     }
     for(let c in g.quads) {
-	if(!g.quads.hasOwnProperty(c))
+	if(!g.quads.hasOwnProperty(c)) {
 	    continue;
+        }
 	let primitives = g.quads[c];
 	let ps = [];
 	for(let i = 0; i < primitives.length; i++) {
@@ -527,14 +549,20 @@ LDR.LDRGeometry.prototype.sortAndBurnVertices = function(vertices, primitives, t
 	if(!(prev && prev.x == v.x && prev.y == v.y && prev.z == v.z)) {
 	    this.vertices.push(v);
 	}
-	if(v.p == 1)
-	    primitives[v.c][v.idx].p1 = this.vertices.length-1;
-	else if(v.p == 2)
-	    primitives[v.c][v.idx].p2 = this.vertices.length-1;
-	else if(v.p == 3)
-	    primitives[v.c][v.idx].p3 = this.vertices.length-1;
-	else
-	    primitives[v.c][v.idx].p4 = this.vertices.length-1;
+
+        let p = primitives[v.c][v.idx];
+	if(v.p == 1) {
+	    p.p1 = this.vertices.length-1;
+        }
+	else if(v.p == 2) {
+	    p.p2 = this.vertices.length-1;
+        }
+	else if(v.p == 3) {
+	    p.p3 = this.vertices.length-1;
+        }
+	else {
+	    p.p4 = this.vertices.length-1;
+        }
 	delete v.idx;
 	delete v.p;
 	delete v.c;
@@ -551,7 +579,7 @@ LDR.LDRGeometry.prototype.fromLines = function(ps) {
 	let p = ps[i], idx;
 	if(this.lines.hasOwnProperty(p.colorID)) {
 	    let t = this.lines[p.colorID];
-	    let idx = t.length;
+	    idx = t.length;
 	    t.push({});
 	}
 	else {
@@ -570,7 +598,7 @@ LDR.LDRGeometry.prototype.fromConditionalLines = function(ps) {
 	let p = ps[i], idx;
 	if(this.conditionalLines.hasOwnProperty(p.colorID)) {
 	    let t = this.conditionalLines[p.colorID];
-	    let idx = t.length;
+	    idx = t.length;
 	    t.push({});
 	}
 	else {
@@ -591,7 +619,7 @@ LDR.LDRGeometry.prototype.fromTriangles = function(ps) {
 	let p = ps[i], idx;
 	if(this.triangles.hasOwnProperty(p.colorID)) {
 	    let t = this.triangles[p.colorID];
-	    let idx = t.length;
+	    idx = t.length;
 	    t.push({});
 	}
 	else {
@@ -611,7 +639,7 @@ LDR.LDRGeometry.prototype.fromQuads = function(ps) {
 	let p = ps[i], idx;
 	if(this.quads.hasOwnProperty(p.colorID)) {
 	    let t = this.quads[p.colorID];
-	    let idx = t.length;
+	    idx = t.length;
 	    t.push({});
 	}
 	else {
@@ -677,20 +705,25 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
     }
     else if(pd.colorID == 24) {	    
 	replaceColor = function(x) {
-	    if(x == 16)
+	    if(x == 16) {
 		return 24;
-	    else
+            }
+	    else {
 		return x;
+            }
 	};
     }
     else {
 	replaceColor = function(x) {
-	    if(x == 16)
+	    if(x == 16) {
 		return pd.colorID;
-	    else if(x == 24)
+            }
+	    else if(x == 24) {
 		return pd.colorID + 10000;
-	    else
+            }
+	    else {
 		return x;
+            }
 	};
     }
 
@@ -718,8 +751,9 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
     // Update the indices and colors on the primitives:
 
     for(let c in this.lines) {
-	if(!this.lines.hasOwnProperty(c))
+	if(!this.lines.hasOwnProperty(c)) {
 	    continue;
+        }
 	let lines = this.lines[c];
 	for(let i = 0; i < lines.length; i++) {
             let p = lines[i];
@@ -740,8 +774,9 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
 	}
     }
     for(let c in this.conditionalLines) {
-	if(!this.conditionalLines.hasOwnProperty(c))
+	if(!this.conditionalLines.hasOwnProperty(c)) {
 	    continue;
+        }
 	let conditionalLines = this.conditionalLines[c];
 	for(let i = 0; i < conditionalLines.length; i++) {
             let p = conditionalLines[i];
@@ -768,8 +803,9 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
 
     if(invert) {
 	for(let c in this.triangles) {
-	    if(!this.triangles.hasOwnProperty(c))
+	    if(!this.triangles.hasOwnProperty(c)) {
 		continue;
+            }
 	    let triangles = this.triangles[c];
 	    for(let i = 0; i < triangles.length; i++) {
 		let p = triangles[i];
@@ -792,8 +828,9 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
 	    }
 	}
 	for(let c in this.quads) {
-	    if(!this.quads.hasOwnProperty(c))
+	    if(!this.quads.hasOwnProperty(c)) {
 		continue;
+            }
 	    let quads = this.quads[c];
 	    for(let i = 0; i < quads.length; i++) {
 		let p = quads[i];
@@ -820,8 +857,9 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
     }
     else {
 	for(let c in this.triangles) {
-	    if(!this.triangles.hasOwnProperty(c))
+	    if(!this.triangles.hasOwnProperty(c)) {
 		continue;
+            }
 	    let triangles = this.triangles[c];
 	    for(let i = 0; i < triangles.length; i++) {
 		let p = triangles[i];
@@ -844,8 +882,9 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
 	    }
 	}
 	for(let c in this.quads) {
-	    if(!this.quads.hasOwnProperty(c))
+	    if(!this.quads.hasOwnProperty(c)) {
 		continue;
+            }
 	    let quads = this.quads[c];
 	    for(let i = 0; i < quads.length; i++) {
 		let p = quads[i];
@@ -896,29 +935,35 @@ LDR.map4 = function(p, map) {
 }
 LDR.LDRGeometry.prototype.mapIndices = function(map) {
     for(let c in this.lines) {
-	if(this.lines.hasOwnProperty(c))
+	if(this.lines.hasOwnProperty(c)) {
 	    this.lines[c].forEach(function(x){LDR.map2(x, map);});
+        }
     }
     for(let c in this.conditionalLines) {
-	if(this.conditionalLines.hasOwnProperty(c))
+	if(this.conditionalLines.hasOwnProperty(c)) {
 	    this.conditionalLines[c].forEach(function(x){LDR.map4(x, map);});
+        }
     }
     for(let c in this.triangles) {
-	if(this.triangles.hasOwnProperty(c))
+	if(this.triangles.hasOwnProperty(c)) {
 	    this.triangles[c].forEach(function(x){LDR.map3(x, map);});
+        }
     }
     for(let c in this.quads) {
-	if(this.quads.hasOwnProperty(c))
+	if(this.quads.hasOwnProperty(c)) {
 	    this.quads[c].forEach(function(x){LDR.map4(x, map);});
+        }
     }
 }
 
 LDR.LDRGeometry.prototype.ensureCull = function() {
-    if(this.cull)
+    if(this.cull) {
 	return;
+    }
     for(let c in this.triangles) {
-	if(!this.triangles.hasOwnProperty(c))
+	if(!this.triangles.hasOwnProperty(c)) {
 	    continue;
+        }
 	let triangles = this.triangles[c];
 	let T = triangles.length;
 	for(let i = 0; i < T; i++) {
@@ -927,8 +972,9 @@ LDR.LDRGeometry.prototype.ensureCull = function() {
 	}
     }
     for(let c in this.quads) {
-	if(!this.quads.hasOwnProperty(c))
+	if(!this.quads.hasOwnProperty(c)) {
 	    continue;
+        }
 	let quads = this.quads[c];
 	let Q = quads.length;
 	for(let i = 0; i < Q; i++) {
@@ -988,35 +1034,47 @@ LDR.LDRGeometry.prototype.merge = function(other) {
     other.mapIndices(indexMapOther);
 
     for(let c in other.lines) {
-	if(!other.lines.hasOwnProperty(c))
+	if(!other.lines.hasOwnProperty(c)) {
 	    continue;
-	if(this.lines.hasOwnProperty(c))
+        }
+	if(this.lines.hasOwnProperty(c)) {
 	    this.lines[c].push(...other.lines[c]);
-	else
+        }
+	else {
 	    this.lines[c] = other.lines[c];
+        }
     }
     for(let c in other.conditionalLines) {
-	if(!other.conditionalLines.hasOwnProperty(c))
+	if(!other.conditionalLines.hasOwnProperty(c)) {
 	    continue;
-	if(this.conditionalLines.hasOwnProperty(c))
+        }
+	if(this.conditionalLines.hasOwnProperty(c)) {
 	    this.conditionalLines[c].push(...other.conditionalLines[c]);
-	else
+        }
+	else {
 	    this.conditionalLines[c] = other.conditionalLines[c];
+        }
     }
     for(let c in other.triangles) {
-	if(!other.triangles.hasOwnProperty(c))
+	if(!other.triangles.hasOwnProperty(c)) {
 	    continue;
-	if(this.triangles.hasOwnProperty(c))
+        }
+	if(this.triangles.hasOwnProperty(c)) {
 	    this.triangles[c].push(...other.triangles[c]);
-	else
+        }
+	else {
 	    this.triangles[c] = other.triangles[c];
+        }
     }
     for(let c in other.quads) {
-	if(!other.quads.hasOwnProperty(c))
+	if(!other.quads.hasOwnProperty(c)) {
 	    continue;
-	if(this.quads.hasOwnProperty(c))
+        }
+	if(this.quads.hasOwnProperty(c)) {
 	    this.quads[c].push(...other.quads[c]);
-	else
+        }
+	else {
 	    this.quads[c] = other.quads[c];
+        }
     }
 }
