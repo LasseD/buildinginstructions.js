@@ -7,7 +7,7 @@ LDR.PLIBuilder = function(loader, canEdit, mainModelID, mainModelColor, pliEleme
     this.canEdit = canEdit;
     this.pliElement = pliElement;
     this.pliRenderElement = pliRenderElement;
-    this.partsBuilder = new LDR.PartsBuilder(loader, mainModelID, mainModelColor);
+    //this.partsBuilder = new LDR.PartsBuilder(loader, mainModelID, mainModelColor);
     this.fillHeight = false;
     this.groupParts = true;
     this.clickMap;
@@ -17,7 +17,7 @@ LDR.PLIBuilder = function(loader, canEdit, mainModelID, mainModelColor, pliEleme
     ldrOptions.listeners.push(function() {
 	if(self.lastStep) {
 	    self.drawPLIForStep(self.fillHeight, self.lastStep,
-				self.lastMaxWidth, self.lastMaxHeight, true);
+				self.lastMaxWidth, self.lastMaxHeight, 0, true);
 	}
     });
 
@@ -35,22 +35,28 @@ LDR.PLIBuilder = function(loader, canEdit, mainModelID, mainModelColor, pliEleme
     pliRenderElement.appendChild(this.renderer.domElement);
 }
 
-LDR.PLIBuilder.prototype.getPC = function(key) {
-    let pc = this.partsBuilder.pcs[key];
-    if(!pc.partType.mesh) { // Ensure size is computed.
-        const pt = pc.partType;
+LDR.PLIBuilder.prototype.getPartType = function(id) {
+    let pt = this.loader.partTypes[id];
+    if(!pt.mesh) { // Ensure size is computed.
 	pt.mesh = new THREE.Group();
-        pc.ensureMeshCollector(pt.mesh);
-	pc.colorAndDraw();
+
+        // Set up mesh collector:
+	pt.pliMC = new LDR.MeshCollector(pt.mesh, pt.mesh);
+	let p = new THREE.Vector3();
+	let r = new THREE.Matrix3(); r.set(1,0,0, 0,-1,0, 0,0,-1);
+	pt.generateThreePart(this.loader, 16, p, r, true, false, pt.pliMC);
+
+        // Draw to ensure bounding box:
+        pt.pliMC.draw(false);
 	let elementCenter = new THREE.Vector3();
-	let b = pc.getBounds();
+	let b = pt.pliMC.boundingBox;
 	b.getCenter(elementCenter);
 	pt.mesh.position.sub(elementCenter);
 	let [dx,dy] = this.measurer.measure(b, pt.mesh.matrixWorld);
 	pt.dx = dx;
 	pt.dy = dy;
     }
-    return pc;
+    return pt;
 }
 
 LDR.PLIBuilder.prototype.updateCamera = function(w, h) {
@@ -61,15 +67,17 @@ LDR.PLIBuilder.prototype.updateCamera = function(w, h) {
     this.camera.updateProjectionMatrix();
 }
 
-LDR.PLIBuilder.prototype.render = function(key, w, h) {
-    let pc = this.getPC(key);
-    pc.colorAndDraw();
-    
-    this.scene.add(pc.partType.mesh);
+ LDR.PLIBuilder.prototype.renderIcon = function(partID, colorID, w, h) {
+    let pt = this.getPartType(partID);
+
+    pt.pliMC.overwriteColor(colorID);
+    pt.pliMC.draw(false);
+
+    this.scene.add(pt.mesh);
     this.renderer.setSize(w+1, h+1); // +1 to ensure edges are in frame in case of rounding down.
-    this.updateCamera(pc.partType.dx, pc.partType.dy);
+    this.updateCamera(pt.dx, pt.dy);
     this.renderer.render(this.scene, this.camera);
-    this.scene.remove(pc.partType.mesh);
+    this.scene.remove(pt.mesh);
 }
 
 LDR.PLIBuilder.prototype.createClickMap = function(step) {
@@ -90,19 +98,19 @@ LDR.PLIBuilder.prototype.createClickMap = function(step) {
             icon.mult++;
 	}
 	else {
-	    let pc = this.getPC(key);
-	    let b = pc.getBounds();
+	    let pt = this.getPartType(partID);
+	    let b = pt.pliMC.boundingBox;
 	    let type = this.loader.partTypes[partID];
 	    icon = {key: key,
 		    partID: partID,
 		    colorID: colorID,
                     mult: 1,
 		    desc: type.modelDescription,
-		    annotation: pc.partType.annotation,
-		    dx: pc.partType.dx,
-		    dy: pc.partType.dy,
+		    annotation: pt.annotation,
+		    dx: pt.dx,
+		    dy: pt.dy,
 		    size: b.min.distanceTo(b.max),
-		    inlined: pc.partType.inlined,
+		    inlined: pt.inlined,
                     part: dat, // Used by editor.
 		   };
 	    icons[key] = icon;
@@ -157,7 +165,7 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
 	    let icon = self.clickMap[i];
 	    let w = parseInt(icon.width*scaleDown);
 	    let h = parseInt(icon.height*scaleDown);
-            self.render(icon.key, w, h);
+            self.renderIcon(icon.partID, icon.colorID, w, h);
 	    context.drawImage(self.renderer.domElement, (icon.x+8)*window.devicePixelRatio, (icon.y+5)*window.devicePixelRatio);
 	}
 	// Draw multipliers:

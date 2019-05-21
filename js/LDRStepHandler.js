@@ -235,7 +235,7 @@ LDR.StepHandler.prototype.cleanUpAfterWalking = function() {
     let step = this.current === -1 ? new LDR.StepInfo() : this.steps[this.current];
     let subStepHandler = step.stepHandler;
     if(subStepHandler) {
-	subStepHandler.cleanUpAfterWalking();
+	subStepHandler.cleanUpAfterWalking(); // Clean up visiility of all sub models.
     }
 
     if(subStepHandler && !subStepHandler.isAtPlacementStep()) {
@@ -259,11 +259,12 @@ LDR.StepHandler.prototype.cleanUpAfterWalking = function() {
 	}
     }
     else {
-	// Currently in a non-subStepHandler step, or placement step: Clear all after this step:
+	// Currently in a non-subStepHandler step, or placement step:
 	for(let i = 0; i < this.length; i++) {
+	    let v = i <= this.current; // Make everything up to current step visible.
+
             let s = this.steps[i];
 	    let mc = s.meshCollector;
-	    let v = i <= this.current; // Make everything up to current step visible.
 	    if(mc && mc.isVisible() !== v) {
 		mc.setVisible(v);
 	    }
@@ -615,12 +616,14 @@ LDR.StepHandler.prototype.colorGhosted = function(colorID) {
         console.warn('Not at a step where parts can be colored.');
         return;
     }
-    // Remove ghosted parts from both step and mc:
-    let pds = step.subModels.filter(pd => pd.ghost);
+
+    // Update descriptions:
+    step.subModels.filter(pd => pd.ghost).forEach(pd => pd.colorID = colorID);
+
+    // Update materials:
     let [lineObjects, triangleObjects] = mc.getGhostedParts();
-    
     let pts = this.loader.partTypes;
-    let trans = LDR.Colors.isTrans(colorID);
     lineObjects.forEach(obj => obj.mesh.material = mc.getLineMaterial(pts[obj.part.ID].geometry.lineColorManager, colorID, obj.conditional));
+    let trans = LDR.Colors.isTrans(colorID);
     triangleObjects.forEach(obj => obj.mesh.material = mc.getTriangleMaterial(pts[obj.part.ID].geometry.triangleColorManager, colorID, trans));
 }

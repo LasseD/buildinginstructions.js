@@ -136,13 +136,9 @@ LDR.PartAndColor = function(key, part, colorID, loader) {
 LDR.PartAndColor.prototype.ensureMeshCollector = function(baseObject) {
     if(!this.partType.pliMC) {
 	let mc = this.partType.pliMC = new LDR.MeshCollector(baseObject, baseObject);
-        //mc.mesh = baseObject; // TODO: Center the position of baseObject here, rather than in PLIBBuilder.getPC
-
-	// Build meshCollector (lines and triangles for part in color):
 	let p = new THREE.Vector3();
 	let r = new THREE.Matrix3();
 	r.set(1,0,0, 0,-1,0, 0,0,-1);
-
 	this.partType.generateThreePart(this.loader, this.colorID, p, r, true, false, mc);
     }
 }
@@ -155,11 +151,6 @@ LDR.PartAndColor.prototype.getBounds = function() {
 	throw "No bounding box for " + this.part.ID + " / " + this.partDesc;
     }
     return this.partType.pliMC.boundingBox;
-}
-
-LDR.PartAndColor.prototype.colorAndDraw = function(colorID) {
-    this.partType.pliMC.overwriteColor(colorID);
-    this.partType.pliMC.draw(false);
 }
 
 LDR.PartAndColor.prototype.setVisible = function(v, baseObject) {
