@@ -1100,66 +1100,79 @@ LDR.ColorManager = function() {
     this.map = {}; // colorID -> floatColor
     this.sixteen = -1;
     this.edgeSixteen = -1;
+    this.anyTransparentColors = false;
+    this.mainColorIsTransparent = false;
+}
 
-    this.clone = function() {
-	let ret = new LDR.ColorManager();
-	ret.shaderColors.push(...this.shaderColors);
-	ret.highContrastShaderColors.push(...this.highContrastShaderColors);
-	ret.sixteen = this.sixteen;
-	ret.edgeSixteen = this.edgeSixteen;
-	for(let c in this.map) {
-	    if(this.map.hasOwnProperty(c))
-		ret.map[c] = this.map[c];
-	}
-	return ret;
+LDR.ColorManager.prototype.clone = function() {
+    let ret = new LDR.ColorManager();
+    ret.shaderColors.push(...this.shaderColors);
+    ret.highContrastShaderColors.push(...this.highContrastShaderColors);
+    ret.sixteen = this.sixteen;
+    ret.edgeSixteen = this.edgeSixteen;
+    ret.anyTransparentColors = this.anyTransparentColors;
+    ret.mainColorIsTransparent = this.mainColorIsTransparent;
+    for(let c in this.map) {
+        if(this.map.hasOwnProperty(c))
+            ret.map[c] = this.map[c];
     }
+    return ret;
+}
 
-    this.overWrite = function(id) {
-        let isEdge = id >= 10000;
-        let lowID = isEdge ? id-10000 : id;
-	let colorObject = LDR.Colors[lowID];
-	if(!colorObject) {
-	    throw "Unknown color: " + id;
-        }
-	this.lastSet = id;
-	let alpha = colorObject.alpha ? colorObject.alpha/256.0 : 1;
-	if(this.sixteen >= 0) {
-	    let color = new THREE.Color(isEdge ? colorObject.edge : colorObject.value);
-	    this.shaderColors[this.sixteen] = new THREE.Vector4(color.r, color.g, color.b, alpha);
-	}
-	if(this.edgeSixteen >= 0) {
-	    let color = new THREE.Color(colorObject.edge);
-	    this.shaderColors[this.edgeSixteen] = new THREE.Vector4(color.r, color.g, color.b, alpha);
-	    this.highContrastShaderColors[this.edgeSixteen] = LDR.Colors.getHighContrastColor4(lowID);
-	}
+LDR.ColorManager.prototype.overWrite = function(id) {
+    let isEdge = id >= 10000;
+    let lowID = isEdge ? id-10000 : id;
+    let colorObject = LDR.Colors[lowID];
+    if(!colorObject) {
+        throw "Unknown color: " + id;
     }
-
-    this.get = function(id) {
-	let f = this.map[id];
-	if(f) {
-	    return f;
-	}
-	if(id == 16) {
-	    this.sixteen = this.shaderColors.length;
-        }
-	else if(id == 10016 || id == 24) {
-	    this.edgeSixteen = this.shaderColors.length;
-        }
-
-	let isEdge = id >= 10000;
-	let lowID = isEdge ? id-10000 : id;
-	let colorObject = LDR.Colors[lowID];
-	if(!colorObject) {
-	    throw "Unknown color " + lowID + " from " + id;
-	}
-	let color = new THREE.Color(isEdge ? colorObject.edge : colorObject.value);
-	let alpha = colorObject.alpha ? colorObject.alpha/256.0 : 1;
-	f = this.shaderColors.length + 0.1;
-	this.map[id] = f;
-	this.shaderColors.push(new THREE.Vector4(color.r, color.g, color.b, alpha));
-	this.highContrastShaderColors.push(LDR.Colors.getHighContrastColor4(lowID));
-	return f;
+    this.lastSet = id;
+    let alpha = colorObject.alpha ? colorObject.alpha/256.0 : 1;
+    this.mainColorIsTransparent = alpha < 1;
+    
+    if(this.sixteen >= 0) {
+        let color = new THREE.Color(isEdge ? colorObject.edge : colorObject.value);
+        this.shaderColors[this.sixteen] = new THREE.Vector4(color.r, color.g, color.b, alpha);
     }
+    
+    if(this.edgeSixteen >= 0) {
+        let color = new THREE.Color(colorObject.edge);
+        this.shaderColors[this.edgeSixteen] = new THREE.Vector4(color.r, color.g, color.b, alpha);
+        this.highContrastShaderColors[this.edgeSixteen] = LDR.Colors.getHighContrastColor4(lowID);
+    }
+}
+
+LDR.ColorManager.prototype.get = function(id) {
+    let f = this.map[id];
+    if(f) {
+        return f;
+    }
+    if(id == 16) {
+        this.sixteen = this.shaderColors.length;
+    }
+    else if(id == 10016 || id == 24) {
+        this.edgeSixteen = this.shaderColors.length;
+    }
+    
+    let isEdge = id >= 10000;
+    let lowID = isEdge ? id-10000 : id;
+    let colorObject = LDR.Colors[lowID];
+    if(!colorObject) {
+        throw "Unknown color " + lowID + " from " + id;
+    }
+    let color = new THREE.Color(isEdge ? colorObject.edge : colorObject.value);
+    let alpha = colorObject.alpha ? colorObject.alpha/256.0 : 1;
+    this.anyTransparentColors = (this.anyTransparentColors || (alpha < 1))
+    
+    f = this.shaderColors.length + 0.1;
+    this.map[id] = f;
+    this.shaderColors.push(new THREE.Vector4(color.r, color.g, color.b, alpha));
+    this.highContrastShaderColors.push(LDR.Colors.getHighContrastColor4(lowID));
+    return f;
+}
+
+LDR.ColorManager.prototype.containsTransparentColors = function() {
+    return this.anyTransparentColors || this.mainColorIsTransparent;
 }
 
 /*
@@ -1373,7 +1386,6 @@ LDR.MeshCollector.prototype.getLineMaterial = function(colorManager, color, cond
     }
     let m = new LDR.Colors.buildLineMaterial(colorManager, color, conditional);
     this.lineMaterials[key] = m;
-    //console.log("Constructed (line) material " + this.cntMaterials + " for key " + key);
     return m;
 }
 
@@ -1387,12 +1399,13 @@ LDR.MeshCollector.prototype.getTriangleMaterial = function(colorManager, color, 
     else {
 	key = color + "|" + isTrans;
     }
+
     if(this.triangleMaterials.hasOwnProperty(key)) {
 	return this.triangleMaterials[key];
     }
+
     let m = new LDR.Colors.buildTriangleMaterial(colorManager, color, isTrans);
     this.triangleMaterials[key] = m;
-    //console.log("Constructed (triangle) material " + this.cntMaterials + " for key " + key);
     return m;
 }
 
@@ -1400,10 +1413,12 @@ LDR.MeshCollector.prototype.addLines = function(mesh, part, conditional) {
     this.lineMeshes.push({mesh:mesh, part:part, opaque:true, conditional:conditional});
     this.opaqueObject.add(mesh);
 }
+
 LDR.MeshCollector.prototype.addOpaque = function(mesh, part) {
     this.triangleMeshes.push({mesh:mesh, part:part, opaque:true});
     this.opaqueObject.add(mesh);
 }
+
 LDR.MeshCollector.prototype.addTrans = function(mesh, part) {
     this.triangleMeshes.push({mesh:mesh, part:part, opaque:false});
     this.transObject.add(mesh);

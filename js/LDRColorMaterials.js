@@ -109,7 +109,7 @@ LDR.Colors.buildLineMaterial = function(colorManager, color, conditional) {
     return ret;
 }
 
-LDR.Colors.buildTriangleMaterial = function(colorManager, color, isTrans) {
+LDR.Colors.buildTriangleMaterial = function(colorManager, color) {
     colorManager = colorManager.clone();
     colorManager.overWrite(color);
     let colors = colorManager.shaderColors;
@@ -128,7 +128,7 @@ LDR.Colors.buildTriangleMaterial = function(colorManager, color, isTrans) {
 	uniforms: uniforms,
 	vertexShader: LDR.Shader.createSimpleVertexShader(LDR.Colors.canBeOld, colors, false, false),
 	fragmentShader: LDR.Shader.SimpleFragmentShader,
-	transparent: isTrans
+	transparent: colorManager.containsTransparentColors()
     });
     ret.colorManager = colorManager;
     return ret;
