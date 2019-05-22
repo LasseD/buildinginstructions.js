@@ -3,7 +3,7 @@
 /*
 The StepHandler is used for displaying step-by-step building instructions.
 
-If a StepHandler more than one placed part, the color and ID are assumed to be the same as it represents a step where more than once submodel is placed onto a model. Only the first placed part is shown being built, while the rest are added in a "placement step". In this step all placed parts are place onto their parent model.
+If a StepHandler more than one placed part, the color and ID of each part are assumed to be the same as it represents a step where more than one submodel is placed onto a model. Only the first placed part is shown being built, while the rest are added in a "placement step". In this step all placed parts are place onto their parent model.
 
 "current" is used to keep track of the currently shown step. If a model has X steps, then "current" can take the values:
 - -1 to indicate that the model is not yet being being built (at the "pre step")
@@ -42,7 +42,7 @@ LDR.StepHandler = function(opaqueObject, transObject, loader, partDescs, isForMa
         this.steps.push(new LDR.StepInfo(sh, step.cloneColored(partDesc.colorID)));
     }
     this.steps.push(new LDR.StepInfo()); // One more for placement step.
-    //console.log("Builder for " + partDesc.ID + " with " + this.part.steps.length + " normal steps.");
+
     if(isForMainModel) {
         this.recomputeStepIndices(1);
     }
@@ -56,6 +56,10 @@ LDR.StepInfo = function(stepHandler, step) {
     this.meshCollector;
 }
 
+/**
+   Used to compute shown index for all steps.
+   Expected to be called each time there are changes to steps.
+ */
 LDR.StepHandler.prototype.recomputeStepIndices = function(firstShownIndex) {
     this.totalNumberOfSteps = this.length;
     this.firstShownIndex = firstShownIndex;
@@ -94,7 +98,7 @@ LDR.StepHandler.prototype.getCurrentStepIndex = function() {
 
 LDR.StepHandler.prototype.computeCameraPositionRotation = function(defaultMatrix, currentRotationMatrix, useAccumulatedBounds) {
     if(this.current === -1 || this.current === this.length) {
-	throw "Can't reposition in void for step " + this.current + " in " + this.part.ID;
+	throw "Camera position not available for pre step and placement step.";
     }
 
     let step = this.steps[this.current];
@@ -229,13 +233,99 @@ LDR.StepHandler.prototype.nextStep = function(doNotEraseForSubModels) {
 }
 
 /*
+ takes a step back in the building instructions (see nextStep()).
+*/
+LDR.StepHandler.prototype.prevStep = function(doNotEraseForSubModels) {
+    if(this.isAtPreStep()) {
+	return false; // Can't move back (also. Prevent walking to pre-step)
+    }
+
+    // Step down from placement step:
+    if(this.isAtPlacementStep()) {
+	if(this.hasExtraParts) {
+	    this.steps[this.length].meshCollector.setVisible(false);
+	}
+	// Update all previous steps to be old:
+	for(let i = 0; i < this.length-1; i++) {
+            let step = this.steps[i];
+	    let mc = step.meshCollector;
+	    if(mc) {
+		mc.draw(true);
+	    }
+	    let sh = step.stepHandler;
+	    if(sh) {
+		sh.updateMeshCollectors(true);
+	    }
+	}
+	
+	this.current--;
+	return true;
+    }
+
+    let step = this.steps[this.current];
+    let subStepHandler = step.stepHandler;
+    if(!subStepHandler) { // Remove standard step:
+    	let meshCollector = step.meshCollector;
+	meshCollector.setVisible(false);
+	this.stepBack();
+    }
+    else { // There is a subStepHandler, so we have to step inside of it:
+	if(subStepHandler.isAtPlacementStep() && !doNotEraseForSubModels) {
+	    this.setVisibleUpTo(false, this.current);
+	}
+	subStepHandler.prevStep(doNotEraseForSubModels);
+	if(subStepHandler.isAtPreStep()) {
+	    if(!doNotEraseForSubModels) {
+		this.setVisibleUpTo(true, this.current);
+            }
+	    this.stepBack();
+	}
+    }
+    return true;
+}
+
+LDR.StepHandler.prototype.stepBack = function() {    
+    this.current--;
+    if(this.current === -1) {
+	if(this.isForMainModel) {
+	    this.nextStep(); // Ensure main step handler can't go back to placement step.
+	}
+	return;
+    }
+    let step = this.steps[this.current];
+    let mc = step.meshCollector;
+    if(mc) {
+	mc.draw(false);
+    }
+    let sh = step.stepHandler;
+    if(sh) {
+	sh.updateMeshCollectors(false);
+    }
+}
+
+LDR.StepHandler.prototype.moveSteps = function(steps, onDone) {
+    const oneStep = steps > 0 ? 1 : -1;
+    const self = this;
+    let step = steps > 0 ? () => self.nextStep(true) : () => self.prevStep(true);
+
+    let walked = 0;
+    while(steps !== 0 && step()) {
+        walked+=oneStep;
+        steps-=oneStep;
+    }
+
+    this.cleanUpAfterWalking();
+    onDone(walked);
+}
+
+/*
 This function is for setting correct visibility after having stepped without updating visibilities:
 */
-LDR.StepHandler.prototype.cleanUpAfterWalking = function() {
+LDR.StepHandler.prototype.cleanUpAfterWalking = function(level = 0) {
     let step = this.current === -1 ? new LDR.StepInfo() : this.steps[this.current];
     let subStepHandler = step.stepHandler;
     if(subStepHandler) {
-	subStepHandler.cleanUpAfterWalking(); // Clean up visiility of all sub models.
+	subStepHandler.cleanUpAfterWalking(level+1); // Clean up visiility of all sub models.
     }
 
     if(subStepHandler && !subStepHandler.isAtPlacementStep()) {
@@ -246,7 +336,7 @@ LDR.StepHandler.prototype.cleanUpAfterWalking = function() {
 	    if(mc && mc.isVisible()) {
 		mc.setVisible(false);
 	    }
-	    let sh = step.stepHandler;
+	    let sh = s.stepHandler;
 	    if(sh && i !== this.current) {
 		sh.setVisible(false);
 	    }
@@ -265,10 +355,10 @@ LDR.StepHandler.prototype.cleanUpAfterWalking = function() {
 
             let s = this.steps[i];
 	    let mc = s.meshCollector;
-	    if(mc && mc.isVisible() !== v) {
+	    if(mc) {// && mc.isVisible() !== v) {
 		mc.setVisible(v);
 	    }
-	    let sh = step.stepHandler;
+	    let sh = s.stepHandler;
 	    if(sh) {
 		sh.setVisible(v);
 	    }
@@ -415,96 +505,6 @@ LDR.StepHandler.prototype.drawExtras = function() {
     }
     else if(this.hasExtraParts) {
 	this.steps[this.length].meshCollector.setVisible(true);
-    }
-}
-
-/*
- takes a step back in the building instructions (see nextStep()).
-*/
-LDR.StepHandler.prototype.prevStep = function(doNotEraseForSubModels) {
-    if(this.isAtPreStep()) {
-	return false; // Can't move back (also. Prevent walking to pre-step)
-    }
-
-    // Step down from placement step:
-    if(this.isAtPlacementStep()) {
-	if(this.hasExtraParts) {
-	    this.steps[this.length].meshCollector.setVisible(false);
-	}
-	// Update all previous steps to be old:
-	for(let i = 0; i < this.length-1; i++) {
-            let step = this.steps[i];
-	    let mc = step.meshCollector;
-	    if(mc) {
-		mc.draw(true);
-	    }
-	    let sh = step.stepHandler;
-	    if(sh) {
-		sh.updateMeshCollectors(true);
-	    }
-	}
-	
-	this.current--;
-	return true;
-    }
-
-    let step = this.steps[this.current];
-    let subStepHandler = step.stepHandler;
-    if(!subStepHandler) { // Remove standard step:
-    	let meshCollector = step.meshCollector;
-	meshCollector.setVisible(false);
-	this.stepBack();
-    }
-    else { // There is a subStepHandler, so we have to step inside of it:
-	if(subStepHandler.isAtPlacementStep() && !doNotEraseForSubModels) {
-	    this.setVisibleUpTo(false, this.current);
-	}
-	subStepHandler.prevStep(doNotEraseForSubModels);
-	if(subStepHandler.isAtPreStep()) {
-	    if(!doNotEraseForSubModels) {
-		this.setVisibleUpTo(true, this.current);
-            }
-	    this.stepBack();
-	}
-    }
-    return true;
-}
-
-LDR.StepHandler.prototype.stepBack = function() {    
-    this.current--;
-    if(this.current === -1) {
-	if(this.isForMainModel) {
-	    this.nextStep(); // Ensure main step handler can't go back to placement step.
-	}
-	return;
-    }
-    let step = this.steps[this.current];
-    let mc = step.meshCollector;
-    if(mc) {
-	mc.draw(false);
-    }
-    let sh = step.stepHandler;
-    if(sh) {
-	sh.updateMeshCollectors(false);
-    }
-}
-
-LDR.StepHandler.prototype.moveSteps = function(steps, onDone) {
-    let walked = 0;
-    while(true) {
-	if(steps === 0 || !(steps > 0 ? this.nextStep(true) : this.prevStep(true))) {
-	    this.cleanUpAfterWalking();
-	    onDone(walked);
-	    return;
-	}
-	if(steps > 0) {
-	    walked++;
-	    steps--;
-	}
-	else {
-	    walked--;
-	    steps++;
-	}
     }
 }
 

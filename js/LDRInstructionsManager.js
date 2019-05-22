@@ -311,7 +311,7 @@ LDR.InstructionsManager.prototype.updateUIComponents = function(force) {
 
 LDR.InstructionsManager.prototype.updatePLI = function(force) {
     let step = this.stepHandler.getCurrentStep();
-    this.showPLI = (ldrOptions.showEditor || ldrOptions.showPLI) && step.containsPartSubModels(this.ldrLoader);
+    this.showPLI = ((ldrOptions.showEditor && this.canEdit) || ldrOptions.showPLI) && step.containsPartSubModels(this.ldrLoader);
     if(!this.showPLI) {
         this.pliBuilder.pliElement.style.display = 'none';
         this.pliW = this.pliH = 0;
