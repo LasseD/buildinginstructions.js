@@ -15,9 +15,9 @@
     <script src="js/LDRGeometries.js"></script>
     <script src="js/LDRLoader.js"></script>
     <script>
+      var startTime = new Date();
       // The model to be rendered:
-      //var modelTypeUrl = 'models/fail1.mpd';
-      var modelTypeUrl = 'models/tristack.ldr';
+      var modelTypeUrl = 'models/fail1.mpd';
 
       // Set up camera:
       var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
@@ -80,10 +80,11 @@
         var elementCenter = new THREE.Vector3();
         b.getCenter(elementCenter);
         baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
-        //baseObject.add(new THREE.Box3Helper(b, 0xff0000)); // Uncomment if you want to see the bounding box
+        //baseObject.add(new THREE.Box3Helper(b, 0x0000FF)); // Uncomment if you want to see the bounding box
 
 	camera.zoom = window.innerWidth/b.min.distanceTo(b.max);
         onWindowResize();
+        console.log("Model tendered in " + (new Date()-startTime) + "ms.");
       }
 
       var ldrOptions = new LDR.Options(); // Determine how to show lines. Change this in sample_instruction.htm

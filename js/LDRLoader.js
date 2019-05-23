@@ -788,10 +788,12 @@ THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, 
     let ownCull = cull && this.cull;
     
     let transformColor = function(subColorID) {
-	if(subColorID === 16)
+	if(subColorID === 16) {
 	    return colorID; // Main color
-	else if(subColorID === 24)
+        }
+	else if(subColorID === 24) {
 	    return colorID >= 10000 ? colorID : 10000 + colorID; // Edge color
+        }
 	return subColorID;
     }
 
@@ -810,7 +812,7 @@ THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, 
 	
 	let subModel = loader.partTypes[subModelDesc.ID];
 	if(subModel === undefined) {
-	    loader.onError("Unloaded sub model: " + subModelDesc.ID,);
+	    loader.onError("Unloaded sub model: " + subModelDesc.ID);
 	    return;
 	}
 	if(subModel.replacement) {
@@ -822,7 +824,7 @@ THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, 
 		    message: "Unloaded replaced sub model: " + subModel.replacement + " replacing " + subModelDesc.ID,
 		    htmlMessage: "Unloaded replaced sub model: " + subModel.replacement + " replacing " + subModelDesc.ID,
 		    toString:    function(){return this.name + ": " + this.message;} 
-		}; 
+		};
 	    }
 	    subModel = replacementSubModel;
 	}
@@ -1013,7 +1015,6 @@ THREE.LDRPartType.prototype.addStep = function(step) {
 THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, inv, mc, pd) {
     if(!this.geometry) {
 	if(this.isPart()) {
-	    //console.log("BUILDING MISSED GEOMETRY FOR " + this.ID);
 	    this.geometry = new LDR.LDRGeometry();
 	    this.geometry.fromPartType(loader, this);
 	}
@@ -1024,7 +1025,6 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 	    return;
 	}
     }
-    //console.log("BUFFERED " + this.ID);
 
     this.geometry.buildGeometriesAndColors();
     
@@ -1037,16 +1037,11 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 	0, 0, 0, 1
     );
     
-    let expanded = false;
     if(this.geometry.lineGeometry) {
 	let material = mc.getLineMaterial(this.geometry.lineColorManager, c, false);
 	let normalLines = new THREE.LineSegments(this.geometry.lineGeometry, material);
 	normalLines.applyMatrix(m4);
 	mc.addLines(normalLines, pd, false);
-
-	let b = this.geometry.lineGeometry.boundingBox;
-	mc.expandBoundingBox(b, m4);
-	expanded = true;
     }
     
     if(this.geometry.conditionalLineGeometry) {
@@ -1054,30 +1049,23 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 	let conditionalLines = new THREE.LineSegments(this.geometry.conditionalLineGeometry, material);
 	conditionalLines.applyMatrix(m4);
 	mc.addLines(conditionalLines, pd, true);
-
-	if(!expanded) {
-	    let b = this.geometry.conditionalLineGeometry.boundingBox;
-	    mc.expandBoundingBox(b, m4);
-	    expanded = true;
-	}
     }
     
     if(this.geometry.triangleGeometry) {
 	let material = mc.getTriangleMaterial(this.geometry.triangleColorManager, c, LDR.Colors.isTrans(c));
-	let mesh = new THREE.Mesh(this.geometry.triangleGeometry, material);
-	mesh.applyMatrix(m4);
+	let mesh = new THREE.Mesh(this.geometry.triangleGeometry.clone(), material); // Using clone to ensure matrix in next line doesn't affect other usages of the geometry..
+	mesh.geometry.applyMatrix(m4);
+	//mesh.applyMatrix(m4); // Doesn't work for LDraw library as the matrix needs to be decomposable to position, quaternion and scale.
 	if(LDR.Colors.isTrans(c)) {
 	    mc.addTrans(mesh, pd);
         }
 	else {
 	    mc.addOpaque(mesh, pd);
         }
-
-	if(!expanded) {
-	    let b = this.geometry.triangleGeometry.boundingBox;
-	    mc.expandBoundingBox(b, m4);
-	}
     }
+
+    let b = this.geometry.boundingBox;
+    mc.expandBoundingBox(b, m4);
 }
     
 THREE.LDRPartType.prototype.isPart = function() {
@@ -1292,8 +1280,9 @@ LDR.GeometryBuilder.prototype.build = function(toBeBuilt) {
     if(this.storage.db) {
 	transaction = this.storage.db.transaction(["parts"], "readwrite");
 	transaction.oncomplete = function(event) {
-	    if(partsWritten >= 10)
+	    if(partsWritten >= 10) {
 		console.log('Completed writing of ' + partsWritten + ' parts');
+            }
 	};
 	transaction.onerror = function(event) {
 	    console.warn('Error while writing parts!');

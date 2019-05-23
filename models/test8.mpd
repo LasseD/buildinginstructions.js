@@ -1,0 +1,13 @@
+0 FILE test8.ldr
+0 Name: test8.ldr
+1 1 0 0 0 1 0 0 0 1 0 0 0 1 A.dat
+
+0 FILE A.dat
+0 BFC CERTIFY CCW
+2 24 -6 -12 10 -6 -10 4
+1 16 0 0 0 0 -20 0 -28.9719 0 -28.9719 -40 0 40 B.dat
+
+0 FILE B.dat
+0 BFC CERTIFY CCW
+5 24  1 0 0   1 1 0   10 0 -10 10 0 -10
+3 1   1 1 1   1 0 1   1 1 0

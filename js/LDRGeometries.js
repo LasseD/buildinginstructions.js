@@ -4,11 +4,13 @@
   Binary merge of the geometry streams.
  */
 LDR.mergeGeometries = function(geometries) {
-    while(geometries.length > 1) {
-	let nextGeometries = [];
-	if(geometries.length % 2 == 1) {
-	    nextGeometries.push(geometries[geometries.length-1]);
+    while(geometries.length > 1) { // Repeat rounds until only 1 left:
+	let nextGeometries = []; // Result of round.
+
+	if(geometries.length % 2 === 1) {
+	    nextGeometries.push(geometries[geometries.length-1]); // Take last geometry without merging it.
 	}
+
 	for(let i = 0; i < geometries.length-1; i+=2) {
 	    geometries[i].merge(geometries[i+1]);
 	    nextGeometries.push(geometries[i]);
@@ -22,20 +24,20 @@ LDR.mergeGeometries = function(geometries) {
   A vertex is sorted by {x,y,z,c}.
  */
 LDR.vertexSorter = function(a, b) {
-    if(a.x != b.x) {
+    if(a.x !== b.x) {
 	return a.x - b.x;
     }
-    if(a.y != b.y) {
+    if(a.y !== b.y) {
 	return a.y - b.y;
     }
     return a.z - b.z;
 }
 
 LDR.vertexLessThan = function(a, b) {
-    if(a.x != b.x) {
+    if(a.x !== b.x) {
 	return a.x < b.x;
     }
-    if(a.y != b.y) {
+    if(a.y !== b.y) {
 	return a.y < b.y;
     }
     return a.z < b.z;
@@ -55,6 +57,7 @@ LDR.LDRGeometry = function() {
     this.triangleGeometry;
     this.conditionalLineGeometry;
     this.geometriesBuilt = false;
+    this.boundingBox = new THREE.Box3();
 }
 
 LDR.LDRGeometry.prototype.serialize = function() {
@@ -91,7 +94,7 @@ LDR.LDRGeometry.prototype.pack = function() {
     let bufSize = 0;
     for(let i = 0; i < this.vertices.length; i++) {
 	let v = this.vertices[i];
-	if(v.x != x) {
+	if(v.x !== x) {
 	    arrayI.push(bufSize);
 	    arrayF.push(x);
 	    arrayF.push(...buf);
@@ -117,10 +120,10 @@ LDR.LDRGeometry.prototype.pack = function() {
 	    for(let i = 0; i < primitives.length; i++) {
 		let p = primitives[i];
 		arrayI.push(p.p1,p.p2);
-		if(size == 3) {
+		if(size === 3) {
 		    arrayI.push(p.p3);
 		}
-		else if(size == 4) {
+		else if(size === 4) {
 		    arrayI.push(p.p3, p.p4);
 		}
 	    }
@@ -138,7 +141,7 @@ LDR.LDRGeometry.prototype.pack = function() {
 
 LDR.LDRGeometry.prototype.deserialize = function(txt) {
     let a = Float32Array.from(txt.split(/\,/));
-    if(a[0] != 1) {
+    if(a[0] !== 1) {
 	throw 'version error!';
     }
 
@@ -178,7 +181,7 @@ LDR.LDRGeometry.prototype.unpack = function(packed) {
     }
     //console.log('Geometry from storage. Vertices: ' + numVertices + " x " + a.length + " from " + txt.substring(0, 500));
 
-    function extract(size, into) {
+    function extract(size, into, pointsForBoundingBox) {
 	while(true) {
 	    if(idxI >= arrayI.length) {
 		throw 'Deserialization error!';
@@ -190,11 +193,14 @@ LDR.LDRGeometry.prototype.unpack = function(packed) {
 	    }
 	    let len = arrayI[idxI++];
 	    for(let i = 0; i < len; i++) {
+                for(var j = 0; j < pointsForBoundingBox; j++) {
+                    this.vertices[arrayI[idxI+j]].forBoundingBox = true;
+                }
 		let p = {p1:arrayI[idxI++], p2:arrayI[idxI++]};
-		if(size == 3) {
+		if(size === 3) {
 		    p.p3 = arrayI[idxI++];
 		}
-		else if(size == 4) {
+		else if(size === 4) {
 		    p.p3 = arrayI[idxI++];
 		    p.p4 = arrayI[idxI++];
 		}
@@ -203,10 +209,19 @@ LDR.LDRGeometry.prototype.unpack = function(packed) {
 	    into[c] = ret;
 	}
     }
-    extract(2, this.lines);
-    extract(4, this.conditionalLines);
-    extract(3, this.triangles);
-    extract(4, this.quads);
+    extract(2, this.lines, 2);
+    extract(4, this.conditionalLines, 2);
+    extract(3, this.triangles, 3);
+    extract(4, this.quads, 4);
+
+    // Build bounding box:
+    var self = this;
+    this.vertices.forEach(v => {
+            if(v.forBoundingBox) {
+                self.boundingBox.expandByPoint(v);
+                delete v.forBoundingBox;
+            }
+        });
 }
 
 LDR.LDRGeometry.prototype.buildVertexAttribute = function(rotation) {
@@ -262,7 +277,7 @@ LDR.LDRGeometry.prototype.buildGeometriesAndColors = function() {
     }
 
     let lineVertexAttribute, lineVertices = [], lineIndices = [];
-    if(allLineColors.length == 1) {
+    if(allLineColors.length === 1) {
 	let c = allLineColors[0];
 	this.lineColorManager.get(c); // Ensure color is present.
 	for(let i = 0; i < this.vertices.length; i++) {
@@ -337,7 +352,7 @@ LDR.LDRGeometry.prototype.buildGeometriesAndColors = function() {
     }
 
     let triangleVertexAttribute, triangleVertices = [], triangleIndices = [];
-    if(allTriangleColors.length == 1) {
+    if(allTriangleColors.length === 1) {
 	let c = allTriangleColors[0];
 	this.triangleColorManager.get(c); // Ensure color is present.
 
@@ -401,18 +416,17 @@ LDR.LDRGeometry.prototype.buildGeometriesAndColors = function() {
 }
 
 LDR.LDRGeometry.prototype.buildGeometry = function(indices, vertexAttribute) {
-    if(indices.length == 0) {
+    if(indices.length === 0) {
 	return null;
     }
     let g = new THREE.BufferGeometry();
     g.setIndex(indices);
     g.addAttribute('position', vertexAttribute);
-    g.computeBoundingBox();
     return g;
 }
 
 LDR.LDRGeometry.prototype.buildGeometryForConditionalLines = function(multiColored, conditionalLines) {
-    if(conditionalLines.length == 0) {
+    if(conditionalLines.length === 0) {
 	return;
     }
     this.conditionalLineGeometry = new THREE.BufferGeometry();
@@ -421,11 +435,12 @@ LDR.LDRGeometry.prototype.buildGeometryForConditionalLines = function(multiColor
     // Now handle conditional lines:
     for(let i = 0; i < conditionalLines.length; i++) {
 	let line = conditionalLines[i]; // {p1, p2, p3, p4, fc}
+        let p1 = line.p1, p2 = line.p2, p3 = line.p3, p4 = line.p4;
 
-	p1s.push(line.p1.x, line.p1.y, line.p1.z, line.p2.x, line.p2.y, line.p2.z);
-	p2s.push(line.p2.x, line.p2.y, line.p2.z, line.p1.x, line.p1.y, line.p1.z);
-	p3s.push(line.p3.x, line.p3.y, line.p3.z, line.p3.x, line.p3.y, line.p3.z);
-	p4s.push(line.p4.x, line.p4.y, line.p4.z, line.p4.x, line.p4.y, line.p4.z);
+	p1s.push(p1.x, p1.y, p1.z, p2.x, p2.y, p2.z); // 2 points => 1 line in shader.
+	p2s.push(p2.x, p2.y, p2.z, p1.x, p1.y, p1.z); // Counter points for calculations
+	p3s.push(p3.x, p3.y, p3.z, p3.x, p3.y, p3.z); // p3's
+	p4s.push(p4.x, p4.y, p4.z, p4.x, p4.y, p4.z); // p4's
 	if(multiColored) {
 	    colorIndices.push(line.fc, line.fc); // 2 points.
         }
@@ -437,8 +452,6 @@ LDR.LDRGeometry.prototype.buildGeometryForConditionalLines = function(multiColor
     if(multiColored) {
 	this.conditionalLineGeometry.addAttribute('colorIndex', new THREE.BufferAttribute(new Float32Array(colorIndices), 1));
     }
-
-    this.conditionalLineGeometry.computeBoundingBox();
 }
 
 LDR.LDRGeometry.prototype.replaceWith = function(g) {
@@ -448,6 +461,7 @@ LDR.LDRGeometry.prototype.replaceWith = function(g) {
     this.triangles = g.triangles;
     this.quads = g.quads;
     this.cull = g.cull;
+    this.boundingBox = g.boundingBox;
 }
 
 LDR.LDRGeometry.prototype.replaceWithDeep = function(g) {
@@ -506,6 +520,7 @@ LDR.LDRGeometry.prototype.replaceWithDeep = function(g) {
     }
 
     this.cull = g.cull;
+    this.boundingBox.copy(g.boundingBox);
 }
 
 /*
@@ -546,18 +561,18 @@ LDR.LDRGeometry.prototype.sortAndBurnVertices = function(vertices, primitives, t
     let prev;
     for(let i = 0; i < vertices.length; i++) {
 	let v = vertices[i];
-	if(!(prev && prev.x == v.x && prev.y == v.y && prev.z == v.z)) {
+	if(!(prev && prev.x === v.x && prev.y === v.y && prev.z === v.z)) {
 	    this.vertices.push(v);
 	}
 
         let p = primitives[v.c][v.idx];
-	if(v.p == 1) {
+	if(v.p === 1) {
 	    p.p1 = this.vertices.length-1;
         }
-	else if(v.p == 2) {
+	else if(v.p === 2) {
 	    p.p2 = this.vertices.length-1;
         }
-	else if(v.p == 3) {
+	else if(v.p === 3) {
 	    p.p3 = this.vertices.length-1;
         }
 	else {
@@ -588,6 +603,8 @@ LDR.LDRGeometry.prototype.fromLines = function(ps) {
 	}
 	vertices.push({x:p.p1.x, y:p.p1.y, z:p.p1.z, c:p.colorID, idx:idx, p:1},
 		      {x:p.p2.x, y:p.p2.y, z:p.p2.z, c:p.colorID, idx:idx, p:2});
+        this.boundingBox.expandByPoint(p.p1);
+        this.boundingBox.expandByPoint(p.p2);
     }
     this.sortAndBurnVertices(vertices, this.lines);
 }
@@ -609,6 +626,8 @@ LDR.LDRGeometry.prototype.fromConditionalLines = function(ps) {
 		      {x:p.p2.x, y:p.p2.y, z:p.p2.z, c:p.colorID, idx:idx, p:2},
 		      {x:p.p3.x, y:p.p3.y, z:p.p3.z, c:p.colorID, idx:idx, p:3},
 		      {x:p.p4.x, y:p.p4.y, z:p.p4.z, c:p.colorID, idx:idx, p:4});
+        this.boundingBox.expandByPoint(p.p1);
+        this.boundingBox.expandByPoint(p.p2);
     }
     this.sortAndBurnVertices(vertices, this.conditionalLines);
 }
@@ -629,6 +648,9 @@ LDR.LDRGeometry.prototype.fromTriangles = function(ps) {
 	vertices.push({x:p.p1.x, y:p.p1.y, z:p.p1.z, c:p.colorID, idx:idx, p:1},
 		      {x:p.p2.x, y:p.p2.y, z:p.p2.z, c:p.colorID, idx:idx, p:2},
 		      {x:p.p3.x, y:p.p3.y, z:p.p3.z, c:p.colorID, idx:idx, p:3});
+        this.boundingBox.expandByPoint(p.p1);
+        this.boundingBox.expandByPoint(p.p2);
+        this.boundingBox.expandByPoint(p.p3);
     }
     this.sortAndBurnVertices(vertices, this.triangles);
 }
@@ -650,6 +672,10 @@ LDR.LDRGeometry.prototype.fromQuads = function(ps) {
 		      {x:p.p2.x, y:p.p2.y, z:p.p2.z, c:p.colorID, idx:idx, p:2},
 		      {x:p.p3.x, y:p.p3.y, z:p.p3.z, c:p.colorID, idx:idx, p:3},
 		      {x:p.p4.x, y:p.p4.y, z:p.p4.z, c:p.colorID, idx:idx, p:4});
+        this.boundingBox.expandByPoint(p.p1);
+        this.boundingBox.expandByPoint(p.p2);
+        this.boundingBox.expandByPoint(p.p3);
+        this.boundingBox.expandByPoint(p.p4);
     }
     this.sortAndBurnVertices(vertices, this.quads);
 }
@@ -676,7 +702,7 @@ LDR.LDRGeometry.prototype.fromStep = function(loader, step, parent) {
 
 LDR.LDRGeometry.prototype.fromPartType = function(loader, pt) {
     let geometries = [];
-    if(pt.steps.length == 0) {
+    if(pt.steps.length === 0) {
 	console.warn("No steps in " + pt.ID);
 	return; // Empty - just make empty.
     }
@@ -696,16 +722,27 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
     }
     this.replaceWithDeep(loader.partTypes[pd.ID].geometry); // Assume pd.ID has prepared geometry.
     this.cull = this.cull && pd.cull;
-    let invert = pd.invertCCW != (pd.rotation.determinant() < 0);
+
+    let m4 = new THREE.Matrix4();
+    let m3e = pd.rotation.elements;
+    m4.set(
+	m3e[0], m3e[3], m3e[6], pd.position.x,
+	m3e[1], m3e[4], m3e[7], pd.position.y,
+	m3e[2], m3e[5], m3e[8], pd.position.z,
+	0, 0, 0, 1
+    );
+    this.boundingBox.applyMatrix4(m4);
+
+    let invert = pd.invertCCW !== (pd.rotation.determinant() < 0);
 
     // Function to update color:
     let replaceColor;
-    if(pd.colorID == 16) {
+    if(pd.colorID === 16) {
 	replaceColor = function(x){return x;}; // Do nothing.
     }
-    else if(pd.colorID == 24) {	    
+    else if(pd.colorID === 24) {	    
 	replaceColor = function(x) {
-	    if(x == 16) {
+	    if(x === 16) {
 		return 24;
             }
 	    else {
@@ -715,10 +752,10 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
     }
     else {
 	replaceColor = function(x) {
-	    if(x == 16) {
+	    if(x === 16) {
 		return pd.colorID;
             }
-	    else if(x == 24) {
+	    else if(x === 24) {
 		return pd.colorID + 10000;
             }
 	    else {
@@ -763,7 +800,7 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
 	    p.p2 = v2.newIndex;
 	}
 	let toColor = replaceColor(c);
-	if(toColor != c) {
+	if(toColor !== c) {
 	    if(this.lines.hasOwnProperty(toColor)) {
 		this.lines[toColor].push(...lines);
 	    }
@@ -790,7 +827,7 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
 	    p.p4 = v4.newIndex;
 	}
 	let toColor = replaceColor(c);
-	if(toColor != c) {
+	if(toColor !== c) {
 	    if(this.conditionalLines.hasOwnProperty(toColor)) {
 		this.conditionalLines[toColor].push(...conditionalLines);
 	    }
@@ -817,7 +854,7 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
 		p.p3 = v1.newIndex;
 	    }
 	    let toColor = replaceColor(c);
-	    if(toColor != c) {
+	    if(toColor !== c) {
 		if(this.triangles.hasOwnProperty(toColor)) {
 		    this.triangles[toColor].push(...triangles);
 		}
@@ -844,7 +881,7 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
 		p.p4 = v1.newIndex;
 	    }	    
 	    let toColor = replaceColor(c);
-	    if(toColor != c) {
+	    if(toColor !== c) {
 		if(this.quads.hasOwnProperty(toColor)) {
 		    this.quads[toColor].push(...quads);
 		}
@@ -871,7 +908,7 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
 		p.p3 = v3.newIndex;
 	    }
 	    let toColor = replaceColor(c);
-	    if(toColor != c) {
+	    if(toColor !== c) {
 		if(this.triangles.hasOwnProperty(toColor)) {
 		    this.triangles[toColor].push(...triangles);
 		}
@@ -898,7 +935,7 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
 		p.p4 = v4.newIndex;
 	    }	    
 	    let toColor = replaceColor(c);
-	    if(toColor != c) {
+	    if(toColor !== c) {
 		if(this.quads.hasOwnProperty(toColor)) {
 		    this.quads[toColor].push(...quads);
 		}
@@ -988,7 +1025,12 @@ LDR.LDRGeometry.prototype.ensureCull = function() {
 LDR.LDRGeometry.prototype.merge = function(other) {
     this.ensureCull();
     other.ensureCull();
-    // First merge vertices:
+
+    // Merge bounding box:
+    this.boundingBox.expandByPoint(other.boundingBox.min);
+    this.boundingBox.expandByPoint(other.boundingBox.max);
+
+    // Merge vertices:
     let mergedVertices = []; // Assume both vertex streams are sorted, so duplicates are removed.
     let indexMapThis = []; // original index -> merged vertex.
     let indexMapOther = []; // Same.
@@ -997,7 +1039,7 @@ LDR.LDRGeometry.prototype.merge = function(other) {
     while(idxThis < this.vertices.length && idxOther < other.vertices.length) {
 	let pThis = this.vertices[idxThis];
 	let pOther = other.vertices[idxOther];
-	if(pThis.x == pOther.x && pThis.y == pOther.y && pThis.z == pOther.z) {
+	if(pThis.x === pOther.x && pThis.y === pOther.y && pThis.z === pOther.z) {
 	    indexMapThis.push(mergedVertices.length);
 	    indexMapOther.push(mergedVertices.length);
 	    mergedVertices.push(pThis);
