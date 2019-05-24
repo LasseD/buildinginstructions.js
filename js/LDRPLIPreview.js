@@ -95,12 +95,15 @@ LDR.PliPreviewer.prototype.showPliPreview = function(icon) {
 
     if(icon.inlined && !isNaN(icon.inlined)) {
 	bhA.setAttribute('href', "../p/part.php?user_id=" + icon.inlined + "&id=" + encodeURI(partIdNoDat));
+	blA.style.visibility = "hidden";
     }
     else if(icon.inlined === undefined || icon.inlined === 'undefined') {
 	bhA.setAttribute('href', "../p/part.php?from=" + this.modelID + "&id=" + encodeURI(partIdNoDat));
+	blA.style.visibility = "hidden";
     }
     else {
 	bhA.setAttribute('href', '../p/' + partIdNoDat);
+	blA.style.visibility = "visible";
     }
 
     document.getElementById('preview_info_color_ldraw').innerHTML = color.name + " (" + colorID + ")";
