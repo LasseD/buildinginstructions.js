@@ -44,7 +44,7 @@ LDR.StepEditor = function(loader, stepHandler, onChange, modelID) {
     
     // Private function to make it easier to create GUI components:
     this.makeEle = function(parent, type, cls, onclick, innerHTML, icon) {
-        var ret = document.createElement(type);
+        let ret = document.createElement(type);
         parent.appendChild(ret);
 
         if(cls) {
@@ -67,10 +67,10 @@ LDR.StepEditor = function(loader, stepHandler, onChange, modelID) {
 }
 
 LDR.StepEditor.prototype.updateCurrentStep = function() {
-    var [part, stepIndex] = this.stepHandler.getCurrentPartAndStepIndex();
+    let [part, stepIndex, step] = this.stepHandler.getCurrentStepInfo();
     this.part = part;
     this.stepIndex = stepIndex;
-    this.step = part.steps[stepIndex];
+    this.step = step;
     this.onStepSelectedListeners.forEach(listener => listener());
 }
 
@@ -84,11 +84,11 @@ LDR.StepEditor.prototype.createGuiComponents = function(parentEle) {
     //this.createStepGuiComponents(parentEle); // TODO!
     this.createPartGuiComponents(parentEle);
 
-    var self = this;
+    let self = this;
     
-    var saveEle;
+    let saveEle;
     function save() {
-        var fileContent = self.loader.toLDR();
+        let fileContent = self.loader.toLDR();
         saveEle.innerHTML = 'Saving...';
         $.ajax({
                 url: 'ajax/save.htm',
@@ -107,16 +107,16 @@ LDR.StepEditor.prototype.createGuiComponents = function(parentEle) {
                 }
             });
     }
-    var saveParentEle = this.makeEle(parentEle, 'span', 'editor_control');
+    let saveParentEle = this.makeEle(parentEle, 'span', 'editor_control');
     saveEle = this.makeEle(saveParentEle, 'button', 'save_button', save, 'SAVE');
     this.updateCurrentStep();
 }
 
 LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
-    var self = this, Ele, Normal, Rel, Abs, End, X, Y, Z;
+    let self = this, Ele, Normal, Rel, Abs, End, X, Y, Z;
     function propagate(rot) {
-        for(var i = self.stepIndex+1; i < self.part.steps.length; i++) {
-            var s = self.part.steps[i];
+        for(let i = self.stepIndex+1; i < self.part.steps.length; i++) {
+            let s = self.part.steps[i];
             if(!THREE.LDRStepRotation.equals(self.step.rotation, s.rotation)) {
                 console.log('Propagated ' + (i-self.stepIndex) + ' steps');
                 break; // Only replace until not the same as the first.
@@ -130,12 +130,12 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
         propagate(self.stepIndex === 0 ? null : self.part.steps[self.stepIndex-1].rotation);
     }
     function makeRel() { 
-        var rot = self.step.rotation ? self.step.rotation.clone() : new THREE.LDRStepRotation(0, 0, 0, 'REL');
+        let rot = self.step.rotation ? self.step.rotation.clone() : new THREE.LDRStepRotation(0, 0, 0, 'REL');
         rot.type = 'REL';
         propagate(rot);
     }
     function makeAbs() {
-        var rot = self.step.rotation ? self.step.rotation.clone() : new THREE.LDRStepRotation(0, 0, 0, 'ABS');
+        let rot = self.step.rotation ? self.step.rotation.clone() : new THREE.LDRStepRotation(0, 0, 0, 'ABS');
         rot.type = 'ABS';
         propagate(rot);
     }
@@ -145,10 +145,10 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
 
     function setXYZ(e) {
         e.stopPropagation();
-        var rot = self.step.rotation ? self.step.rotation.clone() : new THREE.LDRStepRotation(0, 0, 0, 'REL');
-        var x = parseFloat(X.value);
-        var y = parseFloat(Y.value);
-        var z = parseFloat(Z.value);
+        let rot = self.step.rotation ? self.step.rotation.clone() : new THREE.LDRStepRotation(0, 0, 0, 'REL');
+        let x = parseFloat(X.value);
+        let y = parseFloat(Y.value);
+        let z = parseFloat(Z.value);
         if(isNaN(x) || isNaN(y) || isNaN(z) || 
            X.value !== ''+x || Y.value !== ''+y || Z.value !== ''+z) {
             return;
@@ -162,9 +162,9 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
 
     Ele = this.makeEle(parentEle, 'span', 'editor_control');
     function makeRotationRadioButton(value, onClick, icon) {
-        var button = self.makeEle(Ele, 'input', 'editor_radio_button', onClick);
+        let button = self.makeEle(Ele, 'input', 'editor_radio_button', onClick);
 
-        var label = self.makeEle(Ele, 'label', 'editor_radio_label', null, value, icon);
+        let label = self.makeEle(Ele, 'label', 'editor_radio_label', null, value, icon);
         label.setAttribute('for', value);
 
         button.setAttribute('type', 'radio');
@@ -177,26 +177,26 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
 
     function makeXYZ(icon, sub, add, x1, y1, x2, y2) {
         function subOrAdd(fun) {
-            var rot = self.step.rotation ? self.step.rotation.clone() : new THREE.LDRStepRotation(0, 0, 0, 'REL');
+            let rot = self.step.rotation ? self.step.rotation.clone() : new THREE.LDRStepRotation(0, 0, 0, 'REL');
             fun(rot);
             propagate(rot);
             self.onChange();
         }
-        var subEle = self.makeEle(Ele, 'button', 'editor_button', () => subOrAdd(sub), icon+'-', self.makeBoxArrowIcon(x1, y1, x2, y2));
-        var ret = self.makeEle(Ele, 'input', 'editor_input', setXYZ);
-        var addEle = self.makeEle(Ele, 'button', 'editor_button', () => subOrAdd(add), icon+'+', self.makeBoxArrowIcon(x2, y2, x1, y1));
+        let subEle = self.makeEle(Ele, 'button', 'editor_button', () => subOrAdd(sub), icon+'-', self.makeBoxArrowIcon(x1, y1, x2, y2));
+        let ret = self.makeEle(Ele, 'input', 'editor_input', setXYZ);
+        let addEle = self.makeEle(Ele, 'button', 'editor_button', () => subOrAdd(add), icon+'+', self.makeBoxArrowIcon(x2, y2, x1, y1));
 
         ret.addEventListener('keyup', setXYZ);
         ret.addEventListener('keydown', e => e.stopPropagation());
         return ret;
     }
-    var rotDiff = 90;
+    let rotDiff = 90;
     X = makeXYZ('X', rot => rot.x-=rotDiff, rot => rot.x+=rotDiff, -8, 11, -8, -5);
     Y = makeXYZ('Y', rot => rot.y-=rotDiff, rot => rot.y+=rotDiff, -10, 4, 10, 4);
     Z = makeXYZ('Z', rot => rot.z-=rotDiff, rot => rot.z+=rotDiff, 8, -5, 8, 11);
 
     function onStepSelected() {
-        var rot = self.step.rotation;
+        let rot = self.step.rotation;
         if(!rot) {
             rot = new THREE.LDRStepRotation(0, 0, 0, 'REL');
 	    Rel.checked = true;
@@ -218,18 +218,18 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
 }
 
 LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
-    var self = this;
+    let self = this;
 
-    var colorPicker = new LDR.ColorPicker(colorID => {self.stepHandler.colorGhosted(colorID); self.onChange();});
+    let colorPicker = new LDR.ColorPicker(colorID => {self.stepHandler.colorGhosted(colorID); self.onChange();});
 
-    var ele = this.makeEle(parentEle, 'span', 'editor_control');
-    var removeButton = this.makeEle(ele, 'button', 'pli_button1', () => {self.stepHandler.removeGhosted(); self.onChange();}, 'REMOVE', self.makeRemovePartsIcon());
-    var colorButton = colorPicker.createButton(colorID => {if(colorID===undefined)return; self.stepHandler.colorGhosted(colorID); self.onChange();});
+    let ele = this.makeEle(parentEle, 'span', 'editor_control');
+    let removeButton = this.makeEle(ele, 'button', 'pli_button1', () => {self.stepHandler.removeGhosted(); self.onChange();}, 'REMOVE', self.makeRemovePartsIcon());
+    let colorButton = colorPicker.createButton(colorID => {if(colorID===undefined)return; self.stepHandler.colorGhosted(colorID); self.onChange();});
     ele.append(colorButton);
 
     function onlyShowButtonsIfPartsAreHighlighted() {
-        var anyHighlighted = self.step.subModels.some(pd => pd.ghost);
-        var display = anyHighlighted ? 'inline' : 'none';
+        let anyHighlighted = self.step.subModels.some(pd => pd.ghost);
+        let display = anyHighlighted ? 'inline' : 'none';
         removeButton.style.display = display;
         colorButton.style.display = display;
     }
@@ -240,7 +240,7 @@ LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
    SVG Icons for buttons:
 */
 LDR.StepEditor.prototype.makeStepIcon = function() {
-    var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+    let svg = document.createElementNS(LDR.SVG.NS, 'svg');
     svg.setAttribute('viewBox', '-75 -25 150 50');
     LDR.SVG.makeBlock3D(-50, 0, svg);
     LDR.SVG.makeArrow(-20, 0, 20, 0, svg);
@@ -248,7 +248,7 @@ LDR.StepEditor.prototype.makeStepIcon = function() {
     return svg;
 }
 LDR.StepEditor.prototype.makeRelIcon = function() {
-    var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+    let svg = document.createElementNS(LDR.SVG.NS, 'svg');
     svg.setAttribute('viewBox', '-75 -25 150 50');
 
     // Left box
@@ -258,15 +258,15 @@ LDR.StepEditor.prototype.makeRelIcon = function() {
     LDR.SVG.appendRotationCircle(0, 0, 18, svg);
 
     // Right hand side:
-    var g = document.createElementNS(LDR.SVG.NS, 'g');
+    let g = document.createElementNS(LDR.SVG.NS, 'g');
     svg.appendChild(g);
     g.setAttribute('transform', 'rotate(90 0 0) translate(-50 -55)');
-    var turned = LDR.SVG.makeBlock3D(50, 0, g);
+    let turned = LDR.SVG.makeBlock3D(50, 0, g);
 
     return svg;
 }
 LDR.StepEditor.prototype.makeAbsIcon = function() {
-    var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+    let svg = document.createElementNS(LDR.SVG.NS, 'svg');
     svg.setAttribute('viewBox', '-75 -25 150 50');
     LDR.SVG.makeBlock3D(-50, 0, svg);
     LDR.SVG.appendRotationCircle(0, 0, 18, svg);
@@ -274,16 +274,16 @@ LDR.StepEditor.prototype.makeAbsIcon = function() {
     return svg;
 }
 LDR.StepEditor.prototype.makeEndIcon = function() {
-    var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+    let svg = document.createElementNS(LDR.SVG.NS, 'svg');
     svg.setAttribute('viewBox', '-75 -25 150 50');
 
     LDR.SVG.makeBlock3D(50, 0, svg);
     LDR.SVG.appendRotationCircle(0, 0, 18, svg);
 
-    var g = document.createElementNS(LDR.SVG.NS, 'g');
+    let g = document.createElementNS(LDR.SVG.NS, 'g');
     svg.appendChild(g);
     g.setAttribute('transform', 'rotate(90 0 0) translate(50 55)');
-    var turned = LDR.SVG.makeBlock3D(-50, 0, g);
+    let turned = LDR.SVG.makeBlock3D(-50, 0, g);
 
     return svg;
 }
@@ -292,7 +292,7 @@ LDR.StepEditor.prototype.makeEndIcon = function() {
   Show a box and an arrow from x1,y1 to x2,y2
  */
 LDR.StepEditor.prototype.makeBoxArrowIcon = function(x1, y1, x2, y2) {
-    var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+    let svg = document.createElementNS(LDR.SVG.NS, 'svg');
     svg.setAttribute('viewBox', '-20 -20 40 40');
     LDR.SVG.makeBlock3D(0, 0, svg);
     LDR.SVG.makeArrow(x1, y1, x2, y2, svg);
@@ -304,22 +304,21 @@ LDR.StepEditor.prototype.makeBoxArrowIcon = function(x1, y1, x2, y2) {
 */
 LDR.StepEditor.prototype.addPLIIcon = function(svg, startX, options) {
     svg.append(LDR.SVG.makeRoundRect(-60+startX, -30, 120, 60, 10));
-    for(var x = -1; x <= 1; x+=2) {
+    for(let x = -1; x <= 1; x+=2) {
         LDR.SVG.makeBlock3D(x*30 + startX, 0, svg);
     }
     if(options.ghost) {
-        var highlight = LDR.SVG.makeRect(5, -23, 48, 48);
+        let highlight = LDR.SVG.makeRect(5, -23, 48, 48);
         highlight.setAttribute('stroke', '#5DD');
         svg.append(highlight);
     }
 }
 
 LDR.StepEditor.prototype.makeRemovePartsIcon = function() {
-    var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+    let svg = document.createElementNS(LDR.SVG.NS, 'svg');
     svg.setAttribute('viewBox', '-60 -30 120 60');
     this.addPLIIcon(svg, 0, {ghost:true});
     svg.appendChild(LDR.SVG.makeLine(0, -30, 60, 30, true));
     svg.appendChild(LDR.SVG.makeLine(0, 30, 60, -30, true));
     return svg;
 }
-

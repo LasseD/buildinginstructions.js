@@ -1,0 +1,314 @@
+0 Name: test6.ldr
+0 Author: Lasse Deleuran [Lasse Deleuran]
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+1 0 0 0 0 1 0 0 0 1 0 0 0 1 11477.dat
+0 FILE 11477.dat
+0 !BRICKHUB_INLINED OFFICIAL
+0 Slope Brick Curved  2 x  1
+0 Name: 11477.dat
+0 Author: Owen Burgoyne [C3POwen]
+0 !LDRAW_ORG Part UPDATE 2013-01
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+0 BFC CERTIFY CCW
+1 16 0 0 0 1 0 0 0 1 0 0 0 1 s/11477s01.dat
+1 16 10 24.972 20 0 -20 0 -28.9719 0 -28.9719 -40 0 40 48/1-8cyli.dat
+0 FILE 48/1-8cyli.dat
+0 !BRICKHUB_INLINED OFFICIAL
+0 Hi-Res Cylinder 0.125
+0 Name: 48\1-8cyli.dat
+0 Author: Steve Bliss [sbliss]
+0 !LDRAW_ORG 48_Primitive UPDATE 2004-04
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+0 BFC CERTIFY CCW
+5 24 1 0 0 1 1 0 0.9914 0 0.1305 1 0 -1
+5 24 0.9914 0 0.1305 0.9914 1 0.1305 0.9659 0 0.2588 1 0 0
+5 24 0.9659 0 0.2588 0.9659 1 0.2588 0.9239 0 0.3827 0.9914 0 0.1305
+5 24 0.9239 0 0.3827 0.9239 1 0.3827 0.8660 0 0.5000 0.9659 0 0.2588
+5 24 0.8660 0 0.5000 0.8660 1 0.5000 0.7934 0 0.6088 0.9239 0 0.3827
+5 24 0.7934 0 0.6088 0.7934 1 0.6088 0.7071 0 0.7071 0.8660 0 0.5000
+5 24 0.7071 0 0.7071 0.7071 1 0.7071 0.6088 0 0.7934 0.7934 0 0.6088
+4 16 0.9914 1 0.1305 0.9914 0 0.1305 1 0 0 1 1 0
+4 16 0.9659 1 0.2588 0.9659 0 0.2588 0.9914 0 0.1305 0.9914 1 0.1305
+4 16 0.9239 1 0.3827 0.9239 0 0.3827 0.9659 0 0.2588 0.9659 1 0.2588
+4 16 0.8660 1 0.5000 0.8660 0 0.5000 0.9239 0 0.3827 0.9239 1 0.3827
+4 16 0.7934 1 0.6088 0.7934 0 0.6088 0.8660 0 0.5000 0.8660 1 0.5000
+4 16 0.7071 1 0.7071 0.7071 0 0.7071 0.7934 0 0.6088 0.7934 1 0.6088
+0 FILE s/11477s01.dat
+0 !BRICKHUB_INLINED OFFICIAL
+0 ~Slope Brick Curved  2 x  1 without Top Surface
+0 Name: s\11477s01.dat
+0 Author: Owen Burgoyne [C3POwen]
+0 !LDRAW_ORG Subpart UPDATE 2013-01
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+0 BFC CERTIFY CCW
+1 16 0 -12 20 -10 0 0 0 0 -4 0 -1 0 rect.dat
+4 16 6 -8 16 -6 -8 16 -10 -8 20 10 -8 20
+4 16 -6 -8 16 -6 -8 0 -10 -8 0 -10 -8 20
+4 16 10 -8 20 10 -8 0 6 -8 0 6 -8 16
+2 24 -10 -8 20 -10 -8 0
+2 24 10 -8 20 10 -8 0
+2 24 -10 -8 0 -6 -8 0
+2 24 10 -8 0 6 -8 0
+0 BFC INVERTNEXT
+1 16 0 -8 13 -6 0 0 0 -4 0 0 0 3 box4-4a.dat
+2 24 -6 -8 10 -6 -8 0
+2 24 6 -8 10 6 -8 0
+3 16 -6 -12 10 -6 -10 4 -6 -8 10
+4 16 -6 -10 0 -6 -8 0 -6 -8 10 -6 -10 4
+3 16 6 -8 10 6 -10 4 6 -12 10
+4 16 6 -10 4 6 -8 10 6 -8 0 6 -10 0
+0 BFC INVERTNEXT
+1 16 0 -12 10 0 0 -6 0 2 0 6 0 0 1-4cyls2.dat
+0 BFC INVERTNEXT
+1 16 0 -12 10 0 0 6 0 2 0 6 0 0 1-4cyls2.dat
+1 16 0 -12 10 -6 0 0 0 -3 0 0 0 -6 2-4edge.dat
+1 16 0 -12 10 -6 0 0 0 -3 0 0 0 -6 2-4disc.dat
+1 16 0 -12 10 -6 0 0 0 -3 2 0 0 -6 2-4edge.dat
+1 16 0 -12 10 -6 0 0 0 -3 2 0 0 -6 2-4ndis.dat
+2 24 -6 -12 10 -6 -10 4
+2 24 6 -12 10 6 -10 4
+2 24 -1.5 -10 4 -6 -10 4
+2 24 1.5 -10 4 6 -10 4
+0 BFC INVERTNEXT
+1 16 -3.75 -9 2 -2.25 0 0 0 -1 0 0 0 -2 box2-9.dat
+1 16 0 -10 2 1.5 0 0 0 2 0 0 0 2 box4-1.dat
+0 BFC INVERTNEXT
+1 16 3.75 -9 2 2.25 0 0 0 -1 0 0 0 -2 box2-9.dat
+1 16 0 -4 0 10 0 0 0 0 4 0 -1 0 recte3.dat
+3 16 -10 -8 0 -6 -8 0 -10 0 0
+4 16 -10 0 0 -6 -8 0 -1.5 -8 0 0 0 0
+3 16 0 0 0 -1.5 -8 0 1.5 -8 0
+4 16 0 0 0 1.5 -8 0 6 -8 0 10 0 0
+3 16 10 0 0 6 -8 0 10 -8 0
+4 16 -6 0 -4 -10 0 0 10 0 0 6 0 -4
+4 16 -6 0 -16 -10 0 -20 -10 0 0 -6 0 -4
+4 16 6 0 -16 10 0 -20 -10 0 -20 -6 0 -16
+4 16 6 0 -4 10 0 0 10 0 -20 6 0 -16
+1 16 0 0 -10 6 0 0 0 -1 0 0 0 -6 recte3.dat
+1 16 0 0 -10 10 0 0 0 -1 0 0 0 -10 recte3.dat
+3 16 -6 0 -4 -6 -7 -4 -6 -4 -10
+3 16 6 -4 -10 6 -7 -4 6 0 -4
+4 16 -6 0 -4 -6 -4 -10 -6 -2 -16 -6 0 -16
+4 16 6 0 -16 6 -2 -16 6 -4 -10 6 0 -4
+0 BFC INVERTNEXT
+1 16 0 -2 -7 6 0 0 0 -1.5 -3.5 0 3 0 box2-5.dat
+0 BFC INVERTNEXT
+1 16 0 -4 -10 0 0 -6 0 2 0 6 0 0 1-4cyls2.dat
+0 BFC INVERTNEXT
+1 16 0 -4 -10 0 0 6 0 2 0 6 0 0 1-4cyls2.dat
+1 16 0 -4 -10 -6 0 0 0 -3 0 0 0 -6 2-4edge.dat
+1 16 0 -4 -10 -6 0 0 0 -3 0 0 0 -6 2-4disc.dat
+1 16 0 -4 -10 -6 0 0 0 -3 2 0 0 -6 2-4edge.dat
+1 16 0 -4 -10 -6 0 0 0 -3 2 0 0 -6 2-4ndis.dat
+2 24 -6 -2 -16 -6 -4 -10
+2 24 6 -2 -16 6 -4 -10
+1 16 0 -1 -16 -6 0 0 0 0 -1 0 -1 0 rect3.dat
+1 16 0 -2 -20 10 0 0 0 0 -2 0 1 0 rect3.dat
+3 16 -10 -16 20 -10 -8 20 -10 -8 0
+3 16 10 -16 20 10 -8 0 10 -8 20
+4 16 -10 0 -20 -10 -4 -20 -10 -8 0 -10 0 0
+4 16 10 0 0 10 -8 0 10 -4 -20 10 0 -20
+3 16 -10 -4 -20 -10 -16 20 -10 -8 0
+3 16 10 -8 0 10 -16 20 10 -4 -20
+1 16 -10 24.9719 20 0 1 0 -40.97 0 0 0 0 -56.57 48/1-8chrd.dat
+1 16 10 24.9719 20 0 -1 0 -28.9702 0 -28.9702 -40 0 40 48/1-8chrd.dat
+1 16 -10 24.972 20 0 -1 0 -28.9719 0 -28.9719 -40 0 40 48/1-8edge.dat
+1 16 10 24.972 20 0 -1 0 -28.9719 0 -28.9719 -40 0 40 48/1-8edge.dat
+0 FILE 48/1-8edge.dat
+0 !BRICKHUB_INLINED OFFICIAL
+0 Hi-Res Circle 0.125
+0 Name: 48\1-8edge.dat
+0 Author: [PTadmin]
+0 !LDRAW_ORG 48_Primitive UPDATE 2017-01
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+0 BFC CERTIFY CCW
+2 24 1 0 0 0.9914 0 0.1305
+2 24 0.9914 0 0.1305 0.9659 0 0.2588
+2 24 0.9659 0 0.2588 0.9239 0 0.3827
+2 24 0.9239 0 0.3827 0.866 0 0.5
+2 24 0.866 0 0.5 0.7934 0 0.6088
+2 24 0.7934 0 0.6088 0.7071 0 0.7071
+0 FILE 48/1-8chrd.dat
+0 !BRICKHUB_INLINED OFFICIAL
+0 Hi-Res Chord 0.125
+0 Name: 48\1-8chrd.dat
+0 Author: Guy Vivan [guyvivan]
+0 !LDRAW_ORG 48_Primitive UPDATE 2009-01
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+0 BFC CERTIFY CCW
+4 16 1 0 0 0.9914 0 0.1305 0.7934 0 0.6088 0.7071 0 0.7071
+4 16 0.9914 0 0.1305 0.9659 0 0.2588 0.866 0 0.5 0.7934 0 0.6088
+3 16 0.9659 0 0.2588 0.9239 0 0.3827 0.866 0 0.5
+0 FILE rect3.dat
+0 !BRICKHUB_INLINED OFFICIAL
+0 Rectangle with 3 Edges
+0 Name: rect3.dat
+0 Author: Mark Kennedy [mkennedy]
+0 !LDRAW_ORG Primitive UPDATE 2010-01
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+0 BFC CERTIFY CCW
+2 24 1 0 1 -1 0 1
+2 24 1 0 1 1 0 -1
+2 24 -1 0 1 -1 0 -1
+4 16 -1 0 1 -1 0 -1 1 0 -1 1 0 1
+0 FILE box2-5.dat
+0 !BRICKHUB_INLINED OFFICIAL
+0 Box with 2 Faces without 5 Edges
+0 Name: box2-5.dat
+0 Author: Steffen [Steffen]
+0 !LDRAW_ORG Primitive UPDATE 2003-03
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+0 BFC CERTIFY CCW
+2 24 1 1 1 -1 1 1
+2 24 1 1 -1 -1 1 -1
+2 24 1 -1 1 -1 -1 1
+2 24 -1 -1 1 -1 1 1
+2 24 1 -1 1 1 1 1
+2 24 -1 1 -1 -1 1 1
+2 24 1 1 -1 1 1 1
+4 16 1 1 1 1 1 -1 -1 1 -1 -1 1 1
+4 16 1 1 1 -1 1 1 -1 -1 1 1 -1 1
+0 FILE recte3.dat
+0 !BRICKHUB_INLINED OFFICIAL
+0 Rectangle Empty with 3 Edges
+0 Name: recte3.dat
+0 Author: Steffen [Steffen]
+0 !LDRAW_ORG Primitive UPDATE 2011-01
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+0 BFC CERTIFY CCW
+2 24  1 0  1 -1 0  1
+2 24 -1 0  1 -1 0 -1
+2 24  1 0 -1  1 0  1
+0 FILE box4-1.dat
+0 !BRICKHUB_INLINED OFFICIAL
+0 Box with 4 Faces without 1 Edge
+0 Name: box4-1.dat
+0 Author: Tore Eriksson [Tore_Eriksson]
+0 !LDRAW_ORG Primitive UPDATE 2012-01
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+0 BFC CERTIFY CCW
+2 24 1 1 1 -1 1 1
+2 24 -1 1 1 -1 1 -1
+2 24 -1 1 -1 1 1 -1
+2 24 1 1 -1 1 1 1
+2 24 1 0 1 -1 0 1
+2 24 -1 0 1 -1 0 -1
+2 24 1 0 -1 1 0 1
+2 24 1 0 1 1 1 1
+2 24 -1 0 1 -1 1 1
+2 24 1 0 -1 1 1 -1
+2 24 -1 0 -1 -1 1 -1
+4 16 -1 1 1 1 1 1 1 1 -1 -1 1 -1
+4 16 -1 1 1 -1 0 1 1 0 1 1 1 1
+4 16 -1 1 -1 -1 0 -1 -1 0 1 -1 1 1
+4 16 1 1 1 1 0 1 1 0 -1 1 1 -1
+0 FILE box2-9.dat
+0 !BRICKHUB_INLINED OFFICIAL
+0 Box with 2 Faces without 9 Edges
+0 Name: box2-9.dat
+0 Author: Mark Kennedy [mkennedy]
+0 !LDRAW_ORG Primitive UPDATE 2010-01
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+0 BFC CERTIFY CCW
+2 24 1 1 1 -1 1 1
+2 24 1 -1 1 1 1 1
+2 24 1 1 -1 1 1 1
+4 16 1 1 1 1 1 -1 -1 1 -1 -1 1 1
+4 16 1 1 1 -1 1 1 -1 -1 1 1 -1 1
+0 FILE 2-4ndis.dat
+0 !BRICKHUB_INLINED OFFICIAL
+0 Disc Negative 0.5
+0 Name: 2-4ndis.dat
+0 Author: James Jessiman
+0 !LDRAW_ORG Primitive UPDATE 2012-01
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+0 BFC CERTIFY CCW
+3 16 0.9239 0 0.3827 1 0 0 1 0 1
+3 16 0.7071 0 0.7071 0.9239 0 0.3827 1 0 1
+3 16 0.3827 0 0.9239 0.7071 0 0.7071 1 0 1
+3 16 0 0 1 0.3827 0 0.9239 1 0 1
+3 16 -0.3827 0 0.9239 0 0 1 -1 0 1
+3 16 -0.7071 0 0.7071 -0.3827 0 0.9239 -1 0 1
+3 16 -0.9239 0 0.3827 -0.7071 0 0.7071 -1 0 1
+3 16 -1 0 0 -0.9239 0 0.3827 -1 0 1
+0 FILE 2-4disc.dat
+0 !BRICKHUB_INLINED OFFICIAL
+0 Disc 0.5
+0 Name: 2-4disc.dat
+0 Author: James Jessiman
+0 !LDRAW_ORG Primitive UPDATE 2002-02
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+0 BFC CERTIFY CCW
+3 16 0 0 0 1 0 0 0.9239 0 0.3827
+3 16 0 0 0 0.9239 0 0.3827 0.7071 0 0.7071
+3 16 0 0 0 0.7071 0 0.7071 0.3827 0 0.9239
+3 16 0 0 0 0.3827 0 0.9239 0 0 1
+3 16 0 0 0 0 0 1 -0.3827 0 0.9239
+3 16 0 0 0 -0.3827 0 0.9239 -0.7071 0 0.7071
+3 16 0 0 0 -0.7071 0 0.7071 -0.9239 0 0.3827
+3 16 0 0 0 -0.9239 0 0.3827 -1 0 -0
+0 FILE 2-4edge.dat
+0 !BRICKHUB_INLINED OFFICIAL
+0 Circle 0.5
+0 Name: 2-4edge.dat
+0 Author: James Jessiman
+0 !LDRAW_ORG Primitive UPDATE 2017-01
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+0 BFC CERTIFY CCW
+2 24 1 0 0 0.9239 0 0.3827
+2 24 0.9239 0 0.3827 0.7071 0 0.7071
+2 24 0.7071 0 0.7071 0.3827 0 0.9239
+2 24 0.3827 0 0.9239 0 0 1
+2 24 0 0 1 -0.3827 0 0.9239
+2 24 -0.3827 0 0.9239 -0.7071 0 0.7071
+2 24 -0.7071 0 0.7071 -0.9239 0 0.3827
+2 24 -0.9239 0 0.3827 -1 0 0
+0 FILE 1-4cyls2.dat
+0 !BRICKHUB_INLINED OFFICIAL
+0 Cylinder Sloped 0.25 Convex
+0 Name: 1-4cyls2.dat
+0 Author: Chris Dee [cwdee]
+0 !LDRAW_ORG Primitive UPDATE 2012-01
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+0 BFC CERTIFY CCW
+3 16 -0.3827 0.3827 0.9239 -0.3827 0 0.9239 0 0 1
+4 16 -0.3827 0.3827 0.9239 -0.7071 0.7071 0.7071 -0.7071 0 0.7071 -0.3827 0 0.9239
+4 16 -0.7071 0.7071 0.7071 -0.9239 0.9239 0.3827 -0.9239 0 0.3827 -0.7071 0 0.7071
+4 16 -0.9239 0.9239 0.3827 -1 1 0 -1 0 0 -0.9239 0 0.3827
+5 24 -0.3827 0 0.9239 -0.3827 0.3827 0.9239 -0.7071 0 0.7071 0 0 1
+5 24 -0.7071 0 0.7071 -0.7071 0.7071 0.7071 -0.9239 0 0.3827 -0.3827 0 0.9239
+5 24 -0.9239 0 0.3827 -0.9239 0.9239 0.3827 -1 0 0 -0.7071 0 0.7071
+5 24 -1 0 0 -1 1 0 -1 0 -1 -0.9239 0 0.3827
+0 FILE box4-4a.dat
+0 !BRICKHUB_INLINED OFFICIAL
+0 Box with 4 Faces without 4 Adjacent Edges
+0 Name: box4-4a.dat
+0 Author: Manfred Moolhuysen
+0 !LDRAW_ORG Primitive UPDATE 2012-01
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+0 BFC CERTIFY CCW
+2 24 1 1 1 -1 1 1
+2 24 -1 1 1 -1 1 -1
+2 24 1 1 -1 1 1 1
+2 24 1 0 1 -1 0 1
+2 24 -1 0 1 -1 0 -1
+2 24 1 0 -1 1 0 1
+2 24 1 0 1 1 1 1
+2 24 -1 0 1 -1 1 1
+4 16 1 1 -1 -1 1 -1 -1 1 1 1 1 1
+4 16 -1 1 1 -1 0 1 1 0 1 1 1 1
+4 16 -1 1 -1 -1 0 -1 -1 0 1 -1 1 1
+4 16 1 1 1 1 0 1 1 0 -1 1 1 -1
+0 FILE rect.dat
+0 !BRICKHUB_INLINED OFFICIAL
+0 Rectangle
+0 Name: rect.dat
+0 Author: James Jessiman
+0 !LDRAW_ORG Primitive UPDATE 2010-01
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+0 BFC CERTIFY CCW
+2 24 1 0 1 -1 0 1
+2 24 -1 0 1 -1 0 -1
+2 24 -1 0 -1 1 0 -1
+2 24 1 0 -1 1 0 1
+4 16 -1 0 1 -1 0 -1 1 0 -1 1 0 1

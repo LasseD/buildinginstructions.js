@@ -1,43 +1,40 @@
 'use strict';
 
 /*
-The LDRPartsBulder is used for displaying parts for LEGO models.
+  The LDRPartsBuilder is used for displaying parts list image icons for LEGO models.
 */
 var LDR = LDR || {};
 
-LDR.PartsBulder = function(loader, mainModelID, mainModelColor, onBuiltPart) {
+LDR.PartsBuilder = function(loader, mainModelID, mainModelColor, onBuiltPart) {
     this.loader = loader;
     this.mainModelID = mainModelID;
     this.mainModelColor = mainModelColor;
 
     this.pcs = {}; // partID_colorID -> PartAndColor objects
-    this.pcKeys = [];
+    this.pcKeys = []; // Used for lookup and sorting.
     
     const pcs = this.pcs;
     const pcKeys = this.pcKeys;
 
-    // TODO: Use WebWorkers and finally call onBuiltPart for each built part.
     function build(multiplier, partID, colorID) {
-	if(colorID == 16)
+	if(colorID == 16) {
 	    throw "Building with default color not allowed! Part ID: " + partID;
-	var model = loader.partTypes[partID];
-	if(!model) {
-	    console.dir(loader);
-	    throw "model not loaded: " + partID;
-	}
+        }
+	let model = loader.partTypes[partID];
 
         function handleStep(step) {
             if(step.containsNonPartSubModels(loader)) {
-		var ldr = step.subModels[0];
+		let ldr = step.subModels[0];
 		build(multiplier*step.subModels.length, ldr.ID, ldr.colorID == 16 ? colorID : ldr.colorID);
                 return;
 	    }
-            for(var j = 0; j < step.subModels.length; j++) {
-                var dat = step.subModels[j];
-                var datColorID = dat.colorID == 16 ? colorID : dat.colorID;
-                var key = dat.ID.endsWith('.dat') ? dat.ID.substring(0, dat.ID.length-4) : dat.ID;
+            for(let j = 0; j < step.subModels.length; j++) {
+                let dat = step.subModels[j];
+                let datColorID = dat.colorID == 16 ? colorID : dat.colorID;
+                // Key consists of ID (without .dat) '_', and color ID
+                let key = dat.ID.endsWith('.dat') ? dat.ID.substring(0, dat.ID.length-4) : dat.ID;
                 key += '_' + datColorID;
-                var pc = pcs[key];
+                let pc = pcs[key];
                 if(!pc) {
                     pc = new LDR.PartAndColor(key, dat, datColorID, loader);
                     pcs[key] = pc;
@@ -54,18 +51,12 @@ LDR.PartsBulder = function(loader, mainModelID, mainModelColor, onBuiltPart) {
     function sorter(a, b) {
 	a = pcs[a];
 	b = pcs[b];
-	if(a.colorID != b.colorID)
+	if(a.colorID != b.colorID) {
 	    return a.colorID - b.colorID;
+        }
 	return a.partID < b.partID ? -1 : (b.partID < a.partID ? 1 : 0);
     }
     pcKeys.sort(sorter);
-}
-
-LDR.PartsBulder.prototype.updateMeshCollectors = function(baseObject) {
-    for(var i = 0; i < this.pcKeys.length; i++) {
-	var pcInfo = builder.pcs[builder.pcKeys[i]];
-	pcInfo.draw(baseObject);
-    }
 }
 
 LDR.PartAndColor = function(key, part, colorID, loader) {
@@ -74,41 +65,49 @@ LDR.PartAndColor = function(key, part, colorID, loader) {
     this.colorID = colorID;
     this.loader = loader;
 
-    this.meshCollector;
     this.amount = 0;
-    this.mesh; // Optional use.
-    this.annotation;
 
     this.partType = loader.partTypes[part.ID];
     if(!this.partType) {
 	console.dir(loader);
 	throw "Unknown part type: " + part.ID;
     }
-    this.inlined = this.partType.inlined;
 
     // Use replacement part:
     if(this.partType.replacement) {
-	//console.log("Replacing: " + part.ID + " -> " + this.partType.replacement);
-	this.partType = loader.partTypes[this.partType.replacement];
+        let pt;
+        if(this.partType.replacementPartType) { // Only perform lookup the first time.
+            pt = this.partType.replacementPartType;
+        }
+        else {
+            //console.log("Replacing: " + part.ID + " -> " + this.partType.replacement);
+            pt = loader.partTypes[this.partType.replacement];
+            this.partType.replacementPartType = pt;
+        }
+	this.partType = pt;
     }
+
     // Rotate for pli:
-    var pliID = "pli_" + this.partType.ID.slice(0, -4);
-    if(LDR.PLI && LDR.PLI[pliID]) {
-	var pliInfo = LDR.PLI[pliID];
-	var pliName = "pli_" + this.part.ID;
-	var pt;
+    let pliID = "pli_" + this.partType.ID.slice(0, -4);
+    if(this.partType.pli) {
+        this.partType = this.partType.pli;
+    }
+    else if(LDR.PLI && LDR.PLI[pliID]) {
+	let pliInfo = LDR.PLI[pliID];
+	let pliName = "pli_" + this.part.ID;
+	let pt;
 	if(!loader.partTypes[pliName]) {
-	    var r = new THREE.Matrix3();
+	    let r = new THREE.Matrix3();
 	    r.set(pliInfo[0], pliInfo[1], pliInfo[2],
 		  pliInfo[3], pliInfo[4], pliInfo[5],
 		  pliInfo[6], pliInfo[7], pliInfo[8]);
-	    var dat = new THREE.LDRPartDescription(16, 
+	    let dat = new THREE.LDRPartDescription(16, 
 						   new THREE.Vector3(),
 						   r,
 						   this.part.ID,
 						   true,
 						   false); // Potentially rotated PLI.
-	    var step = new THREE.LDRStep();
+	    let step = new THREE.LDRStep();
 	    step.addSubModel(dat);
 	    pt = new THREE.LDRPartType();
 	    pt.ID = pliName;
@@ -122,45 +121,39 @@ LDR.PartAndColor = function(key, part, colorID, loader) {
 	else {
 	    pt = loader.partTypes[pliName];
 	}
+        this.partType.pli = pt;
 	this.partType = pt;
     }
+
     // Annotate:
-    if(LDR.Annotations && LDR.Annotations[pliID]) {
-	this.annotation = LDR.Annotations[pliID];
+    if(!this.partType.annotation && LDR.Annotations && LDR.Annotations[pliID]) {
+	this.partType.annotation = LDR.Annotations[pliID];
     }
     
     this.partDesc = this.partType.modelDescription;
 }
 
 LDR.PartAndColor.prototype.ensureMeshCollector = function(baseObject) {
-    if(!this.meshCollector) {
-	this.meshCollector = new LDR.MeshCollector(baseObject, baseObject);
-
-	// Build meshCollector (lines and triangles for part in color):
-	var p = new THREE.Vector3();
-	var r = new THREE.Matrix3(); 
+    if(!this.partType.pliMC) {
+	let mc = this.partType.pliMC = new LDR.MeshCollector(baseObject, baseObject);
+	let p = new THREE.Vector3();
+	let r = new THREE.Matrix3();
 	r.set(1,0,0, 0,-1,0, 0,0,-1);
-
-	this.partType.generateThreePart(this.loader, this.colorID, p, r, true, false, this.meshCollector);
-	this.partType = undefined; // No use for it anymore.
-	this.loader = undefined;
+	this.partType.generateThreePart(this.loader, this.colorID, p, r, true, false, mc);
     }
 }
 
 LDR.PartAndColor.prototype.getBounds = function() {
-    if(!this.meshCollector)
+    if(!this.partType.pliMC)
 	throw 'Mesh collector not built!';
-    if(!this.meshCollector.boundingBox) {
+    if(!this.partType.pliMC.boundingBox) {
 	console.dir(this);
 	throw "No bounding box for " + this.part.ID + " / " + this.partDesc;
     }
-    return this.meshCollector.boundingBox;
+    return this.partType.pliMC.boundingBox;
 }
-LDR.PartAndColor.prototype.draw = function(baseObject) {
-    this.ensureMeshCollector(baseObject);
-    this.meshCollector.draw(false);
-}
+
 LDR.PartAndColor.prototype.setVisible = function(v, baseObject) {
     this.ensureMeshCollector(baseObject);
-    this.meshCollector.setVisible(v);
+    this.partType.pliMC.setVisible(v);
 }

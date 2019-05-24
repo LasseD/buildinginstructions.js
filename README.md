@@ -4,7 +4,7 @@ Render LEGO building instructions in the browser using [three.js](https://github
 
 See this project visualized on [BrickHub.org](https://brickhub.org)
 
-![Sample image of a model generated using buildinginstructions.js](https://brickhub.org/i/data/14/14.png)
+![Sample image of a building instructions step generated on the fly using buildinginstructions.js](https://brickhub.org/i/data/431/431.png)
 
 ## How To Install Locally
 

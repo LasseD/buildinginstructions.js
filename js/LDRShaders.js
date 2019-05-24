@@ -3,18 +3,18 @@
 LDR.Shader = {};
 
 LDR.Shader.createShaderHeader = function(canBeOld, numberOfColors, c, defaultIsEdge) {
-    var ret = `
+    let ret = `
       precision highp float;
       precision mediump int;
     `;
 
     if(canBeOld) {
 	ret += "  uniform bool old;\n";
-	var oldColor = new THREE.Color(defaultIsEdge ? LDR.Colors[16].edge : LDR.Colors[16].value);
+	let oldColor = new THREE.Color(defaultIsEdge ? LDR.Colors[16].edge : LDR.Colors[16].value);
 	ret += "  const vec4 oldColor = vec4(" + oldColor.r + "," + oldColor.g + "," + oldColor.b + ",1);\n";
     }
 
-    var multiColored = numberOfColors > 1;
+    let multiColored = numberOfColors > 1;
     if(multiColored) {
 	ret += "  uniform vec4 colors[" + numberOfColors + "];\n";
     }
@@ -25,7 +25,7 @@ LDR.Shader.createShaderHeader = function(canBeOld, numberOfColors, c, defaultIsE
 }
 
 LDR.Shader.createShaderBody = function(canBeOld, multiColored) {
-    var ret = `
+    let ret = `
       uniform mat4 projectionMatrix;
       uniform mat4 modelViewMatrix;
     `;
@@ -57,10 +57,10 @@ LDR.Shader.createShaderBody = function(canBeOld, multiColored) {
 }
 
 LDR.Shader.createSimpleVertexShader = function(canBeOld, colors, push, defaultIsEdge) {
-    var numberOfColors = colors.length;
+    let numberOfColors = colors.length;
     if(numberOfColors == 0)
 	throw "No colors!";
-    var ret = LDR.Shader.createShaderHeader(canBeOld, numberOfColors, colors[0], defaultIsEdge);
+    let ret = LDR.Shader.createShaderHeader(canBeOld, numberOfColors, colors[0], defaultIsEdge);
 
     ret += LDR.Shader.createShaderBody(canBeOld, numberOfColors > 1);
     if(push)
@@ -72,17 +72,17 @@ LDR.Shader.createSimpleVertexShader = function(canBeOld, colors, push, defaultIs
 // See 'http://www.ldraw.org/article/218.html' for specification of optional/conditional lines.
 // A conditional line is drawn when the camera sees p3 and p4 on same side of line p1 p2.
 LDR.Shader.createConditionalVertexShader = function(canBeOld, colors, push) {
-    var numberOfColors = colors.length;
-    var c = colors[0];
+    let numberOfColors = colors.length;
+    let c = colors[0];
 
-    var ret = `
+    let ret = `
       precision highp float;
       precision mediump int;
     `;
 
     if(canBeOld) {
 	ret += "  uniform bool old;\n";
-	var oldColor = new THREE.Color(LDR.Colors[16].edge);
+	let oldColor = new THREE.Color(LDR.Colors[16].edge);
 	ret += "  const vec4 oldColor = vec4(" + oldColor.r + "," + oldColor.g + "," + oldColor.b + ",1);\n";
     }
 
@@ -96,7 +96,7 @@ LDR.Shader.createConditionalVertexShader = function(canBeOld, colors, push) {
       attribute vec3 p4;
     `;
     
-    var multiColored = numberOfColors > 1;
+    let multiColored = numberOfColors > 1;
     if(multiColored) {
 	ret += "  uniform vec4 colors[" + numberOfColors + "];\n";
 	ret += "  attribute float colorIndex;\n"; // Should have been an int... but GLSL doesn't support that.

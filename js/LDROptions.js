@@ -1,7 +1,5 @@
 'use strict';
 
-var LDR = LDR || {};
-
 LDR.Options = function() {
     this.listeners = [];
     
@@ -25,9 +23,9 @@ LDR.Options = function() {
     // Read values that might be in cookie:
     this.readOptionsFromCookie();
 
-    var options = this;
+    let options = this;
     this.onChange = function() {
-	for(var i = 0; i < options.listeners.length; i++) {
+	for(let i = 0; i < options.listeners.length; i++) {
 	    options.listeners[i](options);
 	}
 	options.saveOptionsToCookie();
@@ -37,12 +35,12 @@ LDR.Options = function() {
 LDR.Options.prototype.readOptionsFromCookie = function() {
     if(!document.cookie)
 	return; // Can't read cookie.
-    var cookieParts = decodeURIComponent(document.cookie).split(/\s*;\s*/);
-    for(var i = 0; i < cookieParts.length; i++) {
-	var part = cookieParts[i];
-	var equalAt = part.indexOf('=');
+    let cookieParts = decodeURIComponent(document.cookie).split(/\s*;\s*/);
+    for(let i = 0; i < cookieParts.length; i++) {
+	let part = cookieParts[i];
+	let equalAt = part.indexOf('=');
 	if(equalAt > 1) {
-	    var key = part.substring(0, equalAt);
+	    let key = part.substring(0, equalAt);
 	    if(this[key] != undefined)
 		this[key] = parseInt(part.substring(equalAt+1));
 	}
@@ -50,7 +48,7 @@ LDR.Options.prototype.readOptionsFromCookie = function() {
 }
 
 LDR.Options.prototype.saveOptionsToCookie = function() {
-    var options = this;
+    let options = this;
     function addToKv(v) {
 	document.cookie = v + '=' + options[v] + '; expires=Wed, 3 Jun 2122 12:00:01 UTC; path=/';
     }
@@ -78,10 +76,10 @@ LDR.Options.prototype.saveOptionsToCookie = function() {
 }
 
 LDR.Options.setOptionsSelected = function(node, callback) {
-    var parent = node.parentNode;
-    var children = parent.childNodes;
-    for(var i = 0; i < children.length; i++) {
-	var child = children[i];
+    let parent = node.parentNode;
+    let children = parent.childNodes;
+    for(let i = 0; i < children.length; i++) {
+	let child = children[i];
 	if(child === node) {
 	    callback(i);
 	    if(child.getAttribute('class') === 'option')
@@ -95,12 +93,12 @@ LDR.Options.setOptionsSelected = function(node, callback) {
 }
 
 LDR.Options.prototype.appendHeader = function(optionsBlock) {
-    var headerDiv = document.createElement('div');
+    let headerDiv = document.createElement('div');
     headerDiv.setAttribute('id', 'options_header');
     optionsBlock.appendChild(headerDiv);
 
     // To top button:
-    var toTop = document.createElement('a');
+    let toTop = document.createElement('a');
     toTop.setAttribute('href', '#');
     toTop.appendChild(LDR.SVG.makeUpArrow());    
     toTop.id = 'to_top';
@@ -118,9 +116,9 @@ LDR.Options.prototype.appendHeader = function(optionsBlock) {
     headerDiv.appendChild(LDR.SVG.makeOptions());
 }
 LDR.Options.prototype.appendFooter = function(optionsBlock) {
-    var div = document.createElement('div');
+    let div = document.createElement('div');
     div.setAttribute('class', 'options_footer');
-    var a = document.createElement('a');
+    let a = document.createElement('a');
     a.setAttribute('href', '#top');
 
     optionsBlock.appendChild(div);
@@ -128,46 +126,46 @@ LDR.Options.prototype.appendFooter = function(optionsBlock) {
     a.appendChild(LDR.SVG.makeUpArrow());
 }
 LDR.Options.prototype.appendDescriptionBar = function(optionsBlock, columns, description) {
-    var tr = document.createElement('tr');
+    let tr = document.createElement('tr');
     tr.setAttribute('class', 'options_description_header');
     optionsBlock.appendChild(tr);
 
-    var td = document.createElement('td');
+    let td = document.createElement('td');
     td.setAttribute('class', 'options_description');
     td.setAttribute('colspan', ""+columns);
     tr.appendChild(td);
 
-    var desc = document.createElement('span');
+    let desc = document.createElement('span');
     desc.innerHTML = description;
     td.appendChild(desc);
 }
 
 LDR.Options.prototype.appendOldBrickColorOptions = function(optionsBlock) {
-    var group = this.addOptionsGroup(optionsBlock, 2, "Highlight New Parts");
-    var options = this;
-    var onOldBrickChange = function(idx) {
+    let group = this.addOptionsGroup(optionsBlock, 2, "Highlight New Parts");
+    let options = this;
+    let onOldBrickChange = function(idx) {
 	options.showOldColors = idx;
 	options.onChange();
     };
-    var buttons = this.createButtons(group, 2, this.showOldColors, onOldBrickChange);
+    let buttons = this.createButtons(group, 2, this.showOldColors, onOldBrickChange);
     
     // Color functions:
-    var red = function(){return '#C91A09';};
-    var green = function(){return '#257A3E';};
-    var blue = function(){return '#0055BF';};    
-    var rgb = [red, green, blue];
+    let red = function(){return '#C91A09';};
+    let green = function(){return '#257A3E';};
+    let blue = function(){return '#0055BF';};    
+    let rgb = [red, green, blue];
     
-    var lineColor = function(options){
+    let lineColor = function(options){
 	return LDR.Colors.int2Hex(options.lineColor);
     };
-    var oldColor = function(options){
+    let oldColor = function(options){
 	return LDR.Colors.int2Hex(options.oldColor);
     };
 
-    var positions = [{x:-1,y:1},{x:1,y:1},{x:1,y:-1}];
-    var drawParts = function(x, y, cnt, cntOld, svg) {
-	for(var i = 0; i < cnt; i++) {
-	    var position = positions[i];
+    let positions = [{x:-1,y:1},{x:1,y:1},{x:1,y:-1}];
+    let drawParts = function(x, y, cnt, cntOld, svg) {
+	for(let i = 0; i < cnt; i++) {
+	    let position = positions[i];
 	    options.createSvgBlock(x + 0.5*position.x*LDR.Options.svgBlockWidth, 
 				   y + 0.5*position.y*LDR.Options.svgBlockHeight, 
 				   i == 0 || i == cnt-1,
@@ -181,10 +179,10 @@ LDR.Options.prototype.appendOldBrickColorOptions = function(optionsBlock) {
        The first option is to always paint colors:
        Indicated by 9 bricks - all colorful.
     */
-    var dst = 60;
-    var w = 20;
+    let dst = 60;
+    let w = 20;
     {
-	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '-100 -40 200 80');
 	buttons[0].appendChild(svg);
 	drawParts(-dst, 0, 2, 0, svg);
@@ -197,7 +195,7 @@ LDR.Options.prototype.appendOldBrickColorOptions = function(optionsBlock) {
        Second option: old colors in customizable color:
     */
     {
-	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '-100 -40 200 80');
 	buttons[1].appendChild(svg);
 	drawParts(-dst, 0, 2, 0, svg);
@@ -209,9 +207,9 @@ LDR.Options.prototype.appendOldBrickColorOptions = function(optionsBlock) {
 }
 
 LDR.Options.prototype.appendContrastOptions = function(optionsBlock) {
-    var group = this.addOptionsGroup(optionsBlock, 2, "Contrast");
-    var options = this;
-    var onChange = function(idx) {
+    let group = this.addOptionsGroup(optionsBlock, 2, "Contrast");
+    let options = this;
+    let onChange = function(idx) {
 	options.lineContrast = idx;
         if(idx == 1)
           options.lineColor = 0x333333;
@@ -219,22 +217,22 @@ LDR.Options.prototype.appendContrastOptions = function(optionsBlock) {
           options.lineColor = 0;
 	options.onChange();
     };
-    var buttons = this.createButtons(group, 2, this.lineContrast, onChange);
+    let buttons = this.createButtons(group, 2, this.lineContrast, onChange);
     
     // Color functions:
-    var red = function(){return '#C91A09';};
-    var redEdge1 = function(){return '#000000';};
-    var redEdge2 = function(){return '#333333';};
-    var black = function(){return '#05131D';};
-    var blackEdge1 = function(){return '#FFFFFF';};
-    var blackEdge2 = function(){return '#595959';};
-    var brown = function(){return '#582A12';};
+    let red = function(){return '#C91A09';};
+    let redEdge1 = function(){return '#000000';};
+    let redEdge2 = function(){return '#333333';};
+    let black = function(){return '#05131D';};
+    let blackEdge1 = function(){return '#FFFFFF';};
+    let blackEdge2 = function(){return '#595959';};
+    let brown = function(){return '#582A12';};
 
     /* 
        Option 1: High contrast:
     */
     {
-	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '-100 -25 200 50');
 	buttons[0].appendChild(svg);
 	this.createSvgBlock(-LDR.Options.svgBlockWidth-2, 0, true, red, redEdge1, svg);
@@ -245,7 +243,7 @@ LDR.Options.prototype.appendContrastOptions = function(optionsBlock) {
        Option 2: Standard LDraw lines:
     */
     {
-	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '-100 -25 200 50');
 	buttons[1].appendChild(svg);
 	this.createSvgBlock(-LDR.Options.svgBlockWidth-2, 0, true, red, redEdge2, svg);
@@ -258,22 +256,22 @@ LDR.Options.prototype.appendContrastOptions = function(optionsBlock) {
   Part color options (points and background color)
 */
 LDR.Options.prototype.appendPartColorOptions = function(optionsBlock) {
-    var group = this.addOptionsGroup(optionsBlock, 2, "Background and Point Color");
-    var options = this;
+    let group = this.addOptionsGroup(optionsBlock, 2, "Background and Point Color");
+    let options = this;
 
     // Color functions:
-    var bgColor = function(options){return LDR.Colors.int2Hex(options.bgColor);};
-    var pointColor = function(options){return LDR.Colors.int2Hex(options.pointColor);};
-    var oldColor = function(options){return LDR.Colors.int2Hex(options.oldColor);};
-    var lineColor = function(options){return LDR.Colors.int2Hex(options.lineColor);};
+    let bgColor = function(options){return LDR.Colors.int2Hex(options.bgColor);};
+    let pointColor = function(options){return LDR.Colors.int2Hex(options.pointColor);};
+    let oldColor = function(options){return LDR.Colors.int2Hex(options.oldColor);};
+    let lineColor = function(options){return LDR.Colors.int2Hex(options.lineColor);};
 
     // Build html elements:
     function createPreview(parent, forBG) {
-	var preview = document.createElement('td');
+	let preview = document.createElement('td');
 	preview.setAttribute('class', 'color_option');
 	parent.appendChild(preview);
 
-	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '-100 -25 200 50');
 	preview.appendChild(svg);
 	if(forBG)
@@ -281,7 +279,7 @@ LDR.Options.prototype.appendPartColorOptions = function(optionsBlock) {
 	else
 	    options.createSvgPoints(0, 0, pointColor, svg, 2);
 
-	var listener = function(options) {
+	let listener = function(options) {
 	    svg.style.backgroundColor = bgColor(options);
 	};
 	options.listeners.push(listener);
@@ -290,7 +288,7 @@ LDR.Options.prototype.appendPartColorOptions = function(optionsBlock) {
 	return preview;
     }
     function createColorInput(parent, color, onChange) {
-	var input = document.createElement('input');
+	let input = document.createElement('input');
 	input.setAttribute('class', 'color_input');
 	input.setAttribute('type', 'color');
 	input.setAttribute('value', color);
@@ -299,40 +297,40 @@ LDR.Options.prototype.appendPartColorOptions = function(optionsBlock) {
 	parent.appendChild(input);
 	return input;
     }
-    var onChange = function() {
+    let onChange = function() {
 	options.bgColor = parseInt(input1.value.substring(1), 16);
 	options.pointColor = parseInt(input2.value.substring(1), 16);
 	options.onChange();
     }
 
     // Fill in data:
-    var preview1 = createPreview(group, true);
-    var input1 = createColorInput(preview1, bgColor(options), onChange);
+    let preview1 = createPreview(group, true);
+    let input1 = createColorInput(preview1, bgColor(options), onChange);
 
-    var preview2 = createPreview(group, false);
-    var input2 = createColorInput(preview2, pointColor(options), onChange);
+    let preview2 = createPreview(group, false);
+    let input2 = createColorInput(preview2, pointColor(options), onChange);
 }
 
 /*
 Part color options (points and background color)
 */
 LDR.Options.prototype.appendPartPointSizeOptions = function(optionsBlock) {
-    var group = this.addOptionsGroup(optionsBlock, 5, "Points");
-    var options = this;
-    var onChange = function(idx) {
+    let group = this.addOptionsGroup(optionsBlock, 5, "Points");
+    let options = this;
+    let onChange = function(idx) {
 	options.pointSize = idx;
 	options.onChange();
     };
-    var buttons = this.createButtons(group, 5, this.pointSize, onChange);
+    let buttons = this.createButtons(group, 5, this.pointSize, onChange);
 
     // Color function:
-    var pointColor = function(options){return LDR.Colors.int2Hex(options.pointColor);};
+    let pointColor = function(options){return LDR.Colors.int2Hex(options.pointColor);};
 
     /* 
        Option 1: off
     */
     {
-	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '-25 -25 50 50');
 	svg.setAttribute('class', 'ui_toggles');
 	svg.appendChild(LDR.SVG.makeOffIcon(0, 0, 50));
@@ -341,8 +339,8 @@ LDR.Options.prototype.appendPartPointSizeOptions = function(optionsBlock) {
     /*
       Options 2-5: Size 1-4:
     */
-    for(var i = 1; i <= 4; i++) {
-	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+    for(let i = 1; i <= 4; i++) {
+	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '-25 -25 50 50');
 	options.createSvgPoints(0, 0, pointColor, svg, i);	
 	buttons[i].appendChild(svg);
@@ -350,41 +348,41 @@ LDR.Options.prototype.appendPartPointSizeOptions = function(optionsBlock) {
 }
 
 LDR.Options.prototype.appendAnimationOptions = function(optionsBlock) {
-    var group = this.addOptionsGroup(optionsBlock, 3, "Animations");
-    var options = this;
-    var onAnimationChange = function(idx) {
+    let group = this.addOptionsGroup(optionsBlock, 3, "Animations");
+    let options = this;
+    let onAnimationChange = function(idx) {
 	options.showStepRotationAnimations = idx;
 	options.onChange();
     };
-    var buttons = this.createButtons(group, 3, this.showStepRotationAnimations, onAnimationChange);
-    var red = function(){return '#C91A09';};
-    var lineColor = function(options){
+    let buttons = this.createButtons(group, 3, this.showStepRotationAnimations, onAnimationChange);
+    let red = function(){return '#C91A09';};
+    let lineColor = function(options){
 	return LDR.Colors.int2Hex(options.lineColor);
     };
-    var w = 20;	
+    let w = 20;	
     
     /* 
        Option 1: Slow
     */
     {
 	// Left box
-	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '-100 -35 200 70');
 	buttons[0].appendChild(svg);
 	this.createSvgBlock(-50, 0, true, red, lineColor, svg);
 
 	// Circular arrow:
-	var g1 = document.createElementNS(LDR.SVG.NS, 'g');
+	let g1 = document.createElementNS(LDR.SVG.NS, 'g');
 	svg.appendChild(g1);
 	LDR.SVG.appendRotationCircle(0, 0, 18, g1);
 
 	// Right hand side:
-	var g2 = document.createElementNS(LDR.SVG.NS, 'g');
+	let g2 = document.createElementNS(LDR.SVG.NS, 'g');
 	svg.appendChild(g2);
 	//g2.setAttribute('transform', 'rotate(90 0 0) translate(-50 -55)');
-	var turned = this.createSvgBlock(50, 0, true, red, lineColor, g2);
+	let turned = this.createSvgBlock(50, 0, true, red, lineColor, g2);
 
-	var a = document.createElementNS(LDR.SVG.NS, 'animateTransform');
+	let a = document.createElementNS(LDR.SVG.NS, 'animateTransform');
 	a.setAttribute('id', 'turnerSlow');
 	a.setAttribute('attributeName', 'transform');
 	a.setAttribute('attributeType', 'XML');
@@ -402,22 +400,22 @@ LDR.Options.prototype.appendAnimationOptions = function(optionsBlock) {
     */
     {
 	// Left box
-	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '-100 -35 200 70');
 	buttons[1].appendChild(svg);
 	this.createSvgBlock(-50, 0, true, red, lineColor, svg);
 
 	// Circular arrow:
-	var g1 = document.createElementNS(LDR.SVG.NS, 'g');
+	let g1 = document.createElementNS(LDR.SVG.NS, 'g');
 	svg.appendChild(g1);
 	LDR.SVG.appendRotationCircle(0, 0, 18, g1);
 
 	// Right hand side:
-	var g2 = document.createElementNS(LDR.SVG.NS, 'g');
+	let g2 = document.createElementNS(LDR.SVG.NS, 'g');
 	svg.appendChild(g2);
-	var turned = this.createSvgBlock(50, 0, true, red, lineColor, g2);
+	let turned = this.createSvgBlock(50, 0, true, red, lineColor, g2);
 
-	var a = document.createElementNS(LDR.SVG.NS, 'animateTransform');
+	let a = document.createElementNS(LDR.SVG.NS, 'animateTransform');
 	a.setAttribute('id', 'turnerNormal');
 	a.setAttribute('attributeName', 'transform');
 	a.setAttribute('attributeType', 'XML');
@@ -435,7 +433,7 @@ LDR.Options.prototype.appendAnimationOptions = function(optionsBlock) {
     */
     {
 	// Left box
-	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '-100 -35 200 70');
 	buttons[2].appendChild(svg);
 	this.createSvgBlock(-50, 0, true, red, lineColor, svg);
@@ -446,25 +444,25 @@ LDR.Options.prototype.appendAnimationOptions = function(optionsBlock) {
 	svg.appendChild(LDR.SVG.makeLine(w/2, -w/2, w, 0, true));
 
 	// Right hand side:
-	var g = document.createElementNS(LDR.SVG.NS, 'g');
+	let g = document.createElementNS(LDR.SVG.NS, 'g');
 	svg.appendChild(g);
 	g.setAttribute('transform', 'rotate(90 0 0) translate(-50 -55)');
-	var turned = this.createSvgBlock(50, 0, true, red, lineColor, g);
+	let turned = this.createSvgBlock(50, 0, true, red, lineColor, g);
     }
 }
 
 LDR.Options.prototype.appendShowPLIOptions = function(optionsBlock) {
-    var group = this.addOptionsGroup(optionsBlock, 2, "Parts List");
-    var options = this;
-    var onPLIChange = function(idx) {
+    let group = this.addOptionsGroup(optionsBlock, 2, "Parts List");
+    let options = this;
+    let onPLIChange = function(idx) {
 	options.showPLI = idx;
 	options.onChange();
     };
-    var buttons = this.createButtons(group, 2, this.showPLI, onPLIChange);
+    let buttons = this.createButtons(group, 2, this.showPLI, onPLIChange);
     
     // Colors:
-    var red = function(){return '#C91A09';};
-    var lineColor = function(options){
+    let red = function(){return '#C91A09';};
+    let lineColor = function(options){
 	return LDR.Colors.int2Hex(options.lineColor);
     };
 
@@ -472,10 +470,10 @@ LDR.Options.prototype.appendShowPLIOptions = function(optionsBlock) {
        OFF:
     */
     {
-	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '-100 -40 200 80');
 	buttons[0].appendChild(svg);
-	for(var xx = -1; xx <= 1; xx++) {
+	for(let xx = -1; xx <= 1; xx++) {
 	    this.createSvgBlock(xx*LDR.Options.svgBlockWidth, 
 				0, true, red, lineColor, svg);
 	}
@@ -484,11 +482,11 @@ LDR.Options.prototype.appendShowPLIOptions = function(optionsBlock) {
        ON:
     */
     {
-	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '-100 -40 200 80');
 	buttons[1].appendChild(svg);
 	svg.appendChild(LDR.SVG.makeRoundRect(-90, -30, 60, 60, 2));
-	var txt = document.createElementNS(LDR.SVG.NS, 'text');
+	let txt = document.createElementNS(LDR.SVG.NS, 'text');
 	txt.setAttribute('x', '-87');
 	txt.setAttribute('y', '24');
 	txt.setAttribute('fill', 'black');
@@ -496,7 +494,7 @@ LDR.Options.prototype.appendShowPLIOptions = function(optionsBlock) {
 	svg.appendChild(txt);
 	this.createSvgBlock(-2*LDR.Options.svgBlockWidth, 
 			    -5, true, red, lineColor, svg);
-	for(var xx = 0; xx <= 2; xx++) {
+	for(let xx = 0; xx <= 2; xx++) {
 	    this.createSvgBlock(xx*LDR.Options.svgBlockWidth, 
 				0, true, red, lineColor, svg);
 	}
@@ -504,25 +502,25 @@ LDR.Options.prototype.appendShowPLIOptions = function(optionsBlock) {
 }
 
 LDR.Options.prototype.appendLROptions = function(optionsBlock, ldrButtons) {
-    var group = this.addOptionsGroup(optionsBlock, 3, "Button Size");
-    var options = this;
-    var onLRChange = function(idx) {
+    let group = this.addOptionsGroup(optionsBlock, 3, "Button Size");
+    let options = this;
+    let onLRChange = function(idx) {
 	options.showLRButtons = idx;
 	options.onChange();
 
         ldrButtons.nextButtonLarge.style.display = (idx != 0) ? 'none' : 'block';
         ldrButtons.nextButton.style.display = (idx != 1) ? 'none' : 'block';
     };
-    var buttons = this.createButtons(group, 3, this.showLRButtons, onLRChange);
+    let buttons = this.createButtons(group, 3, this.showLRButtons, onLRChange);
     
     /* 
        Option 1: Big
     */
     {
-	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '0 0 200 200');
 	svg.setAttribute('class', 'ui_toggles');
-	var r = LDR.SVG.makeRightArrowLarge();
+	let r = LDR.SVG.makeRightArrowLarge();
 	svg.appendChild(r);
 	buttons[0].appendChild(r);
     }
@@ -530,7 +528,7 @@ LDR.Options.prototype.appendLROptions = function(optionsBlock, ldrButtons) {
        Option 2: Right normal
     */
     {
-	var svg = LDR.SVG.makeRightArrow();
+	let svg = LDR.SVG.makeRightArrow();
 	svg.setAttribute('class', 'ui_toggles');
 	svg.children[0].setAttribute('transform', 'scale(0.5 0.5) translate(100 100)');
 	buttons[1].appendChild(svg);
@@ -539,7 +537,7 @@ LDR.Options.prototype.appendLROptions = function(optionsBlock, ldrButtons) {
        Option 3: off
     */
     {
-	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '-200 -100 400 200');
 	svg.setAttribute('class', 'ui_toggles');
 	svg.appendChild(LDR.SVG.makeOffIcon(0, 0, 200));
@@ -548,9 +546,9 @@ LDR.Options.prototype.appendLROptions = function(optionsBlock, ldrButtons) {
 }
 
 LDR.Options.prototype.appendCameraOptions = function(optionsBlock, ldrButtons) {
-    var group = this.addOptionsGroup(optionsBlock, 3, "Camera Buttons");
-    var options = this;
-    var onCameraChange = function(idx) {
+    let group = this.addOptionsGroup(optionsBlock, 3, "Camera Buttons");
+    let options = this;
+    let onCameraChange = function(idx) {
 	options.showCameraButtons = idx;
 	options.onChange();
         console.warn('Change Camera to ' + idx);
@@ -576,19 +574,19 @@ LDR.Options.prototype.appendCameraOptions = function(optionsBlock, ldrButtons) {
 	    ldrButtons.resetCameraButton.style.visibility = 'hidden';
         }
     };
-    var buttons = this.createButtons(group, 3, this.showCameraButtons, onCameraChange);
+    let buttons = this.createButtons(group, 3, this.showCameraButtons, onCameraChange);
     
     /* 
        Option 1: Small to the right
     */
     {
-	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '0 0 300 100');
 	svg.setAttribute('class', 'ui_toggles');
 	svg.appendChild(LDR.SVG.makeCamera(50, 45, 100));
-	var o = LDR.SVG.makeZoom(false, 1);
+	let o = LDR.SVG.makeZoom(false, 1);
 	o.children[0].setAttribute('transform', 'scale(0.5 0.5) translate(100 50)');
-	var i = LDR.SVG.makeZoom(true, 1);
+	let i = LDR.SVG.makeZoom(true, 1);
 	i.children[0].setAttribute('transform', 'scale(0.5 0.5) translate(100 0)');
 	svg.appendChild(o);
 	svg.appendChild(i);
@@ -598,13 +596,13 @@ LDR.Options.prototype.appendCameraOptions = function(optionsBlock, ldrButtons) {
        Option 2: Large zoom buttons on sides
     */
     {
-	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '0 0 300 100');
 	svg.setAttribute('class', 'ui_toggles');
 	svg.appendChild(LDR.SVG.makeCamera(50, 45, 100));
-	var o = LDR.SVG.makeZoom(false, 2);
+	let o = LDR.SVG.makeZoom(false, 2);
 	o.children[0].setAttribute('transform', 'translate(-100 0)');
-	var i = LDR.SVG.makeZoom(true, 2);
+	let i = LDR.SVG.makeZoom(true, 2);
 	i.children[0].setAttribute('transform', 'translate(100 0)');
 	svg.appendChild(o);
 	svg.appendChild(i);
@@ -614,7 +612,7 @@ LDR.Options.prototype.appendCameraOptions = function(optionsBlock, ldrButtons) {
        Option 3: off
     */
     {
-	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '-150 -50 300 100');
 	svg.setAttribute('class', 'ui_toggles');
 	svg.appendChild(LDR.SVG.makeOffIcon(0, 0, 100));
@@ -623,24 +621,24 @@ LDR.Options.prototype.appendCameraOptions = function(optionsBlock, ldrButtons) {
 }
 
 LDR.Options.prototype.appendRotationOptions = function(optionsBlock) {
-    var group = this.addOptionsGroup(optionsBlock, 2, "Show FPS and Rotate");
-    var options = this;
-    var onChange = function(idx) {
+    let group = this.addOptionsGroup(optionsBlock, 2, "Show FPS and Rotate");
+    let options = this;
+    let onChange = function(idx) {
 	options.rotateModel = idx;
 	options.onChange();
     };
-    var buttons = this.createButtons(group, 2, this.rotateModel, onChange);
-    var red = function(){return '#C91A09';};
-    var lineColor = function(options){
+    let buttons = this.createButtons(group, 2, this.rotateModel, onChange);
+    let red = function(){return '#C91A09';};
+    let lineColor = function(options){
 	return LDR.Colors.int2Hex(options.lineColor);
     };
-    var w = 20;	
+    let w = 20;	
     
     /* 
        Option 0: Off
     */
     {
-	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '-100 -25 200 50');
 	buttons[0].appendChild(svg);
 	this.createSvgBlock(0, 0, true, red, lineColor, svg);
@@ -649,15 +647,15 @@ LDR.Options.prototype.appendRotationOptions = function(optionsBlock) {
        Option 1: On
     */
     {
-	var svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '-100 -25 200 50');
 	buttons[1].appendChild(svg);
 
-	var g = document.createElementNS(LDR.SVG.NS, 'g');
+	let g = document.createElementNS(LDR.SVG.NS, 'g');
 	svg.appendChild(g);
-	var turned = this.createSvgBlock(0, 0, true, red, lineColor, g);
+	let turned = this.createSvgBlock(0, 0, true, red, lineColor, g);
 
-	var a = document.createElementNS(LDR.SVG.NS, 'animateTransform');
+	let a = document.createElementNS(LDR.SVG.NS, 'animateTransform');
 	a.setAttribute('id', 'turnerFull');
 	a.setAttribute('attributeName', 'transform');
 	a.setAttribute('attributeType', 'XML');
@@ -672,12 +670,12 @@ LDR.Options.prototype.appendRotationOptions = function(optionsBlock) {
 }
 
 LDR.Options.prototype.createButtons = function(parent, numberOfButtons, initiallySelected, onChange) {
-    var ret = [];
+    let ret = [];
 
-    for(var i = 0; i < numberOfButtons; i++) {
-	var button = document.createElement('td');
+    for(let i = 0; i < numberOfButtons; i++) {
+	let button = document.createElement('td');
 	button.setAttribute('class', i === initiallySelected ? 'option_selected' : 'option');
-	var event = function(e) {
+	let event = function(e) {
 	    LDR.Options.setOptionsSelected(e.target, onChange);
 	}
 	button.addEventListener('click', event);
@@ -689,13 +687,13 @@ LDR.Options.prototype.createButtons = function(parent, numberOfButtons, initiall
 }
 
 LDR.Options.prototype.addOptionsGroup = function(optionsBlock, columns, description) {
-    var optionsTable = document.createElement('table');
+    let optionsTable = document.createElement('table');
     optionsTable.setAttribute('class', 'options');
     optionsBlock.appendChild(optionsTable);
 
     this.appendDescriptionBar(optionsTable, columns, description);
 
-    var optionsGroupRow = document.createElement('tr');
+    let optionsGroupRow = document.createElement('tr');
     optionsGroupRow.setAttribute('class', 'options_group');
     optionsTable.appendChild(optionsGroupRow);
 
@@ -709,11 +707,11 @@ LDR.Options.svgBlockWidth = 30;
 LDR.Options.svgBlockHeight = 25;
 
 LDR.Options.prototype.createSvgBlock = function(x, y, closed, getFillColor, getLineColor, parent) {
-    var dx2 = LDR.Options.svgBlockWidth/2; // Half a block width
-    var dy = LDR.Options.svgBlockHeight;
-    var dy2 = dy*0.3; // dy for moving half a block width.
+    let dx2 = LDR.Options.svgBlockWidth/2; // Half a block width
+    let dy = LDR.Options.svgBlockHeight;
+    let dy2 = dy*0.3; // dy for moving half a block width.
 
-    var pts1 = 'M ' + x + ' ' + (y - dy/2 + dy2) + 
+    let pts1 = 'M ' + x + ' ' + (y - dy/2 + dy2) + 
 	' l' + dx2 + ' -' + dy2 + 
 	' v' + dy + 
 	' l-' + dx2 + ' ' + dy2 + 
@@ -721,10 +719,10 @@ LDR.Options.prototype.createSvgBlock = function(x, y, closed, getFillColor, getL
 	' v-' + dy + 
 	' l' + dx2 + ' ' + dy2 + 
 	' v' + dy;
-    var path1 = document.createElementNS(LDR.SVG.NS, 'path');
+    let path1 = document.createElementNS(LDR.SVG.NS, 'path');
     path1.setAttribute('d', pts1);
-    var options = this;
-    var listener1 = function(options) {
+    let options = this;
+    let listener1 = function(options) {
 	path1.setAttribute('fill', getFillColor(options));
 	path1.setAttribute('stroke', getLineColor(options));
     };
@@ -735,15 +733,14 @@ LDR.Options.prototype.createSvgBlock = function(x, y, closed, getFillColor, getL
     if(!closed)
 	return;
 
-    var pts2 = 'M ' +(x-dx2) + ' ' + (y-dy/2) + 
+    let pts2 = 'M ' +(x-dx2) + ' ' + (y-dy/2) + 
 	' l' + dx2 + ' -' + dy2 + 
 	' l' + dx2 + ' ' + dy2 + 
 	' l-' + dx2 + ' ' + dy2 + 
 	' Z';
-    var path2 = document.createElementNS(LDR.SVG.NS, 'path');
+    let path2 = document.createElementNS(LDR.SVG.NS, 'path');
     path2.setAttribute('d', pts2);
-    var options = this;
-    var listener2 = function() {
+    let listener2 = function() {
 	path2.setAttribute('fill', getFillColor(options));
 	path2.setAttribute('stroke', getLineColor(options));
     }
@@ -753,11 +750,11 @@ LDR.Options.prototype.createSvgBlock = function(x, y, closed, getFillColor, getL
 }
 
 LDR.Options.prototype.createSvgPoints = function(x, y, getColor, parent, size) {
-    var dx2 = LDR.Options.svgBlockWidth/2; // Half a block width
-    var dy = LDR.Options.svgBlockHeight;
-    var dy2 = dy*0.3; // dy for moving half a block width.
+    let dx2 = LDR.Options.svgBlockWidth/2; // Half a block width
+    let dy = LDR.Options.svgBlockHeight;
+    let dy2 = dy*0.3; // dy for moving half a block width.
 
-    var pts1 = 'M ' + x + ' ' + (y - dy/2 + dy2) + 
+    let pts1 = 'M ' + x + ' ' + (y - dy/2 + dy2) + 
 	' l' + dx2 + ' -' + dy2 + 
 	' v' + dy + 
 	' l-' + dx2 + ' ' + dy2 + 
@@ -765,29 +762,28 @@ LDR.Options.prototype.createSvgPoints = function(x, y, getColor, parent, size) {
 	' v-' + dy + 
 	' l' + dx2 + ' ' + dy2 + 
 	' v' + dy;
-    var path1 = document.createElementNS(LDR.SVG.NS, 'path');
+    let path1 = document.createElementNS(LDR.SVG.NS, 'path');
     path1.setAttribute('d', pts1);
     path1.setAttribute('stroke-dasharray', '0.1 5');
     path1.setAttribute('fill', 'none');
     path1.style = "stroke-width: " + size/2;
-    var options = this;
-    var listener1 = function(options) {
+    let options = this;
+    let listener1 = function(options) {
 	path1.setAttribute('stroke', getColor(options));
     };
     this.listeners.push(listener1);
     parent.appendChild(path1);
     listener1(options);
 
-    var pts2 = 'M ' +(x-dx2) + ' ' + (y-dy/2) + 
+    let pts2 = 'M ' +(x-dx2) + ' ' + (y-dy/2) + 
 	' l' + dx2 + ' -' + dy2 + 
 	' l' + dx2 + ' ' + dy2;
-    var path2 = document.createElementNS(LDR.SVG.NS, 'path');
+    let path2 = document.createElementNS(LDR.SVG.NS, 'path');
     path2.setAttribute('d', pts2);
     path2.setAttribute('stroke-dasharray', '0.1 5');
     path2.setAttribute('fill', 'none');
     path2.style = "stroke-width: " + size/2;
-    var options = this;
-    var listener2 = function() {
+    let listener2 = function() {
 	path2.setAttribute('stroke', getColor(options));
     }
     this.listeners.push(listener2);
@@ -796,34 +792,34 @@ LDR.Options.prototype.createSvgPoints = function(x, y, getColor, parent, size) {
 }
 
 LDR.Options.prototype.createSvgCylinder = function(x, y, conditionalLines, getFillColor, getLineColor, parent) {
-    var dx2 = LDR.Options.svgBlockWidth/2; // Half a block width
-    var dy = LDR.Options.svgBlockHeight;
-    var dy2 = dy*0.3; // dy for moving half a block width.
+    let dx2 = LDR.Options.svgBlockWidth/2; // Half a block width
+    let dy = LDR.Options.svgBlockHeight;
+    let dy2 = dy*0.3; // dy for moving half a block width.
 
     function makeCyli(y) {
-	var c = document.createElementNS(LDR.SVG.NS, 'ellipse');
+	let c = document.createElementNS(LDR.SVG.NS, 'ellipse');
 	c.setAttribute('cx', x);
 	c.setAttribute('cy', y);
 	c.setAttribute('rx', dx2);
 	c.setAttribute('ry', dy2);
 	return c;
     }
-    var base = makeCyli(y+dy/2);
-    var center = LDR.SVG.makeRect(x-dx2, y-dy/2, LDR.Options.svgBlockWidth, dy);
-    var top = makeCyli(y-dy/2);
+    let base = makeCyli(y+dy/2);
+    let center = LDR.SVG.makeRect(x-dx2, y-dy/2, LDR.Options.svgBlockWidth, dy);
+    let top = makeCyli(y-dy/2);
 
     parent.appendChild(base);
     parent.appendChild(center);
     if(conditionalLines) {
-	var l1 = LDR.SVG.makeLine(x-dx2, y-dy/2, x-dx2, y+dy/2);
+	let l1 = LDR.SVG.makeLine(x-dx2, y-dy/2, x-dx2, y+dy/2);
 	parent.appendChild(l1);
-	var l2 = LDR.SVG.makeLine(x+dx2, y-dy/2, x+dx2, y+dy/2);	
+	let l2 = LDR.SVG.makeLine(x+dx2, y-dy/2, x+dx2, y+dy/2);	
 	parent.appendChild(l2);	
     }
     parent.appendChild(top);
 
-    var options = this;
-    var listener = function(options) {
+    let options = this;
+    let listener = function(options) {
 	base.setAttribute('fill', getFillColor(options));
 	base.setAttribute('stroke', getLineColor(options));
 	center.setAttribute('fill', getFillColor(options));

@@ -19,7 +19,7 @@ LDR.PliPreviewer.prototype.attachRenderer = function(canvas) {
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.canvas = canvas;
     this.controls = new THREE.OrbitControls(this.camera, this.canvas);
-    var self = this;
+    let self = this;
     this.controls.addEventListener('change',function(){self.render();});
 }
 
@@ -31,8 +31,8 @@ LDR.PliPreviewer.prototype.render = function() {
 LDR.PliPreviewer.prototype.onResize = function() {
     if(!this.canvas)
 	return;
-    var w = this.canvas.parentNode.clientWidth;
-    var h = this.canvas.parentNode.clientHeight;
+    let w = this.canvas.parentNode.clientWidth;
+    let h = this.canvas.parentNode.clientHeight;
     this.renderer.setSize(w, h);
     this.camera.left   = -w;
     this.camera.right  =  w;
@@ -45,16 +45,14 @@ LDR.PliPreviewer.prototype.onResize = function() {
 
 LDR.PliPreviewer.prototype.resetCameraZoom = function() {
     if(this.canvas) {
-        var sizeMin = Math.min(this.canvas.clientWidth, this.canvas.clientHeight);
+        let sizeMin = Math.min(this.canvas.clientWidth, this.canvas.clientHeight);
 	this.camera.zoom = sizeMin / this.subjectSize;
 	this.camera.updateProjectionMatrix();
     }
 }
 
 LDR.PliPreviewer.prototype.resetCameraPosition = function() {
-    this.camera.position.x = 10000;
-    this.camera.position.y = 7000;
-    this.camera.position.z = 10000;
+    this.camera.position.set(10000, 7000, 10000);
     this.camera.lookAt(new THREE.Vector3());
     if(this.canvas) {
 	this.resetCameraZoom();
@@ -77,21 +75,23 @@ LDR.PliPreviewer.prototype.zoomOut = function() {
 }
  
 LDR.PliPreviewer.prototype.showPliPreview = function(icon) {
-    var colorID = icon.colorID;
-    var color = LDR.Colors[colorID];
+    let colorID = icon.colorID;
+    let color = LDR.Colors[colorID];
 
     // Update description:
-    var nameEle = document.getElementById('preview_info_name');
-    var partIdNoDat = icon.partID.slice(0, -4);
-    var desc = icon.desc || partIdNoDat;
+    let nameEle = document.getElementById('preview_info_name');
+    let partIdNoDat = icon.partID.slice(0, -4);
+    let desc = icon.desc || partIdNoDat;
     nameEle.innerHTML = desc + " (" + partIdNoDat + ")";
-    var blA = document.getElementById('preview_info_bl_link');
-    if(color.bricklink_name)
+    let blA = document.getElementById('preview_info_bl_link');
+    if(color.bricklink_name) {
 	blA.setAttribute('href', 'https://www.bricklink.com/catalogItemIn.asp?P=' + partIdNoDat + '&colorID=' + color.bricklink_id + '&in=A');
-    else
+    }
+    else {
 	blA.setAttribute('href', 'https://www.bricklink.com/catalogItem.asp?P=' + partIdNoDat);
+    }
 
-    var bhA = document.getElementById('preview_info_bh_link');
+    let bhA = document.getElementById('preview_info_bh_link');
 
     if(icon.inlined && !isNaN(icon.inlined)) {
 	bhA.setAttribute('href', "../p/part.php?user_id=" + icon.inlined + "&id=" + encodeURI(partIdNoDat));
@@ -110,11 +110,11 @@ LDR.PliPreviewer.prototype.showPliPreview = function(icon) {
     document.getElementById('preview_info_color_lego').innerHTML = color.lego_name ? (color.lego_name + " (" + color.lego_id + ")") : 'Unknown official LEGO color';
     document.getElementById('preview_info_color_bricklink').innerHTML = color.bricklink_name ? (color.bricklink_name + " (" + color.bricklink_id + ")") : 'Unknown Bricklink color';
     
-    var fadeInTime = 400;
+    let fadeInTime = 400;
     $('#preview_holder, #preview_background, #preview').fadeIn(fadeInTime);
 }
 
 LDR.PliPreviewer.prototype.hidePliPreview = function() {
-    var fadeOutTime = 400;
+    let fadeOutTime = 400;
     $('#preview_holder, #preview_background, #preview').fadeOut(fadeOutTime);
 }
