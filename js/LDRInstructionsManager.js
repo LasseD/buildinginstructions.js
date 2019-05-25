@@ -689,7 +689,6 @@ LDR.InstructionsManager.prototype.hideDone = function() {
     let fadeOutTime = 400;
     $('#done_holder, #done_background').fadeOut(fadeOutTime);
 }
-	
 
 /*
   Assumes ldrOptions in global scope.
@@ -710,5 +709,6 @@ LDR.InstructionsManager.prototype.setUpOptions = function() {
     ldrOptions.listeners.push(function() {
       self.stepHandler.updateMeshCollectors();
       self.updateUIComponents(true);
+      self.ldrButtons.hideElementsAccordingToOptions();
     });
 }

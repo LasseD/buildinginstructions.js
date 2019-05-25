@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset=utf-8>
+    <meta charset="utf-8" />
     <title>Sample Parts List</title>
     <link href="css/preview.css" rel="stylesheet" type="text/css">
     <link href="css/buttons.css" rel="stylesheet" type="text/css">
@@ -19,17 +19,59 @@
     <script src="js/LDRColorMaterials.js"></script>
     <script src="js/LDRSVG.js"></script>
     <script src="js/LDROptions.js"></script>
+    <script src="js/ClientStorage.js"></script>
     <script src="js/LDRGeometries.js"></script>
     <script src="js/LDRLoader.js"></script>
     <script src="js/LDRPartsBuilder.js"></script>
     <script src="js/LDRButtons.js"></script>
     <script src="js/LDRPLIPreview.js"></script>
+    <script src="js/LDRMeasurer.js"></script>
+
+    <div id="top">
+      <div id="icon_toggles">
+        <div id="big_icons_toggle" onclick="showList(false);" class="toggle"></div>
+        <div id="list_parts_toggle" onclick="showList(true);" class="toggle"></div>
+      </div>
+    </div>
+   
+    <div id="generated">
+      <div id="preview_background" onclick="pliPreviewer.hidePliPreview();"></div>
+      <div id="preview_holder">
+        <div id="preview_parent"><canvas id="preview" /></div>
+
+        <div id="preview_info">
+         <span class="preview_info_line">
+          <span id="preview_info_name">PART NAME</span>
+          <a id="preview_info_bh_link" href="" target="_blank">Go to part</a>
+          |
+          <a id="preview_info_bl_link" href="" target="_blank">See on BrickLink</a>
+         </span>
+         <span class="preview_info_line">LDraw color: <div id="preview_info_color_ldraw">LDR COLOR</div></span>
+         <span class="preview_info_line">LEGO/LDD color: <div id="preview_info_color_lego">LDD COLOR</div></span>
+         <span class="preview_info_line">Bricklink color: <div id="preview_info_color_bricklink">Bricklink color</div></span>
+        </div>
+      </div>
+
+      <div id="big_parts"></div>
+      <div id="list_parts">
+        <table id="list_table">
+          <tr>
+           <th><span class="sorter">&Sigma;</span></th>
+           <th><span class="sorter">Color</span></th>
+	      <th><span class="sorter">Name</span></th>
+           <th><span class="sorter">#</span></th>
+	      <th>Image</th>
+          </tr>
+         </table>
+        </div>
+      </div>
+
     <script>
       //var modelTypeUrl = 'models/fail1.mpd';
       var modelTypeUrl = 'models/pyramid2.ldr';
       var ldrOptions = new LDR.Options();
       var builder = null;
-      var ldrLoader = null;
+      var ldrLoader;
 
       var w = 200;
       var h = 200;
@@ -37,9 +79,10 @@
       var iconCamera = new THREE.OrthographicCamera(-w, w, h, -h, 0.1, 1000000);
       iconCamera.position.set(10000, 7000, 10000);
       iconCamera.lookAt(new THREE.Vector3());
+      var measurer = new LDR.Measurer(iconCamera);
 
-      var iconScene = new THREE.Scene(); // To add stuff to. TODO: Use multiple iconScenes for web workers.
-      iconScene.background = new THREE.Color( 0xffffff );
+      var iconScene = new THREE.Scene();
+      iconScene.background = new THREE.Color(0xFFFFFF);
 
       var iconRenderer = new THREE.WebGLRenderer({antialias: true});
       function render() {
@@ -47,14 +90,18 @@
       }
       iconRenderer.setPixelRatio(window.devicePixelRatio);
       iconRenderer.setSize(w, h);
-      var ldrButtons = null;
       var lastPreview;
       var lastBaseObject;
       var pliPreviewer = new LDR.PliPreviewer(); // Has own renderer, camera, and iconScene.
-
-      var baseObject = new THREE.Group(), opaqueObject = new THREE.Group(), transObject = new THREE.Group();
-      iconScene.add(baseObject);
-      var mc = new LDR.MeshCollector(baseObject, baseObject);
+      pliPreviewer.attachRenderer(document.getElementById('preview'));
+      var actions = {
+          prevStep: () => prevStep(),
+          nextStep: () => nextStep(),
+          zoomIn: () => zoomIn(),
+          zoomOut: () => zoomOut(),
+          resetCameraPosition: () => resetCameraPosition(),
+      };
+      var ldrButtons = new LDR.Buttons(actions, pliPreviewer.canvas.parentNode, false);
 
       // Used by camera buttons:
       function resetCameraPosition() {
@@ -115,7 +162,12 @@
           ldrButtons.atAnyOtherStep();
         }
 
-        var icon = {partID: ele.getAttribute('part_id'), desc: ele.getAttribute('part_description'), colorID: ele.getAttribute('color_id')};
+	var icon = {
+	  partID: ele.getAttribute('part_id'),
+	  desc: ele.getAttribute('part_description'),
+	  colorID: ele.getAttribute('color_id'),
+	  inlined: ele.getAttribute('inlined')
+	};
         pliPreviewer.showPliPreview(icon);
 
         // Update description:
@@ -144,13 +196,24 @@
         span.setAttribute('class', 'part');
         span.setAttribute('color_id', pcInfo.colorID);
         span.setAttribute('part_description', pcInfo.partDesc);
-        span.setAttribute('part_id', pcInfo.partID);
+        span.setAttribute('part_id', pcInfo.part.ID);
         span.setAttribute('pcIdx', ""+i);
+	span.setAttribute('inlined', pcInfo.inlined);
 
         var mult = document.createElement('span');
         mult.setAttribute('class', 'mult');
         mult.innerHTML = pcInfo.amount + " x";
         span.appendChild(mult);
+
+	if(pcInfo.annotation) {
+	  var anno = document.createElement('span');
+	  if(pcInfo.partDesc.startsWith('Technic Axle'))
+	    anno.setAttribute('class', 'annotation_round');
+	  else
+	    anno.setAttribute('class', 'annotation');
+	  anno.innerHTML = pcInfo.annotation;
+	  span.appendChild(anno);
+	}
 
         var iconSceneHolder = document.createElement('span');
         iconSceneHolder.setAttribute('class', 'iconScene');
@@ -169,79 +232,146 @@
         return canvas;
       }
 
-      function makeTD(content, cssClass, anchor) {
+      function makeATD(url, content, cssClass) {
         var td = document.createElement('td');
-        if(anchor) {
-          var a = document.createElement('a');
-          a.setAttribute('href', 'http://www.bricklink.com/catalogItem.asp?P=' + content);
-          a.setAttribute('target', '_blank');
-          a.innerHTML = ""+content;
-          td.appendChild(a);
+
+        var a = document.createElement('a');
+  	a.setAttribute('href', url + encodeURI(content));
+	a.setAttribute('target', '_blank');
+	a.innerHTML = ""+content;
+
+	td.setAttribute('class', cssClass);
+	td.appendChild(a);
+	return td;
+      }
+
+      function appendTDs(tr, content, cssClass, partType) {
+	if(partType) { // Treat as if an anchor:
+	  var url = '../p/';
+	  if(partType.inlined && !isNaN(partType.inlined)) {
+	    url += "part.php?user_id=" + partType.inlined + "&id=";
+	  }
+	  else if(partType.inlined === undefined) {
+	    url += "part.php?from=MODEL_ID&id=";
+	  }
+	  tr.appendChild(makeATD(url, content, cssClass));
+	}
+	else {
+          var td = document.createElement('td');
+	  td.innerHTML = ""+content;
+  	  td.setAttribute('class', cssClass);
+	  tr.appendChild(td);
+	}
+      }
+
+      function makeListElement(pcInfo, i, w, h) {
+        const tr = document.createElement('tr');
+	const key = 'MODEL_ID_' + pcInfo.key;
+	var idSet = localStorage.getItem('c_' + key) == '1';
+	tr.setAttribute('class', idSet ? 'checked_partline' : 'partline');
+
+	tr.setAttribute('amount', pcInfo.amount);
+	tr.setAttribute('color_id', pcInfo.colorID);
+	tr.setAttribute('part_description', pcInfo.partDesc);
+	tr.setAttribute('part_id', pcInfo.part.ID);
+	tr.setAttribute('pcIdx', ""+i);
+	tr.setAttribute('inlined', pcInfo.inlined);
+
+	// Checkmark:
+        var td = document.createElement('td');
+	td.id = 'check_' + key;
+ 	td.setAttribute('class', 'note_field');
+	td.addEventListener('click', function(){
+	  var p = this.parentNode;
+	  var checked = p.getAttribute('class') != 'partline';
+	  localStorage.setItem('c_' + key, checked ? '0' : '1');
+	  p.setAttribute('class', checked ? 'partline' : 'checked_partline');
+	});
+	td.innerHTML = '\u2807';
+	tr.appendChild(td);
+
+	// Note:
+        td = document.createElement('td');
+	input = document.createElement('input');
+	input.id = 'note_MODEL_ID_' + pcInfo.key;
+	input.setAttribute('class', 'note_input');
+	input.addEventListener('keyup', function(){
+	  localStorage.setItem('v_' + key, this.value);
+	});
+	input.value = localStorage.getItem('v_' + key);
+	td.appendChild(input);
+ 	td.setAttribute('class', 'note_field');
+	tr.appendChild(td);
+
+	appendTDs(tr, pcInfo.amount, 'list_amount');
+	var colorTxt = LDR.Colors[pcInfo.colorID].name.replace(/\_/g,' ') + ' (' + pcInfo.colorID + ')';
+	appendTDs(tr, colorTxt, 'list_color');
+
+	let partID = pcInfo.part.ID.slice(0, -4);
+	let bl = '';
+	if(!((pcInfo.inlined && !isNaN(pcInfo.inlined)) ||
+	     pcInfo.inlined === undefined || 
+	     pcInfo.inlined === 'undefined')) {
+	  let blUrl = 'http://www.bricklink.com/catalogItem.asp?P=' + partID;
+	  bl = ' <a href="' + blUrl + '"><img src="bricklink_icon_trans.png" /></a>';
         }
-        else {
-          td.innerHTML = ""+content;
-        }
-        td.setAttribute('class', cssClass);
-          return td;
-        }
-        function makeListElement(pcInfo, i, w, h) {
-          var tr = document.createElement('tr');
-          tr.setAttribute('class', 'partline');
 
-          tr.setAttribute('amount', pcInfo.amount);
-          tr.setAttribute('color_id', pcInfo.colorID);
-          tr.setAttribute('part_description', pcInfo.partDesc);
-          tr.setAttribute('part_id', pcInfo.partID);
-          tr.setAttribute('pcIdx', ""+i);
+	appendTDs(tr, '<span class="name">' + pcInfo.partDesc + '</span>' + bl, 'list_description');
 
-          tr.appendChild(makeTD(pcInfo.amount, 'list_amount'));
-          tr.appendChild(makeTD(pcInfo.colorID, 'list_color'));
-          tr.appendChild(makeTD(pcInfo.partDesc, 'list_description'));
-          tr.appendChild(makeTD(pcInfo.partID.slice(0, -4), 'list_id', true));
+	appendTDs(tr, partID, 'list_id', pcInfo.partType);
 
-          var iconSceneHolder = document.createElement('td');
-          iconSceneHolder.setAttribute('class', 'list_image');
-          tr.appendChild(iconSceneHolder);
+	let iconSceneHolder = document.createElement('td');
+	iconSceneHolder.setAttribute('class', 'list_image');
+	tr.appendChild(iconSceneHolder);
 
-          var canvas = document.createElement('canvas');
-          canvas.setAttribute("onClick", "showPreview(this.parentNode.parentNode);");
-          canvas.width = w*window.devicePixelRatio;
-          canvas.height = h*window.devicePixelRatio;
-          canvas.style.width = w+'px';
-          canvas.style.height = h+'px';
-          iconSceneHolder.appendChild(canvas);
+	var canvas = document.createElement('canvas');
+    	canvas.setAttribute("onClick", "showPreview(this.parentNode.parentNode);");
+        canvas.width = w*window.devicePixelRatio;
+        canvas.height = h*window.devicePixelRatio;
+        canvas.style.width = w+'px';
+        canvas.style.height = h+'px';
+	iconSceneHolder.appendChild(canvas);
 
-          var table = document.getElementById('list_table');
-          table.children[0].appendChild(tr);
-          return canvas;
-        }
+	var table = document.getElementById('list_table');
+	table.children[0].appendChild(tr);
+	return canvas;
+      }
 
         function setItemInScene(i) {
           pc = builder.pcs[builder.pcKeys[i]];
+          let pt = pc.partType;
 
           // Already shown before - just re-render:
-          if(!pc.baseObject) {
-            var baseObject = new THREE.Group();
-            pc.draw(baseObject);
-            var b = pc.getBounds();
-            var size = b.min.distanceTo(b.max) * 0.6;
-            var elementCenter = new THREE.Vector3();
-            b.getCenter(elementCenter);
-            baseObject.position.sub(elementCenter);
-            baseObject.subjectSize = size;
-            pc.baseObject = baseObject;
-          }
-          else {
-            pc.draw(baseObject);
-          }
-          pc.meshCollector.updateMeshVisibility();
-          return pc.baseObject;
+	  if(!pt.baseObject) {
+	    var baseObject = new THREE.Group();
+	    pc.ensureMeshCollector(baseObject);
+	    var b = pc.getBounds();
+	    var elementCenter = new THREE.Vector3();
+	    b.getCenter(elementCenter);
+	    baseObject.position.sub(elementCenter);
+     	    baseObject.updateMatrixWorld(true);
+
+	    //baseObject.add(new THREE.Box3Helper(b, 0xff0000));
+	    var [dx,dy] = measurer.measure(b, baseObject.matrixWorld);
+	    var size = 120*Math.max(dx,dy);
+
+	    baseObject.subjectSize = size;
+	    pt.baseObject = baseObject;
+	  }
+
+	  pt.pliMC.overwriteColor(pc.colorID);
+    	  pt.pliMC.draw(false);
+
+          return pt.baseObject;
         }
 
         var partCanvasses = [];
         var listCanvasses = [];
 
+        var xmlDownloadBuilt = false;
         var buildXmlDownload = function() {
+          if(xmlDownloadBuilt)
+  	    return;
           // HTML elements:
           var parentEle = document.getElementById('other_actions');
           var a = document.createElement('a');
@@ -254,7 +384,7 @@
           var content = '<INVENTORY>\n';
           for(var i = 0; i < builder.pcKeys.length; i++) {
             var info = builder.pcs[builder.pcKeys[i]];
-            var id = info.partID;
+            var id = info.part.ID;
             if(id.endsWith('.dat')) {
               id = id.slice(0, -4);
             }
@@ -270,6 +400,29 @@
           a.setAttribute('href', window.URL.createObjectURL(new Blob([content], {type: 'text/plain'})));
           a.setAttribute('download', ldrLoader.mainModel + '.xml');
           a.dataset.downloadurl = ['text/plain', a.download, a.href].join(':');
+          xmlDownloadBuilt = true;
+        }
+
+        function buildItem(i) {
+	    if(i === builder.pcKeys.length) {
+              buildXmlDownload();
+	      return; // done.
+	    }
+            var baseObject = setItemInScene(i, iconScene);
+	    iconCamera.zoom = 200 / baseObject.subjectSize;    
+            iconCamera.updateProjectionMatrix();
+	    iconScene.add(baseObject);
+	    render();
+  	    iconScene.remove(baseObject);
+
+            function draw(canvas) {
+              var context = canvas.getContext('2d');
+	      context.drawImage(iconRenderer.domElement, 0, 0);
+	    }
+ 	    draw(partCanvasses[i]);
+	    draw(listCanvasses[i]);
+
+            setTimeout(function(){buildItem(i+1);}, 10);
         }
 
         var onLoad = function() {
@@ -281,15 +434,6 @@
 
           builder = new LDR.PartsBuilder(ldrLoader, mainModel, 0);
           pliPreviewer.attachRenderer(document.getElementById('preview'));
-          var actions = {
-            prevStep: () => prevStep(),
-            nextStep: () => nextStep(),
-            zoomIn: () => zoomIn(),
-            zoomOut: () => zoomOut(),
-            resetCameraPosition: () => resetCameraPosition(),
-            clickDone: function(){},
-          };
-          ldrButtons = new LDR.Buttons(actions, pliPreviewer.canvas.parentNode, false);
 
           var sorter = function(a, b){
             var ca = a.getAttribute('color_id');
@@ -317,27 +461,6 @@
           basicSort($("#big_parts > .part").get());
           basicSort($("tbody > tr.partline").get());
 
-	  function buildItem(i) {
-	    if(i === builder.pcKeys.length) {
-              buildXmlDownload();
-	      return; // done.
-	    }
-            var baseObject = setItemInScene(i, iconScene);
-	    iconCamera.zoom = 200 / baseObject.subjectSize;    
-            iconCamera.updateProjectionMatrix();
-	    iconScene.add(baseObject);
-	    render();
-  	    iconScene.remove(baseObject);
-
-            function draw(canvas) {
-              var context = canvas.getContext('2d');
-	      context.drawImage(iconRenderer.domElement, 0, 0);
-	    }
- 	    draw(partCanvasses[i]);
-	    draw(listCanvasses[i]);
-
-            setTimeout(function(){buildItem(i+1);}, 10);
-          }
           buildItem(0);
         }
 
@@ -345,45 +468,6 @@
         ldrLoader.load(modelTypeUrl);
     </script>
 
-    <div id="all">
-    <div id="top">
-      <div id="icon_toggles">
-        <div id="big_icons_toggle" onclick="showList(false);" class="toggle"></div>
-        <div id="list_parts_toggle" onclick="showList(true);" class="toggle"></div>
-      </div>
-    </div>
-   
-    <div id="generated">
-      <div id="preview_background" onclick="pliPreviewer.hidePliPreview();"></div>
-      <div id="preview_holder">
-        <div id="preview_parent"><canvas id="preview" /></div>
-
-        <div id="preview_info">
-         <span class="preview_info_line">
-          <span id="preview_info_name">PART NAME</span>
-          <a id="preview_info_bh_link" href="" target="_blank">Go to part</a>
-                       or
-          <a id="preview_info_bl_link" href="" target="_blank">See on BrickLink</a>
-         </span>
-         <span class="preview_info_line">LDraw color: <div id="preview_info_color_ldraw">LDR COLOR</div></span>
-         <span class="preview_info_line">LEGO/LDD color: <div id="preview_info_color_lego">LDD COLOR</div></span>
-         <span class="preview_info_line">Bricklink color: <div id="preview_info_color_bricklink">Bricklink color</div></span>
-        </div>
-      </div>
-
-      <div id="big_parts"></div>
-      <div id="list_parts">
-        <table id="list_table">
-          <tr>
-           <th><span class="sorter">&Sigma;</span></th>
-           <th><span class="sorter">Color</span></th>
-	      <th><span class="sorter">Name</span></th>
-           <th><span class="sorter">#</span></th>
-	      <th>Image</th>
-          </tr>
-         </table>
-        </div>
-      </div>
       <script>
 	   var bit = document.getElementById('big_icons_toggle');
 	   var bi = document.getElementById('big_parts');
@@ -421,81 +505,48 @@
     var optionsDiv = document.getElementById('options');
     ldrOptions.appendHeader(optionsDiv);    
     ldrOptions.appendContrastOptions(optionsDiv);
-    ldrOptions.appendLROptions(optionsDiv);
-    ldrOptions.appendCameraOptions(optionsDiv);
+    ldrOptions.appendLROptions(optionsDiv, ldrButtons);
+    ldrOptions.appendCameraOptions(optionsDiv, ldrButtons);
     ldrOptions.appendFooter(optionsDiv);
-    ldrOptions.listeners.push(function() {
-      function buildItem(i) {
-      if(i === builder.pcKeys.length)
-        return; // done.
+    ldrOptions.listeners.push(() => buildItem(0));
+    var lastSorterIndex = -1;
 
-      var baseObject = setItemInScene(i, iconScene);
-      iconCamera.zoom = 200 / baseObject.subjectSize;    
-      iconCamera.updateProjectionMatrix();
-      iconScene.add(baseObject);
-      render();
-      iconScene.remove(baseObject);
-
-      function draw(canvas) {
-        var context = canvas.getContext('2d');
-        context.drawImage(iconRenderer.domElement, 0, 0);
-      }
-      draw(partCanvasses[i]);
-      draw(listCanvasses[i]);
-
-          setTimeout(function(){buildItem(i+1);}, 10);
-      }
-      buildItem(0);
-    });
-      </script>
-    </div>
-    <script>
-      var lastSorterIndex = -1;
-
-      $("span.sorter").click(function() {
-        var parent = this.parentNode;
-        var index = Array.from(parent.parentNode.children).indexOf(parent);
+    $("span.sorter").click(function() {
+      var parent = this.parentNode;
+      var index = Array.from(parent.parentNode.children).indexOf(parent);
     
-        var list = $("tbody > tr.partline").get();
+      var list = $("tbody > tr.partline").get();
+  
+      var sort = function(a, b) {
+        a = a.children[index];
+        b = b.children[index];
+        if(a.children.length > 0) {
+          a = a.children[0];
+          b = b.children[0];
+        }
+	a = a.innerHTML;
+	b = b.innerHTML;
+	if(parseInt(a)+'' === a) {
+	  a = parseInt(a);
+	  b = parseInt(b);
+	}
+        return a < b ? 1 : (b < a ? -1 : 0);
+      }
+      var sort_reverse = function(a, b) {
+        return sort(b, a);
+      } 
 
-        var sort_by_int = function(a, b) {
-          a = a.children[index];
-          b = b.children[index];
-          if(a.children.length > 0) {
-            a = a.children[0];
-            b = b.children[0];
-          }
-          a = parseInt(a.innerHTML);
-          b = parseInt(b.innerHTML);
-          return a < b ? -1 : (a > b ? 1 : 0);
-        }
-        var sort_by_int_reverse = function(a, b) {
-          return sort_by_int(b, a);
-        }
-        var sort_by_txt = function(a, b) {
-          a = a.children[index];
-          b = b.children[index];
-          if(a.children.length > 0) {
-            a = a.children[0];
-            b = b.children[0];
-          }
-          return a.innerHTML.localeCompare(b.innerHTML);
-        }
-        var sort_by_txt_reverse = function(a, b) {
-          return sort_by_txt(b, a);
-        }
-
-        if(lastSorterIndex == index) {
-          list.sort(index == 0 ? sort_by_int_reverse : sort_by_txt_reverse);
-          lastSorterIndex = -1;
-        }
-        else {
-          list.sort(index == 0 ? sort_by_int : sort_by_txt);
-          lastSorterIndex = index;
-        }
-        for (var i = 0; i < list.length; i++) {
-          list[i].parentNode.appendChild(list[i]);
-        }
+      if(lastSorterIndex == index) {
+        list.sort(sort_reverse);
+        lastSorterIndex = -1;
+      }
+      else {
+        list.sort(sort);
+        lastSorterIndex = index;
+      }
+      for (var i = 0; i < list.length; i++) {
+        list[i].parentNode.appendChild(list[i]);
+      }
     });
     </script>
   </body>

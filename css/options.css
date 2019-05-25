@@ -1,7 +1,6 @@
 #options_header, .options_footer {
     height: 100px;
     display: block;
-    width: 100%;
     background-color: black;
 }
 #options_header svg, .options_footer svg {

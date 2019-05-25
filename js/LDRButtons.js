@@ -5,8 +5,10 @@ LDR.Buttons = function(actions, element, addTopButtons, homeLink, mainImage, can
     // Add buttons to element:
     
     // Lower buttons:
-    this.backButton = this.createDiv('prev_button', actions.prevStep);
-    this.backButton.appendChild(LDR.SVG.makeLeftArrow(!addTopButtons));
+    if(actions.prevStep) {
+	this.backButton = this.createDiv('prev_button', actions.prevStep);
+	this.backButton.appendChild(LDR.SVG.makeLeftArrow(!addTopButtons));
+    }
 
     this.cameraButtons = this.createDiv('camera_buttons');
     this.zoomOutButtonLarge = this.createDiv('zoom_out_button_large', actions.zoomOut);
@@ -26,7 +28,7 @@ LDR.Buttons = function(actions, element, addTopButtons, homeLink, mainImage, can
     this.cameraButtons.appendChild(this.zoomInButtonLarge);
     element.appendChild(this.cameraButtons);
 
-    if(!addTopButtons) {
+    if(!addTopButtons && actions.prevStep) {
         element.appendChild(this.backButton); // Add back button to row with camera buttons.
     }
 
@@ -83,7 +85,9 @@ LDR.Buttons.prototype.addTopButtonElements = function(actions, element, homeLink
     // Upper row of buttons (added last due to their absolute position):    
     this.topButtons = this.createDiv('top_buttons');
 
-    this.topButtons.appendChild(this.backButton);
+    if(this.backButton) {
+	this.topButtons.appendChild(this.backButton);
+    }
 
     this.homeButton = this.createDiv('homeButton');
     if(mainImage) {
@@ -126,18 +130,22 @@ LDR.Buttons.prototype.addTopButtonElements = function(actions, element, homeLink
 
 LDR.Buttons.prototype.hideElementsAccordingToOptions = function() {
     // LR Buttons:
-    if(ldrOptions.showLRButtons == 2) { // None:
-	this.backButton.style.display = 
-        this.nextButton.style.display =
-        this.nextButtonLarge.style.display = 'none';
-    }
-    else if(ldrOptions.showLRButtons == 0) { // Large:
-	this.nextButtonLarge.style.display = 'block';
-	this.nextButton.style.display = 'none';
-    }
-    else { // Normal:
-	this.nextButtonLarge.style.display = 'none';
-	this.nextButton.style.display = 'block'; 
+    if(this.backButton) {
+	if(ldrOptions.showLRButtons == 2) { // None:
+	    this.backButton.style.display = 
+		this.nextButton.style.display =
+		this.nextButtonLarge.style.display = 'none';
+	}
+	else if(ldrOptions.showLRButtons == 0) { // Large:
+	    this.backButton.style.display = 'inline-block'; 
+	    this.nextButtonLarge.style.display = 'block';
+	    this.nextButton.style.display = 'none';
+	}
+	else { // Normal:
+	    this.backButton.style.display = 'inline-block'; 
+	    this.nextButtonLarge.style.display = 'none';
+	    this.nextButton.style.display = 'block'; 
+	}
     }
 
     // Camera Buttons:
@@ -151,10 +159,16 @@ LDR.Buttons.prototype.hideElementsAccordingToOptions = function() {
     else if(ldrOptions.showCameraButtons == 0) {
 	this.zoomInButtonLarge.style.display = 'none';
 	this.zoomOutButtonLarge.style.display = 'none';
+	this.zoomInButton.style.display = 'inline-block';
+	this.zoomOutButton.style.display = 'inline-block';
+	this.resetCameraButton.style.visibility = 'inline-block';
     }
     else {
 	this.zoomInButton.style.display = 'none';
 	this.zoomOutButton.style.display = 'none';
+	this.zoomInButtonLarge.style.display = 'inline-block';
+	this.zoomOutButtonLarge.style.display = 'inline-block';
+	this.resetCameraButton.style.visibility = 'inline-block';
     }
 }
 

@@ -224,7 +224,7 @@ LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
 
     let ele = this.makeEle(parentEle, 'span', 'editor_control');
     let removeButton = this.makeEle(ele, 'button', 'pli_button1', () => {self.stepHandler.removeGhosted(); self.onChange();}, 'REMOVE', self.makeRemovePartsIcon());
-    let colorButton = colorPicker.createButton(colorID => {if(colorID===undefined)return; self.stepHandler.colorGhosted(colorID); self.onChange();});
+    let colorButton = colorPicker.createButton();
     ele.append(colorButton);
 
     function onlyShowButtonsIfPartsAreHighlighted() {

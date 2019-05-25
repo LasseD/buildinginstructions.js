@@ -24,15 +24,18 @@ LDR.PliPreviewer.prototype.attachRenderer = function(canvas) {
 }
 
 LDR.PliPreviewer.prototype.render = function() {
-    if(this.renderer)
+    if(this.renderer) {
 	this.renderer.render(this.scene, this.camera);
+    }
 }
 
 LDR.PliPreviewer.prototype.onResize = function() {
-    if(!this.canvas)
+    if(!this.canvas) {
 	return;
-    let w = this.canvas.parentNode.clientWidth;
-    let h = this.canvas.parentNode.clientHeight;
+    }
+    let w = window.innerWidth*0.9;//this.canvas.clientWidth;
+    let h = window.innerHeight*0.7;//this.canvas.clientHeight;
+    w = h = Math.min(w, h);
     this.renderer.setSize(w, h);
     this.camera.left   = -w;
     this.camera.right  =  w;

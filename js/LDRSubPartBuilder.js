@@ -1,6 +1,5 @@
 'use strict';
 
-let LDR = LDR || {};
 LDR.ICON_SIZE = 200;
 
 /*
@@ -48,7 +47,6 @@ LDR.SubPartBulder = function(baseMC, table, redPoints, loader, partType, colorID
 
     // Add icon for self:
     this.canvas = LDR.buildThumbnail(this.imageHolder);
-    let self = this;
     this.canvas.addEventListener('click', function(){
 	self.setVisible(false);
 	self.baseMC.setVisible(true);
@@ -89,8 +87,9 @@ LDR.writePrettyPointsPR = function(p, r) {
 LDR.makeEle = function(parent, type, cls) {
     let ret = document.createElement(type);
     parent.appendChild(ret);
-    if(cls)
+    if(cls) {
 	ret.setAttribute('class', cls);
+    }
     return ret;
 }
 
@@ -111,15 +110,19 @@ LDR.buildThumbnail = function(ele) {
 }
 
 LDR.SubPartBulder.prototype.setVisible = function(v) {
-    if(!this.linesBuilt)
+    if(!this.linesBuilt) {
 	return;
-    for(let i = 0; i < this.partType.lines.length; i++) {
-	let line = this.partType.lines[i];
-	if(line.line0)
+    }
+    let fileLines = this.partType.steps[0].fileLines;
+    for(let i = 0; i < fileLines; i++) {
+	let line = fileLines[i];
+	if(line.line0) {
 	    continue;
+	}
 	line.mc.setVisible(v);
-	if(line.markers)
+	if(line.markers) {
 	    line.markers.visible = v;
+	}
     }
 }
 
@@ -144,9 +147,11 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
 	return ret;
     }
 
-    for(let i = 0; i < this.partType.lines.length; i++) {
-	let line = this.partType.lines[i];
+    let fileLines = this.partType.steps[0].fileLines;
+    for(let i = 0; i < fileLines.length; i++) {
+	let line = fileLines[i];
 	line.idx = i;
+	let p1, p2, p3, p4;
 	
 	let tr = LDR.makeEle(this.table, 'tr');
 	if(line.line0) { // Comment line - just display.
@@ -158,7 +163,6 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
 	else {
 	    line.mc = new LDR.MeshCollector(baseObject, baseObject); // TODO
 	    let c = transformColor(line.line1 ? line.desc.colorID : line.c);
-	    let p1, p2, p3, p4;
 
 	    let subModel = line.line1 ? this.loader.partTypes[line.desc.ID] : new THREE.LDRPartType();
 	    let step = new THREE.LDRStep();
@@ -255,7 +259,6 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
 	    }
 
 	    line.imageHolder = LDR.makeEle(tr, 'td', 'line_image');
-	    // TODOline.mc.bakeVertices();
 	}
 
 	if(p1) {
@@ -291,10 +294,11 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
     }
 
     // Icons for lines:
-    for(let i = 0; i < this.partType.lines.length; i++) {
-	const line = this.partType.lines[i];
-	if(line.line0)
+    for(let i = 0; i < fileLines.length; i++) {
+	const line = fileLines[i];
+	if(line.line0) {
 	    continue;
+	}
 
 	line.canvas = LDR.buildThumbnail(line.imageHolder);
 	line.canvas.line = line;
@@ -330,16 +334,19 @@ LDR.SubPartBulder.prototype.drawAllIcons = function() {
     let context = this.canvas.getContext('2d');
     context.drawImage(this.renderer.domElement, 0, 0);
 
-    if(!this.linesBuilt)
+    if(!this.linesBuilt) {
 	return;
+    }
 
     // Icons for lines:
     this.baseMC.setVisible(false);
     this.redPoints.visible = true;
-    for(let i = 0; i < this.partType.lines.length; i++) {
-	let line = this.partType.lines[i];
-	if(line.line0)
+    let fileLines = this.partType.steps[0].fileLines;
+    for(let i = 0; i < fileLines.length; i++) {
+	let line = fileLines[i];
+	if(line.line0) {
 	    continue;
+	}
 
 	line.mc.setVisible(true);
 	line.mc.draw(false);
