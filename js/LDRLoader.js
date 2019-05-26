@@ -475,8 +475,15 @@ THREE.LDRPartDescription = function(colorID, position, rotation, ID, cull, inver
 }
 
 THREE.LDRPartDescription.prototype.cloneColored = function(colorID) {
-    return new THREE.LDRPartDescription(this.colorID === 16 ? colorID : this.colorID, this.position,
-                                        this.rotation, this.ID, this.cull, this.invertCCW);
+    let c = this.colorID;
+    if(this.colorID === 16) {
+	c = colorID;
+    }
+    else if(this.colorID === 24) {
+	colorID+10000;
+    }
+    return new THREE.LDRPartDescription(c, this.position, this.rotation, this.ID, 
+					this.cull, this.invertCCW);
 }
 
 THREE.LDRPartDescription.prototype.placedColor = function(pdColorID) {
@@ -485,7 +492,7 @@ THREE.LDRPartDescription.prototype.placedColor = function(pdColorID) {
         colorID = pdColorID;
     }
     else if(colorID === 24) {
-        colorID = pdColorID === 16 ? 24 : pdColorID; // Ensure color 24 is propagated correctly when placed for main color (16)..
+        colorID = (pdColorID === 16) ? 24 : pdColorID; // Ensure color 24 is propagated correctly when placed for main color (16)..
     }
 
     return colorID;
@@ -864,9 +871,11 @@ LDR.convertFloat = function(x) {
     }
     return x;
 }
+
 THREE.Vector3.prototype.toLDR = function() {
     return LDR.convertFloat(this.x) + ' ' + LDR.convertFloat(this.y) + ' ' + LDR.convertFloat(this.z);
 }
+
 THREE.Matrix3.prototype.toLDR = function() {
     let e = this.elements;
     let rowMajor = [e[0], e[3], e[6],
@@ -874,12 +883,14 @@ THREE.Matrix3.prototype.toLDR = function() {
                     e[2], e[5], e[8]]
     return rowMajor.map(LDR.convertFloat).join(' ');
 }
+
 LDR.Line2 = function(c, p1, p2) {
     this.c = c;
     this.p1 = p1;
     this.p2 = p2;
     this.line2 = true;
 }
+
 LDR.Line2.prototype.toLDR = function() {
     return '2 ' + this.c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + '\n';
 }
@@ -893,6 +904,7 @@ LDR.Line3 = function(c, p1, p2, p3, cull, ccw) {
     this.ccw = ccw;
     this.line3 = true;
 }
+
 LDR.Line3.prototype.toLDR = function() {
     return '3 ' + this.c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + ' ' + this.p3.toLDR() + '\n';
 }
@@ -907,6 +919,7 @@ LDR.Line4 = function(c, p1, p2, p3, p4, cull, ccw) {
     this.ccw = ccw;
     this.line4 = true;
 }
+
 LDR.Line4.prototype.toLDR = function() {
     return '4 ' + this.c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + ' ' + this.p3.toLDR() + ' ' + this.p4.toLDR() + '\n';
 }
@@ -919,6 +932,7 @@ LDR.Line5 = function(c, p1, p2, p3, p4) {
     this.p4 = p4;
     this.line5 = true;
 }
+
 LDR.Line5.prototype.toLDR = function() {
     return '4 ' + this.c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + ' ' + this.p3.toLDR() + ' ' + this.p4.toLDR() + '\n';
 }
@@ -1125,7 +1139,7 @@ LDR.ColorManager.prototype.overWrite = function(id) {
     
     if(this.edgeSixteen >= 0) {
         let color = new THREE.Color(colorObject.edge);
-        this.shaderColors[this.edgeSixteen] = new THREE.Vector4(color.r, color.g, color.b, alpha);
+        this.shaderColors[this.edgeSixteen] = new THREE.Vector4(color.r, color.g, color.b, 1); // Drop alpha from edge lines to increase contrast.
         this.highContrastShaderColors[this.edgeSixteen] = LDR.Colors.getHighContrastColor4(lowID);
     }
 }

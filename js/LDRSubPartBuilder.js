@@ -130,13 +130,16 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
     const self = this;
     // Handle all lines:
     let transformColor = function(subColorID) {
-	if(subColorID == 16)
+	if(subColorID === 16) {
 	    return self.c; // Main color
-	if(subColorID == 24) {
-	    if(self.c == 16)
+	}
+	if(subColorID === 24) {
+	    if(self.c === 16) {
 		return 24;
-	    else
+	    }
+	    else {
 		return 10000 + self.c; // Edge color
+	    }
 	}
 	return subColorID;
     }
@@ -150,7 +153,6 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
     let fileLines = this.partType.steps[0].fileLines;
     for(let i = 0; i < fileLines.length; i++) {
 	let line = fileLines[i];
-	line.idx = i;
 	let p1, p2, p3, p4;
 	
 	let tr = LDR.makeEle(this.table, 'tr');
@@ -161,14 +163,14 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
 	    content.setAttribute('colspan', '5');
 	}
 	else {
-	    line.mc = new LDR.MeshCollector(baseObject, baseObject); // TODO
+	    line.mc = new LDR.MeshCollector(baseObject, baseObject);
 	    let c = transformColor(line.line1 ? line.desc.colorID : line.c);
 
 	    let subModel = line.line1 ? this.loader.partTypes[line.desc.ID] : new THREE.LDRPartType();
 	    let step = new THREE.LDRStep();
 
 	    if(line.line1) {
-		if(subModel == undefined) {
+		if(subModel === undefined) {
 		    throw {
 			name: "UnloadedSubmodelException",
 			level: "Severe",
@@ -307,8 +309,9 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
 	    self.setVisible(false);
 	    this.line.mc.setVisible(true);
 	    self.redPoints.visible = true;
-	    if(this.line.markers)
+	    if(this.line.markers) {
 		this.line.markers.visible = true;
+	    }
 	    self.onIconClick();
 	}, false);
 
@@ -351,16 +354,18 @@ LDR.SubPartBulder.prototype.drawAllIcons = function() {
 	line.mc.setVisible(true);
 	line.mc.draw(false);
 	line.mc.overwriteColor(this.c);
-	if(line.markers)
+	if(line.markers) {
 	    line.markers.visible = true;
+	}
 
 	this.render();
 	context = line.canvas.getContext('2d');
 	context.drawImage(this.renderer.domElement, 0, 0);
 
 	line.mc.setVisible(false);
-	if(line.markers)
+	if(line.markers) {
 	    line.markers.visible = false;
+	}
     }
     this.redPoints.visible = false;
     this.baseMC.setVisible(true);

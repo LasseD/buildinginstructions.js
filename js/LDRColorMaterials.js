@@ -14,8 +14,9 @@ LDR.Colors.getHighContrastColor4 = function(colorID) {
 
 LDR.Colors.getColor4 = function(colorID) {
     let colorObject = LDR.Colors[colorID < 10000 ? colorID : colorID - 10000];
-    if(!colorObject)
+    if(!colorObject) {
 	throw "Unknown color: " + colorID;
+    }
     let color = new THREE.Color(colorID < 10000 ? colorObject.value : 
 				(colorObject.edge ? colorObject.edge : 0x333333));
     let alpha = colorObject.alpha ? colorObject.alpha/256.0 : 1;
@@ -24,8 +25,9 @@ LDR.Colors.getColor4 = function(colorID) {
 
 LDR.Colors.getDesaturatedColor4 = function(colorID) {
     let colorObject = LDR.Colors[colorID < 10000 ? colorID : colorID - 10000];
-    if(!colorObject)
+    if(!colorObject) {
 	throw "Unknown color: " + colorID;
+    }
     let color = LDR.Colors.desaturateThreeColor(colorID < 10000 ? colorObject.value : 
 				(colorObject.edge ? colorObject.edge : 0x333333));
     let alpha = colorObject.alpha ? colorObject.alpha/256.0 : 1;
@@ -46,8 +48,9 @@ LDR.Colors.int2Hex = function(i) {
     let ret = '#';
     for(let j = 0; j < 3; j++) {
 	rgb[j] = Number(rgb[j]).toString(16);
-	if(rgb[j].length == 1)
+	if(rgb[j].length == 1) {
 	    ret += '0';
+	}
 	ret += rgb[j];
     }
     return ret;
@@ -86,8 +89,9 @@ LDR.Colors.buildLineMaterial = function(colorManager, color, conditional) {
     let len = colors.length;
 
     let uniforms = {};
-    if(LDR.Colors.canBeOld)
+    if(LDR.Colors.canBeOld) {
 	uniforms['old'] = {value: false};
+    }
     if(len > 1) {
 	uniforms['colors'] = {type: 'v4v', value: colors};
     }
@@ -103,7 +107,7 @@ LDR.Colors.buildLineMaterial = function(colorManager, color, conditional) {
 	    LDR.Shader.AlphaTestFragmentShader :
 	    LDR.Shader.SimpleFragmentShader),
 	transparent: false,
-	visible: ldrOptions.lineContrast < 2
+	visible: true
     });
     ret.colorManager = colorManager;
     return ret;
@@ -133,4 +137,3 @@ LDR.Colors.buildTriangleMaterial = function(colorManager, color) {
     ret.colorManager = colorManager;
     return ret;
 }
-
