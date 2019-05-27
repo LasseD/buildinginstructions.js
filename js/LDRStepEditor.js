@@ -7,6 +7,7 @@
     - and parts shown individually
    - modify step rotation: ABS,REL, x, y, z --- 2 buttons + 3*3 inputs
    - Remove highlighted parts --- 1 button
+   - Color highlighted parts --- 1 button
    - save --- 1 button
    Operations on TODO-list:
    - add step (left and right, move highlighted parts to new step) --- 2 + 2 buttons (with and without parts)
@@ -14,7 +15,6 @@
    - Move parts to previous/next step --- 2 buttons
    - inline sub model at current location --- 1 button
    - Group parts into sub model --- 1 button
-   - Color highlighted parts --- 1 button
  */
 LDR.StepEditor = function(loader, stepHandler, onChange, modelID) {
     if(!modelID) {
@@ -321,4 +321,43 @@ LDR.StepEditor.prototype.makeRemovePartsIcon = function() {
     svg.appendChild(LDR.SVG.makeLine(0, -30, 60, 30, true));
     svg.appendChild(LDR.SVG.makeLine(0, 30, 60, -30, true));
     return svg;
+}
+
+//
+// Editor operations on StepHandler:
+//
+
+LDR.StepHandler.prototype.removeGhosted = function() {
+    let stepInfo = this.steps[this.current];
+    let step = stepInfo.step;
+    let mc = stepInfo.meshCollector;
+    if(!step || !mc) {
+        console.warn('Not at a step where parts can be removed.');
+        return [[], [], []]; // Empty result set
+    }
+    // Remove ghosted parts from both step and mc:
+    let removedPartDescriptions = step.subModels.filter(pd => pd.ghost);
+    step.subModels = step.subModels.filter(pd => !pd.ghost); // Update step.
+    let [lineObjects, triangleObjects] = mc.removeGhostedParts();
+    return [removedPartDescriptions, lineObjects, triangleObjects];
+}
+
+LDR.StepHandler.prototype.colorGhosted = function(colorID) {
+    let stepInfo = this.steps[this.current];
+    let step = stepInfo.step;
+    let mc = stepInfo.meshCollector;
+    if(!step || !mc) {
+        console.warn('Not at a step where parts can be colored.');
+        return;
+    }
+
+    // Update descriptions:
+    step.subModels.filter(pd => pd.ghost).forEach(pd => pd.colorID = colorID);
+
+    // Update materials:
+    let [lineObjects, triangleObjects] = mc.getGhostedParts();
+    let pts = this.loader.partTypes;
+    lineObjects.forEach(obj => obj.mesh.material = mc.getLineMaterial(pts[obj.part.ID].geometry.lineColorManager, colorID, obj.conditional));
+    let trans = LDR.Colors.isTrans(colorID);
+    triangleObjects.forEach(obj => obj.mesh.material = mc.getTriangleMaterial(pts[obj.part.ID].geometry.triangleColorManager, colorID, trans));
 }
