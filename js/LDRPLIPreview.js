@@ -24,15 +24,18 @@ LDR.PliPreviewer.prototype.attachRenderer = function(canvas) {
 }
 
 LDR.PliPreviewer.prototype.render = function() {
-    if(this.renderer)
+    if(this.renderer) {
 	this.renderer.render(this.scene, this.camera);
+    }
 }
 
 LDR.PliPreviewer.prototype.onResize = function() {
-    if(!this.canvas)
+    if(!this.canvas) {
 	return;
-    let w = this.canvas.parentNode.clientWidth;
-    let h = this.canvas.parentNode.clientHeight;
+    }
+    let w = window.innerWidth*0.9;//this.canvas.clientWidth;
+    let h = window.innerHeight*0.7;//this.canvas.clientHeight;
+    w = h = Math.min(w, h);
     this.renderer.setSize(w, h);
     this.camera.left   = -w;
     this.camera.right  =  w;
@@ -95,12 +98,15 @@ LDR.PliPreviewer.prototype.showPliPreview = function(icon) {
 
     if(icon.inlined && !isNaN(icon.inlined)) {
 	bhA.setAttribute('href', "../p/part.php?user_id=" + icon.inlined + "&id=" + encodeURI(partIdNoDat));
+	blA.style.visibility = "hidden";
     }
     else if(icon.inlined === undefined || icon.inlined === 'undefined') {
 	bhA.setAttribute('href', "../p/part.php?from=" + this.modelID + "&id=" + encodeURI(partIdNoDat));
+	blA.style.visibility = "hidden";
     }
     else {
 	bhA.setAttribute('href', '../p/' + partIdNoDat);
+	blA.style.visibility = "visible";
     }
 
     document.getElementById('preview_info_color_ldraw').innerHTML = color.name + " (" + colorID + ")";

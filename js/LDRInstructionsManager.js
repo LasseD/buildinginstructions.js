@@ -649,7 +649,7 @@ LDR.InstructionsManager.prototype.onPLIClick = function(e) {
     // Find clicked icon:
     for(let i = 0; i < this.pliBuilder.clickMap.length; i++) {
         let icon = this.pliBuilder.clickMap[i];
-        if(x >= icon.x && y >= icon.y && 
+        if(x >= icon.x && y >= icon.y &&
            x <= icon.x+icon.width+5 &&
            y <= icon.y+icon.height+12) {
             // Correct icon found!
@@ -663,12 +663,12 @@ LDR.InstructionsManager.prototype.onPLIClick = function(e) {
             }
             else { // Show preview if no editor:
                 this.pliPreviewer.scene.remove(this.pliHighlighted);
-                console.dir(icon); console.warn('TODO: Take mesh and bounds from partType');
-                let pc = this.pliBuilder.getPC(icon.key);
-                this.pliHighlighted = pc.mesh;
+
+                let pt = this.pliBuilder.getPartType(icon.part.ID);
+                this.pliHighlighted = pt.mesh;
                 this.pliPreviewer.scene.add(this.pliHighlighted);
                 this.pliPreviewer.showPliPreview(icon);
-                let b = pc.getBounds();
+                let b = pt.pliMC.boundingBox;
                 let size = b.min.distanceTo(b.max) * 0.6;
                 this.pliPreviewer.subjectSize = size;
                 this.pliPreviewer.onResize();
@@ -689,7 +689,6 @@ LDR.InstructionsManager.prototype.hideDone = function() {
     let fadeOutTime = 400;
     $('#done_holder, #done_background').fadeOut(fadeOutTime);
 }
-	
 
 /*
   Assumes ldrOptions in global scope.
@@ -710,5 +709,6 @@ LDR.InstructionsManager.prototype.setUpOptions = function() {
     ldrOptions.listeners.push(function() {
       self.stepHandler.updateMeshCollectors();
       self.updateUIComponents(true);
+      self.ldrButtons.hideElementsAccordingToOptions();
     });
 }

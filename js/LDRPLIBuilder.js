@@ -44,7 +44,7 @@ LDR.PLIBuilder.prototype.getPartType = function(id) {
 	pt.pliMC = new LDR.MeshCollector(pt.mesh, pt.mesh);
 	let p = new THREE.Vector3();
 	let r = new THREE.Matrix3(); r.set(1,0,0, 0,-1,0, 0,0,-1);
-	pt.generateThreePart(this.loader, 16, p, r, true, false, pt.pliMC);
+	pt.generateThreePart(this.loader, 40, p, r, true, false, pt.pliMC); // Color 40 ensures transparent parts work.
 
         // Draw to ensure bounding box:
         pt.pliMC.draw(false);

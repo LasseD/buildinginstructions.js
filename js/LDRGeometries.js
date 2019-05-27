@@ -181,6 +181,7 @@ LDR.LDRGeometry.prototype.unpack = function(packed) {
     }
     //console.log('Geometry from storage. Vertices: ' + numVertices + " x " + a.length + " from " + txt.substring(0, 500));
 
+    var self = this;
     function extract(size, into, pointsForBoundingBox) {
 	while(true) {
 	    if(idxI >= arrayI.length) {
@@ -194,7 +195,7 @@ LDR.LDRGeometry.prototype.unpack = function(packed) {
 	    let len = arrayI[idxI++];
 	    for(let i = 0; i < len; i++) {
                 for(var j = 0; j < pointsForBoundingBox; j++) {
-                    this.vertices[arrayI[idxI+j]].forBoundingBox = true;
+                    self.vertices[arrayI[idxI+j]].forBoundingBox = true;
                 }
 		let p = {p1:arrayI[idxI++], p2:arrayI[idxI++]};
 		if(size === 3) {
