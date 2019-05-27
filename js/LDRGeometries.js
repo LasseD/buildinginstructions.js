@@ -743,6 +743,7 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
     }
     else if(pd.colorID === 24) {	    
 	replaceColor = function(x) {
+	    x = parseInt(x);
 	    if(x === 16) {
 		return 24;
             }
@@ -753,6 +754,7 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
     }
     else {
 	replaceColor = function(x) {
+	    x = parseInt(x);
 	    if(x === 16) {
 		return pd.colorID;
             }
@@ -1033,8 +1035,8 @@ LDR.LDRGeometry.prototype.merge = function(other) {
 
     // Merge vertices:
     let mergedVertices = []; // Assume both vertex streams are sorted, so duplicates are removed.
-    let indexMapThis = []; // original index -> merged vertex.
-    let indexMapOther = []; // Same.
+    let indexMapThis = []; // original index -> merged vertex index.
+    let indexMapOther = []; // Same for other.
     let idxThis = 0, idxOther = 0;
 
     while(idxThis < this.vertices.length && idxOther < other.vertices.length) {
