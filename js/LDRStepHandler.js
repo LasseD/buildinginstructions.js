@@ -373,14 +373,14 @@ LDR.StepHandler.prototype.cleanUpAfterWalking = function(level = 0) {
 }
 
 LDR.StepHandler.prototype.getCurrentStep = function() {
-    return this.getCurrentStepInfo()[2];
+    return this.getCurrentStepInfo()[2].step;
 }
 
 LDR.StepHandler.prototype.getCurrentStepInfo = function() {
     let step = this.steps[this.current];
     let subStepHandler = step.stepHandler;
     if(!subStepHandler || subStepHandler.isAtPlacementStep()) {
-	return [this.part, this.current, step.step];
+	return [this.part, this.current, step];
     }
     return subStepHandler.getCurrentStepInfo();
 }
@@ -594,7 +594,7 @@ LDR.StepHandler.prototype.updateMeshCollectors = function(old) {
 // Editor operations:
 //
 LDR.StepHandler.prototype.removeGhosted = function() {
-    let stepInfo = this.steps[this.current];
+    let [part, stepIndex, stepInfo] = this.getCurrentStepInfo();
     let step = stepInfo.step;
     let mc = stepInfo.meshCollector;
     if(!step || !mc) {
@@ -609,7 +609,7 @@ LDR.StepHandler.prototype.removeGhosted = function() {
 }
 
 LDR.StepHandler.prototype.colorGhosted = function(colorID) {
-    let stepInfo = this.steps[this.current];
+    let [part, stepIndex, stepInfo] = this.getCurrentStepInfo();
     let step = stepInfo.step;
     let mc = stepInfo.meshCollector;
     if(!step || !mc) {

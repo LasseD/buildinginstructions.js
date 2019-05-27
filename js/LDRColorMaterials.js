@@ -61,10 +61,12 @@ LDR.Colors.desaturateThreeColor = function(hex) {
     let hsl = {};
     threeColor.getHSL(hsl);
 
-    if(hsl.l == 0)
+    if(hsl.l == 0) {
 	hsl.l = 0.3;
-    else
+    }
+    else {
 	hsl.l *= 0.7;
+    }
 
     threeColor.setHSL(hsl.h, hsl.s, hsl.l);
     return threeColor;
@@ -120,8 +122,9 @@ LDR.Colors.buildTriangleMaterial = function(colorManager, color) {
     let len = colors.length;
 
     let uniforms = {};
-    if(LDR.Colors.canBeOld)
+    if(LDR.Colors.canBeOld) {
 	uniforms['old'] = {value: false};
+    }
     if(len > 1) {
 	uniforms['colors'] = {type: 'v4v', value: colors};
     }
