@@ -756,7 +756,7 @@ THREE.LDRStep.prototype.cleanUp = function(loader, newSteps) {
         }
         else { // Not a part:
             subModel.cleanUpSteps(loader);
-            let key = subModel.color + '_' + subModel.ID;
+            let key = subModelDesc.colorID + '_' + subModel.ID;
             if(subModelsByTypeAndColor.hasOwnProperty(key)) {
                 subModelsByTypeAndColor[key].push(subModelDesc);
             }
