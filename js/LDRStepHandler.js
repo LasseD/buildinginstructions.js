@@ -373,14 +373,14 @@ LDR.StepHandler.prototype.cleanUpAfterWalking = function(level = 0) {
 }
 
 LDR.StepHandler.prototype.getCurrentStep = function() {
-    return this.getCurrentStepInfo()[2];
+    return this.getCurrentStepInfo()[2].step;
 }
 
 LDR.StepHandler.prototype.getCurrentStepInfo = function() {
     let step = this.steps[this.current];
     let subStepHandler = step.stepHandler;
     if(!subStepHandler || subStepHandler.isAtPlacementStep()) {
-	return [this.part, this.current, step.step];
+	return [this.part, this.current, step];
     }
     return subStepHandler.getCurrentStepInfo();
 }

@@ -67,10 +67,10 @@ LDR.StepEditor = function(loader, stepHandler, onChange, modelID) {
 }
 
 LDR.StepEditor.prototype.updateCurrentStep = function() {
-    let [part, stepIndex, step] = this.stepHandler.getCurrentStepInfo();
+    let [part, stepIndex, stepInfo] = this.stepHandler.getCurrentStepInfo();
     this.part = part;
     this.stepIndex = stepIndex;
-    this.step = step;
+    this.step = stepInfo.step;
     this.onStepSelectedListeners.forEach(listener => listener());
 }
 
