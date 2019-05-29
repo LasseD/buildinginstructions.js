@@ -205,7 +205,7 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
         // Draw highlight:
         if(ldrOptions.showEditor) {
             self.clickMap.forEach(icon => {
-                    if(!icon.part.ghost) {
+                    if(!icon.part.original.ghost) {
                         return; // Do not draw highlight.
                     }
                     const x = parseInt((icon.x+8)*window.devicePixelRatio);

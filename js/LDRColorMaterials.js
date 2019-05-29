@@ -86,8 +86,8 @@ LDR.Colors.buildLineMaterial = function(colorManager, color, conditional) {
     colorManager = colorManager.clone();
     colorManager.overWrite(color);
 
-    let colors = ldrOptions.lineContrast == 0 ? colorManager.highContrastShaderColors : 
-	                                        colorManager.shaderColors;
+    let colors = (ldrOptions.lineContrast === 0) ? colorManager.highContrastShaderColors : 
+	                                           colorManager.shaderColors;
     let len = colors.length;
 
     let uniforms = {};
@@ -112,6 +112,7 @@ LDR.Colors.buildLineMaterial = function(colorManager, color, conditional) {
 	visible: true
     });
     ret.colorManager = colorManager;
+    console.warn('line material color: ' + color + ', conditional: ' + conditional); console.dir(ret); console.dir(colors);
     return ret;
 }
 

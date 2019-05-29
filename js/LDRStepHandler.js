@@ -17,33 +17,40 @@ The builder supports the operations:
 - Various methods for trieving information regarding the current step (depth, quantities, etc.)
 */
 LDR.StepHandler = function(opaqueObject, transObject, loader, partDescs, isForMainModel, storage) {
+    // Save parameters:
     this.opaqueObject = opaqueObject;
     this.transObject = transObject;
     this.loader = loader;
     this.partDescs = partDescs;
     this.isForMainModel = isForMainModel; // If true, then prevent stepping to current === -1.
+    this.storage = storage;
+
+    // Build state:
     this.geometryBuilder = new LDR.GeometryBuilder(loader, storage);
+    this.part = loader.partTypes[partDescs[0].ID];
+    this.hasExtraParts = partDescs.length > 1;
+    this.rebuild();
+}
 
-    this.steps = []; // Propagate current color from partDescs onto the steps.
+LDR.StepHandler.prototype.rebuild = function() {
     this.current = -1; // Índex of currently-shown step (call nextStep() to initialize)
-    
-    let partDesc = partDescs[0];
-    this.part = loader.partTypes[partDesc.ID];
     this.length = this.part.steps.length;
-    this.hasExtraParts = partDescs.length > 1; // Replace with actual mesh builder once loaded.
 
+    let partDesc = this.partDescs[0];
+    this.steps = []; // Propagate current color from partDescs onto the steps.
     for(let i = 0; i < this.length; i++) {
 	let step = this.part.steps[i];
         let sh = null;
-        if(step.containsNonPartSubModels(loader)) { // All are sub models (not parts):
+        if(step.containsNonPartSubModels(this.loader)) { // All are sub models (not parts):
             let subDescs = step.subModels.map(subModel => subModel.placeAt(partDesc));
-            sh = new LDR.StepHandler(opaqueObject, transObject, loader, subDescs, false, storage);
+            sh = new LDR.StepHandler(this.opaqueObject, this.transObject, 
+				     this.loader, subDescs, false, this.storage);
         }
         this.steps.push(new LDR.StepInfo(sh, step.cloneColored(partDesc.colorID)));
     }
-    this.steps.push(new LDR.StepInfo()); // One more for placement step.
+    this.steps.push(new LDR.StepInfo()); // One more for placement step. This is also where extra parts are added.
 
-    if(isForMainModel) {
+    if(this.isForMainModel) {
         this.recomputeStepIndices(1);
     }
 }
@@ -78,7 +85,7 @@ LDR.StepHandler.prototype.recomputeStepIndices = function(firstShownIndex) {
         });
 }
 
-LDR.StepHandler.prototype.getCurrentStepIndex = function() {    
+LDR.StepHandler.prototype.getCurrentStepIndex = function() {
     let subStepHandler = this.steps[this.current].stepHandler;
     if(subStepHandler) {
         return subStepHandler.getCurrentStepIndex();
@@ -479,8 +486,9 @@ LDR.StepHandler.prototype.drawExtras = function() {
     let step = this.steps[this.length];
     if(!this.hasExtraParts) { // No extra parts to draw: Copy from previous step:
 	if(!step.bounds) {
-	    step.accumulatedBounds = this.steps[this.length-1].accumulatedBounds;
-	    step.bounds = this.steps[this.length-1].bounds;
+	    let prevStep = this.steps[this.length-1];
+	    step.accumulatedBounds = prevStep.accumulatedBounds;
+	    step.bounds = prevStep.bounds;
 	}
 	return; // Done.
     }
@@ -500,11 +508,11 @@ LDR.StepHandler.prototype.drawExtras = function() {
 	}
 
 	let b = step.meshCollector.boundingBox;
-	this.steps[this.length].accumulatedBounds.expandByPoint(b.min);
-	this.steps[this.length].accumulatedBounds.expandByPoint(b.max);
+	step.accumulatedBounds.expandByPoint(b.min);
+	step.accumulatedBounds.expandByPoint(b.max);
     }
     else if(this.hasExtraParts) {
-	this.steps[this.length].meshCollector.setVisible(true);
+	step.meshCollector.setVisible(true); // Show extra parts.
     }
 }
 

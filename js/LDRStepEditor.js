@@ -76,7 +76,7 @@ LDR.StepEditor.prototype.updateCurrentStep = function() {
 
 LDR.StepEditor.prototype.toggleEnabled = function() {
     ldrOptions.showEditor = 1-ldrOptions.showEditor;
-    ldrOptions.onChange();
+    ldrOptions.onChange(false);
 }
 
 LDR.StepEditor.prototype.createGuiComponents = function(parentEle) {
@@ -124,7 +124,7 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
             s.rotation = rot ? rot.clone() : null;
         }
         self.step.rotation = rot; // Update starting step.
-        self.onChange();
+        self.onChange(false);
     }
     function makeNormal() { // Copy previous step rotation, or set to null if first step.
         propagate(self.stepIndex === 0 ? null : self.part.steps[self.stepIndex-1].rotation);
@@ -180,7 +180,7 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
             let rot = self.step.rotation ? self.step.rotation.clone() : new THREE.LDRStepRotation(0, 0, 0, 'REL');
             fun(rot);
             propagate(rot);
-            self.onChange();
+            self.onChange(false);
         }
         let subEle = self.makeEle(Ele, 'button', 'editor_button', () => subOrAdd(sub), icon+'-', self.makeBoxArrowIcon(x1, y1, x2, y2));
         let ret = self.makeEle(Ele, 'input', 'editor_input', setXYZ);
@@ -220,15 +220,15 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
 LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
     let self = this;
 
-    let colorPicker = new LDR.ColorPicker(colorID => {self.stepHandler.colorGhosted(colorID); self.onChange();});
+    let colorPicker = new LDR.ColorPicker(colorID => {self.stepHandler.colorGhosted(colorID); self.onChange(true);});
 
     let ele = this.makeEle(parentEle, 'span', 'editor_control');
-    let removeButton = this.makeEle(ele, 'button', 'pli_button1', () => {self.stepHandler.removeGhosted(); self.onChange();}, 'REMOVE', self.makeRemovePartsIcon());
+    let removeButton = this.makeEle(ele, 'button', 'pli_button1', () => {self.stepHandler.removeGhosted(); self.onChange(true);}, 'REMOVE', self.makeRemovePartsIcon());
     let colorButton = colorPicker.createButton();
     ele.append(colorButton);
 
     function onlyShowButtonsIfPartsAreHighlighted() {
-        let anyHighlighted = self.step.subModels.some(pd => pd.ghost);
+        let anyHighlighted = self.step.subModels.some(pd => pd.original.ghost);
         let display = anyHighlighted ? 'inline' : 'none';
         removeButton.style.display = display;
         colorButton.style.display = display;
@@ -328,24 +328,49 @@ LDR.StepEditor.prototype.makeRemovePartsIcon = function() {
 //
 
 LDR.StepHandler.prototype.removeGhosted = function() {
-    let stepInfo = this.steps[this.current];
+    let [part, current, stepInfo] = this.getCurrentStepInfo();
     let step = stepInfo.step;
-    let mc = stepInfo.meshCollector;
-    if(!step || !mc) {
+    if(!step) {
         console.warn('Not at a step where parts can be removed.');
-        return [[], [], []]; // Empty result set
+        return;
     }
-    // Remove ghosted parts from both step and mc:
-    let removedPartDescriptions = step.subModels.filter(pd => pd.ghost);
-    step.subModels = step.subModels.filter(pd => !pd.ghost); // Update step.
-    let [lineObjects, triangleObjects] = mc.removeGhostedParts();
-    return [removedPartDescriptions, lineObjects, triangleObjects];
+
+    let stepIndex = this.getCurrentStepIndex();
+    let originalStep = part.steps[current];
+    let originalSubModels = originalStep.subModels;
+    originalStep.subModels = originalSubModels.filter(pd => !pd.ghost);
+    if(part.steps[0].isEmpty()) { // Remove empty first step:
+	if(part.steps.length === 1) {
+	    originalStep.subModels = originalSubModels;
+	    throw "Can't remove last content of part";
+	}
+	part.steps = part.steps.slice(1);
+    }
+
+    this.rebuild();
+    this.moveSteps(stepIndex, () => {});
 }
 
 LDR.StepHandler.prototype.colorGhosted = function(colorID) {
-    let stepInfo = this.steps[this.current];
+    let [part, current, stepInfo] = this.getCurrentStepInfo();
+    let step = stepInfo.step;
+    if(!step) {
+        console.warn('Not at a step where parts can be colored.');
+        return;
+    }
+
+    // Remove ghosted parts from both step and mc:
+    let stepIndex = this.getCurrentStepIndex();
+    step.original.subModels.forEach(pd => {if(pd.ghost){pd.colorID = colorID};});
+
+    this.rebuild();
+    this.moveSteps(stepIndex, () => {});
+
+
+/*    let [part, current, stepInfo] = this.getCurrentStepInfo();
     let step = stepInfo.step;
     let mc = stepInfo.meshCollector;
+
     if(!step || !mc) {
         console.warn('Not at a step where parts can be colored.');
         return;
@@ -359,5 +384,5 @@ LDR.StepHandler.prototype.colorGhosted = function(colorID) {
     let pts = this.loader.partTypes;
     lineObjects.forEach(obj => obj.mesh.material = mc.getLineMaterial(pts[obj.part.ID].geometry.lineColorManager, colorID, obj.conditional));
     let trans = LDR.Colors.isTrans(colorID);
-    triangleObjects.forEach(obj => obj.mesh.material = mc.getTriangleMaterial(pts[obj.part.ID].geometry.triangleColorManager, colorID, trans));
+    triangleObjects.forEach(obj => obj.mesh.material = mc.getTriangleMaterial(pts[obj.part.ID].geometry.triangleColorManager, colorID, trans));*/
 }
