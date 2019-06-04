@@ -162,12 +162,20 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
 
         // Enable editor:
         if(self.canEdit) {
-            function onStepChanged() {
-                self.handleStepsWalked();
-                self.updateUIComponents(true); // TODO: Doesn't work.
+            function removeGeometries() {
+                for(let pt in self.ldrLoader.partTypes) {
+                    if(!self.ldrLoader.partTypes.hasOwnProperty(pt)) {
+                        continue;
+                    }
+                    pt = self.ldrLoader.partTypes[pt];
+                    if(!(pt === true || pt.isPart())) {
+                        pt.geometry = null;
+                    }
+                }
             }
             self.stepEditor = new LDR.StepEditor(self.ldrLoader, self.stepHandler, 
-                                                 onStepChanged, self.modelID);
+                                                 removeGeometries, () => self.handleStepsWalked(), 
+                                                 self.modelID);
             self.stepEditor.createGuiComponents(document.getElementById('editor'));
             if(ldrOptions.showEditor === 1) {
                 $("#editor").show();
@@ -657,7 +665,7 @@ LDR.InstructionsManager.prototype.onPLIClick = function(e) {
             if(this.canEdit && ldrOptions.showEditor) {
                 console.log('Clicked icon:');
                 console.dir(icon);
-                icon.part.ghost = !icon.part.ghost;
+                icon.part.original.ghost = !icon.part.original.ghost;
                 this.stepHandler.updateMeshCollectors();
                 this.updateUIComponents(true);
             }

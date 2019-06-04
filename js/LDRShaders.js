@@ -58,13 +58,15 @@ LDR.Shader.createShaderBody = function(canBeOld, multiColored) {
 
 LDR.Shader.createSimpleVertexShader = function(canBeOld, colors, push, defaultIsEdge) {
     let numberOfColors = colors.length;
-    if(numberOfColors == 0)
+    if(numberOfColors === 0) {
 	throw "No colors!";
+    }
     let ret = LDR.Shader.createShaderHeader(canBeOld, numberOfColors, colors[0], defaultIsEdge);
 
     ret += LDR.Shader.createShaderBody(canBeOld, numberOfColors > 1);
-    if(push)
+    if(push) {
 	ret += "gl_Position.w -= 0.0000005;";
+    }
     ret += "  }";
     return ret;
 }
@@ -118,7 +120,7 @@ LDR.Shader.createConditionalVertexShader = function(canBeOld, colors, push) {
 
         vColor = `;
     // Compute color:
-    if(canBeOld)
+    if(canBeOld) 
 	ret += "old ? oldColor : ";
 	 
     if(multiColored)

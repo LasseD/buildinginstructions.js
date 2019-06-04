@@ -192,12 +192,12 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    else if(!self.mainModel) { // First model
 		self.mainModel = part.ID = fileName;
 	    }
-	    else if(part.steps.length === 0 && step.empty && self.mainModel === part.ID) {
+	    else if(part.steps.length === 0 && step.isEmpty() && self.mainModel === part.ID) {
 		console.log("Special case: Main model ID change from " + part.ID + " to " + fileName);
 		self.mainModel = part.ID = fileName;
 	    }
 	    else { // Close model and start new:
-		if(part.steps.length === 0 && step.empty && part.ID && !part.consistentFileAndName) {
+		if(part.steps.length === 0 && step.isEmpty() && part.ID && !part.consistentFileAndName) {
 		    console.log("Special case: Empty '" + part.ID + "' does not match '" + fileName + "' - Create new shallow part!");		
 		    // Create pseudo-model with just one of 'fileName' inside:
 		    let rotation = new THREE.Matrix3();
@@ -471,10 +471,14 @@ THREE.LDRPartDescription = function(colorID, position, rotation, ID, cull, inver
     this.ID = ID.toLowerCase(); // part.dat lowercase
     this.cull = cull;
     this.invertCCW = invertCCW;
-    this.ghost = false; // For editor.
+    this.ghost;
+    this.original; // If this PD is a colored clone of an original PD.
 }
 
 THREE.LDRPartDescription.prototype.cloneColored = function(colorID) {
+    if(this.original) {
+	throw "Cloning non-original PD!";
+    }
     let c = this.colorID;
     if(this.colorID === 16) {
 	c = colorID;
@@ -482,8 +486,11 @@ THREE.LDRPartDescription.prototype.cloneColored = function(colorID) {
     else if(this.colorID === 24) {
 	colorID+10000;
     }
-    return new THREE.LDRPartDescription(c, this.position, this.rotation, this.ID, 
-					this.cull, this.invertCCW);
+    let ret = new THREE.LDRPartDescription(c, this.position, this.rotation, this.ID, 
+					   this.cull, this.invertCCW);
+    ret.original = this;
+    this.ghost = false; // For editor.
+    return ret;
 }
 
 THREE.LDRPartDescription.prototype.placedColor = function(pdColorID) {
@@ -606,7 +613,6 @@ THREE.LDRStepRotation.prototype.getRotationMatrix = function(defaultMatrix) {
 THREE.LDRStepIdx = 0;
 THREE.LDRStep = function() {
     this.idx = THREE.LDRStepIdx++;
-    this.empty = true;
     this.hasPrimitives = false;
     this.subModels = [];
     this.lines = []; // {colorID, p1, p2}
@@ -617,6 +623,7 @@ THREE.LDRStep = function() {
     this.cull = true;
     this.cnt = -1;
     this.fileLines = [];
+    this.original;
 }
 
 THREE.LDRStep.prototype.removePrimitivesAndSubParts = function() {
@@ -636,13 +643,13 @@ THREE.LDRStep.prototype.cloneColored = function(colorID) {
     }
     let ret = new THREE.LDRStep();
 
-    ret.empty = this.empty;
     ret.hasPrimitives = false;
     ret.subModels = this.subModels.map(subModel => subModel.cloneColored(colorID));
     ret.rotation = this.rotation;
     ret.cull = true;
     ret.cnt = this.cnt;
     ret.fileLines = this.fileLines;
+    ret.original = this;
 
     return ret;
 }
@@ -669,27 +676,26 @@ THREE.LDRStep.prototype.toLDR= function(prevStepRotation) {
     return ret;
 }
 
+THREE.LDRStep.prototype.isEmpty = function() {
+    return this.subModels.length === 0 && !this.hasPrimitives;
+}
+
 THREE.LDRStep.prototype.addSubModel = function(subModel) {
-    this.empty = false;
     this.subModels.push(subModel);
 }
 THREE.LDRStep.prototype.addLine = function(c, p1, p2) {
-    this.empty = false;
     this.hasPrimitives = true;
     this.lines.push({colorID:c, p1:p1, p2:p2});
 }
 THREE.LDRStep.prototype.addTrianglePoints = function(c, p1, p2, p3) {
-    this.empty = false;
     this.hasPrimitives = true;
     this.triangles.push({colorID:c, p1:p1, p2:p2, p3:p3});
 }
 THREE.LDRStep.prototype.addQuadPoints = function(c, p1, p2, p3, p4) {
-    this.empty = false;
     this.hasPrimitives = true;
     this.quads.push({colorID:c, p1:p1, p2:p2, p3:p3, p4:p4});
 }
 THREE.LDRStep.prototype.addConditionalLine = function(c, p1, p2, p3, p4) {
-    this.empty = false;
     this.hasPrimitives = true;
     this.conditionalLines.push({colorID:c, p1:p1, p2:p2, p3:p3, p4:p4});
 }
@@ -739,7 +745,7 @@ THREE.LDRStep.prototype.countParts = function(loader) {
   this.rotation = null;
  */
 THREE.LDRStep.prototype.cleanUp = function(loader, newSteps) {
-    if(this.empty || this.hasPrimitives) {
+    if(this.isEmpty() || this.hasPrimitives) {
         newSteps.push(this);
         return; // Primitive-containing or empty step - just keep existing.
     }
@@ -769,7 +775,6 @@ THREE.LDRStep.prototype.cleanUp = function(loader, newSteps) {
 
     function push(subModels) {
         let newStep = new THREE.LDRStep();
-        newStep.empty = false;
         newStep.subModels = subModels;
         newStep.rotation = self.rotation ? self.rotation.clone() : null;
         subModels.forEach(subModel => newStep.fileLines.push(new LDR.Line1(subModel)));
@@ -994,7 +999,7 @@ THREE.LDRPartType.prototype.prepareGeometry = function(loader) {
 }
 
 THREE.LDRPartType.prototype.addStep = function(step) {
-    if(step.empty && this.steps.length === 0)
+    if(step.isEmpty() && this.steps.length === 0)
 	return; // Totally illegal step.
     
     // Update rotation in case of ADD;
@@ -1011,12 +1016,12 @@ THREE.LDRPartType.prototype.addStep = function(step) {
     }
     
     let sameRotation = THREE.LDRStepRotation.equals(step.rotation, this.lastRotation);
-    if(step.empty && sameRotation) {
+    if(step.isEmpty() && sameRotation) {
 	return; // No change.
     }
     if(this.steps.length > 0) {
 	let prevStep = this.steps[this.steps.length-1];
-	if(prevStep.empty && sameRotation) {
+	if(prevStep.isEmpty() && sameRotation) {
 	    // Special case: Merge into previous step:
 	    this.steps[this.steps.length-1] = step;
 	    return;
@@ -1052,21 +1057,21 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
     );
     
     if(this.geometry.lineGeometry) {
-	let material = mc.getLineMaterial(this.geometry.lineColorManager, c, false);
+	let material = new LDR.Colors.buildLineMaterial(this.geometry.lineColorManager, c, false);
 	let normalLines = new THREE.LineSegments(this.geometry.lineGeometry, material);
 	normalLines.applyMatrix(m4);
 	mc.addLines(normalLines, pd, false);
     }
     
     if(this.geometry.conditionalLineGeometry) {
-	let material = mc.getLineMaterial(this.geometry.lineColorManager, c, true);
+	let material = new LDR.Colors.buildLineMaterial(this.geometry.lineColorManager, c, true);
 	let conditionalLines = new THREE.LineSegments(this.geometry.conditionalLineGeometry, material);
 	conditionalLines.applyMatrix(m4);
 	mc.addLines(conditionalLines, pd, true);
     }
     
     if(this.geometry.triangleGeometry) {
-	let material = mc.getTriangleMaterial(this.geometry.triangleColorManager, c, LDR.Colors.isTrans(c));
+	let material = new LDR.Colors.buildTriangleMaterial(this.geometry.triangleColorManager, c, LDR.Colors.isTrans(c));
 	let mesh = new THREE.Mesh(this.geometry.triangleGeometry.clone(), material); // Using clone to ensure matrix in next line doesn't affect other usages of the geometry..
 	mesh.geometry.applyMatrix(m4);
 	//mesh.applyMatrix(m4); // Doesn't work for LDraw library as the matrix needs to be decomposable to position, quaternion and scale.
@@ -1128,7 +1133,6 @@ LDR.ColorManager.prototype.overWrite = function(id) {
     if(!colorObject) {
         throw "Unknown color: " + id;
     }
-    this.lastSet = id;
     let alpha = colorObject.alpha ? colorObject.alpha/256.0 : 1;
     this.mainColorIsTransparent = alpha < 1;
     
@@ -1142,6 +1146,8 @@ LDR.ColorManager.prototype.overWrite = function(id) {
         this.shaderColors[this.edgeSixteen] = new THREE.Vector4(color.r, color.g, color.b, 1); // Drop alpha from edge lines to increase contrast.
         this.highContrastShaderColors[this.edgeSixteen] = LDR.Colors.getHighContrastColor4(lowID);
     }
+
+    this.lastSet = id;
 }
 
 LDR.ColorManager.prototype.get = function(id) {
@@ -1354,62 +1360,20 @@ LDR.GeometryBuilder.prototype.build = function(toBeBuilt) {
   - 'old': A part placed in 'earlier steps' can be colored 'old' to highlight new parts
   - 'ghost': 'Ghosted' parts will be shown by their lines only (no faces).
 */
+LDR.MeshCollectorIdx = 0;
 LDR.MeshCollector = function(opaqueObject, transObject) {
-    if(!transObject) {
-	throw "Missing parameters on MeshCollector";
-    }
     this.opaqueObject = opaqueObject;
     this.transObject = transObject; // To be painted last.
 
-    this.lineMeshes = []; // {mesh,part}. Includes conditional line meshes.
-    this.triangleMeshes = []; // {mesh,part}
-
-    this.cntMaterials = 0;
-    this.lineMaterials = {}; // [color,isConditional] or cnt -> managers
-    this.triangleMaterials = {}; // color or cnt -> managers
+    this.lineMeshes = []; // {mesh,part,opaque,conditional}
+    this.triangleMeshes = []; // {mesh,part,opaque}
 
     this.old = false;
     this.visible = true;
     this.boundingBox;
     this.isMeshCollector = true;
-}
-
-LDR.MeshCollector.prototype.getLineMaterial = function(colorManager, color, conditional) {
-    let len = colorManager.shaderColors.length;
-    let key;
-    if(len > 1) {
-	this.cntMaterials++;
-	key = this.cntMaterials;
-    }
-    else {
-	key = color + "|" + conditional;
-    }
-    if(this.lineMaterials.hasOwnProperty(key)) {
-	return this.lineMaterials[key];
-    }
-    let m = new LDR.Colors.buildLineMaterial(colorManager, color, conditional);
-    this.lineMaterials[key] = m;
-    return m;
-}
-
-LDR.MeshCollector.prototype.getTriangleMaterial = function(colorManager, color, isTrans) {
-    let len = colorManager.shaderColors.length;
-    let key;
-    if(len > 1) {
-	this.cntMaterials++;
-	key = this.cntMaterials;
-    }
-    else {
-	key = color + "|" + isTrans;
-    }
-
-    if(this.triangleMaterials.hasOwnProperty(key)) {
-	return this.triangleMaterials[key];
-    }
-
-    let m = new LDR.Colors.buildTriangleMaterial(colorManager, color, isTrans);
-    this.triangleMaterials[key] = m;
-    return m;
+    this.idx = LDR.MeshCollectorIdx++;
+    //console.warn('Creating MC ' + this.idx);
 }
 
 LDR.MeshCollector.prototype.addLines = function(mesh, part, conditional) {
@@ -1427,6 +1391,13 @@ LDR.MeshCollector.prototype.addTrans = function(mesh, part) {
     this.transObject.add(mesh);
 }
 
+LDR.MeshCollector.prototype.removeAllMeshes = function() {
+    var self = this;
+    this.lineMeshes.forEach(obj => self.opaqueObject.remove(obj.mesh));
+    this.triangleMeshes.filter(obj => obj.opaque).forEach(obj => self.opaqueObject.remove(obj.mesh));
+    this.triangleMeshes.filter(obj => !obj.opaque).forEach(obj => self.transObject.remove(obj.mesh));
+}
+
 /*
   Sets '.visible' on all meshes according to ldrOptions and 
   visibility of this meshCollector.
@@ -1438,7 +1409,7 @@ LDR.MeshCollector.prototype.updateMeshVisibility = function() {
     }
     for(let i = 0; i < this.triangleMeshes.length; i++) {
         let obj = this.triangleMeshes[i];
-        obj.mesh.visible = v && (this.old || !(obj.part && obj.part.ghost && ldrOptions.showEditor)); // Do not show faces for ghosted parts.
+        obj.mesh.visible = v && (this.old || !(ldrOptions.showEditor && obj.part && obj.part.original && obj.part.original.ghost)); // Do not show faces for ghosted parts.
     }
 }
 
@@ -1567,31 +1538,7 @@ LDR.MeshCollector.prototype.setVisible = function(v) {
 }
 
 LDR.MeshCollector.prototype.getGhostedParts = function() {
-    let lineObjects = this.lineMeshes.filter(obj => obj.part && obj.part.ghost);
-    let triangleObjects = this.triangleMeshes.filter(obj => obj.part && obj.part.ghost);
-    return [lineObjects,triangleObjects];
-}
-
-LDR.MeshCollector.prototype.removeGhostedParts = function() {
-    let [lineObjects,triangleObjects] = this.getGhostedParts();
-
-    let self = this;
-    function removeFromObjects(obj) {
-        if(obj.opaque) {
-            self.opaqueObject.remove(obj.mesh);
-        }
-        else {
-            self.transObject.remove(obj.mesh);
-        }
-    }
-
-    // Handle lines:
-    lineObjects.forEach(removeFromObjects);
-    this.lineMeshes = this.lineMeshes.filter(obj => !(obj.part && obj.part.ghost));
-
-    // Handle triangles:
-    lineObjects.forEach(removeFromObjects);
-    this.triangleMeshes = this.triangleMeshes.filter(obj => !(obj.part && obj.part.ghost));
-
+    let lineObjects = this.lineMeshes.filter(obj => obj.part && obj.part.original.ghost);
+    let triangleObjects = this.triangleMeshes.filter(obj => obj.part && obj.part.original.ghost);
     return [lineObjects,triangleObjects];
 }
