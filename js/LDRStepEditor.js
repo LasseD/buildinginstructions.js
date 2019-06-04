@@ -16,12 +16,13 @@
    - inline sub model at current location --- 1 button
    - Group parts into sub model --- 1 button
  */
-LDR.StepEditor = function(loader, stepHandler, onChange, modelID) {
+LDR.StepEditor = function(loader, stepHandler, reset, onChange, modelID) {
     if(!modelID) {
         throw "Missing model ID!";
     }
     this.loader = loader;
     this.stepHandler = stepHandler;
+    this.reset = reset;
     this.onChange = onChange;
     this.modelID = modelID;
     this.onStepSelectedListeners = [];
@@ -76,7 +77,7 @@ LDR.StepEditor.prototype.updateCurrentStep = function() {
 
 LDR.StepEditor.prototype.toggleEnabled = function() {
     ldrOptions.showEditor = 1-ldrOptions.showEditor;
-    ldrOptions.onChange(false);
+    ldrOptions.onChange();
 }
 
 LDR.StepEditor.prototype.createGuiComponents = function(parentEle) {
@@ -124,7 +125,7 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
             s.rotation = rot ? rot.clone() : null;
         }
         self.step.rotation = rot; // Update starting step.
-        self.onChange(false);
+        self.onChange();
     }
     function makeNormal() { // Copy previous step rotation, or set to null if first step.
         propagate(self.stepIndex === 0 ? null : self.part.steps[self.stepIndex-1].rotation);
@@ -180,7 +181,7 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
             let rot = self.step.rotation ? self.step.rotation.clone() : new THREE.LDRStepRotation(0, 0, 0, 'REL');
             fun(rot);
             propagate(rot);
-            self.onChange(false);
+            self.onChange();
         }
         let subEle = self.makeEle(Ele, 'button', 'editor_button', () => subOrAdd(sub), icon+'-', self.makeBoxArrowIcon(x1, y1, x2, y2));
         let ret = self.makeEle(Ele, 'input', 'editor_input', setXYZ);
@@ -220,10 +221,10 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
 LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
     let self = this;
 
-    let colorPicker = new LDR.ColorPicker(colorID => {self.stepHandler.colorGhosted(colorID); self.onChange(true);});
+    let colorPicker = new LDR.ColorPicker(colorID => {self.reset(); self.stepHandler.colorGhosted(colorID); self.onChange();});
 
     let ele = this.makeEle(parentEle, 'span', 'editor_control');
-    let removeButton = this.makeEle(ele, 'button', 'pli_button1', () => {self.stepHandler.removeGhosted(); self.onChange(true);}, 'REMOVE', self.makeRemovePartsIcon());
+    let removeButton = this.makeEle(ele, 'button', 'pli_button1', () => {self.reset(); self.stepHandler.removeGhosted(); self.onChange();}, 'REMOVE', self.makeRemovePartsIcon());
     let colorButton = colorPicker.createButton();
     ele.append(colorButton);
 
@@ -382,7 +383,7 @@ LDR.StepHandler.prototype.colorGhosted = function(colorID) {
     // Update materials:
     let [lineObjects, triangleObjects] = mc.getGhostedParts();
     let pts = this.loader.partTypes;
-    lineObjects.forEach(obj => obj.mesh.material = mc.getLineMaterial(pts[obj.part.ID].geometry.lineColorManager, colorID, obj.conditional));
+    lineObjects.forEach(obj => obj.mesh.material = new LDR.Colors.buildLineMaterial(pts[obj.part.ID].geometry.lineColorManager, colorID, obj.conditional));
     let trans = LDR.Colors.isTrans(colorID);
-    triangleObjects.forEach(obj => obj.mesh.material = mc.getTriangleMaterial(pts[obj.part.ID].geometry.triangleColorManager, colorID, trans));*/
+    triangleObjects.forEach(obj => obj.mesh.material = new LDR.Colors.buildTriangleMaterial(pts[obj.part.ID].geometry.triangleColorManager, colorID, trans));*/
 }

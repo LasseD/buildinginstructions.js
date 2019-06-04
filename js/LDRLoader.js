@@ -1057,21 +1057,21 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
     );
     
     if(this.geometry.lineGeometry) {
-	let material = mc.getLineMaterial(this.geometry.lineColorManager, c, false);
+	let material = new LDR.Colors.buildLineMaterial(this.geometry.lineColorManager, c, false);
 	let normalLines = new THREE.LineSegments(this.geometry.lineGeometry, material);
 	normalLines.applyMatrix(m4);
 	mc.addLines(normalLines, pd, false);
     }
     
     if(this.geometry.conditionalLineGeometry) {
-	let material = mc.getLineMaterial(this.geometry.lineColorManager, c, true);
+	let material = new LDR.Colors.buildLineMaterial(this.geometry.lineColorManager, c, true);
 	let conditionalLines = new THREE.LineSegments(this.geometry.conditionalLineGeometry, material);
 	conditionalLines.applyMatrix(m4);
 	mc.addLines(conditionalLines, pd, true);
     }
     
     if(this.geometry.triangleGeometry) {
-	let material = mc.getTriangleMaterial(this.geometry.triangleColorManager, c, LDR.Colors.isTrans(c));
+	let material = new LDR.Colors.buildTriangleMaterial(this.geometry.triangleColorManager, c, LDR.Colors.isTrans(c));
 	let mesh = new THREE.Mesh(this.geometry.triangleGeometry.clone(), material); // Using clone to ensure matrix in next line doesn't affect other usages of the geometry..
 	mesh.geometry.applyMatrix(m4);
 	//mesh.applyMatrix(m4); // Doesn't work for LDraw library as the matrix needs to be decomposable to position, quaternion and scale.
@@ -1362,63 +1362,18 @@ LDR.GeometryBuilder.prototype.build = function(toBeBuilt) {
 */
 LDR.MeshCollectorIdx = 0;
 LDR.MeshCollector = function(opaqueObject, transObject) {
-    if(!transObject) {
-	throw "Missing parameters on MeshCollector";
-    }
     this.opaqueObject = opaqueObject;
     this.transObject = transObject; // To be painted last.
 
-    this.lineMeshes = []; // {mesh,part}. Includes conditional line meshes.
-    this.triangleMeshes = []; // {mesh,part}
-
-    this.cntMaterials = 0;
-    this.lineMaterials = {}; // [color,isConditional] or cnt -> managers
-    this.triangleMaterials = {}; // color or cnt -> managers
+    this.lineMeshes = []; // {mesh,part,opaque,conditional}
+    this.triangleMeshes = []; // {mesh,part,opaque}
 
     this.old = false;
     this.visible = true;
     this.boundingBox;
     this.isMeshCollector = true;
     this.idx = LDR.MeshCollectorIdx++;
-    console.warn('Constructed mc ' + LDR.MeshCollectorIdx);
-}
-
-LDR.MeshCollector.prototype.getLineMaterial = function(colorManager, color, conditional) {
-    let len = colorManager.shaderColors.length;
-    let key;
-    if(len > 1) {
-	this.cntMaterials++;
-	key = this.cntMaterials;
-    }
-    else {
-	key = color + "|" + conditional;
-    }
-    if(this.lineMaterials.hasOwnProperty(key)) {
-	return this.lineMaterials[key];
-    }
-    let m = new LDR.Colors.buildLineMaterial(colorManager, color, conditional);
-    this.lineMaterials[key] = m;
-    return m;
-}
-
-LDR.MeshCollector.prototype.getTriangleMaterial = function(colorManager, color, isTrans) {
-    let len = colorManager.shaderColors.length;
-    let key;
-    if(len > 1) {
-	this.cntMaterials++;
-	key = this.cntMaterials;
-    }
-    else {
-	key = color + "|" + isTrans;
-    }
-
-    if(this.triangleMaterials.hasOwnProperty(key)) {
-	return this.triangleMaterials[key];
-    }
-
-    let m = new LDR.Colors.buildTriangleMaterial(colorManager, color, isTrans);
-    this.triangleMaterials[key] = m;
-    return m;
+    //console.warn('Creating MC ' + this.idx);
 }
 
 LDR.MeshCollector.prototype.addLines = function(mesh, part, conditional) {
@@ -1434,6 +1389,13 @@ LDR.MeshCollector.prototype.addOpaque = function(mesh, part) {
 LDR.MeshCollector.prototype.addTrans = function(mesh, part) {
     this.triangleMeshes.push({mesh:mesh, part:part, opaque:false});
     this.transObject.add(mesh);
+}
+
+LDR.MeshCollector.prototype.removeAllMeshes = function() {
+    var self = this;
+    this.lineMeshes.forEach(obj => self.opaqueObject.remove(obj.mesh));
+    this.triangleMeshes.filter(obj => obj.opaque).forEach(obj => self.opaqueObject.remove(obj.mesh));
+    this.triangleMeshes.filter(obj => !obj.opaque).forEach(obj => self.transObject.remove(obj.mesh));
 }
 
 /*

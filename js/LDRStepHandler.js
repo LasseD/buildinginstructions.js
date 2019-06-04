@@ -33,6 +33,8 @@ LDR.StepHandler = function(opaqueObject, transObject, loader, partDescs, isForMa
 }
 
 LDR.StepHandler.prototype.rebuild = function() {
+    this.removeGeometries();
+
     this.current = -1; // Índex of currently-shown step (call nextStep() to initialize)
     this.length = this.part.steps.length;
 
@@ -83,6 +85,14 @@ LDR.StepHandler.prototype.recomputeStepIndices = function(firstShownIndex) {
                 shownIndex++;
             }
         });
+}
+
+LDR.StepHandler.prototype.removeGeometries = function() {
+    if(!this.steps) {
+        return; // Not yet built - no geometries.
+    }
+    this.steps.forEach(stepInfo => stepInfo.meshCollector && stepInfo.meshCollector.removeAllMeshes());
+    this.steps.forEach(stepInfo => stepInfo.stepHandler && stepInfo.stepHandler.removeGeometries());
 }
 
 LDR.StepHandler.prototype.getCurrentStepIndex = function() {

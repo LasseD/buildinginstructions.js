@@ -162,24 +162,20 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
 
         // Enable editor:
         if(self.canEdit) {
-            function onStepChanged(rebuildMeshCollectors) {
-		if(rebuildMeshCollectors) {
-		    self.opaqueObject.children.forEach(child => self.opaqueObject.remove(child));
-		    self.transObject.children.forEach(child => self.transObject.remove(child));
-		    for(let pt in self.ldrLoader.partTypes) {
-			if(!self.ldrLoader.partTypes.hasOwnProperty(pt)) {
-			    continue;
-			}
-			pt = self.ldrLoader.partTypes[pt];
-			if(!(pt === true || pt.isPart())) {
-			    pt.geometry = null;
-			}
-		    }
-		}
-                self.handleStepsWalked();
+            function removeGeometries() {
+                for(let pt in self.ldrLoader.partTypes) {
+                    if(!self.ldrLoader.partTypes.hasOwnProperty(pt)) {
+                        continue;
+                    }
+                    pt = self.ldrLoader.partTypes[pt];
+                    if(!(pt === true || pt.isPart())) {
+                        pt.geometry = null;
+                    }
+                }
             }
             self.stepEditor = new LDR.StepEditor(self.ldrLoader, self.stepHandler, 
-                                                 onStepChanged, self.modelID);
+                                                 removeGeometries, () => self.handleStepsWalked(), 
+                                                 self.modelID);
             self.stepEditor.createGuiComponents(document.getElementById('editor'));
             if(ldrOptions.showEditor === 1) {
                 $("#editor").show();

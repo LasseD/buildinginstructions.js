@@ -82,9 +82,11 @@ LDR.Colors.isTrans = function(colorID) {
 
 LDR.Colors.canBeOld = false;
 
+LDR.ColorMaterialIdx = 0;
 LDR.Colors.buildLineMaterial = function(colorManager, color, conditional) {
     colorManager = colorManager.clone();
     colorManager.overWrite(color);
+    colorManager.idMaterial = LDR.ColorMaterialIdx++;
 
     let colors = (ldrOptions.lineContrast === 0) ? colorManager.highContrastShaderColors : 
 	                                           colorManager.shaderColors;
@@ -112,7 +114,6 @@ LDR.Colors.buildLineMaterial = function(colorManager, color, conditional) {
 	visible: true
     });
     ret.colorManager = colorManager;
-    console.warn('line material color: ' + color + ', conditional: ' + conditional); console.dir(ret); console.dir(colors);
     return ret;
 }
 
@@ -132,7 +133,7 @@ LDR.Colors.buildTriangleMaterial = function(colorManager, color) {
     else {
 	uniforms['color'] = {type: 'v4', value: colors[0]};
     }
-    let ret = new THREE.RawShaderMaterial( {
+    let ret = new THREE.RawShaderMaterial({
 	uniforms: uniforms,
 	vertexShader: LDR.Shader.createSimpleVertexShader(LDR.Colors.canBeOld, colors, false, false),
 	fragmentShader: LDR.Shader.SimpleFragmentShader,
