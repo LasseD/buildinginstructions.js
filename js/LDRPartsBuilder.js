@@ -139,7 +139,7 @@ LDR.PartAndColor.prototype.ensureMeshCollector = function(baseObject) {
 	let p = new THREE.Vector3();
 	let r = new THREE.Matrix3();
 	r.set(1,0,0, 0,-1,0, 0,0,-1);
-	this.partType.generateThreePart(this.loader, this.colorID, p, r, true, false, mc);
+	this.partType.generateThreePart(this.loader, 40, p, r, true, false, mc); // 40 to ensure transparent parts work correctly in parts list.
     }
 }
 

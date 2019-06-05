@@ -131,8 +131,13 @@ body {
   Editor:
  */
 .editor_control {
+  display: inline-block;
+  padding-top: 0.4em;
+  margin-left: 0.5em;
+  text-align: center;
+}
+.editor_save {
   display: block;
-  padding-top: 0.2em;
   text-align: center;
 }
 .editor_radio_button {
@@ -152,6 +157,8 @@ body {
   text-align: center;
   font-size: 3VW;
   border: none;
+  position: relative;
+  top: -0.1em;
 }
 .editor_button, .pli_button1, .pli_button2, .pli_button3 {
   border: none;

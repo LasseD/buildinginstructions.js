@@ -108,7 +108,7 @@ LDR.StepEditor.prototype.createGuiComponents = function(parentEle) {
                 }
             });
     }
-    let saveParentEle = this.makeEle(parentEle, 'span', 'editor_control');
+    let saveParentEle = this.makeEle(parentEle, 'span', 'editor_save');
     saveEle = this.makeEle(saveParentEle, 'button', 'save_button', save, 'SAVE');
     this.updateCurrentStep();
 }
@@ -336,8 +336,8 @@ LDR.StepHandler.prototype.removeGhosted = function() {
         return;
     }
 
-    let stepIndex = this.getCurrentStepIndex();
-    let originalStep = part.steps[current];
+    let stepIndex = this.getCurrentStepIndex(); // To move back to once the model has been rebuilt.
+    let originalStep = step.original;
     let originalSubModels = originalStep.subModels;
     originalStep.subModels = originalSubModels.filter(pd => !pd.ghost);
     if(part.steps[0].isEmpty()) { // Remove empty first step:
@@ -366,24 +366,4 @@ LDR.StepHandler.prototype.colorGhosted = function(colorID) {
 
     this.rebuild();
     this.moveSteps(stepIndex, () => {});
-
-
-/*    let [part, current, stepInfo] = this.getCurrentStepInfo();
-    let step = stepInfo.step;
-    let mc = stepInfo.meshCollector;
-
-    if(!step || !mc) {
-        console.warn('Not at a step where parts can be colored.');
-        return;
-    }
-
-    // Update descriptions:
-    step.subModels.filter(pd => pd.ghost).forEach(pd => pd.colorID = colorID);
-
-    // Update materials:
-    let [lineObjects, triangleObjects] = mc.getGhostedParts();
-    let pts = this.loader.partTypes;
-    lineObjects.forEach(obj => obj.mesh.material = new LDR.Colors.buildLineMaterial(pts[obj.part.ID].geometry.lineColorManager, colorID, obj.conditional));
-    let trans = LDR.Colors.isTrans(colorID);
-    triangleObjects.forEach(obj => obj.mesh.material = new LDR.Colors.buildTriangleMaterial(pts[obj.part.ID].geometry.triangleColorManager, colorID, trans));*/
 }
