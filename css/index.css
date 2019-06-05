@@ -1,0 +1,479 @@
+/*
+  Main page style sheet for BrickHub.org.
+  */
+body {
+    background-color: #222;
+    margin: 0;
+    padding: 0;
+    font-family: "Arial","Helvetica",sans-serif;
+    font-size: 1em;
+    overflow-x: hidden;
+    color: white;    
+}
+a {
+    color: white;
+}
+/*
+  Top bar
+  */
+#top {
+    display: block;
+    color: #DDD;
+    background-color: black;  
+    margin: 0;
+    text-align: right;
+    font-size: 4.9vw;
+    height: 1.85em;
+}
+@media screen and (min-width: 800px) {
+  #top {
+     font-size: 36px;
+  }
+}
+#logo {
+    float: left;
+}
+#logo img {
+/*    margin-bottom: -1em;*/
+    width: 1em;
+}
+#logo, #login_info {
+    display: inline-block;
+    padding-top: 0.4em;
+    padding-left: 0.2em;
+}
+#top a {
+    color: #DDD;
+    text-decoration: none;
+    height: 1em;
+    line-height: 1em;
+}
+#top #logo a img {
+    margin-top: -0.1em;
+}
+#search {
+    float: left;
+    margin-left: 0.25em;
+    margin-top: 0.2em;
+}
+#search input {
+    height: 1.2em;
+    font-size: 0.9em;
+    padding-left: 0.2em;
+    border-radius: 0.3em;
+    background-color: #DDD;
+    color: #333;
+    width: 10em;
+}
+#search a {
+    margin-left: 0.2em;
+    font-size: 1.2em;
+}
+#upload_button {
+    display: inline-block;
+    background-color: #4B4;
+    font-weight: bold;
+    text-transform: uppercase;
+    padding: 0.25em;
+    padding-bottom: 0.10em;
+    margin: 0.25em;
+    margin-right: 3em;
+    margin-top: 0.2em;
+    border-radius: 0.25em;
+}
+#login_info {
+    display: table-row;
+    position: absolute;
+    text-align: center;
+    top: 0.1em;
+    right: 0;
+    margin-right: 0;
+    padding: 0;
+    height: 1.5em;
+    table-layout: fixed;
+    border-spacing: 0.1em;
+}
+#login_info a {
+    display: table-cell;
+    height: 1.5em;
+    vertical-align: middle;
+    line-height: 1.4em;
+}
+#login_info svg {
+    display: block;
+    width: 1.3em;
+    height: 1.3em;
+    stroke-width: 3;
+}
+#login_info .user_icon {
+    background-color: white;
+    color: black;
+}
+#login_info .user_icon, #login_info .user_icon img {
+    display: block;
+    border-radius: 1.3em;
+    width: 1.3em;
+    height: 1.3em;
+}
+
+/*
+  Bottom
+  */
+#bottom {
+    text-align: center;
+    background-color: black;
+    padding: 0.5em;
+}
+/*
+  Consent
+*/
+#consent_banner {
+    position: fixed;
+    bottom: 0;
+    padding: 0.5em;
+    background-color: orange;
+    font-size: 1.5em;    
+    z-index: 12345;
+    color: black;
+}
+#consent_banner a {
+    color: black;
+}
+.consent_button {
+    cursor: pointer;
+    float:right;
+    background-color: #4D4;
+    padding: 1em 2em 1em 2em;
+    font-weight: bold;
+    border: 2px solid black;
+    border-radius: 10px;
+    margin-left: 0.3em;
+}
+
+/*
+Content
+*/
+#content {
+    display: block;
+    margin-top: 2em;
+    margin-bottom: 2em;
+}
+.section {
+    margin-top: 1em;
+    display: block;
+    margin-bottom: 2em;
+    background-color: #222;
+}
+/* https://codepen.io/ericrasch/pen/Irlpm */
+.bar {
+    text-align: center;
+    display: block;
+    /*margin-right: -2em;
+      padding-left: 0.5em;*/
+    clear: both;
+    /*overflow-x: hidden;*/  
+    position: relative;
+    z-index: 1;
+    background-color: black;
+    padding: 0.3em;
+    margin: auto;
+}
+.bar span {
+    background-color: black;/*#4BB;*/
+    /*border-radius: 1em;*/
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #CCC;
+    padding-left: 0.2em;
+    padding-right: 0.2em;
+}
+.bar:before {
+    border-top: 2px solid #dfdfdf;
+    content:"";
+    margin: 0 auto; /* this centers the line to the full width specified */
+    position: absolute; /* positioning must be absolute here, and relative positioning must be applied to the parent */
+    top: 50%; left: 0; right: 0; bottom: 0;
+    width: 95%;
+    z-index: -1;
+}
+.bar:after {
+    border-bottom: 1px solid #333;
+    -webkit-box-shadow: 0 1px 0 0 #888;
+    -moz-box-shadow: 0 1px 0 0 #888;
+    box-shadow: 0 1px 0 0 #888;
+    content: "";
+    margin: 0 auto; /* this centers the line to the full width specified */
+    position: absolute;
+    top: 45%; left: 0; right: 0;
+    width: 95%;
+    z-index: -1;
+}
+
+.bar .view_more {
+    float: right;
+    margin-right: 2em;
+}
+.bar a {
+    color: white;
+}
+/*
+Samples
+*/
+.sample {
+    display: table;
+    table-layout:fixed;
+    width:100%;
+    height: 200px;
+    margin: 0;
+    padding: 0; 
+}
+.sample_header {
+    display: block;
+    color: white;
+    text-align: center;
+    font-weight: bold;
+    padding-top: 0.5em;
+    padding-bottom: 0.5em;
+}
+.sample a {
+    text-decoration: none;
+    color: black;
+}
+.sample_pic {
+    display: table-row;
+    background-color: white;
+    width: 200px;
+    height: 200px;
+}
+.sample_pic a {
+    display: table-cell;
+    vertical-align: middle;
+    width: 200px;
+    height: 200px;
+    padding: 0;
+    text-align: center;
+    color: black;
+}
+.sample_pic a img {
+    max-width: 200px;
+    max-height: 200px;
+    display: block;
+    margin: auto;
+}
+.sample_text {
+    display: block;
+    height: 32px;
+    width: 200px;
+    margin-bottom: -32px;
+    float: left;
+    position: relative;
+    top: 0;
+    line-height: 32px;
+    padding-left: 5px;
+}
+.sample_text .sample_user {
+    display: none;
+    width: 26px;
+    height: 26px;
+    margin: 0;
+    float: left;
+}
+.sample_text .sample_name a {
+    display: block;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    color: black;
+    -webkit-text-fill-color: black; /* Will override color (regardless of order) */
+    -webkit-text-stroke-width: 0.2px;
+    -webkit-text-stroke-color: white;
+    font-weight: bold;
+}
+.part {
+    display: block;
+    margin-left: 2em;
+    margin-top: 0.5em;
+}
+
+/*
+Fancy title bar
+ */
+#title_bar, #title_bar a {
+  color: #ddd;
+}
+#title_bar_title_info {
+  background-color: black;
+  margin-left: 2em;
+  margin-right: 2em;
+  border-radius: 2em;
+}
+#title_bar_info {
+  margin-left: 2em;
+  margin-right: 2em;
+  padding-bottom: 0.1em;
+}
+#title_bar_name {
+  text-align: center; 
+  padding: 0.25em;
+  font-size: 2em;
+  font-weight: bold;
+}
+#title_bar_name input {
+    width: 80%;
+    font-size: 1em;
+    font-weight: bold;
+    background-color: black;
+    color: white;
+    border: 1px solid white;
+}
+#title_bar_name_left {
+  width: 4em;
+  height: 4em;
+  background-color: #222;
+  position: absolute;
+  left: -2em;
+  float: left;
+  border-radius: 2em;
+}
+#title_bar_name_center {
+  background-color: black;
+  height: 2em;
+  margin-bottom: -2em;
+}
+#title_bar_name_right {
+  width: 4em;
+  height: 4em;
+  background-color: #222;
+  float: right;
+  border-radius: 2em;
+  margin-right: -2em;
+}
+#title_bar_interactions {
+    display: table;
+    table-layout: fixed;
+    margin: auto;
+    border-spacing: 0.4em;
+    color: #888;
+}
+.interaction, .interaction_svg {
+    display: table-cell;
+    vertical-align: middle;
+}
+.interaction_svg {
+    cursor: pointer;
+}
+.interaction_svg svg {
+    width: 2em;
+    height: 2em;
+    fill: none;
+    stroke: #888;
+}
+
+/*
+  Netflix sliders - https://codepen.io/bork/pen/zBXwda
+  */
+.flix {
+    background-color: #AAA;
+    position: relative;
+    overflow: hidden;
+    height: 202px;
+    margin-bottom: 0.5em;
+}
+.button_left, .button_right {
+    width: 3em;
+    height: 100%;
+    background: rgba(0,0,0,0.4);
+    position: absolute;
+    top: 0;
+    z-index: 123;
+    cursor: pointer;
+}
+.button_left {
+    left: 0px;
+}
+.button_right {
+    right: 0px;
+}
+.flix_content {
+    /*transition: left .5s ease;*/
+    position: absolute;
+    left: 3em;
+    width: 150%;
+    overflow: hidden;
+}
+.sample_container {
+    display: inline-block;
+
+    border: 2px solid black;
+    background-color: black;
+
+    width: 200px;
+   
+    margin: 0;
+    padding: 0;    
+}
+.flix .sample_container {
+    display: block;
+
+    float: left;
+    position: relative;
+    top: 0;
+}
+.section .sample_container {
+    margin: 1.5em 0 1.5em 3em;
+}
+/*
+  Other actions
+ */
+.other_actions {
+    display: table;
+    table-layout: fixed;
+    border-spacing: 2em;
+    width: 100%;
+}
+.other_actions a {
+    color: white;
+    text-decoration: none;
+    display: table-cell;
+    text-align: center;
+    font-weight: bold;    
+    background-color: #4BB;
+    font-size: 2em;
+    padding: 0.3em;
+    border: 0.2em solid #2BB;
+    vertical-align: middle;
+}
+.other_actions a.positive {
+    background-color: #4B4;
+    border: 0.2em solid #2A2;
+}
+.other_actions a.negative {
+    background-color: #B44;
+    border: 0.2em solid #A22;
+}
+#tags {
+    margin-left: 2em;
+    margin-right: 2em;
+}
+ 
+/*
+ Messages
+*/
+#error_message, #message {
+  display: block;
+  border: 2px solid red;
+  margin: 1em;
+  margin-bottom: 0;
+  font-size: 2em;
+  font-weight: bold;  
+  text-align: center;
+  padding: 0.5em;
+}
+#error_message h3, #message h3 {
+  display: inline;
+}
+#message {
+  color: white;
+  background-color: #3A3;
+  border: none;
+}

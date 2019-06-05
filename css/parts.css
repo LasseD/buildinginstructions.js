@@ -1,0 +1,62 @@
+ul {
+  font-size: 1.5em;
+  line-height: 2em;
+  background-color: black;
+  margin: 0;
+}
+.bar, #big_list {
+  margin-top: 2em;
+}
+#preview {
+  margin: auto;
+  margin-top: 2em;
+  margin-bottom: 2em;
+  display: block;
+  width: 100%;
+}
+#file_content_holder, #file_structure_holder, #file_structure {
+  background-color: black;
+  margin: 0;
+}
+#file_content_holder pre {
+    display: block;
+    margin: 0 2em 0 2em;
+    background-color: white;
+    color: black;
+    padding: 0.2em;
+}
+#file_structure {
+    width: 100%;
+}
+.actions a {
+    background-color: #4B4;
+    font-size: 2em;
+    padding: 0.3em;
+    border: 0.2em solid #2A2;
+    vertical-align: middle;
+    color: white;
+    text-decoration: none;
+    display: table-cell;
+    text-align: center;
+    font-weight: bold;
+}
+.actions {
+    display: table;
+    table-layout: fixed;
+    border-spacing: 2em;
+    width: 100%;
+}
+ul ul {
+  font-size: 1em;
+}
+#load_details {
+    background-color: #4BB;
+    border: 0.2em solid #2AA;
+    display: block;
+    font-size: 2em;
+    padding: 0.5em;
+    margin: 1em;
+    text-align: center;
+    font-weight: bold;
+    cursor: pointer;
+}

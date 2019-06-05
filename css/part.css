@@ -1,0 +1,91 @@
+#preview {
+    position: relative;
+    top: 0;
+}
+#file_structure {
+    text-align: center;
+}
+.iconScene {
+    width: 200px;
+    height: 200px;
+    cursor: pointer;
+}
+ul.pretty_points {
+    display: inline-block;
+    font-size: 1em;
+    line-height: 1em;
+    padding: 0;
+}
+.line_desc, .line_desc {
+    text-align: left;
+}
+.pretty_points {
+    color: white;
+}
+
+/* Color picker */
+.color_container {
+  display: inline-block;
+  text-align: center;
+  line-height: 2em;
+  font-weight: bold;
+  border: none;
+  padding: 0.1em;
+  cursor: pointer;
+}
+.color_ele {
+  display: block;
+  width: 2em;
+  height: 2em;
+  border-radius: 2em;
+}
+.editor_button {
+    display: inline-block;
+    border: none;
+    margin: 0;
+    padding: 0;
+    width: 1em;
+    height: 1em;
+    background: none;
+    cursor: pointer;
+}
+#color_text {
+    cursor: pointer;
+}
+.editor_button svg {
+    width: 100%;
+    height: 100%;
+}
+
+/*
+  Messages
+ */
+.warning, .error {
+  display: block;
+  padding: 0.5em;
+  margin: 0.5em 2em 0.5em 2em;
+  color: black;
+}
+.warning {
+  border: 2px solid orange;
+  background-color: white;
+}
+.error {
+  border: 2px solid red;
+  background-color: #FDD;
+}
+.message_header {
+  font-weight: bold;
+  display: block;
+  margin-bottom: 0.5em;
+}
+/* 
+   PLI
+*/
+#pli_setup {
+    background-color: black;
+    text-align: center;
+}
+input {
+    width: 4em;
+}
