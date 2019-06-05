@@ -336,6 +336,7 @@ LDR.StepHandler.prototype.removeGhosted = function() {
         return;
     }
 
+    // Update sub models in step:
     let stepIndex = this.getCurrentStepIndex(); // To move back to once the model has been rebuilt.
     let originalStep = step.original;
     let originalSubModels = originalStep.subModels;
@@ -347,6 +348,8 @@ LDR.StepHandler.prototype.removeGhosted = function() {
 	}
 	part.steps = part.steps.slice(1);
     }
+    // All OK: Update lines in step:
+    originalStep.fileLines = originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
 
     this.rebuild();
     this.moveSteps(stepIndex, () => {});
