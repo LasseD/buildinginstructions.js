@@ -736,16 +736,15 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
 
     let invert = pd.invertCCW !== (pd.rotation.determinant() < 0);
 
-    // Function to update color:
+    // Function to update color (notice that input and output are strings):
     let replaceColor;
     if(pd.colorID === 16) {
 	replaceColor = function(x){return x;}; // Do nothing.
     }
     else if(pd.colorID === 24) {	    
 	replaceColor = function(x) {
-	    x = parseInt(x);
-	    if(x === 16) {
-		return 24;
+ 	    if(x === '16') {
+		return '24';
             }
 	    else {
 		return x;
@@ -754,12 +753,11 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
     }
     else {
 	replaceColor = function(x) {
-	    x = parseInt(x);
-	    if(x === 16) {
-		return pd.colorID;
+	    if(x === '16') {
+		return ''+pd.colorID;
             }
-	    else if(x === 24) {
-		return pd.colorID + 10000;
+	    else if(x === '24') {
+		return ''+(pd.colorID + 10000);
             }
 	    else {
 		return x;
