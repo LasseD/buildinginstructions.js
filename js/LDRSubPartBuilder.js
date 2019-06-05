@@ -48,7 +48,7 @@ LDR.SubPartBulder = function(baseMC, table, redPoints, loader, partType, colorID
     // Add icon for self:
     this.canvas = LDR.buildThumbnail(this.imageHolder);
     this.canvas.addEventListener('click', function(){
-	self.setVisible(false);
+	self.setFileLineVisibility(false);
 	self.baseMC.setVisible(true);
 	self.redPoints.visible = false;
 	self.onIconClick();
@@ -109,12 +109,12 @@ LDR.buildThumbnail = function(ele) {
     return canvas;
 }
 
-LDR.SubPartBulder.prototype.setVisible = function(v) {
+LDR.SubPartBulder.prototype.setFileLineVisibility = function(v) {
     if(!this.linesBuilt) {
 	return;
     }
     let fileLines = this.partType.steps[0].fileLines;
-    for(let i = 0; i < fileLines; i++) {
+    for(let i = 0; i < fileLines.length; i++) {
 	let line = fileLines[i];
 	if(line.line0) {
 	    continue;
@@ -304,9 +304,10 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
 
 	line.canvas = LDR.buildThumbnail(line.imageHolder);
 	line.canvas.line = line;
-	line.canvas.addEventListener('click', function(){
+	line.canvas.addEventListener('click', function() {
+            // Show only this file line and its markers:
 	    self.baseMC.setVisible(false);
-	    self.setVisible(false);
+	    self.setFileLineVisibility(false);
 	    this.line.mc.setVisible(true);
 	    self.redPoints.visible = true;
 	    if(this.line.markers) {
@@ -319,7 +320,6 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
 	    baseObject.add(line.markers);
 	    line.markers.updateMatrix();
 	}
-	line.mc.draw(false);
     }
 
     this.linesBuilt = true;
@@ -327,12 +327,12 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
 
 LDR.SubPartBulder.prototype.drawAllIcons = function() {
     // Base icon:
-    this.setVisible(false);
+    this.setFileLineVisibility(false);
     this.redPoints.visible = false;
 
     this.baseMC.setVisible(true);
-    this.baseMC.draw(false);
     this.baseMC.overwriteColor(this.c);
+    this.baseMC.draw(false);
     this.render();
     let context = this.canvas.getContext('2d');
     context.drawImage(this.renderer.domElement, 0, 0);
@@ -352,8 +352,8 @@ LDR.SubPartBulder.prototype.drawAllIcons = function() {
 	}
 
 	line.mc.setVisible(true);
-	line.mc.draw(false);
 	line.mc.overwriteColor(this.c);
+	line.mc.draw(false);
 	if(line.markers) {
 	    line.markers.visible = true;
 	}

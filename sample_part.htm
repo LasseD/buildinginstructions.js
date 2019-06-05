@@ -236,13 +236,8 @@
 	messageElement.appendChild(messageBody);
       }
 
-      var idToUrl = function(id, top) {
-        console.log("loading " + id);
-        return 'ldraw_parts/' + id;
-      };
-
-      ldrLoader = new THREE.LDRLoader(onLoad, {onError:onError, onWarning:onWarning, idToUrl:idToUrl, saveFileLines:true});
-      ldrLoader.load('4-4edge.dat');
+      ldrLoader = new THREE.LDRLoader(onLoad, {onError:onError, onWarning:onWarning, saveFileLines:true});
+      ldrLoader.load('3003.dat');
 
       // Color setup:
       var colorPicker = new LDR.ColorPicker(setColor);
@@ -257,7 +252,6 @@
         var color = LDR.Colors[idx];
         colorTextEle.innerHTML = 'Color ' + idx + ' - ' + color.name + (color.lego_name ? (' (LEGO Color ' + color.lego_id + ' - ' + color.lego_name + ')') : '');      
         console.log('setting color ' + idx);
-
                   
         if(builder) {
           builder.c = idx;
@@ -271,15 +265,6 @@
               var colorButton = colorPicker.createButton();
         document.getElementById('color_button').append(colorButton);
         </script>
-
-    <span class="bar"><span>Raw File Content</span></span>
-  <div id="file_content_holder">
-   <pre><code id="file_content"></code></pre>
-   <script>
-    $('#file_content').load('ldraw_parts/3003.dat');
-   </script>
-  </div>
-  
   <div id="options"></div>
   <script>
     var optionsDiv = document.getElementById('options');
