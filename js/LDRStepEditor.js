@@ -115,6 +115,7 @@ LDR.StepEditor.prototype.createGuiComponents = function(parentEle) {
 
 LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
     let self = this, Ele, Normal, Rel, Abs, End, X, Y, Z;
+
     function propagate(rot) {
         for(let i = self.stepIndex+1; i < self.part.steps.length; i++) {
             let s = self.part.steps[i];
@@ -124,19 +125,23 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
             }
             s.rotation = rot ? rot.clone() : null;
         }
-        self.step.rotation = rot; // Update starting step.
+        self.step.original.rotation = rot; // Update starting step.
+	self.stepHandler.updateRotations();
         self.onChange();
     }
+
     function makeNormal() { // Copy previous step rotation, or set to null if first step.
-        propagate(self.stepIndex === 0 ? null : self.part.steps[self.stepIndex-1].rotation);
+        propagate(self.stepIndex === 0 ? null : self.part.steps[self.stepIndex-1].original.rotation);
     }
     function makeRel() { 
-        let rot = self.step.rotation ? self.step.rotation.clone() : new THREE.LDRStepRotation(0, 0, 0, 'REL');
+	let step = self.step.original;
+        let rot = step.rotation ? step.rotation.clone() : new THREE.LDRStepRotation(0, 0, 0, 'REL');
         rot.type = 'REL';
         propagate(rot);
     }
     function makeAbs() {
-        let rot = self.step.rotation ? self.step.rotation.clone() : new THREE.LDRStepRotation(0, 0, 0, 'ABS');
+	let step = self.step.original;
+        let rot = step.rotation ? step.rotation.clone() : new THREE.LDRStepRotation(0, 0, 0, 'ABS');
         rot.type = 'ABS';
         propagate(rot);
     }
@@ -146,7 +151,8 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
 
     function setXYZ(e) {
         e.stopPropagation();
-        let rot = self.step.rotation ? self.step.rotation.clone() : new THREE.LDRStepRotation(0, 0, 0, 'REL');
+	let step = self.step.original;
+        let rot = step.rotation ? step.rotation.clone() : new THREE.LDRStepRotation(0, 0, 0, 'REL');
         let x = parseFloat(X.value);
         let y = parseFloat(Y.value);
         let z = parseFloat(Z.value);
@@ -178,7 +184,8 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
 
     function makeXYZ(icon, sub, add, x1, y1, x2, y2) {
         function subOrAdd(fun) {
-            let rot = self.step.rotation ? self.step.rotation.clone() : new THREE.LDRStepRotation(0, 0, 0, 'REL');
+	    let step = self.step.original;
+            let rot = step.rotation ? step.rotation.clone() : new THREE.LDRStepRotation(0, 0, 0, 'REL');
             fun(rot);
             propagate(rot);
             self.onChange();
@@ -197,7 +204,7 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
     Z = makeXYZ('Z', rot => rot.z-=rotDiff, rot => rot.z+=rotDiff, 8, -5, 8, 11);
 
     function onStepSelected() {
-        let rot = self.step.rotation;
+        let rot = self.step.original.rotation;
         if(!rot) {
             rot = new THREE.LDRStepRotation(0, 0, 0, 'REL');
 	    Rel.checked = true;

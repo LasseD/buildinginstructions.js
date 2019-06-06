@@ -173,6 +173,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
                     }
                 }
             }
+	    
             self.stepEditor = new LDR.StepEditor(self.ldrLoader, self.stepHandler, 
                                                  removeGeometries, () => self.handleStepsWalked(), 
                                                  self.modelID);
