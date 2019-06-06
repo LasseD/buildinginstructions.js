@@ -721,7 +721,7 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
 	console.dir(loader.partTypes[pd.ID]);
 	throw "Missing geometry on " + pd.ID;
     }
-    this.replaceWithDeep(loader.partTypes[pd.ID].geometry); // Assume pd.ID has prepared geometry.
+    this.replaceWithDeep(loader.partTypes[pd.ID].geometry);
     this.cull = this.cull && pd.cull;
 
     let m4 = new THREE.Matrix4();

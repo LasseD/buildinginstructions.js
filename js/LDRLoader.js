@@ -65,8 +65,9 @@ THREE.LDRLoader = function(onLoad, options) {
  * top should be set to 'true' for top level model files, such as .ldr and .mpd files.
  */
 THREE.LDRLoader.prototype.load = function(id, top) {
-    if(!top)
+    if(!top) {
 	id = id.toLowerCase();
+    }
     let url = this.idToUrl(id, top);
     id = id.replace('\\', '/'); // Sanitize id. 
 
@@ -355,8 +356,9 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    p1 = new THREE.Vector3(parseFloat(parts[2]), parseFloat(parts[3]), parseFloat(parts[4]));
 	    p2 = new THREE.Vector3(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
 	    p3 = new THREE.Vector3(parseFloat(parts[8]), parseFloat(parts[9]), parseFloat(parts[10]));
-	    if(!part.certifiedBFC || !localCull)
+	    if(!part.certifiedBFC || !localCull) {
 		step.cull = false; // Ensure no culling when step is handled.
+            }
 	    if(CCW === invertNext) {
 		step.addTrianglePoints(colorID, p3, p2, p1);
 	    }
@@ -375,8 +377,9 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    p2 = new THREE.Vector3(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
 	    p3 = new THREE.Vector3(parseFloat(parts[8]), parseFloat(parts[9]), parseFloat(parts[10]));
 	    p4 = new THREE.Vector3(parseFloat(parts[11]), parseFloat(parts[12]), parseFloat(parts[13]));
-	    if(!part.certifiedBFC || !localCull)
+	    if(!part.certifiedBFC || !localCull) {
 		step.cull = false; // Ensure no culling when step is handled.
+            }
 	    if(CCW === invertNext) {
 		step.addQuadPoints(colorID, p4, p3, p2, p1);
 	    }
@@ -957,6 +960,8 @@ THREE.LDRPartType = function() {
     this.geometry;
     this.cnt = -1;
     this.cleanSteps = false;
+    this.certifiedBFC;
+    this.CCW;
 }
 
 /*
@@ -1038,9 +1043,7 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 	    this.geometry.fromPartType(loader, this);
 	}
 	else {
-	    for(let i = 0; i < this.steps.length; i++) {
-		this.steps[i].generateThreePart(loader, c, p, r, cull, inv, mc); // Build parts within.
-	    }
+            this.steps.forEach(step => step.generateThreePart(loader, c, p, r, cull, inv, mc));
 	    return;
 	}
     }

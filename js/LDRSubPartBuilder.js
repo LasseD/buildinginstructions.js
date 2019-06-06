@@ -109,6 +109,8 @@ LDR.buildThumbnail = function(ele) {
     return canvas;
 }
 
+THREE.LDRStep.prototype.removePrimitivesAndSubParts = () => {}; // Ensure primitives are not deleted.
+
 LDR.SubPartBulder.prototype.setFileLineVisibility = function(v) {
     if(!this.linesBuilt) {
 	return;
@@ -165,31 +167,30 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
 	else {
 	    line.mc = new LDR.MeshCollector(baseObject, baseObject);
 	    let c = transformColor(line.line1 ? line.desc.colorID : line.c);
-
-	    let subModel = line.line1 ? this.loader.partTypes[line.desc.ID] : new THREE.LDRPartType();
-	    let step = new THREE.LDRStep();
+	    let step = new THREE.LDRStep(); // Not used by line1.
 
 	    if(line.line1) {
-		if(subModel === undefined) {
+                let pt = this.loader.partTypes[line.desc.ID];
+		if(!pt) {
 		    throw {
-			name: "UnloadedSubmodelException",
+			name: "UnloadedPartTypeException",
 			level: "Severe",
-			message: "Unloaded sub model: " + line.desc.ID,
-			htmlMessage: "Unloaded sub model: " + line.desc.ID,
-			toString:    function(){return "Unloaded sub model: " + line.desc.ID;} 
-		    }; 
+			message: "Unloaded part type: " + line.desc.ID,
+			htmlMessage: "Unloaded part type: " + line.desc.ID,
+			toString: function(){return "Unloaded part type: " + line.desc.ID;} 
+		    };
 		}
 
 		let typeEle = LDR.makeEle(tr, 'td', 'line_type');
 		let a = document.createElement('a');
 		let url = linkPrefix;
-		if(subModel.inlined && !isNaN(subModel.inlined)) {
-		    url += "part.php?user_id=" + subModel.inlined + "&id=";
+		if(pt.inlined && !isNaN(pt.inlined)) {
+		    url += "part.php?user_id=" + pt.inlined + "&id=";
 		}
-		else if(subModel.inlined === undefined) {
+		else if(pt.inlined === undefined) {
 		    url += "part.php?from=" + self.from + "&id=";
 		}
-		a.setAttribute('href', url + subModel.ID);
+		a.setAttribute('href', url + pt.ID);
 		a.innerHTML = line.desc.ID;
 		typeEle.appendChild(a);
 
@@ -198,11 +199,21 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
 		LDR.makeEle(tr, 'td', 'line_wind').innerHTML = "&#x21B" + (!line.desc.invertCCW ? 'A' : 'B') + ";";
 		LDR.makeEle(tr, 'td', 'line_color').innerHTML = line.desc.colorID;
 
-		let nextPosition = transformPoint(line.desc.position);
-		let nextRotation = new THREE.Matrix3();
-		nextRotation.multiplyMatrices(this.r, line.desc.rotation);
+                // Hack in a new part type for the sub model:
+                let identityRotation = new THREE.Matrix3();
+                identityRotation.set(1, 0, 0,
+                                     0, 1, 0,
+                                     0, 0, 1);
+                let pd = new THREE.LDRPartDescription(40, new THREE.Vector3(), identityRotation, pt.ID, true, false);
+                let g = new LDR.LDRGeometry();
+                g.fromPartDescription(this.loader, line.desc);
 
-		subModel.generateThreePart(this.loader, c, nextPosition, nextRotation, line.desc.cull, line.desc.invertCCW, line.mc);
+                step.addSubModel(pd);
+                pt = new THREE.LDRPartType();
+                pt.ID = 'HIGHLIGHT_PART_' + i;
+                pt.addStep(step);
+                pt.geometry = g;
+		pt.generateThreePart(this.loader, 40, this.p, this.r, true, false, line.mc, pd);
 	    }
 	    else if(line.line2) {
 		LDR.makeEle(tr, 'td', 'line_type').innerHTML = 'Line';
@@ -255,9 +266,10 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
 	    }
 
 	    if(!line.line1) {
-		subModel.addStep(step);
-		subModel.prepareGeometry(this.loader);
-		subModel.generateThreePart(this.loader, c, new THREE.Vector3(), new THREE.Matrix3(), line.cull, line.ccw, line.mc);
+                let pt = new THREE.LDRPartType();
+		pt.addStep(step);
+		pt.prepareGeometry(this.loader);
+		pt.generateThreePart(this.loader, c, new THREE.Vector3(), new THREE.Matrix3(), line.cull, line.ccw, line.mc);
 	    }
 
 	    line.imageHolder = LDR.makeEle(tr, 'td', 'line_image');
