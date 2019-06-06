@@ -194,7 +194,7 @@ LDR.LDRGeometry.prototype.unpack = function(packed) {
 	    }
 	    let len = arrayI[idxI++];
 	    for(let i = 0; i < len; i++) {
-                for(var j = 0; j < pointsForBoundingBox; j++) {
+                for(let j = 0; j < pointsForBoundingBox; j++) {
                     self.vertices[arrayI[idxI+j]].forBoundingBox = true;
                 }
 		let p = {p1:arrayI[idxI++], p2:arrayI[idxI++]};
@@ -216,7 +216,6 @@ LDR.LDRGeometry.prototype.unpack = function(packed) {
     extract(4, this.quads, 4);
 
     // Build bounding box:
-    var self = this;
     this.vertices.forEach(v => {
             if(v.forBoundingBox) {
                 self.boundingBox.expandByPoint(v);
@@ -266,7 +265,7 @@ LDR.LDRGeometry.prototype.buildGeometriesAndColors = function() {
     }
 
     let colorIdx = 0;
-    let self = this;
+    var self = this;
     let handleVertex = function(vertices, idx, fc) {
 	let v = self.vertices[idx];
 	if(v.c !== colorIdx) {

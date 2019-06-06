@@ -594,7 +594,7 @@ LDR.InstructionsManager.prototype.handleStepsWalked = function() {
     this.accHelper = new THREE.Box3Helper(this.stepHandler.getAccumulatedBounds(), 0x00FF00)
     this.helper = new THREE.Box3Helper(this.stepHandler.getBounds(), 0xFFCC00)
     this.baseObject.add(this.accHelper);
-    this.baseObject.add(this.helper);//*/
+    this.baseObject.add(this.helper);*/
     this.currentStep = this.stepHandler.getCurrentStepIndex();
     this.ensureSwipeForwardWorks();
     this.realignModel(0);

@@ -313,7 +313,7 @@ LDR.Options.prototype.appendPartColorOptions = function(optionsBlock) {
 
 /*
 Part color options (points and background color)
-*/
+ */
 LDR.Options.prototype.appendPartPointSizeOptions = function(optionsBlock) {
     let group = this.addOptionsGroup(optionsBlock, 5, "Points");
     let options = this;

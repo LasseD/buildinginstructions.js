@@ -3,10 +3,7 @@
 LDR.Shader = {};
 
 LDR.Shader.createShaderHeader = function(canBeOld, numberOfColors, c, defaultIsEdge) {
-    let ret = `
-      precision highp float;
-      precision mediump int;
-    `;
+    let ret = 'precision highp float;precision mediump int;';
 
     if(canBeOld) {
 	ret += "  uniform bool old;\n";
@@ -25,20 +22,14 @@ LDR.Shader.createShaderHeader = function(canBeOld, numberOfColors, c, defaultIsE
 }
 
 LDR.Shader.createShaderBody = function(canBeOld, multiColored) {
-    let ret = `
-      uniform mat4 projectionMatrix;
-      uniform mat4 modelViewMatrix;
-    `;
+    let ret = 'uniform mat4 projectionMatrix;uniform mat4 modelViewMatrix;';
 
     if(multiColored)
 	ret += "  attribute vec4 position;\n";
     else
 	ret += "  attribute vec3 position;\n";
 
-    ret += `
-      varying vec4 vColor;
-      void main() {
-    `;
+    ret += 'varying vec4 vColor;void main(){';
 
     ret += "    vColor = ";
     if(canBeOld)
@@ -77,10 +68,7 @@ LDR.Shader.createConditionalVertexShader = function(canBeOld, colors, push) {
     let numberOfColors = colors.length;
     let c = colors[0];
 
-    let ret = `
-      precision highp float;
-      precision mediump int;
-    `;
+    let ret = 'precision highp float;precision mediump int;';
 
     if(canBeOld) {
 	ret += "  uniform bool old;\n";
@@ -88,15 +76,7 @@ LDR.Shader.createConditionalVertexShader = function(canBeOld, colors, push) {
 	ret += "  const vec4 oldColor = vec4(" + oldColor.r + "," + oldColor.g + "," + oldColor.b + ",1);\n";
     }
 
-    ret += `
-      uniform mat4 projectionMatrix;
-      uniform mat4 modelViewMatrix;
-      
-      attribute vec3 position;
-      attribute vec3 p2;
-      attribute vec3 p3;
-      attribute vec3 p4;
-    `;
+    ret += 'uniform mat4 projectionMatrix;uniform mat4 modelViewMatrix;attribute vec3 position;attribute vec3 p2;attribute vec3 p3;attribute vec3 p4;';
     
     let multiColored = numberOfColors > 1;
     if(multiColored) {
@@ -107,20 +87,9 @@ LDR.Shader.createConditionalVertexShader = function(canBeOld, colors, push) {
 	ret += "  uniform vec4 color;\n";
     }
 
-    ret += `
-      varying vec4 vColor;
-      void main() {
-        mat4 m = projectionMatrix * modelViewMatrix;
-        gl_Position = m * vec4(position, 1.0);
-        vec2 xp1 = gl_Position.xy;
-        vec2 d12 = vec4(m * vec4(p2, 1.0)).yx - xp1.yx;
-        d12.y = -d12.y;
-        vec2 d13 = vec4(m * vec4(p3, 1.0)).xy - xp1;
-        vec2 d14 = vec4(m * vec4(p4, 1.0)).xy - xp1;
-
-        vColor = `;
+    ret += 'varying vec4 vColor;void main(){mat4 m=projectionMatrix*modelViewMatrix;gl_Position=m*vec4(position,1.0);vec2 xp1=gl_Position.xy;vec2 d12=vec4(m*vec4(p2,1.0)).yx-xp1.yx;d12.y=-d12.y;vec2 d13=vec4(m*vec4(p3,1.0)).xy-xp1;vec2 d14=vec4(m*vec4(p4,1.0)).xy-xp1;vColor=';
     // Compute color:
-    if(canBeOld) 
+    if(canBeOld)
 	ret += "old ? oldColor : ";
 	 
     if(multiColored)
@@ -135,24 +104,6 @@ LDR.Shader.createConditionalVertexShader = function(canBeOld, colors, push) {
     return ret;
 }
 
-LDR.Shader.SimpleFragmentShader = `
-  precision lowp float;
+LDR.Shader.SimpleFragmentShader = 'precision lowp float;varying vec4 vColor;void main(){gl_FragColor=vColor;}';
 
-  varying vec4 vColor;
-
-  void main() {
-      gl_FragColor = vColor;
-  }
-`;
-
-LDR.Shader.AlphaTestFragmentShader = `
-  precision lowp float;
-
-  varying vec4 vColor;
-
-  void main() {
-      if(vColor.a <= 0.001)
-	  discard;
-      gl_FragColor = vColor;
-  }
-`;
+LDR.Shader.AlphaTestFragmentShader = 'precision lowp float;varying vec4 vColor;void main(){if(vColor.a <= 0.001)discard;gl_FragColor = vColor;}';
