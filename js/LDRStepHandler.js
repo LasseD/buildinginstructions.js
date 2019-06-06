@@ -87,6 +87,20 @@ LDR.StepHandler.prototype.recomputeStepIndices = function(firstShownIndex) {
         });
 }
 
+LDR.StepHandler.prototype.updateRotations = function() {
+    let self = this;
+    this.steps.forEach(stepInfo => {
+	let step = stepInfo.step;
+	if(step) {
+	    step.rotation = step.original.rotation;
+	}
+        let subHandler = stepInfo.stepHandler;
+        if(subHandler) {
+            subHandler.updateRotations();
+        }
+    });
+}
+
 LDR.StepHandler.prototype.removeGeometries = function() {
     if(!this.steps) {
         return; // Not yet built - no geometries.
