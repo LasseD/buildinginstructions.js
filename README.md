@@ -8,9 +8,20 @@ See this project visualized on [BrickHub.org](https://brickhub.org)
 
 ## How To Install Locally
 
-After copying the files in this repository, you can view sample_view.htm for how to set up a render. This sample is less than 100 lines and provides a good starting point that is easy to grasp.
+After copying the files in this repository, you can view:
 
-See sample_instructions.htm for how to set up building instructions, including options for personalization. This is a very involved sample file reflecting the instructions on BrickHub.org.
+sample_view.htm for how to set up a render. This sample is less than 100 lines and provides a good starting point that is easy to grasp.
+
+sample_instructions.htm for how to set up building instructions, including options for personalization. This is a very involved sample file reflecting the instructions on BrickHub.org.
+
+sample_editing.htm is similar to sample_instructions.htm, but allows you to edit the shown model (change steps, rotations, color, remove parts, etc.)
+
+sample_partslist.htm demonstrates how to display parts lists. The example has two modes (list and grid) with additional part information when in list view and clicking small images result in larger previews with additional information. This example follows how parts lists are displayed on BrickHub.org.
+
+sample_part.htm provides a break down of a single part. Points highlight where lines, triangles and quads are positioned. This can be used to inspect new or existing LDraw parts.
+
+sample_functions.htm is currently under development. It will demonstrate how to perform operations on LDraw models, such as changing all parts of a certain color.
+
 
 If you want to view additional models, then add the necessary LDraw files directly to the 'ldraw_parts' directory. Downloaded files from [the LDraw parts library](http://www.ldraw.org/parts/latest-parts.html) should thus result in a file structure as follows:
 
