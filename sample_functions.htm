@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <meta charset=utf-8>
+  <title>Sample Functions</title>
+  <meta name="viewport" content="width=device-width" />
+  <link href="css/functions.css" rel="stylesheet" type="text/css">
+ </head>
+ <body>
+  <script src="js/three.min.js"></script>
+  <script src="js/OrbitControls.js"></script>
+  <script src="js/colors.js"></script>
+  <script src="js/LDROptions.js"></script>
+  <script src="js/LDRShaders.js"></script>
+  <script src="js/LDRColorMaterials.js"></script>
+  <script src="js/LDRGeometries.js"></script>
+  <script src="js/LDRLoader.js"></script>
+
+  <div id="main_canvas_holder">
+   <canvas id="main_canvas"></canvas>
+  </div>
+  <div id="functions"></div>
+
+  <script>
+      var modelTypeUrl = 'models/tristack2.ldr';
+
+      // Set up camera:
+      var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
+      camera.position.set(10000, 7000, 10000);
+      camera.lookAt(new THREE.Vector3());
+
+      // Set up scene:
+      var scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xDDDDDD);
+
+      var baseObject = new THREE.Group(), opaqueObject = new THREE.Group(), transObject = new THREE.Group();
+      baseObject.add(opaqueObject); // Draw non-trans before trans.
+      baseObject.add(transObject);
+      scene.add(baseObject);
+      var mc = new LDR.MeshCollector(opaqueObject, transObject);
+
+      // Set up renderer:
+      var canvas = document.getElementById('main_canvas');
+      var canvasHolder = document.getElementById('main_canvas_holder');
+      var renderer = new THREE.WebGLRenderer({antialias:true, canvas:canvas});
+      renderer.setPixelRatio(window.devicePixelRatio);
+      function render() {
+        renderer.render(scene, camera);
+      }
+
+      function onWindowResize(){
+        let w = Math.min(400, window.innerWidth);
+        let h = Math.min(400, window.innerHeight);
+        camera.left = -w;
+        camera.right = w;
+        camera.top = h;
+        camera.bottom = -h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+        render();
+      }
+
+      // React to user input:
+      var controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.addEventListener('change', render);
+      window.addEventListener('resize', onWindowResize, false);
+
+      // Three.js loader for LDraw models:
+      var ldrLoader;
+
+      var onLoad = function() {
+	var geometryBuilder = new LDR.GeometryBuilder(ldrLoader, {});
+	var toBeBuilt = geometryBuilder.getAllTopLevelToBeBuilt();
+	geometryBuilder.build(toBeBuilt);
+
+        var mainModel = ldrLoader.partTypes[ldrLoader.mainModel]; // Main model from the LDraw file (first model encountered)
+
+        // Place model in scene:
+        var origo = new THREE.Vector3();
+        var inv = new THREE.Matrix3(); 
+        inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
+
+        // Generate the mesh:
+        mainModel.generateThreePart(ldrLoader, 0, origo, inv, true, false, mc);
+
+        // Find center of drawn model:
+        var b = mc.boundingBox;
+        var elementCenter = new THREE.Vector3();
+        b.getCenter(elementCenter);
+        baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
+
+	camera.zoom = window.innerWidth/b.min.distanceTo(b.max);
+        onWindowResize();
+        createFunctionButtons();
+      }
+
+      var ldrOptions = new LDR.Options(); // Determine how to show lines. Change this in sample_instruction.htm
+      ldrLoader = new THREE.LDRLoader(onLoad);
+      ldrLoader.load(modelTypeUrl);
+
+      /*
+      Functions: 
+      - Make colors old (requires year)
+      - Make colors new (requires year)
+      - Fix OMR compliancy (requires LEGO ID => naming, inline unofficial models, remove inlined official models(serve_full_model.php should mark this), etc.)
+      - Fix stud.io issues (precision .000xxx, .ldr and consistency between 'FILE' and 'Name:')
+       */
+      var functionsCreated = false;
+      function createFunctionButtons() {
+        if(functionsCreated)
+          return;
+        createFunctionButton("Color everything red", {handlePartDescription:pd => pd.colorID=4});
+        let transformColors = function(pd, map) {
+          if(map.hasOwnProperty(pd.colorID))
+            pd.colorID = map[pd.colorID];
+        }
+        createFunctionButton("Recolor old colors new", {handlePartDescription:pd => transformColors(pd, {'6':70,'7':71,'8':72})});
+        createFunctionButton("Recolor new colors old", {handlePartDescription:pd => transformColors(pd, {'70':6,'71':7,'72':8})});
+        functionsCreated = true;
+      }
+
+      function ele(type, cls, parent, desc) {
+        let ret = document.createElement(type);
+        parent.append(ret);
+        ret.setAttribute('class', cls);
+        if(desc)
+          ret.innerHTML = desc;
+        return ret;
+      }
+
+      function createFunctionButton(desc, handlers) {
+        let button = ele('div', 'function', document.getElementById('functions'), desc);
+
+        let handlePD = function(pd, state) {
+          //console.log('Handling part desc ' + pd.ID);
+          handlers.handlePartDescription && handlers.handlePartDescription(pd, state);
+          let pt = ldrLoader.partTypes[pd.ID];
+          handlePT(pt, state);
+        }
+
+        let handleStep = function(step, state) {
+          //console.log('Handling step');
+          handlers.handleStep && handlers.handleStep(step);
+          if(step.subModels)
+            step.subModels.forEach(pd => handlePD(pd, pd.placeAt(state)));
+        }
+
+        let handlePT = function(pt, state) {
+          //console.log('Handling part type ' + pt.ID);
+          handlers.handlePartType && handlers.handlePartType(pt, state);
+          pt.steps.forEach(step => handleStep(step, state));
+        }
+
+        let action = function() {
+          let pt = ldrLoader.partTypes[ldrLoader.mainModel];
+          let id = new THREE.Matrix3(); id.set(1, 0, 0, 0, 1, 0, 0, 0, 1);
+          let pd = new THREE.LDRPartDescription(16, new THREE.Vector3(), id, pt.ID, true, false);
+          handlePT(pt, pd);
+
+          // Rebuild:
+          baseObject.remove(opaqueObject);
+          baseObject.remove(transObject);
+          mc.opaqueObject = opaqueObject = new THREE.Group();
+          mc.transObject = transObject = new THREE.Group();
+          baseObject.add(opaqueObject);
+          baseObject.add(transObject);
+          onLoad();
+
+          button.style.display = 'none';
+        }
+        button.addEventListener('click', action);
+      }
+
+  </script>
+ </body>
+</html>
