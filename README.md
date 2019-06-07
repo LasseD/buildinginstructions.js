@@ -6,7 +6,7 @@ See this project visualized on [BrickHub.org](https://brickhub.org)
 
 ![Sample image of a building instructions step generated on the fly using buildinginstructions.js](https://brickhub.org/i/data/431/431.png)
 
-## How To Install Locally
+## Getting Started
 
 After copying the files in this repository, you can view:
 
@@ -20,7 +20,7 @@ sample_partslist.htm demonstrates how to display parts lists. The example has tw
 
 sample_part.htm provides a break down of a single part. Points highlight where lines, triangles and quads are positioned. This can be used to inspect new or existing LDraw parts.
 
-sample_functions.htm is currently under development. It will demonstrate how to perform operations on LDraw models, such as changing all parts of a certain color.
+sample_functions.htm shows how to perform operations on LDraw models, such as changing all parts of a certain color.
 
 
 If you want to view additional models, then add the necessary LDraw files directly to the 'ldraw_parts' directory. Downloaded files from [the LDraw parts library](http://www.ldraw.org/parts/latest-parts.html) should thus result in a file structure as follows:
