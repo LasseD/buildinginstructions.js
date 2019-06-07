@@ -1027,8 +1027,8 @@ LDR.LDRGeometry.prototype.merge = function(other) {
     other.ensureCull();
 
     // Merge bounding box:
-    this.boundingBox.expandByPoint(other.boundingBox.min);
-    this.boundingBox.expandByPoint(other.boundingBox.max);
+    this.boundingBox.min.min(other.boundingBox.min);
+    this.boundingBox.max.max(other.boundingBox.max);
 
     // Merge vertices:
     let mergedVertices = []; // Assume both vertex streams are sorted, so duplicates are removed.
