@@ -91,6 +91,7 @@ LDR.PLIBuilder.prototype.createClickMap = function(step) {
 	let partID = dat.ID;
 	let colorID = dat.colorID;
 	let key = partID.endsWith('.dat') ? partID.substring(0, partID.length-4) : partID;
+	let pliID = 'pli_' + key;
 	key += '_' + colorID;
 
 	let icon = icons[key];
@@ -100,13 +101,12 @@ LDR.PLIBuilder.prototype.createClickMap = function(step) {
 	else {
 	    let pt = this.getPartType(partID);
 	    let b = pt.pliMC.boundingBox;
-	    let type = this.loader.partTypes[partID];
 	    icon = {key: key,
 		    partID: partID,
 		    colorID: colorID,
                     mult: 1,
-		    desc: type.modelDescription,
-		    annotation: pt.annotation,
+		    desc: pt.modelDescription,
+		    annotation: LDR.Annotations ? LDR.Annotations[pliID] : null,
 		    dx: pt.dx,
 		    dy: pt.dy,
 		    size: b.min.distanceTo(b.max),

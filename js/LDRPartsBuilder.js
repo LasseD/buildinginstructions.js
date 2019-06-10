@@ -126,7 +126,7 @@ LDR.PartAndColor = function(key, part, colorID, loader) {
     }
 
     // Annotate:
-    if(!this.partType.annotation && LDR.Annotations && LDR.Annotations[pliID]) {
+    if(!this.partType.annotation && LDR.Annotations && LDR.Annotations.hasOwnProperty(pliID)) {
 	this.partType.annotation = LDR.Annotations[pliID];
     }
     

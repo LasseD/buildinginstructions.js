@@ -1187,7 +1187,7 @@ LDR.ColorManager.prototype.containsTransparentColors = function() {
 }
 
 /*
-  The LDRMeshBuilder is used to build geometries for parts.
+  The GeometryBuilder is used to build geometries for parts.
  */
 LDR.GeometryBuilder = function(loader, storage) {
     if(!storage)
