@@ -162,11 +162,13 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	}
 
 	var self = this;
+        var saveThisHeaderLine = true;
 	function setModelDescription() {
 	    if(part.modelDescription || !previousComment) {
-		return;
+		return; // Already set or not present.
             }
 	    part.modelDescription = previousComment;
+            saveThisHeaderLine = false; // Because we are saving it as modelDescription.
 	    if(previousComment.toLowerCase().startsWith("~moved to ")) {
 		let newID = previousComment.substring("~moved to ".length).toLowerCase();
 		if(!newID.endsWith(".dat")) {
@@ -179,11 +181,12 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		self.onError({message:'Unknown part "' + part.ID + '" will be shown as a cube.', line:i, subModel:part});
 	    }
 	    previousComment = undefined;
+            return true; // Description set.
 	}
 
-	function handlePotentialFileStart(fileName) {
+	function handlePotentialFileStart(originalFileName) {
 	    // Normalize the name by bringing to lower case and replacing backslashes:
-	    fileName = fileName.toLowerCase().replace('\\', '/');
+	    let fileName = originalFileName.toLowerCase().replace('\\', '/');
 	    localCull = false; // BFC Statements come after the FILE or Name: - directives.
 
 	    if(part.ID === fileName) { // Consistent 'FILE' and 'Name:' lines.
@@ -220,6 +223,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
                 inHeader = true;
 		part.ID = fileName;
 	    }
+            part.Name = originalFileName;
 	}
 
         let p1, p2, p3, p4; // Used in switch.
@@ -228,16 +232,20 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    if(is("FILE") || is("file") || is("Name:")) {
 		// LDR FILE or 'Name:' line found. Set name and update data in case this is a new ldr file (do not use file suffix to determine).
 		handlePotentialFileStart(parts.slice(2).join(" "));
+                saveThisHeaderLine = false;
 	    }
 	    else if(is("Author:")) {
 		part.author = parts.slice(2).join(" ");
 		setModelDescription();
+                saveThisHeaderLine = false;
 	    }
 	    else if(is("!LICENSE")) {
 		part.license = parts.slice(2).join(" ");
+                saveThisHeaderLine = false;
 	    }
 	    else if(is("!LDRAW_ORG")) {
 		part.ldraw_org = parts.slice(2).join(" ");
+                saveThisHeaderLine = false;
 	    }
 	    else if(parts[1] === "BFC") {
 		// BFC documentation: http://www.ldraw.org/article/415
@@ -281,17 +289,21 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    }
 	    else if(parts[1] === "!BRICKHUB_INLINED") {
 		part.inlined = parts.length === 3 ? parts[2] : 'UNKNOWN';
+                saveThisHeaderLine = false;
+	    }
+	    else if(parts[1] === "!HISTORY") {
+		part.historyLines.push(parts.slice(2).join(" "));
+                saveThisHeaderLine = false;
 	    }
 	    else if(parts[1][0] === "!") {
-		if(is("!HISTORY") ||
-		   is("!THEME") ||
+		if(is("!THEME") ||
 		   is("!HELP") ||
 		   is("!KEYWORDS") ||
 		   is("!LPUB") ||
 		   is("!LDCAD") ||
 		   is("!LEOCAD") ||
 		   is("!CATEGORY")) {
-		    // Ignore well known commands.
+		    // Ignore known commands.
 		}
 		else {
 		    invertNext = false;
@@ -301,12 +313,15 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    else {
 		invertNext = false;
 		previousComment = line.substring(2);
+                if(inHeader) {
+                    saveThisHeaderLine = false; // previousComment is expected to be the description line in the header, so do not save it.
+                }
 	    }
 	    
 	    // TODO: TEXMAP commands
 	    // TODO: Buffer exchange commands
 
-	    if(this.saveFileLines) {
+	    if(this.saveFileLines && saveThisHeaderLine) {
                 let fileLine = new LDR.Line0(parts.slice(1).join(" "));
                 if(inHeader) {
                     part.headerLines.push(fileLine);
@@ -430,7 +445,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 };
 
 THREE.LDRLoader.prototype.toLDR = function() {
-    let ret = this.partTypes[this.mainModel].toLDR();
+    let ret = this.partTypes[this.mainModel].toLDR(this);
     for(let modelName in this.partTypes) {
         if(!this.partTypes.hasOwnProperty(modelName)) {
             continue;
@@ -439,7 +454,7 @@ THREE.LDRLoader.prototype.toLDR = function() {
         if(partType === true || partType.inlined || partType.ID === this.mainModel) {
             continue;
         }
-        ret += partType.toLDR();
+        ret += partType.toLDR(this);
     }
     return ret;
 }
@@ -508,8 +523,10 @@ THREE.LDRPartDescription.prototype.placedColor = function(pdColorID) {
     return colorID;
 }
 
-THREE.LDRPartDescription.prototype.toLDR = function() {
-    return '1 ' + this.colorID + ' ' + this.position.toLDR() + ' ' + this.rotation.toLDR() + ' ' + this.ID + '\n';
+THREE.LDRPartDescription.prototype.toLDR = function(loader) {
+    let pt = loader.partTypes[this.ID];
+    let ID = pt.Name; // Proper casing.
+    return '1 ' + this.colorID + ' ' + this.position.toLDR() + ' ' + this.rotation.toLDR() + ' ' + ID + '\n';
 }
 
 THREE.LDRPartDescription.prototype.placeAt = function(pd) {
@@ -657,9 +674,9 @@ THREE.LDRStep.prototype.cloneColored = function(colorID) {
     return ret;
 }
 
-THREE.LDRStep.prototype.toLDR= function(prevStepRotation) {
+THREE.LDRStep.prototype.toLDR= function(loader, prevStepRotation) {
     let ret = '';
-    this.fileLines.forEach(line => ret += line.toLDR());
+    this.fileLines.forEach(line => ret += line.toLDR(loader));
     if(!this.rotation) {
         if(prevStepRotation) {
             ret += '0 ROTSTEP END\n';
@@ -865,8 +882,8 @@ LDR.Line1 = function(desc) {
     this.desc = desc; // LDRPartDescription
     this.line1 = true;
 }
-LDR.Line1.prototype.toLDR = function() {
-    return this.desc.toLDR();
+LDR.Line1.prototype.toLDR = function(loader) {
+    return this.desc.toLDR(loader);
 }
 
 LDR.convertFloat = function(x) {
@@ -946,12 +963,14 @@ LDR.Line5.prototype.toLDR = function() {
 }
 
 THREE.LDRPartType = function() {
-    this.ID = null;
+    this.Name; // The value for '0 FILE' and '0 Name:'.
+    this.ID = null; // this.Name, bubt lower case and with backslashes replaced with forward slashes.
     this.modelDescription;
     this.author;
     this.license;
     this.steps = [];
     this.headerLines = [];
+    this.historyLines = [];
     this.lastRotation = null;
     this.replacement;
     this.isReplacing;
@@ -962,6 +981,7 @@ THREE.LDRPartType = function() {
     this.cleanSteps = false;
     this.certifiedBFC;
     this.CCW;
+    this.consistentFileAndName;
 }
 
 /*
@@ -981,11 +1001,34 @@ THREE.LDRPartType.prototype.cleanUpSteps = function(loader) {
     this.cleanSteps = true;
 }
 
-THREE.LDRPartType.prototype.toLDR = function() {
-    let ret = '';
-    this.headerLines.forEach(line => ret += line.toLDR());
-    this.steps.forEach((step, idx, a) => ret += step.toLDR(idx === 0 ? null : a[idx-1].rotation));
-    ret += '0\n';
+THREE.LDRPartType.prototype.toLDR = function(loader) {
+    let ret = '0 FILE ' + this.Name + '\n';
+    if(this.modelDescription) {
+        ret += '0 ' + this.modelDescription + '\n';
+    }
+    ret += '0 Name: ' + this.Name + '\n';
+    if(this.author) {
+        ret += '0 Author: ' + this.author + '\n';
+    }
+    if(this.ldraw_org) {
+        ret += '0 !LDRAW_ORG ' + this.ldraw_org + '\n';
+    }
+    if(this.license) {
+        ret += '0 !LICENSE ' + this.license + '\n';
+    }
+    if(this.headerLines.length > 0) {
+        ret += '\n'; // Empty line before additional header lines, such as 'THEME' and 'KEYWORDS'
+        this.headerLines.forEach(line => ret += line.toLDR(loader));
+    }
+    if(this.historyLines.length > 0) {
+        ret += '\n';
+        this.historyLines.forEach(hl => ret += '0 !HISTORY ' + hl + '\n');
+    }
+    if(this.steps.length > 0) {
+        ret += '\n';
+        this.steps.forEach((step, idx, a) => ret += step.toLDR(loader, idx === 0 ? null : a[idx-1].rotation));
+    }
+    ret += '\n';
     return ret;
 }
 

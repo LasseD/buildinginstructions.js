@@ -16,13 +16,15 @@
   <script src="js/LDRGeometries.js"></script>
   <script src="js/LDRLoader.js"></script>
 
+  <div id="select_model"><input id="input_model" value="tristack2.ldr" /><button onclick="load()">LOAD</button></div>
   <div id="main_canvas_holder">
    <canvas id="main_canvas"></canvas>
   </div>
   <div id="functions"></div>
+  <div id="file_content_holder"><textarea cols="80" rows="40" id="file_content" readonly="readonly"></textarea></div>
 
   <script>
-      var modelTypeUrl = 'models/tristack2.ldr';
+      var modelTypeUrl = 'models/omr_1_ok.mpd';
 
       // Set up camera:
       var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
@@ -92,10 +94,12 @@
 	camera.zoom = window.innerWidth/b.min.distanceTo(b.max);
         onWindowResize();
         createFunctionButtons();
+
+        document.getElementById('file_content').innerHTML = ldrLoader.toLDR();
       }
 
       var ldrOptions = new LDR.Options(); // Determine how to show lines. Change this in sample_instruction.htm
-      ldrLoader = new THREE.LDRLoader(onLoad);
+      ldrLoader = new THREE.LDRLoader(onLoad, {saveFileLines:true});
       ldrLoader.load(modelTypeUrl);
 
       /*
@@ -170,7 +174,6 @@
         }
         button.addEventListener('click', action);
       }
-
   </script>
  </body>
 </html>
