@@ -226,7 +226,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
                 inHeader = true;
 		part.ID = fileName;
 	    }
-            part.Name = originalFileName;
+            part.name = originalFileName;
 	}
 
         let p1, p2, p3, p4; // Used in switch.
@@ -525,7 +525,7 @@ THREE.LDRPartDescription.prototype.placedColor = function(pdColorID) {
 
 THREE.LDRPartDescription.prototype.toLDR = function(loader) {
     let pt = loader.partTypes[this.ID];
-    let ID = pt.Name; // Proper casing.
+    let ID = pt.name; // Proper casing.
     return '1 ' + this.colorID + ' ' + this.position.toLDR() + ' ' + this.rotation.toLDR() + ' ' + ID + '\n';
 }
 
@@ -674,14 +674,14 @@ THREE.LDRStep.prototype.cloneColored = function(colorID) {
     return ret;
 }
 
-THREE.LDRStep.prototype.toLDR= function(loader, prevStepRotation) {
+    THREE.LDRStep.prototype.toLDR= function(loader, prevStepRotation, isLastStep) {
     let ret = '';
     this.fileLines.forEach(line => ret += line.toLDR(loader));
     if(!this.rotation) {
         if(prevStepRotation) {
             ret += '0 ROTSTEP END\n';
         }
-        else {
+        else if(!isLastStep) {
             ret += '0 STEP\n';
         }
     }
@@ -963,8 +963,8 @@ LDR.Line5.prototype.toLDR = function() {
 }
 
 THREE.LDRPartType = function() {
-    this.Name; // The value for '0 FILE' and '0 Name:'.
-    this.ID = null; // this.Name, bubt lower case and with backslashes replaced with forward slashes.
+    this.name; // The value for '0 FILE' and '0 Name:'.
+    this.ID = null; // this.name, but lower case and with backslashes replaced with forward slashes.
     this.modelDescription;
     this.author;
     this.license;
@@ -1002,11 +1002,11 @@ THREE.LDRPartType.prototype.cleanUpSteps = function(loader) {
 }
 
 THREE.LDRPartType.prototype.toLDR = function(loader) {
-    let ret = '0 FILE ' + this.Name + '\n';
+    let ret = '0 FILE ' + this.name + '\n';
     if(this.modelDescription) {
         ret += '0 ' + this.modelDescription + '\n';
     }
-    ret += '0 Name: ' + this.Name + '\n';
+    ret += '0 Name: ' + this.name + '\n';
     if(this.author) {
         ret += '0 Author: ' + this.author + '\n';
     }
@@ -1026,7 +1026,7 @@ THREE.LDRPartType.prototype.toLDR = function(loader) {
     }
     if(this.steps.length > 0) {
         ret += '\n';
-        this.steps.forEach((step, idx, a) => ret += step.toLDR(loader, idx === 0 ? null : a[idx-1].rotation));
+        this.steps.forEach((step, idx, a) => ret += step.toLDR(loader, idx === 0 ? null : a[idx-1].rotation, idx === a.length-1));
     }
     ret += '\n';
     return ret;

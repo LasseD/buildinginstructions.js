@@ -17,7 +17,7 @@
   <script src="js/LDRLoader.js"></script>
   <script src="js/LDROMR.js"></script>
 
-  <div id="select_model"><input id="input_model" value="tristack2.ldr" /><button onclick="load()">LOAD</button></div>
+  <div id="select_model"><input id="input_model" value="omr_3_all_errors.mpd" /><button onclick="load()">LOAD</button></div>
   <div id="main_canvas_holder">
    <canvas id="main_canvas"></canvas>
   </div>
@@ -25,7 +25,7 @@
   <div id="file_content_holder"><textarea cols="80" rows="40" id="file_content" readonly="readonly"></textarea></div>
 
   <script>
-      var modelTypeUrl = 'models/omr_2_header_errors.mpd';
+      var modelTypeUrl = 'models/omr_3_all_errors.mpd';
 
       // Set up camera:
       var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
@@ -102,7 +102,7 @@
             continue;
           }
           let pt = ldrLoader.partTypes[id];
-          if(pt !== true && !pt.isPart()) {
+          if(pt.isPart() ? pt.ldraw_org === 'Unofficial_Part' : true) {
             fileContent += pt.toLDR(ldrLoader);
           }
         }
@@ -129,11 +129,18 @@
           if(map.hasOwnProperty(pd.colorID))
             pd.colorID = map[pd.colorID];
         }
-        createFunctionButton("Recolor old colors new", {checkPartType:()=>true}, {handlePartDescription:pd => transformColors(pd, {'6':70,'7':71,'8':72})});
-        createFunctionButton("Recolor new colors old", {checkPartType:()=>true}, {handlePartDescription:pd => transformColors(pd, {'70':6,'71':7,'72':8})});
+        createFunctionButton("Make old colors new",
+                             {checkPartDescription:pd=>pd.colorID===6||pd.colorID===7||pd.colorID===8},
+                             {handlePartDescription:pd => transformColors(pd, {'6':70,'7':71,'8':72})});
+        createFunctionButton("Make new colors old",
+                             {checkPartDescription:pd=>pd.colorID===70||pd.colorID===71||pd.colorID===72},
+                             {handlePartDescription:pd => transformColors(pd, {'70':6,'71':7,'72':8})});
 
         createFunctionButtonFromObject(LDR.OMR.UpgradeToNewParts);
+        createFunctionButtonFromObject(LDR.OMR.StandardizeFileNames('6712', 'Main'));
         createFunctionButtonFromObject(LDR.OMR.FixAuthors('Peter Falk [columbo]'));
+        createFunctionButtonFromObject(LDR.OMR.SetLDrawOrg(false));
+        createFunctionButtonFromObject(LDR.OMR.SetLDrawOrg(true));
         createFunctionButtonFromObject(LDR.OMR.FixLicenses());
         functionsCreated = true;
       }
@@ -200,7 +207,7 @@
         let action = function() {
           let id = new THREE.Matrix3(); id.set(1, 0, 0, 0, 1, 0, 0, 0, 1);
           let pd = new THREE.LDRPartDescription(16, new THREE.Vector3(), id, mainPT.ID, true, false);
-          handlePT(mainPT);
+          handlePT(mainPT, pd);
 
           // Rebuild:
           baseObject.remove(opaqueObject);
