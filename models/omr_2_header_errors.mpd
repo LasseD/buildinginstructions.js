@@ -1,0 +1,60 @@
+0 FILE 6712 - Main.ldr
+0 Main
+0 Name: inconsistent name.ldr
+0 Author: Willy Tschager [Holly-Wood]
+0 !LDRAW_ORG Model
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+
+0 !THEME Theme name
+0 !KEYWORDS words, more words, ...,
+0 !KEYWORDS words in second row, ..., final words
+
+0 !HISTORY YYYY-MM-DD [Username] Free text description of change. This can wrap to a
+0 !HISTORY YYYY-MM-DD [Username] second row with the same date if necessary. However authors should lean toward writing longer
+0 !HISTORY YYYY-MM-DD [Username] single !HISTORY lines(and not feel constrained to the historic 80-character limit on line length).
+
+1 0 0 0 0 1 0 0 0 1 0 0 0 1 6712 - Fireplace.ldr
+1 0 -140 -49 -32 0.5 0 -0.866 0 1 0 0.866 0 0.5 6712 - Horse.ldr
+1 0 -140.866 -129 -31.5 0.5 0 -0.866 0 1 0 0.866 0 0.5 6712 - Sheriff.ldr
+1 0 83 -99 64 1 0 0 0 1 0 0 0 1 6712 - Bandit.ldr
+1 6 81 3 76 1 0 0 0 1 0 0 0 1 stud.dat
+1 2 -51 8 86 1 0 0 0 1 0 0 0 1 stud.dat
+1 7 80 0 -14 0.707 0 0.707 0 1 0 -0.707 0 0.707 stud.dat
+
+0 FILE 6712 - Horse.ldr
+0 Inconsistent description
+0 Name: 6712 - Horse.ldr
+0 Author: Willy Tschager [Holly-Wood]
+0 !LDRAW_ORG Model
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+
+1 0 0 0 0 1 0 0 0 1 0 0 0 1 stud.dat
+1 6 0 -8 0 1 0 0 0 1 0 0 0 1 stud.dat
+1 7 -31 -44 27 1 0 0 0 0 -1 0 1 0 stud.dat
+
+0 FILE 6712 - Fireplace.ldr
+0 Fireplace
+0 Name: 6712 - Fireplace.ldr
+0 Author: Wrong author
+0 !LDRAW_ORG Model
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+
+1 7 0 0 0 1 0 0 0 1 0 0 0 1 stud.dat
+
+0 FILE 6712 - Sheriff.ldr
+0 Sheriff
+0 Name: 6712 - Sheriff.ldr
+0 Author: Willy Tschager [Holly-Wood]
+0 !LDRAW_ORG Wrong OMR status
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+
+1 7 0 -24 0 1 0 0 0 1 0 0 0 1 stud.dat
+
+0 FILE 6712 - Bandit.ldr
+0 Bandit
+0 Name: Inconsistent name showing the limitations of current approach.ldr
+0 Author: Willy Tschager [Holly-Wood]
+0 !LDRAW_ORG Model
+0 !LICENSE Wrong license
+
+1 6 0 -27 0 1 0 0 0 1 0 0 0 1 stud.dat

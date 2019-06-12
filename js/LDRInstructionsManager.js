@@ -168,7 +168,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
                         continue;
                     }
                     pt = self.ldrLoader.partTypes[pt];
-                    if(!(pt === true || pt.isPart())) {
+                    if(!pt.isPart()) {
                         pt.geometry = null;
                     }
                 }

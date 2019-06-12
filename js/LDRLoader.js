@@ -27,16 +27,19 @@ THREE.LDRLoader = function(onLoad, options) {
     this.partTypes = {}; // id => part. id is typically something like "parts/3001.dat", and "model.mpd".
     this.unloadedFiles = 0;
     this.onLoad = function() {
+        let unloaded = [];
         for(let id in self.partTypes) {
             if(self.partTypes.hasOwnProperty(id)) {
                 let partType = self.partTypes[id];
                 if(partType === true) {
                     console.warn('Unloaded sub model: ' + id);
+                    unloaded.push(id);
                     continue;
                 }
                 partType.cleanUpSteps(self);
             }
         }
+        unloaded.forEach(id => delete self.partTypes[id]);
         onLoad();
     };
 
@@ -451,7 +454,7 @@ THREE.LDRLoader.prototype.toLDR = function() {
             continue;
         }
         let partType = this.partTypes[modelName];
-        if(partType === true || partType.inlined || partType.ID === this.mainModel) {
+        if(partType.inlined || partType.ID === this.mainModel) {
             continue;
         }
         ret += partType.toLDR(this);
@@ -465,9 +468,6 @@ THREE.LDRLoader.prototype.removeGeometries = function() {
 	    continue; // Not a part.
 	let partType = this.partTypes[ptID];
 
-	if(partType === true) {
-	    continue; // No content to remove.
-        }
 	for(let i = 0; i < partType.steps.length; i++) {
 	    partType.steps[i].removePrimitivesAndSubParts(); // Remove unused 'geometries'.
 	}
@@ -743,7 +743,7 @@ THREE.LDRStep.prototype.countParts = function(loader) {
 
     this.subModels.forEach(function(subModel) {
 	let pt = loader.partTypes[subModel.ID];
-        if(!pt || pt === true) {
+        if(!pt) {
 	    console.warn("Unknown part type: " + subModel.ID);
         }
         else if(pt.isPart()) {
@@ -1268,7 +1268,7 @@ LDR.GeometryBuilder.prototype.getAllTopLevelToBeBuilt = function() {
 	if(!this.loader.partTypes.hasOwnProperty(ptID))
 	    continue; // Not a part.
 	let partType = this.loader.partTypes[ptID];
-	if(partType === true || partType.geometry) {
+	if(partType.geometry) {
 	    continue;
 	}
 	if(partType.isPart()) {
