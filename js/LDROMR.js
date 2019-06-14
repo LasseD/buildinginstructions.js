@@ -17,6 +17,31 @@ LDR.OMR.UpgradeToNewParts = {
     }}
 }
 
+LDR.OMR.FixPlacements = function() {
+    function convert(x) {
+        x = x.toFixed(3);
+        for(var i = 0; i < 3; i++) {
+            var tmp = parseFloat(x).toFixed(i);
+            if(parseFloat(tmp) === parseFloat(x)) {
+                return Number(tmp);
+            }
+        }
+        return Number(x);
+    };
+    
+    let check3 = p => p.x!==convert(p.x) || p.y!==convert(p.y) || p.z!==convert(p.z);
+
+    let checkers = {checkPartDescription:pd => check3(pd.position) ? "One or more parts are placed with precision higher than three decimals, such as '" + pd.ID + "' placed at (" + pd.position.x + ", " + pd.position.y + ", " + pd.position.z + "). This is often observed in models created in Bricklink Studio 2.0. Click here to align parts to have at most three decimals in their positions." : false};
+
+    let handlers = {handlePartDescription: function(pd) {
+	pd.position.set(convert(pd.position.x),
+			convert(pd.position.y),
+			convert(pd.position.z));
+    }};
+
+    return {checkers:checkers, handlers:handlers};
+}
+
 LDR.OMR.FixAuthors = function(expectedAuthor) {
     let title = "Change all author lines in the models of the LDraw file to '" + expectedAuthor + "' (This does not include any unofficial parts)";
 
@@ -84,8 +109,9 @@ LDR.OMR.StandardizeFileNames = function(setNumber) {
                 return title(pt.name, pt.name.substring(0, pt.name.length-4));
             }
             let desc = pt.name.substring(lp, pt.name.length-4);
-            if(pt.modelDescription !== desc)
+            if(pt.modelDescription !== desc) {
 		return title(pt.name, desc);
+	    }
 	    return false;
         }
         else if(!pt.inlined) { // Check a part for inconsistencies:
