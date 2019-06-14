@@ -20,6 +20,8 @@
 1 6 81 3 76 1 0 0 0 1 0 0 0 1 stud.dat
 1 2 -51 8 86 1 0 0 0 1 0 0 0 1 stud.dat
 1 7 80 0 -14 0.707 0 0.707 0 1 0 -0.707 0 0.707 stud.dat
+1 7 80 100 -14 0.707 0 0.707 0 1 0 -0.707 0 0.707 6712 - 3023.dat
+1 7 80 200 -14 0.707 0 0.707 0 1 0 -0.707 0 0.707 3022.dat
 
 0 FILE 6712 - Horse.ldr
 0 Inconsistent description
@@ -62,6 +64,28 @@
 0 FILE unofficial part.dat
 0 Unofficial part desc
 0 Name: unofficial part.dat
+0 Author: [PTadmin]
+0 !LDRAW_ORG Unofficial_Part
+0 !LICENSE WRONG LICENSE
+0 BFC CERTIFY CCW
+0 !HISTORY 2010-07-05 [PTadmin] Official Update 2010-02
+0 !HISTORY 2017-10-20 [PTadmin] Update target
+ 1 16 0 0 0 1 0 0 0 1 0 0 0 1 stud.dat
+
+0 FILE 3022.dat
+0 3022 as unofficial part
+0 Name: 3022.dat
+0 Author: [PTadmin]
+0 !LDRAW_ORG Unofficial_Part
+0 !LICENSE WRONG LICENSE
+0 BFC CERTIFY CCW
+0 !HISTORY 2010-07-05 [PTadmin] Official Update 2010-02
+0 !HISTORY 2017-10-20 [PTadmin] Update target
+ 1 16 0 0 0 1 0 0 0 1 0 0 0 1 stud.dat
+
+0 FILE 6712 - 3023.dat
+0 3023 as unofficial part
+0 Name: 6712 - 3023.dat
 0 Author: [PTadmin]
 0 !LDRAW_ORG Unofficial_Part
 0 !LICENSE WRONG LICENSE

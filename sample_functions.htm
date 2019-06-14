@@ -17,7 +17,7 @@
   <script src="js/LDRLoader.js"></script>
   <script src="js/LDROMR.js"></script>
 
-  <div id="select_model"><input id="input_model" value="omr_3_all_errors.mpd" /><button onclick="load()">LOAD</button></div>
+  <!--<div id="select_model"><input id="input_model" value="omr_3_all_errors.mpd" /><button onclick="load()">LOAD</button></div>-->
   <div id="main_canvas_holder">
    <canvas id="main_canvas"></canvas>
   </div>
@@ -115,34 +115,34 @@
 
       /*
       Functions: 
-      - Make colors old (requires year)
-      - Make colors new (requires year)
-      - Fix OMR compliancy (requires LEGO ID => naming, inline unofficial models, remove inlined official models(serve_full_model.php should mark this), etc.)
-      - Fix stud.io issues (precision .000xxx, .ldr and consistency between 'FILE' and 'Name:')
+      - Make colors red
+      - Make colors old/new
+      - Fix OMR compliancy (naming, inline unofficial models, consistency between 'FILE' and 'Name:', etc.)
+      - Fix stud.io issues (precision .000xxx, .ldr in file names)
        */
-      var functionsCreated = false;
       function createFunctionButtons() {
-        if(functionsCreated)
-          return;
-        createFunctionButton("Color everything red", {checkPartType:()=>true}, {handlePartDescription:pd => pd.colorID=4});
+        let functionsEle = document.getElementById('functions');
+        while(functionsEle.firstChild) {
+          functionsEle.removeChild(functionsEle.firstChild);
+        }        
+
+        createFunctionButton({checkPartDescription:pd=>pd.colorID !== 4 ? "Color everything red" : false}, {handlePartDescription:pd => pd.colorID=4});
         let transformColors = function(pd, map) {
           if(map.hasOwnProperty(pd.colorID))
             pd.colorID = map[pd.colorID];
         }
-        createFunctionButton("Make old colors new",
-                             {checkPartDescription:pd=>pd.colorID===6||pd.colorID===7||pd.colorID===8},
+        createFunctionButton({checkPartDescription:pd=>(pd.colorID===6||pd.colorID===7||pd.colorID===8) ? "Make old colors new" : false},
                              {handlePartDescription:pd => transformColors(pd, {'6':70,'7':71,'8':72})});
-        createFunctionButton("Make new colors old",
-                             {checkPartDescription:pd=>pd.colorID===70||pd.colorID===71||pd.colorID===72},
+        createFunctionButton({checkPartDescription:pd=>(pd.colorID===70||pd.colorID===71||pd.colorID===72) ? "Make new colors old" : false},
                              {handlePartDescription:pd => transformColors(pd, {'70':6,'71':7,'72':8})});
 
         createFunctionButtonFromObject(LDR.OMR.UpgradeToNewParts);
-        createFunctionButtonFromObject(LDR.OMR.StandardizeFileNames('6712', 'Main'));
+        createFunctionButtonFromObject(LDR.OMR.StandardizeFileNames('6712'));
         createFunctionButtonFromObject(LDR.OMR.FixAuthors('Peter Falk [columbo]'));
         createFunctionButtonFromObject(LDR.OMR.SetLDrawOrg(false));
         createFunctionButtonFromObject(LDR.OMR.SetLDrawOrg(true));
         createFunctionButtonFromObject(LDR.OMR.FixLicenses());
-        functionsCreated = true;
+        createFunctionButtonFromObject(LDR.OMR.InlineUnofficialParts());
       }
 
       function ele(type, cls, parent, desc) {
@@ -155,32 +155,45 @@
       }
 
       function createFunctionButtonFromObject(obj) {
-        createFunctionButton(obj.title, obj.checkers, obj.handlers);
+        createFunctionButton(obj.checkers, obj.handlers);
       }
 
-      function createFunctionButton(desc, checkers, handlers) {
+      function createFunctionButton(checks, handlers) {
         let mainPT = ldrLoader.partTypes[ldrLoader.mainModel];
 
+        // Check if function button should be shown:
         let checkPD = function(pd) {
-          if(checkers.checkPartDescription && checkers.checkPartDescription(pd))
-            return true;
+	  let ret = checks.checkPartDescription && checks.checkPartDescription(pd)
+          if(ret) {
+            console.log('Function enabled due to ' + pd.ID + ' in color ' + pd.colorID);
+            return ret;
+          }
           let pt = ldrLoader.partTypes[pd.ID];
           return checkPT(pt);
         }
         let checkStep = function(step) {
-          checkers.checkStep && checkers.checkStep(step);
+	  ret = checks.checkStep && checks.checkStep(step);
+          if(ret) {
+            return ret;
+          }
           if(step.subModels) {
-            return step.subModels.some(pd => checkPD(pd));
+            return step.subModels.map(pd => checkPD(pd)).reduce((acc, curr) => acc ? acc : curr);
           }
           return false;
         }
         let checkPT = function(pt) {
-          if(checkers.checkPartType && checkers.checkPartType(pt))
-            return true;
-          return pt.steps.some(step => checkStep(step));
+	  let ret = checks.checkPartType && checks.checkPartType(pt);
+          if(ret) {
+            console.log('Function valid due to part type ' + pt.ID);
+	    return ret;
+          }
+	  if(pt.isPart())
+	    return false; // Stop recursion on parts.
+          return pt.steps.map(step => checkStep(step)).reduce((acc, curr) => acc ? acc : curr);
         }
 
-        if(!checkPT(mainPT)) {
+	let desc = checkPT(mainPT);
+        if(!desc) {
           return;
         }
 
