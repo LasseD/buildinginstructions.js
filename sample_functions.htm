@@ -127,16 +127,10 @@
         }        
 
         createFunctionButton({checkPartDescription:pd=>pd.colorID !== 4 ? "Color everything red" : false}, {handlePartDescription:pd => pd.colorID=4});
-        let transformColors = function(pd, map) {
-          if(map.hasOwnProperty(pd.colorID))
-            pd.colorID = map[pd.colorID];
-        }
-        createFunctionButton({checkPartDescription:pd=>(pd.colorID===6||pd.colorID===7||pd.colorID===8) ? "Make old colors new" : false},
-                             {handlePartDescription:pd => transformColors(pd, {'6':70,'7':71,'8':72})});
-        createFunctionButton({checkPartDescription:pd=>(pd.colorID===70||pd.colorID===71||pd.colorID===72) ? "Make new colors old" : false},
-                             {handlePartDescription:pd => transformColors(pd, {'70':6,'71':7,'72':8})});
 
-        createFunctionButtonFromObject(LDR.OMR.UpgradeToNewParts);
+        createFunctionButtonFromObject(LDR.OMR.ColorPartsAccordingToYear(2006));
+        createFunctionButtonFromObject(LDR.OMR.ColorPartsAccordingToYear(2007));
+        createFunctionButtonFromObject(LDR.OMR.UpgradeToNewParts());
         createFunctionButtonFromObject(LDR.OMR.StandardizeFileNames('6712'));
         createFunctionButtonFromObject(LDR.OMR.FixAuthors('Peter Falk [columbo]'));
         createFunctionButtonFromObject(LDR.OMR.SetLDrawOrg(false));
