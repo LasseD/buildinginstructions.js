@@ -756,7 +756,7 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
 		return ''+pd.colorID;
             }
 	    else if(x === '24') {
-		return ''+(pd.colorID + 10000);
+		return ''+(pd.colorID + 100000);
             }
 	    else {
 		return x;

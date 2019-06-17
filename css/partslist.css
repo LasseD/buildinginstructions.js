@@ -144,7 +144,7 @@ td.list_image {
 /*
   Overlay 'preview' for parts:
  */
-#preview_background {
+.background {
     display: none;
     position: fixed;
     top: 0;
@@ -159,7 +159,7 @@ td.list_image {
 #preview_parent {
     background-color: white;
 }
-#preview_holder {
+.holder {
     display: none;
     position: fixed;
     top: 2em;
@@ -185,6 +185,20 @@ td.list_image {
 #preview_info_name, #preview_info_color_ldraw, #preview_info_color_lego, #preview_info_color_bricklink {
     display: inline;
 }
+
+/*
+  XML Download
+ */
+#xml_content {
+  display: block;
+  width: 98%;
+  height: 75%;
+}
+#xml_holder {
+  background-color: black;
+  top: 0;
+}
+
 
 /*
   Title bar
