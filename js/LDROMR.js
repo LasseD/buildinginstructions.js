@@ -236,16 +236,16 @@ LDR.OMR.ColorPartsAccordingToYear = function(year) {
     }
 
     if(year >= 2007) {
-        let title = (id, colorID) => "In 2007 LEGO started using new brown and gray colors. This model has one or more parts in old colors, such as " + id + " in color " + LDR.Colors[colorID].name + ". Click here to change to new colors";
+        let title = (id, colorID) => "In 2007 LEGO started using new brown and gray colors. This model has one or more parts in old colors, such as " + id + " in " + LDR.Colors[colorID].name + ". Click here to change to new colors";
         return {
-            checkers: {checkPartDescription: pd => (pd.colorID===6||pd.colorID===7||pd.colorID===8) ? title(pd.id, pd.colorID) : false},
+            checkers: {checkPartDescription: pd => (pd.colorID===6||pd.colorID===7||pd.colorID===8) ? title(pd.ID, pd.colorID) : false},
             handlers: {handlePartDescription: pd => transformColors(pd, {'6':70,'7':71,'8':72})}
         };
     }
     else {
-        let title = (id, colorID) => "In 2007 LEGO started using new gray and brown colors. This model contains one or more parts in new colors, such as " + id + " in color + " + LDR.Colors[colorID].name + ". Click here to change to old colors";
+        let title = (id, colorID) => "In 2007 LEGO started using new gray and brown colors. This model contains one or more parts in new colors, such as " + id + " in " + LDR.Colors[colorID].name + ". Click here to change to old colors";
         return {
-            checkers:{checkPartDescription:pd => (pd.colorID===70||pd.colorID===71||pd.colorID===72) ? title(pd.id, pd.colorID) : false},
+            checkers:{checkPartDescription:pd => (pd.colorID===70||pd.colorID===71||pd.colorID===72) ? title(pd.ID, pd.colorID) : false},
             handlers:{handlePartDescription:pd => transformColors(pd, {'70':6,'71':7,'72':8})}
         };
     }
