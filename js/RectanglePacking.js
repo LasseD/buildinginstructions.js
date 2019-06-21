@@ -5,13 +5,11 @@ var Algorithm = Algorithm || {};
 /*
   Rectangles: array with 'rectangle' objects {x, y, width}.
  */
-Algorithm.PackRectangles = function(fillHeight, maxWidth, maxHeight, rectangles, maxSizePerPixel) {
+Algorithm.PackRectangles = function(fillHeight, maxWidth, maxHeight, rectangles, textHeight) {
     // Compute rectangleWidth by increasing minRectangleWidth as much as possible:
     let len = rectangles.length;
     let minRectangleWidth = 1;
     let WIDTH_ADD = 4; // Add for width when fillWidth
-    let HEIGHT_ADD = 20; // Add for height to include multiplication.
-    let MIN_WIDTH = 25;
 
     let maxRectangleSideLength = 0;
     let maxSize = 0;
@@ -21,60 +19,85 @@ Algorithm.PackRectangles = function(fillHeight, maxWidth, maxHeight, rectangles,
 	maxSize = Math.max(maxSize, r.size);
     }
     let maxRectangleWidth = maxWidth;
-    //console.log("maxSize=" + maxSize + " => maxRectangleWidth=" + maxRectangleWidth + ', maxWidth=' + maxWidth);
+    //console.log("maxSize=" + maxSize + " => maxRectangleWidth=" + maxRectangleWidth + ', maxWidth=' + maxWidth + ', maxHeigh=' + maxHeight);
     let w, h;
+
+    /**
+       let minWidth = Math.min(topWidth, bottomWidth);
+       Assume a PLI on top placed with top right corner at (0,0):
+       - pt1 and pt2 = line y-coordinates at -minWidth and 0.
+       Similarly for a PLI on bottom:
+       - pb1, and pb2
+    */
+    function lineDist(topLine, topWidth, bottomLine, bottomWidth) {
+       let minWidth = Math.min(topWidth, bottomWidth);        
+       let pt1 = topLine.eval(topWidth-minWidth), pt2 = topLine.eval(topWidth);
+       let pb1 = bottomLine.eval(bottomWidth-minWidth), pb2 = bottomLine.eval(bottomWidth);
+       return Math.max(pt1-pb1, pt2-pb2);
+    }
+
+    function lineSetDist(topLines, topWidth, bottomLines, bottomWidth) {
+        //console.log('top width: ' + topWidth + ', bottom width: ' + bottomWidth);
+        //console.log('top lines:'); topLines.forEach(line => console.log(line.toString()));
+        //console.log('bottom lines:'); bottomLines.forEach(line => console.log(line.toString()));
+        let min = 9999999;
+        topLines.forEach(topLine => min = Math.min(min, Math.min.apply(null, bottomLines.map(bottomLine => lineDist(topLine, topWidth, bottomLine, bottomWidth)))));
+        //console.log('Lines dist min = ' + min);
+        return min;
+    }
 
     function run(rectangleWidth) {
 	let scale = rectangleWidth/maxRectangleSideLength;
+        //console.log('Running for scale ' + scale)
 	// Check fit:
-	w = h = 0;
-        let indentX = 0, indentY = 0; // indentXY = where to place the current rectangle.
 
-	if(fillHeight) {
-	    let maxW = MIN_WIDTH; // Max width in current column.
-	    // Test that we can build the BOM:
-	    for(let i = 0; i < rectangles.length; i++) {
-		let r = rectangles[i];
-		r.width = scale*r.dx;
-		r.height = scale*r.dy;
+        rectangles.forEach(r => {
+                r.DX = scale*r.dx;
+                r.DY = scale*r.dy;
+                r.LINES_BELOW = r.linesBelow.map(line => line.clone().scaleY(scale));
+                r.LINES_ABOVE = r.linesAbove.map(line => line.clone().scaleY(scale));
+            });
 
-		if(indentY > 0 && indentY + r.height + HEIGHT_ADD > maxHeight) { // Place in new row
-		    indentX += maxW;
-		    indentY = 0;
-		    maxW = Math.max(MIN_WIDTH, r.width);
-		}
-		else {
-		    maxW = Math.max(maxW, r.width);
-                }
-		r.x = indentX;
-                r.y = indentY;
-		w = Math.max(w, indentX + r.width);
-		h = Math.max(h, indentY + r.height);
-		indentY += r.height + HEIGHT_ADD; // Place next
-	    }
-	}
-	else {
-	    let maxH = 0;
-	    for(let i = 0; i < rectangles.length; i++) {
-		let r = rectangles[i];
-		r.width = scale*r.dx;
-		r.height = scale*r.dy;
+        let firstInColumn = 0; // Handle PLI's column byb column - end a column by moving them to align on the right side.
+        let alignInColumn = to => {
+            for(let j = firstInColumn; j < to; j++) {
+                let r2 = rectangles[j];
+                r2.x = w - r2.DX;
+            }
+            firstInColumn = to;
+        };
+        
+        let r = rectangles[0];
+        r.x = r.y = 0;
+        let maxW = w = r.DX; // Max width in current column.
+        h = r.DY;
 
-		if(indentX + r.width + WIDTH_ADD > maxWidth) { // Place in new column
-		    indentY += maxH + HEIGHT_ADD;
-		    indentX = 0;
-		    maxH = r.height;
-		}
-		else {
-		    maxH = Math.max(maxH, r.height);
-                }
-		r.x = indentX;
-                r.y = indentY;
-		w = Math.max(w, indentX + r.width);
-		h = Math.max(h, indentY + r.height);
-		indentX += r.width + WIDTH_ADD; // Place next
-	    }
-	}
+        for(let i = 1; i < rectangles.length && w < maxWidth && h < maxHeight; i++) {
+            let prev = r;
+            r = rectangles[i];
+
+            //console.log('prev height: ' + prev.DY + ', r height: ' + r.DY);
+            // Attempt to place r below prev:
+            r.x = prev.x;
+            r.y = prev.y + //Math.min(prev.DY,
+                lineSetDist(prev.LINES_ABOVE, prev.DX, r.LINES_BELOW, r.DX);//);
+            if(r.y + r.DY > maxHeight) {
+                //console.log('New column at ' + w);
+                alignInColumn(i);
+                r.x += maxW;
+                r.y = 0;
+                w = r.x + r.DX;
+                h = Math.max(h, r.DY);
+                maxW = r.DX;
+            }
+            else {
+                w = Math.max(w, r.x+r.DX);
+                h = Math.max(h, r.y+r.DY);
+                maxW = Math.max(maxW, r.DX);
+            }
+            //console.log('Placed at ' + r.x + ', ' + r.y);
+        }
+        alignInColumn(rectangles.length);
 
 	if(w < maxWidth && h < maxHeight) {
 	    minRectangleWidth = rectangleWidth;
@@ -85,7 +108,7 @@ Algorithm.PackRectangles = function(fillHeight, maxWidth, maxHeight, rectangles,
     }
 
     // Binary search for maximum size:
-    while(minRectangleWidth < maxRectangleWidth - 2.5) { // The larger the constant here, the quicker.
+    while(minRectangleWidth+5 < maxRectangleWidth) { // The larger the constant here, the quicker.
 	let rectangleWidth = (minRectangleWidth + maxRectangleWidth)*0.5;
         run(rectangleWidth);
     }
