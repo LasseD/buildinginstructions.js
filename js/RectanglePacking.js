@@ -13,17 +13,15 @@ var Algorithm = Algorithm || {};
  */
 Algorithm.PackPlis = function(fillHeight, maxWidth, maxHeight, plis, textHeight) {
     const WIDTH_ADD = 4; // Spacing between columns.
-    const TEXT_WIDTH_TO_HEIGHt_RATIO = 0.6;
+    const TEXT_WIDTH_TO_HEIGHT_RATIO = 0.6;
 
     // Placement of text:
-    plis.forEach(pli => pli.MULT_DX = (1+(''+pli.mult).length) * 
-                                      textHeight * TEXT_WIDTH_TO_HEIGHt_RATIO);
+    plis.forEach(r => r.MULT_DX = (1+(''+r.mult).length) * textHeight * TEXT_WIDTH_TO_HEIGHT_RATIO);
 
     // Set up binary search variables (see function description):
     let minPliWidth = 1;
     let maxPliSideLength = Math.max.apply(null, plis.map(r => Math.max(r.dx,r.dy)));
     let maxPliWidth = maxWidth;
-    //console.log("maxSize=" + maxSize + " => maxPliWidth=" + maxPliWidth + ', maxWidth=' + maxWidth + ', maxHeigh=' + maxHeight);
     let w, h; // Total width and height.
 
     /**
@@ -33,39 +31,33 @@ Algorithm.PackPlis = function(fillHeight, maxWidth, maxHeight, plis, textHeight)
        Similarly for a PLI on bottom:
        - pb1, and pb2
     */
-    function lineDist(topLine, topWidth, bottomLine, bottomWidth) {
-       let minWidth = Math.min(topWidth, bottomWidth);
-       let pt1 = topLine.eval(topWidth-minWidth), pt2 = topLine.eval(topWidth);
-       let pb1 = bottomLine.eval(bottomWidth-minWidth), pb2 = bottomLine.eval(bottomWidth);
-       return Math.max(pt1-pb1, pt2-pb2);
-    }
-
     function lineSetDist(topLines, topWidth, bottomLines, bottomWidth) {
-        //console.log('top width: ' + topWidth + ', bottom width: ' + bottomWidth);
-        //console.log('top lines:'); topLines.forEach(line => console.log(line.toString()));
-        //console.log('bottom lines:'); bottomLines.forEach(line => console.log(line.toString()));
         let min = 9999999;
-        topLines.forEach(topLine => min = Math.min(min, Math.min.apply(null, bottomLines.map(bottomLine => lineDist(topLine, topWidth, bottomLine, bottomWidth)))));
-        //console.log('Lines dist min = ' + min);
+
+        function lineDist(topLine, bottomLine) {
+            let minWidth = Math.min(topWidth, bottomWidth);
+            let pt1 = topLine.eval(topWidth-minWidth), pt2 = topLine.eval(topWidth);
+            let pb1 = bottomLine.eval(bottomWidth-minWidth), pb2 = bottomLine.eval(bottomWidth);
+            return Math.max(pt1-pb1, pt2-pb2);
+        }
+        topLines.forEach(topLine => min = Math.min(min, Math.min.apply(null, bottomLines.map(bottomLine => lineDist(topLine, bottomLine)))));
         return min;
     }
 
     function textBoxDist(prev, r) {
-        if(!prev.annotation && r.DX < prev.DX-prev.MULT_DX) {
+        if(r.DX < prev.FULL_DX-prev.MULT_DX) {
             return -999999; // No overlap between r and the text boxes of prev.
         }
 
-        let x1 = r.DX-prev.DX;
+        // x1 and x2 are positions of lower point below multiplier of prev.
+        let x1 = r.DX-prev.FULL_DX;
         let x2 = x1 + prev.MULT_DX;
-        let y = prev.MULT_Y+textHeight;
-        let pts = [{x:x1, y:y}, {x:x2, y:y}];
+        let y12 = prev.MULT_Y+textHeight;
+        let pts = [{x:x1, y:y12}, {x:x2, y:y12}];
         
-        if(pli.annotation) {
-            // TODO: Check also annotation.
-        }
-
         function linePointsDist(line) {
-            return Math.max.apply(null, pts.map(p => line.eval(p.x) + p.y));
+            let boxPoints = pts.map(p => line.eval(p.x) + p.y);
+            return Math.max.apply(null, boxPoints);
         }
         let ret = Math.min.apply(null, r.LINES_BELOW.map(line => linePointsDist(line, pts)));
         return Math.min(prev.MULT_Y+textHeight, ret);
@@ -73,7 +65,6 @@ Algorithm.PackPlis = function(fillHeight, maxWidth, maxHeight, plis, textHeight)
 
     function run(pliWidth) {
 	let scale = pliWidth/maxPliSideLength;
-        //console.log('Running for scale ' + scale)
 
 	// Update geometry after change of scale:
         plis.forEach(r => {
@@ -85,21 +76,36 @@ Algorithm.PackPlis = function(fillHeight, maxWidth, maxHeight, plis, textHeight)
                 let lines = r.LINES_ABOVE.filter(line => line.a > 0); // Lines going \
                 let linesAtMultDx = lines.map(line => line.eval(r.MULT_DX));
                 r.MULT_Y = Math.min(r.DY, Math.min.apply(null, linesAtMultDx));
+                r.FULL_DX = Math.max(r.DX, r.MULT_DX);
+                r.FULL_DY = Math.max(r.DY, r.MULT_Y+textHeight);
+
+                if(r.annotation) {
+                    // Position of annotation:
+                    r.ANNO_Y = Math.min.apply(null, r.LINES_ABOVE.map(line => line.eval(r.DX)));
+                    r.FULL_DY = Math.max(r.FULL_DY, r.ANNO_Y+textHeight);
+                }
             });
 
         let firstInColumn = 0; // Handle PLI's column byb column - end a column by moving them to align on the right side.
         let alignInColumn = to => {
+            let maxAnno = 0;
             for(let j = firstInColumn; j < to; j++) {
                 let r2 = plis[j];
-                r2.x = w - r2.DX;
+                r2.x = w - r2.FULL_DX;
+                if(r2.annotation) {
+                    maxAnno = Math.max(maxAnno, r2.annotation.length);
+                }
             }
             firstInColumn = to;
+            maxAnno *= textHeight * TEXT_WIDTH_TO_HEIGHT_RATIO * 0.89; // Special annotation size - slightly smaller than for multipliers
+            maxW += WIDTH_ADD + maxAnno;
+            w += maxAnno;
         };
         
         let r = plis[0];
         r.x = r.y = 0;
-        let maxW = w = r.DX; // Max width in current column.
-        h = Math.max(r.DY, r.MULT_Y+textHeight);
+        let maxW = w = r.FULL_DX; // Max width in current column.
+        h = r.FULL_DY;
 
         for(let i = 1; i < plis.length && w < maxWidth && h < maxHeight; i++) {
             let prev = r;
@@ -108,19 +114,23 @@ Algorithm.PackPlis = function(fillHeight, maxWidth, maxHeight, plis, textHeight)
             // Attempt to place r below prev:
             r.x = prev.x;
             r.y = prev.y + Math.max(textBoxDist(prev, r),
-                lineSetDist(prev.LINES_ABOVE, prev.DX, r.LINES_BELOW, r.DX));
-            if(r.y + Math.max(r.DY, r.MULT_Y+textHeight) > maxHeight) {
+                                    lineSetDist(prev.LINES_ABOVE, prev.FULL_DX, r.LINES_BELOW, r.FULL_DX));
+            if(r.y < 0) {
+                r.y = 0; // Special case where r can be placed really high up.
+            }
+
+            if(r.y + r.FULL_DY > maxHeight) {
                 alignInColumn(i);
-                r.x += maxW + WIDTH_ADD;
+                r.x += maxW;
                 r.y = 0;
-                w = Math.max(r.x + r.DX, r.x + r.MULT_DX);
-                h = Math.max(h, r.DY, r.MULT_Y+textHeight);
-                maxW = r.DX;
+                w = r.x + r.FULL_DX;
+                h = Math.max(h, r.FULL_DY);
+                maxW = r.FULL_DX;
             }
             else {
-                w = Math.max(w, r.x+r.DX, r.x+r.MULT_DX);
-                h = Math.max(h, r.y+r.DY, r.y+r.MULT_Y+textHeight);
-                maxW = Math.max(maxW, r.DX);
+                w = Math.max(w, r.x+r.FULL_DX);
+                h = Math.max(h, r.y+r.FULL_DY);
+                maxW = Math.max(maxW, r.FULL_DX);
             }
         }
         alignInColumn(plis.length);

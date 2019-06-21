@@ -75,7 +75,6 @@ LDR.PLIBuilder.prototype.updateCamera = function(w, h) {
     pt.pliMC.draw(false);
 
     this.scene.add(pt.mesh);
-    //console.dir(pt);
     //var helper = new THREE.Box3Helper(pt.pliMC.boundingBox, 0xFF0000);
     //this.scene.add(helper);
 
@@ -158,8 +157,7 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
 
     // Find, sort and set up icons to show:
     this.createClickMap(step);
-    let textHeight = (fillHeight ? maxHeight : maxWidth) / Math.sqrt(this.clickMap.length) * 0.2;
-    //console.log('Text height: ' + textHeight);
+    let textHeight = (!fillHeight ? maxHeight : maxWidth) / Math.sqrt(this.clickMap.length) * 0.19;
     let [W,H] = Algorithm.PackPlis(fillHeight, maxWidth, maxHeight, this.clickMap, textHeight);
     const DPR = window.devicePixelRatio;
     this.pliElement.width = (12+W)*DPR;
@@ -169,7 +167,7 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
 
     let context = this.pliElement.getContext('2d');
 
-    const scaleDown = 1;//TODO0.95; // To make icons not fill out the complete allocated cells.
+    const scaleDown = 0.98; // To make icons not fill out the complete allocated cells.
     let self = this;
     let delay = function() {
 	context.clearRect(0, 0, self.pliElement.width, self.pliElement.height);
@@ -185,7 +183,7 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
 	    context.drawImage(self.renderer.domElement, x, y);
 
             // Code below is to highlight PLI boundary lines:
-            let W = icon.DX*DPR, H = icon.DY*DPR;
+            /*let W = icon.DX*DPR, H = icon.DY*DPR;
             context.lineWidth = "3";
             let highlight = function(line) {
                 line.scaleY(DPR);
@@ -195,7 +193,7 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
             context.strokeStyle = "blue";
             icon.LINES_ABOVE.forEach(highlight);
             icon.LINES_BELOW.forEach(highlight);
-            context.stroke();
+            context.stroke();*/
 	}
 	// Draw multipliers:
 	context.fillStyle = "#000";
@@ -208,27 +206,23 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
                 let y = (icon.y + icon.MULT_Y) * DPR;
                 let w = icon.MULT_DX * DPR;
                 let h = textHeight * DPR;
-                context.beginPath(); context.rect(x, y, w, h); context.stroke();
+                //context.beginPath(); context.rect(x, y, w, h); context.stroke();
                 context.fillText(icon.mult + "x", x, y + h*0.9); // *0.9 to move a bit up from lower line.
             }
             self.clickMap.forEach(drawMultiplier);
         }
 	// Draw Annotation:
-	context.font = parseInt(textHeight*0.54*DPR) + "px Lucida Console";
-	for(let i = 0; i < self.clickMap.length; i++) {
-	    let icon = self.clickMap[i];
-	    if(!icon.annotation) {
-		continue;
-            }
+	context.font = parseInt(textHeight*0.9*DPR) + "px monospace";
+        self.clickMap.filter(icon => icon.annotation).forEach(icon => {
 	    let len = icon.annotation.length;
-	    let w = textHeight*(len*0.24)*DPR;
-	    let h = textHeight*0.5*DPR;
-	    let x = (icon.x + icon.DX)*DPR - w;
-	    let y = (icon.y + icon.DY + 4)*DPR;
+	    let x = (icon.x+icon.FULL_DX+1)*DPR;
+	    let y = (icon.y+icon.ANNO_Y)*DPR;
+	    let w = (len*textHeight*0.54)*DPR;
+	    let h = textHeight*DPR;
 	    context.beginPath();
 	    context.fillStyle = "#CFF";
 	    if(icon.desc.startsWith('Technic Axle')) {
-		context.arc(x+w*0.7, y+h*0.5, w*0.65, 0, 2*Math.PI, false);
+		context.arc(x+w*0.5, y+h*0.5, w*0.55, 0, 2*Math.PI, false);
             }
 	    else {
 		context.rect(x, y, w, h);
@@ -236,10 +230,9 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
 	    context.fill();
 	    context.stroke();
 	    context.fillStyle = "#25E";
-	    x += textHeight*0.08*DPR;
-	    y += textHeight*0.43*DPR;
+	    y += textHeight*DPR*0.79;
 	    context.fillText(icon.annotation, x, y);
-	}
+        });
         // Draw highlight for ghosted parts:
         if(ldrOptions.showEditor) {
             self.clickMap.forEach(icon => {
