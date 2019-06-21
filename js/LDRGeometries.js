@@ -62,7 +62,7 @@ LDR.LDRGeometry = function() {
 
 LDR.LDRGeometry.prototype.serialize = function() {
     let c = this.pack();
-    let ret = '1'; // version
+    let ret = '2'; // version
 
     function format(x) {
 	if(x == Math.round(x)) {
