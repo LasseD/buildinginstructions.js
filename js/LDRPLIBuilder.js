@@ -76,14 +76,14 @@ LDR.PLIBuilder.prototype.updateCamera = function(w, h) {
 
     this.scene.add(pt.mesh);
     //console.dir(pt);
-    var helper = new THREE.Box3Helper(pt.pliMC.boundingBox, 0xFF0000);
-    this.scene.add(helper);
+    //var helper = new THREE.Box3Helper(pt.pliMC.boundingBox, 0xFF0000);
+    //this.scene.add(helper);
 
     this.renderer.setSize(w+1, h+1); // +1 to ensure edges are in frame in case of rounding down.
     this.updateCamera(pt.dx, pt.dy);
     this.renderer.render(this.scene, this.camera);
     this.scene.remove(pt.mesh);
-    this.scene.remove(helper);
+    //this.scene.remove(helper);
 }
 
 LDR.PLIBuilder.prototype.createClickMap = function(step) {
@@ -127,10 +127,14 @@ LDR.PLIBuilder.prototype.createClickMap = function(step) {
     }
 
     let sorter = function(a, b) {
+        if(a.dx != b.dx) {
+            return a.dx < b.dx ? -1 : 1; // Sort by width.
+        }
+
 	let ca = a.desc;
 	let cb = b.desc;
 	if(ca !== cb) {
-	    return ca < cb ? -1 : 1;
+	    return ca < cb ? -1 : 1; // Group plates, bricks, etc. (Only works well when not also sorting by width above)
 	}
 	return a.colorID - b.colorID;
     }
@@ -155,42 +159,40 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
     // Find, sort and set up icons to show:
     this.createClickMap(step);
     let textHeight = (fillHeight ? maxHeight : maxWidth) / Math.sqrt(this.clickMap.length) * 0.2;
-    console.log('Text height: ' + textHeight);
-    let [W,H] = Algorithm.PackRectangles(fillHeight, maxWidth, maxHeight, this.clickMap, textHeight);
+    //console.log('Text height: ' + textHeight);
+    let [W,H] = Algorithm.PackPlis(fillHeight, maxWidth, maxHeight, this.clickMap, textHeight);
     const DPR = window.devicePixelRatio;
     this.pliElement.width = (12+W)*DPR;
-    this.pliElement.height = (28+H)*DPR;
+    this.pliElement.height = (12+H)*DPR;
     this.pliElement.style.width = (W+12)+"px";
-    this.pliElement.style.height = (H+21)+"px";
+    this.pliElement.style.height = (H+12)+"px";
 
     let context = this.pliElement.getContext('2d');
 
-    context.font = parseInt(textHeight*0.75*DPR) + "px sans-serif";
     const scaleDown = 1;//TODO0.95; // To make icons not fill out the complete allocated cells.
     let self = this;
     let delay = function() {
 	context.clearRect(0, 0, self.pliElement.width, self.pliElement.height);
+        context.translate(6, 6);
 	// Draw icon:
 	for(let i = 0; i < self.clickMap.length; i++) {
 	    let icon = self.clickMap[i];
-            let x = (icon.x+8)*DPR;
-            let y = (icon.y+5)*DPR;
+            let x = icon.x*DPR;
+            let y = icon.y*DPR;
 	    let w = parseInt(icon.DX*scaleDown);
 	    let h = parseInt(icon.DY*scaleDown);
             self.renderIcon(icon.partID, icon.colorID, w, h);
 	    context.drawImage(self.renderer.domElement, x, y);
 
-            context.lineWidth = '2';
+            // Code below is to highlight PLI boundary lines:
             let W = icon.DX*DPR, H = icon.DY*DPR;
-
-            //console.dir(icon);
             context.lineWidth = "3";
             let highlight = function(line) {
                 line.scaleY(DPR);
                 context.moveTo(x, y + line.eval(0));
                 context.lineTo(x+W, y + line.eval(W));
             }
-            context.strokeStyle = "green";
+            context.strokeStyle = "blue";
             icon.LINES_ABOVE.forEach(highlight);
             icon.LINES_BELOW.forEach(highlight);
             context.stroke();
@@ -199,9 +201,17 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
 	context.fillStyle = "#000";
 	context.lineWidth = "1";
         if(self.groupParts) {
-            // TODO: Move up to 
-            self.clickMap.forEach(icon => context.fillText(icon.mult + "x", (icon.x + 5)*DPR,
-                                                           (icon.y+icon.DY+24)*DPR));
+            context.font = parseInt(textHeight*1.1*DPR) + "px sans-serif";
+            context.fillStyle = "black";
+            function drawMultiplier(icon) {
+                let x = icon.x * DPR;
+                let y = (icon.y + icon.MULT_Y) * DPR;
+                let w = icon.MULT_DX * DPR;
+                let h = textHeight * DPR;
+                context.beginPath(); context.rect(x, y, w, h); context.stroke();
+                context.fillText(icon.mult + "x", x, y + h*0.9); // *0.9 to move a bit up from lower line.
+            }
+            self.clickMap.forEach(drawMultiplier);
         }
 	// Draw Annotation:
 	context.font = parseInt(textHeight*0.54*DPR) + "px Lucida Console";
