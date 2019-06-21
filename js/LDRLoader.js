@@ -5,7 +5,7 @@
  * LDR Specification: http://www.ldraw.org/documentation/ldraw-org-file-format-standards.html
  *
  * Special note about colors. 
- * LDraw ID's are used for identifying colors efficiently. However. An LDraw color has both an ordinary value and an 'edge' value which can be used for rendering. In order to simplify the data model for storing geometries by colors, geometries colored in edge colors have '100.000' added to their ID's. An 'edge' color is thus identified by ID's being >= 100000 and the LDraw ID can be obtained by subtracting 100000.
+ * LDraw ID's are used for identifying colors efficiently. However. An LDraw color has both an ordinary value and an 'edge' value which can be used for rendering. In order to simplify the data model for storing geometries by colors, geometries colored in edge colors have negative color values with '1' subtracted. An 'edge' color is thus identified by the ID being negative and the LDraw ID can be obtained by negating and subtracting 1.
  * This choice is internal to the loader and transparent to code that uses LDRLoader.
  *
  * onLoad is called on completion of loading of all necesasry LDraw files.
@@ -502,7 +502,7 @@ THREE.LDRPartDescription.prototype.cloneColored = function(colorID) {
 	c = colorID;
     }
     else if(this.colorID === 24) {
-	colorID+100000;
+	c = -colorID-1;
     }
     let ret = new THREE.LDRPartDescription(c, this.position, this.rotation, this.ID, 
 					   this.cull, this.invertCCW);
@@ -824,7 +824,7 @@ THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, 
 	    return colorID; // Main color
         }
 	else if(subColorID === 24) {
-	    return colorID >= 100000 ? colorID : 100000 + colorID; // Edge color
+	    return colorID < 0 ? colorID : -colorID-1; // Edge color
         }
 	return subColorID;
     }
@@ -1173,8 +1173,8 @@ LDR.ColorManager.prototype.clone = function() {
 }
 
 LDR.ColorManager.prototype.overWrite = function(id) {
-    let isEdge = id >= 100000;
-    let lowID = isEdge ? id-100000 : id;
+    let isEdge = id < 0;
+    let lowID = isEdge ? -id-1 : id;
     let colorObject = LDR.Colors[lowID];
     if(!colorObject) {
         throw "Unknown color: " + id;
@@ -1208,8 +1208,8 @@ LDR.ColorManager.prototype.get = function(id) {
         this.edgeSixteen = this.shaderColors.length;
     }
     
-    let isEdge = id >= 100000;
-    let lowID = isEdge ? id-100000 : id;
+    let isEdge = id < 0;
+    let lowID = isEdge ? -id-1 : id;
     let colorObject = LDR.Colors[lowID];
     if(!colorObject) {
         throw "Unknown color " + lowID + " from " + id;

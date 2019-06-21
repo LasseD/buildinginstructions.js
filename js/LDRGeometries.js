@@ -116,7 +116,7 @@ LDR.LDRGeometry.prototype.pack = function() {
 		continue; // Not a part.
             }
 	    let primitives = x[c];
-	    arrayI.push(c, primitives.length);
+	    arrayI.push(primitives.length, c);
 	    for(let i = 0; i < primitives.length; i++) {
 		let p = primitives[i];
 		arrayI.push(p.p1,p.p2);
@@ -128,7 +128,7 @@ LDR.LDRGeometry.prototype.pack = function() {
 		}
 	    }
 	}
-	arrayI.push(-1);
+	arrayI.push(0); // Length 0 indicating end of content of this type.
     }
     handle(this.lines, 2);
     handle(this.conditionalLines, 4);
@@ -188,11 +188,11 @@ LDR.LDRGeometry.prototype.unpack = function(packed) {
 		throw 'Deserialization error!';
             }
 	    let ret = [];
-	    let c = arrayI[idxI++];
-	    if(c < 0) {
+	    let len = arrayI[idxI++];	    
+	    if(len === 0) {
 		return;
 	    }
-	    let len = arrayI[idxI++];
+	    let c = arrayI[idxI++];	    
 	    for(let i = 0; i < len; i++) {
                 for(let j = 0; j < pointsForBoundingBox; j++) {
                     self.vertices[arrayI[idxI+j]].forBoundingBox = true;
@@ -756,7 +756,7 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
 		return ''+pd.colorID;
             }
 	    else if(x === '24') {
-		return ''+(pd.colorID + 100000);
+		return ''+(-pd.colorID - 1);
             }
 	    else {
 		return x;

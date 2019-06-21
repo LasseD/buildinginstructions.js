@@ -13,22 +13,22 @@ LDR.Colors.getHighContrastColor4 = function(colorID) {
 }
 
 LDR.Colors.getColor4 = function(colorID) {
-    let colorObject = LDR.Colors[colorID < 100000 ? colorID : colorID - 100000];
+    let colorObject = LDR.Colors[colorID >= 0 ? colorID : -colorID - 1];
     if(!colorObject) {
 	throw "Unknown color: " + colorID;
     }
-    let color = new THREE.Color(colorID < 100000 ? colorObject.value : 
+    let color = new THREE.Color(colorID >= 0 ? colorObject.value : 
 				(colorObject.edge ? colorObject.edge : 0x333333));
     let alpha = colorObject.alpha ? colorObject.alpha/256.0 : 1;
     return new THREE.Vector4(color.r, color.g, color.b, alpha);
 }
 
 LDR.Colors.getDesaturatedColor4 = function(colorID) {
-    let colorObject = LDR.Colors[colorID < 100000 ? colorID : colorID - 100000];
+    let colorObject = LDR.Colors[colorID >= 0 ? colorID : -colorID - 1];
     if(!colorObject) {
 	throw "Unknown color: " + colorID;
     }
-    let color = LDR.Colors.desaturateThreeColor(colorID < 100000 ? colorObject.value : 
+    let color = LDR.Colors.desaturateThreeColor(colorID >= 0 ? colorObject.value : 
 				(colorObject.edge ? colorObject.edge : 0x333333));
     let alpha = colorObject.alpha ? colorObject.alpha/256.0 : 1;
     return new THREE.Vector4(color.r, color.g, color.b, alpha);
@@ -77,7 +77,7 @@ LDR.Colors.desaturateColor = function(hex) {
 }
 
 LDR.Colors.isTrans = function(colorID) {
-    return colorID == 16 || LDR.Colors[colorID >= 100000 ? colorID-100000 : colorID].alpha > 0;
+    return colorID == 16 || LDR.Colors[colorID < 0 ? -colorID-1 : colorID].alpha > 0;
 }
 
 LDR.Colors.canBeOld = false;
