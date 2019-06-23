@@ -656,35 +656,46 @@ LDR.InstructionsManager.prototype.onPLIClick = function(e) {
     }
 
     // Find clicked icon:
-    for(let i = 0; i < this.pliBuilder.clickMap.length; i++) {
-        let icon = this.pliBuilder.clickMap[i];
-        if(x >= icon.x && y >= icon.y &&
-           x <= icon.x+icon.width+5 &&
-           y <= icon.y+icon.height+12) {
-            // Correct icon found!
-
-            if(this.canEdit && ldrOptions.showEditor) {
-                console.log('Clicked icon:');
-                console.dir(icon);
-                icon.part.original.ghost = !icon.part.original.ghost;
-                this.stepHandler.updateMeshCollectors();
-                this.updateUIComponents(true);
+    let hits = this.pliBuilder.clickMap.filter(icon => x >= icon.x && y >= icon.y && x <= icon.x+icon.DX && y <= icon.y+icon.DY);
+    if(hits.length === 0) {
+        console.log('No icon was hit at ' + x + ', ' + y);
+        return; // no hits.
+    }
+    let distSq = (x1,y1) => (x1-x)*(x1-x) + (y1-y)*(y1-y);
+    let icon, bestDist;
+    hits.forEach(candidate => {
+            if(!icon) {
+                icon = candidate;
             }
-            else { // Show preview if no editor:
-                this.pliPreviewer.scene.remove(this.pliHighlighted);
-
-                let pt = this.pliBuilder.getPartType(icon.part.ID);
-                this.pliHighlighted = pt.mesh;
-                this.pliPreviewer.scene.add(this.pliHighlighted);
-                this.pliPreviewer.showPliPreview(icon);
-                let b = pt.pliMC.boundingBox;
-                let size = b.min.distanceTo(b.max) * 0.6;
-                this.pliPreviewer.subjectSize = size;
-                this.pliPreviewer.onResize();
+            else {
+                let d = distSq(icon.x + candidate.DX*0.5, icon.y + candidate.DY*0.5);
+                if(d < bestDist) {
+                    bestDist = d;
+                    icon = candidate;
+                }
             }
-            
-            return;
-        }
+        });
+
+    if(this.canEdit && ldrOptions.showEditor) {
+        console.log('Clicked icon:');
+        console.dir(icon);
+        icon.part.original.ghost = !icon.part.original.ghost;
+        this.stepHandler.updateMeshCollectors();
+        this.updateUIComponents(true);
+    }
+    else { // Show preview if no editor:
+        this.pliPreviewer.scene.remove(this.pliHighlighted);
+        
+        let pt = this.pliBuilder.getPartType(icon.part.ID);
+        this.pliHighlighted = pt.mesh;
+        this.pliPreviewer.scene.add(this.pliHighlighted);
+        
+        pt.pliMC.overwriteColor(icon.part.colorID);
+        this.pliPreviewer.showPliPreview(icon);
+        let b = pt.pliMC.boundingBox;
+        let size = b.min.distanceTo(b.max) * 0.6;
+        this.pliPreviewer.subjectSize = size;
+        this.pliPreviewer.onResize();
     }
 }
 

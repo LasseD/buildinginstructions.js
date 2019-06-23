@@ -7,7 +7,6 @@ LDR.PLIBuilder = function(loader, canEdit, mainModelID, mainModelColor, pliEleme
     this.canEdit = canEdit;
     this.pliElement = pliElement;
     this.pliRenderElement = pliRenderElement;
-    //this.partsBuilder = new LDR.PartsBuilder(loader, mainModelID, mainModelColor);
     this.fillHeight = false;
     this.groupParts = true;
     this.clickMap;
@@ -28,9 +27,8 @@ LDR.PLIBuilder = function(loader, canEdit, mainModelID, mainModelColor, pliEleme
     this.measurer = new LDR.Measurer(this.camera);
 
     this.scene = new THREE.Scene(); // Will only contain one element at a time.
-    this.scene.background = new THREE.Color(0xFFFFFF);
 
-    this.renderer = new THREE.WebGLRenderer({antialias: true});
+    this.renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
     this.renderer.setPixelRatio(window.devicePixelRatio);
     pliRenderElement.appendChild(this.renderer.domElement);
 }
@@ -52,9 +50,12 @@ LDR.PLIBuilder.prototype.getPartType = function(id) {
 	let b = pt.pliMC.boundingBox;
 	b.getCenter(elementCenter);
 	pt.mesh.position.sub(elementCenter);
-	let [dx,dy] = this.measurer.measure(b, pt.mesh.matrixWorld);
-	pt.dx = dx;
-	pt.dy = dy;
+        b.translate(elementCenter.negate()); // TODO: RM
+	let [width,height,linesBelow,linesAbove] = this.measurer.measureConvexHull(b, pt.mesh.matrixWorld);
+	pt.dx = width;
+	pt.dy = height;
+        pt.linesBelow = linesBelow;
+        pt.linesAbove = linesAbove;
     }
     return pt;
 }
@@ -74,10 +75,14 @@ LDR.PLIBuilder.prototype.updateCamera = function(w, h) {
     pt.pliMC.draw(false);
 
     this.scene.add(pt.mesh);
+    //var helper = new THREE.Box3Helper(pt.pliMC.boundingBox, 0xFF0000);
+    //this.scene.add(helper);
+
     this.renderer.setSize(w+1, h+1); // +1 to ensure edges are in frame in case of rounding down.
     this.updateCamera(pt.dx, pt.dy);
     this.renderer.render(this.scene, this.camera);
     this.scene.remove(pt.mesh);
+    //this.scene.remove(helper);
 }
 
 LDR.PLIBuilder.prototype.createClickMap = function(step) {
@@ -109,6 +114,8 @@ LDR.PLIBuilder.prototype.createClickMap = function(step) {
 		    annotation: LDR.Annotations ? LDR.Annotations[pliID] : null,
 		    dx: pt.dx,
 		    dy: pt.dy,
+                    linesBelow: pt.linesBelow,
+                    linesAbove: pt.linesAbove,
 		    size: b.min.distanceTo(b.max),
 		    inlined: pt.inlined,
                     part: dat, // Used by editor.
@@ -119,10 +126,14 @@ LDR.PLIBuilder.prototype.createClickMap = function(step) {
     }
 
     let sorter = function(a, b) {
+        if(a.dx != b.dx) {
+            return a.dx < b.dx ? -1 : 1; // Sort by width.
+        }
+
 	let ca = a.desc;
 	let cb = b.desc;
 	if(ca !== cb) {
-	    return ca < cb ? -1 : 1;
+	    return ca < cb ? -1 : 1; // Group plates, bricks, etc. (Only works well when not also sorting by width above)
 	}
 	return a.colorID - b.colorID;
     }
@@ -146,51 +157,72 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
 
     // Find, sort and set up icons to show:
     this.createClickMap(step);
-    let [W,H] = Algorithm.PackRectangles(fillHeight, maxWidth, maxHeight, this.clickMap, maxSizePerPixel); // Previously max size window.innerWidth/5
-    this.pliElement.width = (12+W)*window.devicePixelRatio;
-    this.pliElement.height = (28+H)*window.devicePixelRatio;
+    let textHeight = (!fillHeight ? maxHeight : maxWidth) / Math.sqrt(this.clickMap.length) * 0.19;
+    let [W,H] = Algorithm.PackPlis(fillHeight, maxWidth, maxHeight, this.clickMap, textHeight);
+    const DPR = window.devicePixelRatio;
+    this.pliElement.width = (12+W)*DPR;
+    this.pliElement.height = (12+H)*DPR;
     this.pliElement.style.width = (W+12)+"px";
-    this.pliElement.style.height = (H+21)+"px";
+    this.pliElement.style.height = (H+12)+"px";
 
     let context = this.pliElement.getContext('2d');
 
-    context.font = parseInt(25*window.devicePixelRatio) + "px sans-serif";
-    context.fillStyle = "black";
-    let scaleDown = 0.95; // To make icons not fill out the complete allocated cells.
+    const scaleDown = 0.98; // To make icons not fill out the complete allocated cells.
     let self = this;
     let delay = function() {
 	context.clearRect(0, 0, self.pliElement.width, self.pliElement.height);
+        context.translate(6, 6);
 	// Draw icon:
 	for(let i = 0; i < self.clickMap.length; i++) {
 	    let icon = self.clickMap[i];
-	    let w = parseInt(icon.width*scaleDown);
-	    let h = parseInt(icon.height*scaleDown);
+            let x = icon.x*DPR;
+            let y = icon.y*DPR;
+	    let w = parseInt(icon.DX*scaleDown);
+	    let h = parseInt(icon.DY*scaleDown);
             self.renderIcon(icon.partID, icon.colorID, w, h);
-	    context.drawImage(self.renderer.domElement, (icon.x+8)*window.devicePixelRatio, (icon.y+5)*window.devicePixelRatio);
+	    context.drawImage(self.renderer.domElement, x, y);
+
+            // Code below is to highlight PLI boundary lines:
+            /*let W = icon.DX*DPR, H = icon.DY*DPR;
+            context.lineWidth = "3";
+            let highlight = function(line) {
+                line.scaleY(DPR);
+                context.moveTo(x, y + line.eval(0));
+                context.lineTo(x+W, y + line.eval(W));
+            }
+            context.strokeStyle = "blue";
+            icon.LINES_ABOVE.forEach(highlight);
+            icon.LINES_BELOW.forEach(highlight);
+            context.stroke();*/
 	}
 	// Draw multipliers:
 	context.fillStyle = "#000";
 	context.lineWidth = "1";
-	context.font = parseInt(18*window.devicePixelRatio) + "px Lucida Console";
         if(self.groupParts) {
-            self.clickMap.forEach(icon => context.fillText(icon.mult + "x", (icon.x + 5)*window.devicePixelRatio,
-                                                           (icon.y+icon.height+24)*window.devicePixelRatio));
+            context.font = parseInt(textHeight*1.1*DPR) + "px sans-serif";
+            context.fillStyle = "black";
+            function drawMultiplier(icon) {
+                let x = icon.x * DPR;
+                let y = (icon.y + icon.MULT_Y) * DPR;
+                let w = icon.MULT_DX * DPR;
+                let h = textHeight * DPR;
+                //context.beginPath(); context.rect(x, y, w, h); context.stroke();
+                context.fillText(icon.mult + "x", x, y + h*0.9); // *0.9 to move a bit up from lower line.
+            }
+            self.clickMap.forEach(drawMultiplier);
         }
 	// Draw Annotation:
-	for(let i = 0; i < self.clickMap.length; i++) {
-	    let icon = self.clickMap[i];
-	    if(!icon.annotation) {
-		continue;
-            }
+	context.font = parseInt(textHeight*0.9*DPR) + "px monospace";
+        self.clickMap.filter(icon => icon.annotation).forEach(icon => {
 	    let len = icon.annotation.length;
-	    let x = (icon.x + icon.width - len*10 - 9)*window.devicePixelRatio;
-	    let y = (icon.y + icon.height + 4)*window.devicePixelRatio;
-	    let w = (len*10 + 9)*window.devicePixelRatio;
-	    let h = 19*window.devicePixelRatio;
+	    let x = (icon.x+icon.FULL_DX+1)*DPR;
+	    let y = (icon.y+icon.ANNO_Y)*DPR;
+	    let w = (len*textHeight*0.54)*DPR;
+	    let h = textHeight*DPR;
 	    context.beginPath();
 	    context.fillStyle = "#CFF";
 	    if(icon.desc.startsWith('Technic Axle')) {
-		context.arc(x+w*0.45, y+h*0.5, w/2, 0, 2*Math.PI, false);
+		context.arc(x+w*0.5, y+h*0.5, w*0.55, 0, 2*Math.PI, false);
             }
 	    else {
 		context.rect(x, y, w, h);
@@ -198,20 +230,19 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
 	    context.fill();
 	    context.stroke();
 	    context.fillStyle = "#25E";
-	    x += 3.5*window.devicePixelRatio;
-	    y += 16*window.devicePixelRatio;
+	    y += textHeight*DPR*0.79;
 	    context.fillText(icon.annotation, x, y);
-	}
-        // Draw highlight:
+        });
+        // Draw highlight for ghosted parts:
         if(ldrOptions.showEditor) {
             self.clickMap.forEach(icon => {
                     if(!icon.part.original.ghost) {
                         return; // Do not draw highlight.
                     }
-                    const x = parseInt((icon.x+8)*window.devicePixelRatio);
-                    const y = parseInt((icon.y+5)*window.devicePixelRatio);
-                    const w = parseInt((icon.width)*window.devicePixelRatio);
-                    const h = parseInt((icon.height)*window.devicePixelRatio);
+                    const x = parseInt((icon.x+8)*DPR);
+                    const y = parseInt((icon.y+5)*DPR);
+                    const w = parseInt((icon.DX)*DPR);
+                    const h = parseInt((icon.DY)*DPR);
                     context.strokeStyle = "#5DD";
                     context.lineWidth = '4';
                     context.strokeRect(x, y, w, h);
