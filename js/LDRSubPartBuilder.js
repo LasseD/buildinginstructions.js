@@ -140,7 +140,7 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
 		return 24;
 	    }
 	    else {
-		return 100000 + self.c; // Edge color
+		return -self.c-1; // Edge color
 	    }
 	}
 	return subColorID;

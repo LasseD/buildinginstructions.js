@@ -1,13 +1,24 @@
 'use strict';
 
 LDR.STORAGE = function(onDone) {
-    this.req = /*window.*/indexedDB.open("ldraw", 1); 
+    this.req = indexedDB.open("ldraw", 2); 
     this.db;
 
     this.req.onupgradeneeded = function(event) {
 	const db = event.target.result; // IDBDatabase
-	db.createObjectStore("parts", {keyPath: "ID"});
-	db.createObjectStore("models", {keyPath: "ID"});
+	db.onerror = errorEvent => console.dir(errorEvent);
+
+	var partsStore = this.transaction.objectStore("parts");
+
+	if (partsStore && event.oldVersion < 2) {
+	    // Colors in the 10k+ range need to be updated to 100k+
+	    // But since the parts are compacted, they are simply purged:
+	    partsStore.clear();
+	}
+	else {
+	    db.createObjectStore("parts", {keyPath: "ID"});
+	    db.createObjectStore("models", {keyPath: "ID"});
+	}
     };
 
     let self = this;
