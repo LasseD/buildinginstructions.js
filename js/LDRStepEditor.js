@@ -26,6 +26,7 @@ LDR.StepEditor = function(loader, stepHandler, reset, onChange, modelID) {
     this.onChange = onChange;
     this.modelID = modelID;
     this.onStepSelectedListeners = [];
+    this.saveEle;
 
     // Current state variables:
     this.part;
@@ -86,22 +87,22 @@ LDR.StepEditor.prototype.createGuiComponents = function(parentEle) {
     this.createPartGuiComponents(parentEle);
 
     let self = this;
-    
-    let saveEle;
     function save() {
         let fileContent = self.loader.toLDR();
-        saveEle.innerHTML = 'Saving...';
+        self.saveEle.innerHTML = 'Saving...';
         $.ajax({
                 url: 'ajax/save.htm',
                 type: 'POST',
                 data: {model: self.modelID, content: fileContent},
                 dataType: "text",
                 success: function(result) {
-                    saveEle.innerHTML = 'SAVE';
+                    self.saveEle.innerHTML = 'SAVE';
+		    self.saveEle.style.backgroundColor = '#444';
+		    self.saveEle.style.borderColor = '#222';
                     console.dir(result);
                 },
                 error: function(xhr, status, error_message) {
-                    saveEle.innerHTML = 'ERROR! PRESS TO SAVE AGAIN';
+                    self.saveEle.innerHTML = 'ERROR! PRESS TO SAVE AGAIN';
                     console.dir(xhr);
                     console.warn(status);
                     console.warn(error_message);
@@ -109,8 +110,13 @@ LDR.StepEditor.prototype.createGuiComponents = function(parentEle) {
             });
     }
     let saveParentEle = this.makeEle(parentEle, 'span', 'editor_save');
-    saveEle = this.makeEle(saveParentEle, 'button', 'save_button', save, 'SAVE');
+    this.saveEle = this.makeEle(saveParentEle, 'button', 'save_button', save, 'SAVE');
     this.updateCurrentStep();
+}
+
+LDR.StepEditor.prototype.makeSaveElementGreen = function() {
+    this.saveEle.style.backgroundColor = '#4B4';
+    this.saveEle.style.borderColor = '#2B2';
 }
 
 LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
@@ -127,6 +133,7 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
         }
         self.step.original.rotation = rot; // Update starting step.
 	self.stepHandler.updateRotations();
+	self.makeSaveElementGreen();
         self.onChange();
     }
 
@@ -228,10 +235,22 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
 LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
     let self = this;
 
-    let colorPicker = new LDR.ColorPicker(colorID => {self.reset(); self.stepHandler.colorGhosted(colorID); self.onChange();});
+    function setColor(colorID) {
+	self.reset();
+	self.stepHandler.colorGhosted(colorID);
+	self.onChange();
+	self.makeSaveElementGreen();
+    }
+    let colorPicker = new LDR.ColorPicker(setColor);
 
     let ele = this.makeEle(parentEle, 'span', 'editor_control');
-    let removeButton = this.makeEle(ele, 'button', 'pli_button1', () => {self.reset(); self.stepHandler.removeGhosted(); self.onChange();}, 'REMOVE', self.makeRemovePartsIcon());
+    function remove() {
+	self.reset();
+	self.stepHandler.removeGhosted();
+	self.onChange();
+	self.makeSaveElementGreen();
+    }
+    let removeButton = this.makeEle(ele, 'button', 'pli_button1', remove, 'REMOVE', self.makeRemovePartsIcon());
     let colorButton = colorPicker.createButton();
     ele.append(colorButton);
 

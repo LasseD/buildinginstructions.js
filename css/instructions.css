@@ -170,8 +170,8 @@ body {
 .save_button {
   border: none;
   margin: 0;
-  background-color: #4B4;
-  border: 0.3vw solid #2A2;
+  background-color: #444;
+  border: 0.3vw solid #222;
   font-size: 3VW;
   color: white;
   font-weight: bold;
