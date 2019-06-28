@@ -8,16 +8,15 @@ LDR.STORAGE = function(onDone) {
 	const db = event.target.result; // IDBDatabase
 	db.onerror = errorEvent => console.dir(errorEvent);
 
-	var partsStore = this.transaction.objectStore("parts");
-
-	if (partsStore && event.oldVersion < 2) {
-	    // Colors in the 10k+ range need to be updated to 100k+
-	    // But since the parts are compacted, they are simply purged:
-	    partsStore.clear();
-	}
-	else {
+	if(event.oldVersion < 1) {
 	    db.createObjectStore("parts", {keyPath: "ID"});
 	    db.createObjectStore("models", {keyPath: "ID"});
+	}
+	else if(event.oldVersion < 2) {
+	    // Colors in the 10k+ range need to be updated to 100k+
+	    // This is the easy way to upgrade: Simply purge the store.
+	    var partsStore = this.transaction.objectStore("parts");
+	    partsStore.clear();
 	}
     };
 
