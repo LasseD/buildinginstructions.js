@@ -64,23 +64,16 @@ LDR.writePrettyPoints = function(ele, pts) {
 	li.style.color = LDR.writePrettyPointColors[i];
 
 	let span = LDR.makeEle(li, 'span', 'pretty_points');
-	let x = +parseFloat(pts[i].x).toFixed(3);
-	let y = +parseFloat(pts[i].y).toFixed(3);
-	let z = +parseFloat(pts[i].z).toFixed(3);
+	let x = pts[i].x;
+	let y = pts[i].y;
+	let z = pts[i].z;
 	span.innerHTML = x + ' ' + y + ' ' + z;
     }
 }
 
 LDR.writePrettyPointsPR = function(p, r) {
-    let x = +parseFloat(p.x).toFixed(3);
-    let y = +parseFloat(p.y).toFixed(3);
-    let z = +parseFloat(p.z).toFixed(3);
-    let ret = x + ' ' + y + ' ' + z;
-
-    for(let i = 0; i < r.elements.length; i++) {
-	let e = +parseFloat(r.elements[i]).toFixed(3);
-	ret += ' ' + e;
-    }
+    let ret = p.x + ' ' + p.y + ' ' + p.z;
+    r.elements.forEach(e => ret += ' ' + e);
     return ret;
 }
 
@@ -167,6 +160,9 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
 	else {
 	    line.mc = new LDR.MeshCollector(baseObject, baseObject);
 	    let c = transformColor(line.line1 ? line.desc.colorID : line.c);
+
+	    let color = LDR.Colors[c];
+	    let shownColor = color.direct ? color.direct : colorID;
 	    let step = new THREE.LDRStep(); // Not used by line1.
 
 	    if(line.line1) {
@@ -220,7 +216,7 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
 		LDR.writePrettyPoints(LDR.makeEle(tr, 'td', 'line_desc'), [line.p1, line.p2]);
 		LDR.makeEle(tr, 'td', 'line_cull').innerHTML = '-';	    
 		LDR.makeEle(tr, 'td', 'line_wind').innerHTML = '-';	    
-		LDR.makeEle(tr, 'td', 'line_color').innerHTML = line.c;
+		LDR.makeEle(tr, 'td', 'line_color').innerHTML = shownColor;
 
 		p1 = transformPoint(line.p1);
 		p2 = transformPoint(line.p2);		
@@ -231,7 +227,7 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
 		LDR.writePrettyPoints(LDR.makeEle(tr, 'td', 'line_desc'), [line.p1, line.p2, line.p3]);
 		LDR.makeEle(tr, 'td', 'line_cull').innerHTML = "&#x271" + (line.cull ? '4' : '6') + ";";;
 		LDR.makeEle(tr, 'td', 'line_wind').innerHTML = "&#x21B" + (line.ccw ? 'A' : 'B') + ";";
-		LDR.makeEle(tr, 'td', 'line_color').innerHTML = line.c;
+		LDR.makeEle(tr, 'td', 'line_color').innerHTML = shownColor;
 
 		p1 = transformPoint(line.p1);
 		p2 = transformPoint(line.p2);
@@ -243,7 +239,7 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
 		LDR.writePrettyPoints(LDR.makeEle(tr, 'td', 'line_desc'), [line.p1, line.p2, line.p3, line.p4]);
 		LDR.makeEle(tr, 'td', 'line_cull').innerHTML = "&#x271" + (line.cull ? '4' : '6') + ";";;
 		LDR.makeEle(tr, 'td', 'line_wind').innerHTML = "&#x21B" + (line.ccw ? 'A' : 'B') + ";";
-		LDR.makeEle(tr, 'td', 'line_color').innerHTML = line.c;
+		LDR.makeEle(tr, 'td', 'line_color').innerHTML = shownColor;
 
 		p1 = transformPoint(line.p1);
 		p2 = transformPoint(line.p2);
@@ -256,7 +252,7 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
 		LDR.writePrettyPoints(LDR.makeEle(tr, 'td', 'line_desc'), [line.p1, line.p2, line.p3, line.p4]);
 		LDR.makeEle(tr, 'td', 'line_cull').innerHTML = '-';	    
 		LDR.makeEle(tr, 'td', 'line_wind').innerHTML = '-';	    
-		LDR.makeEle(tr, 'td', 'line_color').innerHTML = line.c;
+		LDR.makeEle(tr, 'td', 'line_color').innerHTML = shownColor;
 
 		p1 = transformPoint(line.p1);
 		p2 = transformPoint(line.p2);

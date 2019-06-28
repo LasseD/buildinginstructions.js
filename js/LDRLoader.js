@@ -141,8 +141,9 @@ THREE.LDRLoader.prototype.parse = function(data) {
     let dataLines = data.split(/(\r\n)|\n/);
     for(let i = 0; i < dataLines.length; i++) {
 	let line = dataLines[i];
-	if(!line)
+	if(!line) {
 	    continue; // Empty line, or 'undefined' due to '\r\n' split.
+	}
 
 	let parts = line.split(" ").filter(x => x !== ''); // Remove empty strings.
 	if(parts.length <= 1) {
@@ -151,10 +152,21 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	let lineType = parseInt(parts[0]);
         let colorID;
 	if(lineType !== 0) {
-	    colorID = parseInt(parts[1]);
-	    if(LDR.Colors[colorID] === undefined) {
+	    colorID = parts[1];
+	    if(colorID.length === 9 && colorID.substring(0, 3) === '0x2') {
+		// Direct color: https://www.ldraw.org/article/218.html
+		let hexValue = parseInt(colorID.substring(3), 16);
+		LDR.Colors[hexValue] = {name:'Direct color 0x2'+colorID, value:hexValue, edge:hexValue, direct:colorID};
+		colorID = hexValue;
+	    } 
+	    else if(LDR.Colors[colorID] === undefined) {
+		// This color might be on the form "0x2995220", such as seen in 3626bps5.dat:
+		
 		this.onWarning({message:'Unknown color "' + colorID + '". Black (0) will be shown instead.', line:i, subModel:part});
 		colorID = 0;
+	    }
+	    else {
+		colorID = parseInt(colorID);
 	    }
 	}
 	//console.log("Parsing line " + i + " of type " + lineType + ": " + line); // Useful if you encounter parse errors.
