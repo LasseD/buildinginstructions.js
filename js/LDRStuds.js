@@ -31,8 +31,12 @@ LDR.Studs.makeCircle1 = function() {
     return pt;
 }
 
-LDR.Studs.makeCylinder1 = function() {
-    let pt = LDR.Studs.makePrimitivePartType('Cylinder 1.0', '4-4cyli.dat');
+LDR.Studs.makeCylinder1 = function(cond) {
+    let desc = 'Cylinder 1.0';
+    if(!cond) {
+        desc += ' without Conditional Lines';
+    }
+    let pt = LDR.Studs.makePrimitivePartType(desc, cond ? '4-4cyli.dat' : '4-4cyli2.dat');
     let step = new THREE.LDRStep();
 
     let p0 = new THREE.Vector3(1, 0, 0), p1 = new THREE.Vector3(1, 1, 0);
@@ -52,7 +56,9 @@ LDR.Studs.makeCylinder1 = function() {
         next1 = new THREE.Vector3(c, 1, s);
 
         step.addQuadPoints(16, prev1, p1, p0, prev0);
-        step.addConditionalLine(24, p0, p1, prev0, next0);
+        if(cond) {
+            step.addConditionalLine(24, p0, p1, prev0, next0);
+        }
     }
     pt.steps.push(step); // No need to user 'addStep()' for primitives.
     return pt;
@@ -96,7 +102,10 @@ LDR.Studs.setPrimitives = function(partTypes) {
     let p = LDR.Studs.makeCircle1();
     partTypes[p.ID] = p;
 
-    p = LDR.Studs.makeCylinder1();
+    p = LDR.Studs.makeCylinder1(true);
+    partTypes[p.ID] = p;
+
+    p = LDR.Studs.makeCylinder1(false);
     partTypes[p.ID] = p;
 
     p = LDR.Studs.makeDisc1();
@@ -122,7 +131,12 @@ LDR.Studs.setStud1 = function(partTypes, highContrast, logoType) {
 
     step.addSubModel(new THREE.LDRPartDescription(16, p0, r1, '4-4edge.dat', true, false));
     step.addSubModel(new THREE.LDRPartDescription(16, p4, r1, '4-4edge.dat', true, false));
-    step.addSubModel(new THREE.LDRPartDescription(highContrast ? 0 : 16, p0, r4, '4-4cyli.dat', true, false));
+    if(highContrast) {
+        step.addSubModel(new THREE.LDRPartDescription(0, p0, r4, '4-4cyli2.dat', true, false));
+    }
+    else {
+        step.addSubModel(new THREE.LDRPartDescription(16, p0, r4, '4-4cyli.dat', true, false));
+    }
     step.addSubModel(new THREE.LDRPartDescription(16, p4, r1, '4-4disc.dat', true, false));
 
     pt.steps.push(step); // No need to user 'addStep()' for primitives.
@@ -145,24 +159,17 @@ LDR.Studs.setStud2 = function(partTypes, highContrast, logoType) {
     step.addSubModel(new THREE.LDRPartDescription(16, p0, r616, '4-4edge.dat', true, false));
     step.addSubModel(new THREE.LDRPartDescription(16, p4, r414, '4-4edge.dat', true, false));
     step.addSubModel(new THREE.LDRPartDescription(16, p4, r616, '4-4edge.dat', true, false));
-
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r444, '4-4cyli.dat', true, true)); // inverted!
-    step.addSubModel(new THREE.LDRPartDescription(highContrast ? 0 : 16, p4, r646, '4-4cyli.dat', true, false));
+    step.addSubModel(new THREE.LDRPartDescription(16, p4, r444, '4-4cyli2.dat', true, true)); // inverted. Consider if the conditional lines should be included ot not.
+    if(highContrast) {
+        step.addSubModel(new THREE.LDRPartDescription(0, p4, r646, '4-4cyli2.dat', true, false));
+    }
+    else {
+        step.addSubModel(new THREE.LDRPartDescription(16, p4, r646, '4-4cyli.dat', true, false));
+    }
     step.addSubModel(new THREE.LDRPartDescription(16, p4, r212, '4-4ring2.dat', true, false));
 
     pt.steps.push(step); // No need to user 'addStep()' for primitives.
     partTypes[pt.ID] = pt;
-
-    /*
- 1 16 0  0 0 4 0 0 0 1 0 0 0 4 4-4edge.dat
- 1 16 0  0 0 6 0 0 0 1 0 0 0 6 4-4edge.dat
- 1 16 0 -4 0 4 0 0 0 1 0 0 0 4 4-4edge.dat
- 1 16 0 -4 0 6 0 0 0 1 0 0 0 6 4-4edge.dat
-0 BFC INVERTNEXT
- 1 16 0 -4 0 4 0 0 0 4 0 0 0 4 4-4cyli.dat
- 1 16 0 -4 0 6 0 0 0 4 0 0 0 6 4-4cyli.dat
- 1 16 0 -4 0 2 0 0 0 1 0 0 0 2 4-4ring2.dat
-     */
 }
 
 LDR.Studs.removeGeometriesForAllWithStuds = function(partTypes) {

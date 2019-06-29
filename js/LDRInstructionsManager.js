@@ -205,7 +205,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
     this.onWindowResize();
     this.ldrLoader = new THREE.LDRLoader(onLoad, options);
     LDR.Studs.setPrimitives(this.ldrLoader.partTypes); // Primitives used by studs.
-    LDR.Studs.setStuds(this.ldrLoader.partTypes, !true, 0); // Studs.
+    LDR.Studs.setStuds(this.ldrLoader.partTypes, true, 0); // Studs.
     
     this.ldrLoader.load(modelUrl);
 }
