@@ -1146,7 +1146,7 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 }
     
 THREE.LDRPartType.prototype.isPart = function() {
-    return this.ID.endsWith('dat') || (this.steps.length === 1 && this.steps[0].hasPrimitives);
+    return this.steps.length === 1 && (this.ID.endsWith('dat') || this.steps[0].hasPrimitives);
 }
 
 THREE.LDRPartType.prototype.countParts = function(loader) {
@@ -1245,8 +1245,9 @@ LDR.ColorManager.prototype.containsTransparentColors = function() {
   The GeometryBuilder is used to build geometries for parts.
  */
 LDR.GeometryBuilder = function(loader, storage) {
-    if(!storage)
+    if(!storage) {
 	throw "Missing storage!";
+    }
     this.loader = loader;
     this.storage = storage;
 }
@@ -1258,40 +1259,36 @@ LDR.GeometryBuilder.prototype.getAllTopLevelToBeBuilt = function() {
     let toBeBuilt = [];
     let self = this;
 
-    // Set 'isReplacing' on all parts whose geometries should be 
-    // maintained because they replace other parts.
-    for(let ptID in this.loader.partTypes) {
-	if(!this.loader.partTypes.hasOwnProperty(ptID))
-	    continue; // Not a part.
-	let partType = this.loader.partTypes[ptID];
-	if(partType.replacement) { // Mark all inside of replaced part as 'replacing':
-            partType.steps.forEach(step => step.subModels.forEach(sm => self.loader.partTypes[sm.ID].isReplacing = true));
-        }
-    }
-
     function markToBeBuilt(pt) {
-	if(!pt.isPart() || pt.geometry || pt.markToBeBuilt)
+	if(!pt.isPart() || pt.geometry || pt.markToBeBuilt) {
 	    return;
+	}
 	toBeBuilt.push(pt);
 	pt.markToBeBuilt = true;
     }
 
+    // Set 'isReplacing' on all parts whose geometries should be 
+    // maintained because they replace other parts.
     for(let ptID in this.loader.partTypes) {
-	if(!this.loader.partTypes.hasOwnProperty(ptID))
+	if(!this.loader.partTypes.hasOwnProperty(ptID)) {
 	    continue; // Not a part.
-	let partType = this.loader.partTypes[ptID];
-	if(partType.geometry) {
-	    continue;
 	}
-	if(partType.isPart()) {
-	    if(partType.isReplacing) {
-		markToBeBuilt(partType); // Mark all that are replacing as in need to be built.
-            }
-	}
-	else { // For non-parts: Mark all parts within:
-            partType.steps.forEach(step => step.subModels.forEach(sm => markToBeBuilt(self.loader.partTypes[sm.ID])));
-	}
+	let pt = this.loader.partTypes[ptID];
+	if(pt.replacement) { // Mark all inside of replaced part as 'replacing':
+            pt.steps.forEach(step => step.subModels.forEach(sm => markToBeBuilt(self.loader.partTypes[sm.ID])));
+        }
     }
+
+    function handle(pt) {
+        pt.steps.forEach(step => step.subModels.forEach(sm => {
+	    let pt2 = self.loader.partTypes[sm.ID];
+	    if(!pt2.isPart()) {
+		handle(pt2);
+	    }
+	    markToBeBuilt(pt2);
+	}));
+    }
+    handle(this.loader.partTypes[this.loader.mainModel]);
     return toBeBuilt;
 }
 

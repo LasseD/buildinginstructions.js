@@ -60,30 +60,6 @@ LDR.LDRGeometry = function() {
     this.boundingBox = new THREE.Box3();
 }
 
-LDR.LDRGeometry.prototype.serialize = function() {
-    let c = this.pack();
-    let ret = '2'; // version
-
-    function format(x) {
-	if(x == Math.round(x)) {
-	    return x;
-        }
-	return x.toFixed(3);
-    }
-
-    let fArray = c.f;
-    ret += ',' + fArray.length;
-    for(let i = 0; i < fArray.length; i++) {
-	ret += ',' + format(fArray[i]);
-    }
-    let iArray = c.i;
-    ret += ',' + iArray.length;
-    for(let i = 0; i < iArray.length; i++) {
-	ret += ',' + iArray[i];
-    }
-    return ret;
-}
-
 LDR.LDRGeometry.prototype.pack = function() {
     let arrayF = [];
     let arrayI = [];
@@ -135,29 +111,8 @@ LDR.LDRGeometry.prototype.pack = function() {
     handle(this.triangles, 3);
     handle(this.quads, 4);
 
-    let i = this.vertices.length > 32767 ? new Int32Array(arrayI) : new Int16Array(arrayI);
+    let i = arrayI.some(val => val > 32767) ? new Int32Array(arrayI) : new Int16Array(arrayI);
     return {f:new Float32Array(arrayF), i:i};
-}
-
-LDR.LDRGeometry.prototype.deserialize = function(txt) {
-    let a = Float32Array.from(txt.split(/\,/));
-    if(a[0] !== 1) {
-	throw 'version error!';
-    }
-
-    let sizeF = a[1];
-    let arrayF = [], arrayI = [];
-    let idx = 2;
-    for(let i = 0; i < sizeF; i++) {
-	arrayF.push(a[idx++]);
-    }
-    let sizeI = a[idx++];
-    for(let i = 0; i < sizeI; i++) {
-	arrayI.push(a[idx++]);
-    }
-
-    let packed = {f:arrayF, i:arrayI};
-    this.unpack(packed);
 }
 
 LDR.LDRGeometry.prototype.unpack = function(packed) {
