@@ -141,8 +141,9 @@ THREE.LDRLoader.prototype.parse = function(data) {
     let dataLines = data.split(/(\r\n)|\n/);
     for(let i = 0; i < dataLines.length; i++) {
 	let line = dataLines[i];
-	if(!line)
+	if(!line) {
 	    continue; // Empty line, or 'undefined' due to '\r\n' split.
+	}
 
 	let parts = line.split(" ").filter(x => x !== ''); // Remove empty strings.
 	if(parts.length <= 1) {
@@ -151,10 +152,21 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	let lineType = parseInt(parts[0]);
         let colorID;
 	if(lineType !== 0) {
-	    colorID = parseInt(parts[1]);
-	    if(LDR.Colors[colorID] === undefined) {
+	    colorID = parts[1];
+	    if(colorID.length === 9 && colorID.substring(0, 3) === '0x2') {
+		// Direct color: https://www.ldraw.org/article/218.html
+		let hexValue = parseInt(colorID.substring(3), 16);
+		LDR.Colors[hexValue] = {name:'Direct color 0x2'+colorID, value:hexValue, edge:hexValue, direct:colorID};
+		colorID = hexValue;
+	    } 
+	    else if(LDR.Colors[colorID] === undefined) {
+		// This color might be on the form "0x2995220", such as seen in 3626bps5.dat:
+		
 		this.onWarning({message:'Unknown color "' + colorID + '". Black (0) will be shown instead.', line:i, subModel:part});
 		colorID = 0;
+	    }
+	    else {
+		colorID = parseInt(colorID);
 	    }
 	}
 	//console.log("Parsing line " + i + " of type " + lineType + ": " + line); // Useful if you encounter parse errors.
@@ -1134,7 +1146,7 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 }
     
 THREE.LDRPartType.prototype.isPart = function() {
-    return this.ID.endsWith('dat') || (this.steps.length === 1 && this.steps[0].hasPrimitives);
+    return this.steps.length === 1 && (this.ID.endsWith('dat') || this.steps[0].hasPrimitives);
 }
 
 THREE.LDRPartType.prototype.countParts = function(loader) {
@@ -1233,8 +1245,9 @@ LDR.ColorManager.prototype.containsTransparentColors = function() {
   The GeometryBuilder is used to build geometries for parts.
  */
 LDR.GeometryBuilder = function(loader, storage) {
-    if(!storage)
+    if(!storage) {
 	throw "Missing storage!";
+    }
     this.loader = loader;
     this.storage = storage;
 }
@@ -1246,40 +1259,36 @@ LDR.GeometryBuilder.prototype.getAllTopLevelToBeBuilt = function() {
     let toBeBuilt = [];
     let self = this;
 
-    // Set 'isReplacing' on all parts whose geometries should be 
-    // maintained because they replace other parts.
-    for(let ptID in this.loader.partTypes) {
-	if(!this.loader.partTypes.hasOwnProperty(ptID))
-	    continue; // Not a part.
-	let partType = this.loader.partTypes[ptID];
-	if(partType.replacement) { // Mark all inside of replaced part as 'replacing':
-            partType.steps.forEach(step => step.subModels.forEach(sm => self.loader.partTypes[sm.ID].isReplacing = true));
-        }
-    }
-
     function markToBeBuilt(pt) {
-	if(!pt.isPart() || pt.geometry || pt.markToBeBuilt)
+	if(!pt.isPart() || pt.geometry || pt.markToBeBuilt) {
 	    return;
+	}
 	toBeBuilt.push(pt);
 	pt.markToBeBuilt = true;
     }
 
+    // Set 'isReplacing' on all parts whose geometries should be 
+    // maintained because they replace other parts.
     for(let ptID in this.loader.partTypes) {
-	if(!this.loader.partTypes.hasOwnProperty(ptID))
+	if(!this.loader.partTypes.hasOwnProperty(ptID)) {
 	    continue; // Not a part.
-	let partType = this.loader.partTypes[ptID];
-	if(partType.geometry) {
-	    continue;
 	}
-	if(partType.isPart()) {
-	    if(partType.isReplacing) {
-		markToBeBuilt(partType); // Mark all that are replacing as in need to be built.
-            }
-	}
-	else { // For non-parts: Mark all parts within:
-            partType.steps.forEach(step => step.subModels.forEach(sm => markToBeBuilt(self.loader.partTypes[sm.ID])));
-	}
+	let pt = this.loader.partTypes[ptID];
+	if(pt.replacement) { // Mark all inside of replaced part as 'replacing':
+            pt.steps.forEach(step => step.subModels.forEach(sm => markToBeBuilt(self.loader.partTypes[sm.ID])));
+        }
     }
+
+    function handle(pt) {
+        pt.steps.forEach(step => step.subModels.forEach(sm => {
+	    let pt2 = self.loader.partTypes[sm.ID];
+	    if(!pt2.isPart()) {
+		handle(pt2);
+	    }
+	    markToBeBuilt(pt2);
+	}));
+    }
+    handle(this.loader.partTypes[this.loader.mainModel]);
     return toBeBuilt;
 }
 
