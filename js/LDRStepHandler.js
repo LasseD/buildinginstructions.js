@@ -191,7 +191,7 @@ LDR.StepHandler.prototype.computeCameraPositionRotation = function(defaultMatrix
   - Ghost everything earlier (show again once sub-model is done)
 */
 LDR.StepHandler.prototype.nextStep = function(doNotEraseForSubModels) {
-    if(this.isAtPlacementStep()) {
+    if(this.isAtPlacementStep() || (this.isForMainModel && this.isAtLastStep())) {
 	return false; // Dont walk past placement step.
     }
     let step = this.current === -1 ? new LDR.StepInfo() : this.steps[this.current];
