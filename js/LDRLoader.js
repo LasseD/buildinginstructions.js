@@ -674,7 +674,7 @@ THREE.LDRStep.prototype.cloneColored = function(colorID) {
     return ret;
 }
 
-    THREE.LDRStep.prototype.toLDR= function(loader, prevStepRotation, isLastStep) {
+THREE.LDRStep.prototype.toLDR = function(loader, prevStepRotation, isLastStep) {
     let ret = '';
     this.fileLines.forEach(line => ret += line.toLDR(loader));
     if(!this.rotation) {

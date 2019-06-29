@@ -30,6 +30,7 @@
     <script src="js/LDRButtons.js"></script>
     <script src="js/LDRMeasurer.js"></script>
     <script src="js/LDRStepEditor.js"></script>
+    <script src="js/LDRStuds.js"></script>
     <script src="js/LDRInstructionsManager.js"></script>
     <div id="main_canvas_holder">
      <canvas id="main_canvas"></canvas>
@@ -84,36 +85,25 @@
     </div>
     <div id="done_section">
         <div id="done_background" onclick="manager.hideDone();"></div>
-        <div id="done_holder" class="holder">
-        </div>
+        <div id="done_holder" class="holder"></div>
     </div>
     <div id="color_picker">
         <div id="color_picker_background" class="background" onclick="$('#color_picker').hide();"></div>
-        <div id="color_picker_holder" class="holder">
-        </div>
+        <div id="color_picker_holder" class="holder"></div>
     </div>
     <div id="green">
       <div id="editor"></div>
     </div>
-    <div id="options" />
-    </div>
+    <div id="options" /></div>
     <script>
-      var modelUrl = 'models/fail1.mpd?x=3';
-      //var modelUrl = 'models/spiral2.ldr';
-      //var modelUrl = 'models/pyramid10.ldr';
-      //var modelUrl = 'models/test4.ldr';
+      var modelUrl = 'models/test4.ldr';
       var baseURL = 'sample_instructions.htm?step='; // Change this line so it fits the page that renders instructions for you (probably not 'sample_instructions.htm')
-
       var manager;
       var ldrOptions = new LDR.Options(); // Global scope for options.
 
-      function refreshCache() {
-        console.log("Refreshing cache - will be called once in a while.");
-      }
-
       $(function() {
         var options = {canEdit:false, saveFileLines:true};
-        manager = new LDR.InstructionsManager(modelUrl, '?', null, refreshCache, baseURL, 1, options);
+        manager = new LDR.InstructionsManager(modelUrl, '?', null, ()=>{}, baseURL, 1, options);
         //manager.stats = new Stats(); document.body.appendChild(stats.dom);
       });
     </script>

@@ -193,7 +193,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
                 self.storage.retrievePartsFromStorage(toBeBuilt, onPartsRetrieved);
             }
             else {
-                onAllToBeBuiltIdentified(toBeBuilt);
+                onPartsRetrieved(toBeBuilt);
             }
 	}
  	self.storage = new LDR.STORAGE(onStorageReady);
@@ -204,6 +204,9 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
     this.setUpOptions();
     this.onWindowResize();
     this.ldrLoader = new THREE.LDRLoader(onLoad, options);
+    LDR.Studs.setPrimitives(this.ldrLoader.partTypes); // Primitives used by studs.
+    LDR.Studs.setStuds(this.ldrLoader.partTypes, !true, 0); // Studs.
+    
     this.ldrLoader.load(modelUrl);
 }
 
@@ -429,13 +432,6 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
     let measurer = new LDR.Measurer(this.camera);
     let [dx,dy] = measurer.measure(b, this.baseObject.matrixWorld);
     
-    // Update maxSizePerPixel:
-    /*if(dx*window.innerWidth/viewPortWidth > dy*window.innerHeight/viewPortHeight) {
-        this.maxSizePerPixel = size/viewPortWidth;//*window.devicePixelRatio;
-    }
-    else {
-        this.maxSizePerPixel = size/viewPortHeight;//*window.devicePixelRatio;
-    }*/
     this.updatePLI(false); newPLIW = this.pliW, newPLIH = this.pliH;
     
     goBack();
