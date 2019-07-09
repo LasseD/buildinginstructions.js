@@ -102,3 +102,31 @@ LDR.STORAGE.prototype.retrievePartsFromStorage = function(loader, parts, onDone)
 
     parts.forEach(fetch);
 }
+
+LDR.STORAGE.prototype.savePartsToStorage = function(parts) {
+    let partsWritten = 0;
+    let transaction = this.db.transaction(["parts"], "readwrite");
+    
+    transaction.oncomplete = function(event) {
+        if(partsWritten === 0) {
+            console.log('No new parts were written to indexedDB');
+        }
+        else {
+            console.log('Completed writing of ' + partsWritten + ' parts');
+        }
+    };
+    transaction.onerror = function(event) {
+        console.warn('Error while writing parts!');
+        console.dir(event);
+        console.dir(transaction.error);
+    };
+    let objectStore = transaction.objectStore("parts");
+    
+    function savePartType(pt) {
+        if(pt.canBePacked()) {
+            let packed = pt.pack();
+            objectStore.put(packed).onsuccess = function(e) {partsWritten++;};
+        }
+    }
+    parts.forEach(savePartType);
+}

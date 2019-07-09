@@ -479,26 +479,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 
     // Save loaded parts into IndexedDB:
     if(this.storage.db) {
-        let partsWritten = 0;
-	let transaction = this.storage.db.transaction(["parts"], "readwrite"); // TODO: readwrite not necessary: Write only!
-
-	transaction.oncomplete = function(event) {
-            console.log('Completed writing of ' + partsWritten + ' parts');
-	};
-	transaction.onerror = function(event) {
-	    console.warn('Error while writing parts!');
-	    console.dir(event);
-            console.dir(transaction.error);
-	};
-	let objectStore = transaction.objectStore("parts");
-
-        function savePartType(pt) {
-            if(pt.canBePacked()) {
-                let packed = pt.pack();
-		objectStore.put(packed).onsuccess = function(e) {partsWritten++;};
-            }
-        }
-        loadedParts.forEach(savePartType);
+        setTimeout(() => self.storage.savePartsToStorage(loadedParts), 2000); // Don't let this action delay rendering.
     }
 
     //let parseEndTime = new Date();
@@ -705,6 +686,7 @@ THREE.LDRStep = function() {
     this.original;
 }
 
+LDR.BYTES_WRITTEN = 0;
 THREE.LDRStep.prototype.pack = function(obj) {
     let arrayF = [];
     let arrayI = [];
@@ -762,7 +744,17 @@ THREE.LDRStep.prototype.pack = function(obj) {
     handle(this.triangles, 3);
     handle(this.quads, 4);
 
-    obj.ai = arrayI.some(val => val > 32767) ? new Int32Array(arrayI) : new Int16Array(arrayI);
+    LDR.BYTES_WRITTEN += arrayF.length * 4 + obj.sp.length*2;
+    if(arrayI.some(val => val > 32767)) {
+        obj.ai = new Int32Array(arrayI);
+        LDR.BYTES_WRITTEN += arrayI.length * 4;
+    }
+    else {
+        obj.ai = new Int16Array(arrayI);
+        LDR.BYTES_WRITTEN += arrayI.length * 2;
+    }
+
+    //obj.ai = arrayI.some(val => val > 32767) ? new Int32Array(arrayI) : new Int16Array(arrayI);
     obj.af = new Float32Array(arrayF);
 }
 
@@ -1163,7 +1155,8 @@ THREE.LDRPartType = function() {
 }
 
 THREE.LDRPartType.prototype.canBePacked = function() {
-    return this.license === 'Redistributable under CCAL version 2.0 : see CAreadme.txt' &&
+    return this.inlined !== 'IDB' && // Don't re-pack.
+           this.license === 'Redistributable under CCAL version 2.0 : see CAreadme.txt' &&
            this.steps.length === 1 &&
            this.lastRotation === null &&
            (this.ldraw_org === 'Part' || this.ldraw_org === 'Primitive' || 
@@ -1179,6 +1172,7 @@ THREE.LDRPartType.prototype.pack = function() {
     }
     ret.ID = id;
     ret.md = this.modelDescription;
+    LDR.BYTES_WRITTEN += (id.length + ret.md.length) * 2 + 1;
     this.steps[0].pack(ret);
     // Ignore headers and history to save space.
     ret.e = (this.CCW ? 2 : 0) + (this.certifiedBFC ? 1 : 0);
@@ -1193,6 +1187,7 @@ THREE.LDRPartType.prototype.unpack = function(obj) {
     this.steps = [step];
     this.certifiedBFC = obj.e % 2 === 1;
     this.CCW = Math.floor(obj.e/2) % 2 === 1;
+    this.inlined = 'IDB';
 }
 
 /*
