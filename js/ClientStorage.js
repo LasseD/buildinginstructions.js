@@ -1,20 +1,24 @@
 'use strict';
 
 LDR.STORAGE = function(onReady) {
-    this.req = indexedDB.open("ldraw", 3); 
+    this.req = indexedDB.open("ldraw", 3);
     this.db;
 
     this.req.onupgradeneeded = function(event) {
-	const db = event.target.result; // IDBDatabase
+	const db = event.target.result;
 	db.onerror = errorEvent => console.dir(errorEvent);
 
 	if(event.oldVersion < 1) {
 	    db.createObjectStore("parts", {keyPath: "ID"});
-	    //db.createObjectStore("models", {keyPath: "ID"}); NOT YET USED!
 	}
-	else if(event.oldVersion < 3) {
+	else if(event.oldVersion < 2) {
 	    // Colors in the 10k+ range need to be updated to 100k+
 	    // This is the easy way to upgrade: Simply purge the store.
+	    var partsStore = this.transaction.objectStore("parts");
+	    partsStore.clear();
+	}
+	else if(event.oldVersion < 3) {
+	    // New structure of the parts table - now storing lines instead of geometries.
 	    var partsStore = this.transaction.objectStore("parts");
 	    partsStore.clear();
 	}
@@ -30,6 +34,11 @@ LDR.STORAGE = function(onReady) {
     this.req.onsuccess = function(event) {
 	self.db = event.target.result;
 	onReady(self);
+    };
+
+    this.req.onblocked = function() {
+        console.warn('there is another open connection to the ldraw database!');
+        onReady(self); // Continue execution without self.db
     };
 };
 

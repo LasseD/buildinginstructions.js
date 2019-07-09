@@ -12,7 +12,6 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
 
     this.scene = new THREE.Scene(); // To add stuff to
     this.scene.background = new THREE.Color( 0xFFFFFF );
-    this.storage; // Will be set in onLoad()
 
     //this.scene.add( new THREE.AxesHelper( 5 ) );
 

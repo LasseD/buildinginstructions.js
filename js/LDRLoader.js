@@ -480,6 +480,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
     // Save loaded parts into IndexedDB:
     if(this.storage.db) {
         setTimeout(() => self.storage.savePartsToStorage(loadedParts), 2000); // Don't let this action delay rendering.
+        // Do not call storage.db.close() as there might be other parts that should be saved.
     }
 
     //let parseEndTime = new Date();
