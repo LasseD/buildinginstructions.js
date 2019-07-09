@@ -33,8 +33,8 @@ LDR.StepEditor = function(loader, stepHandler, reset, onChange, modelID) {
     this.stepIndex;
     this.step;
 
-    function showOrHide(options) {
-        if(options.showEditor) {
+    function showOrHide() {
+        if(ldrOptions.showEditor) {
             $("#editor").show();
         }
         else{

@@ -175,8 +175,8 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
                 }
             }
 	    
-            self.stepEditor = new LDR.StepEditor(self.ldrLoader, self.stepHandler, 
-                                                 removeGeometries, () => self.handleStepsWalked(), 
+            self.stepEditor = new LDR.StepEditor(self.ldrLoader, self.stepHandler,
+                                                 removeGeometries, () => self.handleStepsWalked(),
                                                  self.modelID);
             self.stepEditor.createGuiComponents(document.getElementById('editor'));
             if(ldrOptions.showEditor === 1) {
@@ -335,11 +335,10 @@ LDR.InstructionsManager.prototype.updatePLI = function(force) {
 }
 
 LDR.InstructionsManager.prototype.updateViewPort = function() {
-    //let size = this.renderer.getSize(); console.log('Updating viewport. PLI=' + this.pliW + 'x' + this.pliH + ' canvas: ' + size.width + 'x' + size.height + ' top ' + this.topButtonsHeight + ', pixel ratio: ' + window.devicePixelRatio);
     this.camera.position.set(10000, 7000, 10000);
 
     let dx = 0;
-    let dy = this.topButtonsHeight/2;// * window.devicePixelRatio;
+    let dy = this.topButtonsHeight/2;
 
     if(!this.pliBuilder || this.pliW == 0) {
         // No move
@@ -350,7 +349,6 @@ LDR.InstructionsManager.prototype.updateViewPort = function() {
     else {
         dy += this.pliH/2;
     }
-    //console.log('Pans to ' + dx + ', ' + dy);
     this.controls.panTo(dx, dy);
 }
 
@@ -712,9 +710,25 @@ LDR.InstructionsManager.prototype.setUpOptions = function() {
     ldrOptions.appendCameraOptions(optionsDiv, this.ldrButtons);
 
     ldrOptions.appendFooter(optionsDiv);
-    ldrOptions.listeners.push(function() {
-      self.stepHandler.updateMeshCollectors();
-      self.updateUIComponents(true);
-      self.ldrButtons.hideElementsAccordingToOptions();
-    });
+    ldrOptions.listeners.push(function(partGeometriesChanged) {
+            if(partGeometriesChanged) { // Update all studs:
+                for(let pt in self.ldrLoader.partTypes) {
+                    if(self.ldrLoader.partTypes.hasOwnProperty(pt)) {
+                        pt = self.ldrLoader.partTypes[pt];
+                        if(pt.isPart()) {
+                            pt.geometry = pt.mesh = null;
+                        }
+                    }
+                }
+                LDR.Studs.setStuds(self.ldrLoader.partTypes, ldrOptions.studHighContrast, 0); // Studs.
+                let stepIndex = self.stepHandler.getCurrentStepIndex();
+                self.stepHandler.rebuild();
+                self.stepHandler.moveSteps(stepIndex, () => {});
+                self.handleStepsWalked();
+            }
+
+            self.stepHandler.updateMeshCollectors();
+            self.updateUIComponents(true);
+            self.ldrButtons.hideElementsAccordingToOptions();
+        });
 }

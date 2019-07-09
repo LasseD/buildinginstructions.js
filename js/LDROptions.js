@@ -25,9 +25,9 @@ LDR.Options = function() {
     this.readOptionsFromCookie();
 
     let options = this;
-    this.onChange = function() {
+    this.onChange = function(partGeometriesChanged) {
 	for(let i = 0; i < options.listeners.length; i++) {
-	    options.listeners[i](options);
+	    options.listeners[i](partGeometriesChanged);
 	}
 	options.saveOptionsToCookie();
     }
@@ -147,7 +147,7 @@ LDR.Options.prototype.appendOldBrickColorOptions = function(optionsBlock) {
     let options = this;
     let onOldBrickChange = function(idx) {
 	options.showOldColors = idx;
-	options.onChange();
+	options.onChange(false);
     };
     let buttons = this.createButtons(group, 2, this.showOldColors, onOldBrickChange);
     
@@ -217,7 +217,7 @@ LDR.Options.prototype.appendContrastOptions = function(optionsBlock) {
           options.lineColor = 0x333333;
         else
           options.lineColor = 0;
-	options.onChange();
+	options.onChange(false);
     };
     let buttons = this.createButtons(group, 2, this.lineContrast, onChange);
     
@@ -281,11 +281,11 @@ LDR.Options.prototype.appendPartColorOptions = function(optionsBlock) {
 	else
 	    options.createSvgPoints(0, 0, pointColor, svg, 2);
 
-	let listener = function(options) {
+	let listener = function() {
 	    svg.style.backgroundColor = bgColor(options);
 	};
 	options.listeners.push(listener);
-	listener(options);
+	listener();
 
 	return preview;
     }
@@ -302,7 +302,7 @@ LDR.Options.prototype.appendPartColorOptions = function(optionsBlock) {
     let onChange = function() {
 	options.bgColor = parseInt(input1.value.substring(1), 16);
 	options.pointColor = parseInt(input2.value.substring(1), 16);
-	options.onChange();
+	options.onChange(false);
     }
 
     // Fill in data:
@@ -321,7 +321,7 @@ LDR.Options.prototype.appendPartPointSizeOptions = function(optionsBlock) {
     let options = this;
     let onChange = function(idx) {
 	options.pointSize = idx;
-	options.onChange();
+	options.onChange(false);
     };
     let buttons = this.createButtons(group, 5, this.pointSize, onChange);
 
@@ -354,7 +354,7 @@ LDR.Options.prototype.appendAnimationOptions = function(optionsBlock) {
     let options = this;
     let onAnimationChange = function(idx) {
 	options.showStepRotationAnimations = idx;
-	options.onChange();
+	options.onChange(false);
     };
     let buttons = this.createButtons(group, 3, this.showStepRotationAnimations, onAnimationChange);
     let red = function(){return '#C91A09';};
@@ -458,7 +458,7 @@ LDR.Options.prototype.appendShowPLIOptions = function(optionsBlock) {
     let options = this;
     let onPLIChange = function(idx) {
 	options.showPLI = idx;
-	options.onChange();
+	options.onChange(false);
     };
     let buttons = this.createButtons(group, 2, this.showPLI, onPLIChange);
     
@@ -508,7 +508,7 @@ LDR.Options.prototype.appendLROptions = function(optionsBlock, ldrButtons) {
     let options = this;
     let onLRChange = function(idx) {
 	options.showLRButtons = idx;
-	options.onChange();
+	options.onChange(false);
 
         ldrButtons.nextButtonLarge.style.display = (idx != 0) ? 'none' : 'block';
         ldrButtons.nextButton.style.display = (idx != 1) ? 'none' : 'block';
@@ -552,7 +552,7 @@ LDR.Options.prototype.appendCameraOptions = function(optionsBlock, ldrButtons) {
     let options = this;
     let onCameraChange = function(idx) {
 	options.showCameraButtons = idx;
-	options.onChange();
+	options.onChange(false);
         console.warn('Change Camera to ' + idx);
 	if(idx == 0) {
 	    ldrButtons.zoomInButtonLarge.style.display = 'none';
@@ -627,7 +627,7 @@ LDR.Options.prototype.appendRotationOptions = function(optionsBlock) {
     let options = this;
     let onChange = function(idx) {
 	options.rotateModel = idx;
-	options.onChange();
+	options.onChange(false);
     };
     let buttons = this.createButtons(group, 2, this.rotateModel, onChange);
     let red = function(){return '#C91A09';};
@@ -676,7 +676,7 @@ LDR.Options.prototype.appendStudHighContrastOptions = function(optionsBlock) {
     let options = this;
     let onChange = function(idx) {
 	options.studHighContrast = idx;
-	options.onChange();
+	options.onChange(true);
     };
     let buttons = this.createButtons(group, 2, this.studHighContrast, onChange);
     let red = function(){return '#C91A09';};
@@ -758,13 +758,13 @@ LDR.Options.prototype.createSvgBlock = function(x, y, closed, getFillColor, getL
     let path1 = document.createElementNS(LDR.SVG.NS, 'path');
     path1.setAttribute('d', pts1);
     let options = this;
-    let listener1 = function(options) {
+    let listener1 = function() {
 	path1.setAttribute('fill', getFillColor(options));
 	path1.setAttribute('stroke', getLineColor(options));
     };
     this.listeners.push(listener1);
     parent.appendChild(path1);
-    listener1(options);
+    listener1();
 
     if(!closed)
 	return;
@@ -782,7 +782,7 @@ LDR.Options.prototype.createSvgBlock = function(x, y, closed, getFillColor, getL
     }
     this.listeners.push(listener2);
     parent.appendChild(path2);
-    listener2(options);
+    listener2();
 }
 
 LDR.Options.prototype.createSvgPoints = function(x, y, getColor, parent, size) {
@@ -804,12 +804,12 @@ LDR.Options.prototype.createSvgPoints = function(x, y, getColor, parent, size) {
     path1.setAttribute('fill', 'none');
     path1.style = "stroke-width: " + size/2;
     let options = this;
-    let listener1 = function(options) {
+    let listener1 = function() {
 	path1.setAttribute('stroke', getColor(options));
     };
     this.listeners.push(listener1);
     parent.appendChild(path1);
-    listener1(options);
+    listener1();
 
     let pts2 = 'M ' +(x-dx2) + ' ' + (y-dy/2) + 
 	' l' + dx2 + ' -' + dy2 + 
@@ -824,7 +824,7 @@ LDR.Options.prototype.createSvgPoints = function(x, y, getColor, parent, size) {
     }
     this.listeners.push(listener2);
     parent.appendChild(path2);
-    listener2(options);
+    listener2();
 }
 
 LDR.Options.prototype.createSvgCylinder = function(x, y, highContrast, getFillColor, getLineColor, parent) {
@@ -860,7 +860,7 @@ LDR.Options.prototype.createSvgCylinder = function(x, y, highContrast, getFillCo
     parent.appendChild(top);
 
     let options = this;
-    let listener = function(options) {
+    let listener = function() {
 	base.setAttribute('stroke', getLineColor(options));
 	if(!highContrast) {
 	    l1.setAttribute('stroke', getLineColor(options));
@@ -872,5 +872,5 @@ LDR.Options.prototype.createSvgCylinder = function(x, y, highContrast, getFillCo
 	top.setAttribute('stroke', getLineColor(options));
     };
     this.listeners.push(listener);
-    listener(options);
+    listener();
 }
