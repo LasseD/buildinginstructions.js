@@ -2,7 +2,7 @@
 
 LDR = LDR || {};
 
-LDR.PLIBuilder = function(loader, canEdit, mainModelID, mainModelColor, pliElement, pliRenderElement) {
+LDR.PLIBuilder = function(loader, canEdit, mainModelID, pliElement, pliRenderElement) {
     this.loader = loader;
     this.canEdit = canEdit;
     this.pliElement = pliElement;

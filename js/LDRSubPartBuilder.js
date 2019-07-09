@@ -264,7 +264,7 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
 	    if(!line.line1) {
                 let pt = new THREE.LDRPartType();
 		pt.addStep(step);
-		pt.prepareGeometry(this.loader);
+		pt.ensureGeometry(this.loader);
 		pt.generateThreePart(this.loader, c, new THREE.Vector3(), new THREE.Matrix3(), line.cull, line.ccw, line.mc);
 	    }
 

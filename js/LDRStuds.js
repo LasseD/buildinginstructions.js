@@ -144,6 +144,7 @@ LDR.Studs.setStud1 = function(partTypes, highContrast, logoType) {
 }
 
 LDR.Studs.setStud2 = function(partTypes, highContrast, logoType) {
+    console.log('Creating studs. High contrast: ' + highContrast);
     let pt = LDR.Studs.makePrimitivePartType('Stud Open', 'stud2.dat');
     let step = new THREE.LDRStep();
 

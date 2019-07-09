@@ -140,7 +140,7 @@ LDR.LDRGeometry.prototype.unpack = function(packed) {
     function extract(size, into, pointsForBoundingBox) {
 	while(true) {
 	    if(idxI >= arrayI.length) {
-		throw 'Deserialization error!';
+		throw 'Deserialization error 2!';
             }
 	    let ret = [];
 	    let len = arrayI[idxI++];	    
@@ -481,7 +481,7 @@ LDR.LDRGeometry.prototype.replaceWithDeep = function(g) {
 /*
   Build this from the 4 types of primitives.
 */
-LDR.LDRGeometry.prototype.fromPrimitives = function(lines, conditionalLines, triangles, quads, parent) {
+LDR.LDRGeometry.prototype.fromPrimitives = function(lines, conditionalLines, triangles, quads) {
     let geometries = [];
 
     if(lines.length > 0) {
@@ -638,19 +638,21 @@ LDR.LDRGeometry.prototype.fromQuads = function(ps) {
 /*
   Consolidate the primitives and sub-parts of the step.
 */
-LDR.LDRGeometry.prototype.fromStep = function(loader, step, parent) {
+LDR.LDRGeometry.prototype.fromStep = function(loader, step) {
     let geometries = [];
     if(step.hasPrimitives) {
         let g = new LDR.LDRGeometry();
-	g.fromPrimitives(step.lines, step.conditionalLines, step.triangles, step.quads, parent);
+	g.fromPrimitives(step.lines, step.conditionalLines, step.triangles, step.quads);
         geometries.push(g);
     }
+
     function handleSubModel(subModel) {
         let g = new LDR.LDRGeometry(); 
 	g.fromPartDescription(loader, subModel);
         geometries.push(g);
     }
     step.subModels.forEach(handleSubModel);
+
     this.replaceWith(LDR.mergeGeometries(geometries));
     this.cull = step.cull;
 }
@@ -661,21 +663,21 @@ LDR.LDRGeometry.prototype.fromPartType = function(loader, pt) {
 	console.warn("No steps in " + pt.ID);
 	return; // Empty - just make empty.
     }
-    for(let i = 0; i < pt.steps.length; i++) {
-	let step = pt.steps[i];
-        let g = new LDR.LDRGeometry();
-	g.fromStep(loader, step, pt.ID);
-        geometries.push(g);
-    }
+
+    pt.steps.forEach(step => {
+            let g = new LDR.LDRGeometry();
+            g.fromStep(loader, step);
+            geometries.push(g);
+        }); // Only one step expected, but we do not know if someone suddenly gets the bright idea to have stes in part files..
+
     this.replaceWith(LDR.mergeGeometries(geometries));
 }
 
 LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
-    if(!loader.partTypes[pd.ID].geometry) {
-	console.dir(loader.partTypes[pd.ID]);
-	throw "Missing geometry on " + pd.ID;
-    }
-    this.replaceWithDeep(loader.partTypes[pd.ID].geometry);
+    let pt = loader.partTypes[pd.ID];
+    pt.ensureGeometry(loader);
+
+    this.replaceWithDeep(pt.geometry);
     this.cull = this.cull && pd.cull;
 
     let m4 = new THREE.Matrix4();

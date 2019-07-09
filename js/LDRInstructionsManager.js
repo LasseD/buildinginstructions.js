@@ -106,22 +106,24 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
     }
     document.onkeydown = handleKeyDown;
       
-    let onPartsRetrieved = function(ignoreWhatIsStillToBeBuilt) {
+    let onLoad = function() {
         console.log("Done loading at " + (new Date()-startTime) + "ms.");
-	let mainModel = self.ldrLoader.mainModel;
-	let origo = new THREE.Vector3();
-	let inv = new THREE.Matrix3(); inv.set(1,0,0, 0,1,0, 0,0,1); // Invert Y-axis
 
-	let pd = new THREE.LDRPartDescription(0, origo, inv, mainModel, false);
-
-	self.pliBuilder = new LDR.PLIBuilder(self.ldrLoader,
+        // Find what should be built for first step:
+        let mainModel = self.ldrLoader.mainModel;
+        let origo = new THREE.Vector3();
+        let inv = new THREE.Matrix3(); inv.set(1,0,0, 0,1,0, 0,0,1); // Invert Y-axis
+        
+        let pd = new THREE.LDRPartDescription(0, origo, inv, mainModel, false);
+        
+        self.pliBuilder = new LDR.PLIBuilder(self.ldrLoader,
                                              self.canEdit,
                                              mainModel,
-                                             0,
                                              self.pliElement,
                                              document.getElementById('pli_render_canvas'));
         self.stepHandler = new LDR.StepHandler(self.opaqueObject, self.transObject, self.ldrLoader, [pd], true, self.storage);
-	self.stepHandler.nextStep(false);
+        self.stepHandler.nextStep(false);
+
 	self.realignModel(0);
 	self.updateUIComponents(false);
 	self.render(); // Updates background color.
@@ -184,30 +186,18 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
         }
     }
 
-    let onLoad = function() {
-	function onStorageReady() {
-            let geometryBuilder = new LDR.GeometryBuilder(self.ldrLoader, self.storage);
-            let toBeBuilt = geometryBuilder.getAllTopLevelToBeBuilt();
-
-            if(self.storage.db) {
-                self.storage.retrievePartsFromStorage(toBeBuilt, onPartsRetrieved);
-            }
-            else {
-                onPartsRetrieved(toBeBuilt);
-            }
-	}
- 	self.storage = new LDR.STORAGE(onStorageReady);
+    let onStorageReady = function() {
+        self.ldrLoader = new THREE.LDRLoader(onLoad, self.storage, options);
+        LDR.Studs.setPrimitives(self.ldrLoader.partTypes); // Primitives used by studs.
+        LDR.Studs.setStuds(self.ldrLoader.partTypes, ldrOptions.studHighContrast, 0); // Studs.
+        self.ldrLoader.load(modelUrl);
     }
 
     document.getElementById("pli").addEventListener('click', e => self.onPLIClick(e));
 
     this.setUpOptions();
     this.onWindowResize();
-    this.ldrLoader = new THREE.LDRLoader(onLoad, options);
-    LDR.Studs.setPrimitives(this.ldrLoader.partTypes); // Primitives used by studs.
-    LDR.Studs.setStuds(this.ldrLoader.partTypes, true, 0); // Studs.
-    
-    this.ldrLoader.load(modelUrl);
+    this.storage = new LDR.STORAGE(onStorageReady);
 }
 
 LDR.InstructionsManager.prototype.updateRotator = function(zoom) {
@@ -716,6 +706,7 @@ LDR.InstructionsManager.prototype.setUpOptions = function() {
     ldrOptions.appendHeader(optionsDiv);    
     ldrOptions.appendOldBrickColorOptions(optionsDiv);
     ldrOptions.appendContrastOptions(optionsDiv);
+    ldrOptions.appendStudHighContrastOptions(optionsDiv);
     ldrOptions.appendAnimationOptions(optionsDiv);
     ldrOptions.appendShowPLIOptions(optionsDiv);
     ldrOptions.appendLROptions(optionsDiv, this.ldrButtons);

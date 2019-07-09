@@ -19,6 +19,7 @@ LDR.Options = function() {
     this.showPLI = 1; // 0=off, 1=on
     this.rotateModel = 0; // 0=off, 1=on
     this.showEditor = 0; // 0=off, 1=on
+    this.studHighContrast = 0; // 0=off, 1=on
 
     // Read values that might be in cookie:
     this.readOptionsFromCookie();
@@ -61,6 +62,7 @@ LDR.Options.prototype.saveOptionsToCookie = function() {
     addToKv("showLRButtons");
     addToKv("showPLI");
     addToKv("showEditor");
+    addToKv("studHighContrast");
     
     // Parts list-specific:
     addToKv("partsListType");
@@ -669,6 +671,40 @@ LDR.Options.prototype.appendRotationOptions = function(optionsBlock) {
     }
 }
 
+LDR.Options.prototype.appendStudHighContrastOptions = function(optionsBlock) {
+    let group = this.addOptionsGroup(optionsBlock, 2, "Contrast on Studs");
+    let options = this;
+    let onChange = function(idx) {
+	options.studHighContrast = idx;
+	options.onChange();
+    };
+    let buttons = this.createButtons(group, 2, this.studHighContrast, onChange);
+    let red = function(){return '#C91A09';};
+    let lineColor = function(options){
+	return LDR.Colors.int2Hex(options.lineColor);
+    };
+    let w = 20;	
+    
+    /* 
+       Option 0: Off
+    */
+    {
+	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	svg.setAttribute('viewBox', '-100 -25 200 50');
+	buttons[0].appendChild(svg);
+        this.createSvgCylinder(0, 0, false, red, lineColor, svg);
+    }
+    /* 
+       Option 1: On
+    */
+    {
+	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	svg.setAttribute('viewBox', '-100 -25 200 50');
+	buttons[1].appendChild(svg);
+        this.createSvgCylinder(0, 0, true, red, lineColor, svg);
+    }
+}
+
 LDR.Options.prototype.createButtons = function(parent, numberOfButtons, initiallySelected, onChange) {
     let ret = [];
 
@@ -791,9 +827,9 @@ LDR.Options.prototype.createSvgPoints = function(x, y, getColor, parent, size) {
     listener2(options);
 }
 
-LDR.Options.prototype.createSvgCylinder = function(x, y, conditionalLines, getFillColor, getLineColor, parent) {
-    let dx2 = LDR.Options.svgBlockWidth/2; // Half a block width
-    let dy = LDR.Options.svgBlockHeight;
+LDR.Options.prototype.createSvgCylinder = function(x, y, highContrast, getFillColor, getLineColor, parent) {
+    let dx2 = LDR.Options.svgBlockWidth*0.5; // Half a block width
+    let dy = LDR.Options.svgBlockHeight*0.5;
     let dy2 = dy*0.3; // dy for moving half a block width.
 
     function makeCyli(y) {
@@ -810,23 +846,28 @@ LDR.Options.prototype.createSvgCylinder = function(x, y, conditionalLines, getFi
 
     parent.appendChild(base);
     parent.appendChild(center);
-    if(conditionalLines) {
-	let l1 = LDR.SVG.makeLine(x-dx2, y-dy/2, x-dx2, y+dy/2);
-	parent.appendChild(l1);
-	let l2 = LDR.SVG.makeLine(x+dx2, y-dy/2, x+dx2, y+dy/2);	
-	parent.appendChild(l2);	
+    let l1 = LDR.SVG.makeLine(x-dx2, y-dy/2, x-dx2, y+dy/2);
+    parent.appendChild(l1);
+    let l2 = LDR.SVG.makeLine(x+dx2, y-dy/2, x+dx2, y+dy/2);	
+    parent.appendChild(l2);	
+
+    if(highContrast) {
+        base.setAttribute('fill', '#000000');
+        center.setAttribute('fill', '#000000');
+        l1.setAttribute('stroke', '#000000');
+        l2.setAttribute('stroke', '#000000');
     }
     parent.appendChild(top);
 
     let options = this;
     let listener = function(options) {
-	base.setAttribute('fill', getFillColor(options));
 	base.setAttribute('stroke', getLineColor(options));
-	center.setAttribute('fill', getFillColor(options));
-	if(conditionalLines) {
+	if(!highContrast) {
 	    l1.setAttribute('stroke', getLineColor(options));
-	    l2.setAttribute('stroke', getLineColor(options));	    
-	}
+	    l2.setAttribute('stroke', getLineColor(options));
+            base.setAttribute('fill', getFillColor(options));
+            center.setAttribute('fill', getFillColor(options));
+        }
 	top.setAttribute('fill', getFillColor(options));
 	top.setAttribute('stroke', getLineColor(options));
     };

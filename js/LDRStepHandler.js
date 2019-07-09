@@ -26,7 +26,6 @@ LDR.StepHandler = function(opaqueObject, transObject, loader, partDescs, isForMa
     this.storage = storage;
 
     // Build state:
-    this.geometryBuilder = new LDR.GeometryBuilder(loader, storage);
     this.part = loader.partTypes[partDescs[0].ID];
     this.hasExtraParts = partDescs.length > 1;
     this.rebuild();
@@ -227,7 +226,6 @@ LDR.StepHandler.prototype.nextStep = function(doNotEraseForSubModels) {
 	    let pd = this.partDescs[0];
             meshCollector = new LDR.MeshCollector(this.opaqueObject, this.transObject);
 
-	    this.geometryBuilder.buildStep(step.step); // Ensure geometries
 	    step.step.generateThreePart(this.loader, pd.colorID, pd.position, pd.rotation, true, false, meshCollector);
 	    step.meshCollector = meshCollector;
 	    this.setCurrentBounds(meshCollector.boundingBox);

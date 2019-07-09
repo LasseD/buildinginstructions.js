@@ -1,7 +1,7 @@
 'use strict';
 
-LDR.STORAGE = function(onDone) {
-    this.req = indexedDB.open("ldraw", 2); 
+LDR.STORAGE = function(onReady) {
+    this.req = indexedDB.open("ldraw", 3); 
     this.db;
 
     this.req.onupgradeneeded = function(event) {
@@ -10,9 +10,9 @@ LDR.STORAGE = function(onDone) {
 
 	if(event.oldVersion < 1) {
 	    db.createObjectStore("parts", {keyPath: "ID"});
-	    db.createObjectStore("models", {keyPath: "ID"});
+	    //db.createObjectStore("models", {keyPath: "ID"}); NOT YET USED!
 	}
-	else if(event.oldVersion < 2) {
+	else if(event.oldVersion < 3) {
 	    // Colors in the 10k+ range need to be updated to 100k+
 	    // This is the easy way to upgrade: Simply purge the store.
 	    var partsStore = this.transaction.objectStore("parts");
@@ -24,20 +24,23 @@ LDR.STORAGE = function(onDone) {
     this.req.onerror = function(event) {
 	console.warn('DB Error: ' + event.target.errorCode);
 	console.dir(event);
-	onDone(self);
+	onReady(self);
     };
 
     this.req.onsuccess = function(event) {
 	self.db = event.target.result;
-	onDone(self);
+	onReady(self);
     };
 };
 
 /*
   Attempts to fetch all in array 'parts' and calls onDone(stillToBeBuilt) on completion.
  */
-LDR.STORAGE.prototype.retrievePartsFromStorage = function(parts, onDone) {
+LDR.STORAGE.prototype.retrievePartsFromStorage = function(loader, parts, onDone) {
+    console.log('Attempting to retrieve ' + parts.length + ' part(s) from indexedDB: ' + parts.slice(0, 10).join('/') + '...');
     let stillToBeBuilt = [];
+    let seen = {};
+    parts.forEach(partID => seen[partID] = true);
     
     let transaction = this.db.transaction(["parts"]);
     let objectStore = transaction.objectStore("parts");
@@ -45,37 +48,57 @@ LDR.STORAGE.prototype.retrievePartsFromStorage = function(parts, onDone) {
     let self = this;
     let remaining = parts.length;
 
-    function onHandled() {
+    function onHandled(partID) {
 	remaining--;
-	if(remaining == 0) {
+
+        if(loader.partTypes.hasOwnProperty(partID)) {
+            // Check if any sub model should be fetched:
+            let part = loader.partTypes[partID];
+            let checkSubModel = function(sm) {
+                if(!(loader.partTypes.hasOwnProperty(sm.ID) || seen.hasOwnProperty(sm.ID))) {
+                    //console.log(partID + ' => fetch: ' + sm.ID);
+                    remaining++;
+                    seen[sm.ID] = true;
+                    fetch(sm.ID);
+                }
+            }
+            part.steps.forEach(step => step.subModels.forEach(checkSubModel));
+        }
+
+	if(remaining === 0) {
 	    if(stillToBeBuilt.length > 0) {
-		console.warn(stillToBeBuilt.length + " parts could not be fetched from indexedDB. These include parts, such as " + stillToBeBuilt[0].ID);
+		console.warn(stillToBeBuilt.length + " part(s) could not be fetched from indexedDB: " + stillToBeBuilt.slice(0, 10).join('/') + '...');
 	    }
 	    onDone(stillToBeBuilt);
 	}
     }
 
-    function fetch(part) {
-	//console.log('Fetching ' + part.ID);
-	let request = objectStore.get(part.ID);
+    function fetch(partID) {
+        let shortPartID = partID;
+        if(partID.endsWith('.dat')) {
+            shortPartID = partID.substring(0, partID.length-4); // Smaller keys.
+        }
+	let request = objectStore.get(shortPartID);
 	request.onerror = function(event) {
-	    stillToBeBuilt.push(part);
-	    console.warn(part.ID + " retrieval error from indexedDB!");
+	    stillToBeBuilt.push(partID);
+	    console.warn(shortPartID + " retrieval error from indexedDB!");
 	    console.dir(event);
-	    onHandled();
+	    onHandled(partID);
 	};
 	request.onsuccess = function(event) {
 	    let result = request.result;
 	    if(result) {
-		//console.log("Fetched " + part.ID + " from indexedDB");
-		part.geometry = new LDR.LDRGeometry();
-		part.geometry.unpack(result.g);
+		//console.log("Fetched " + shortPartID + " from indexedDB");
+		let part = new THREE.LDRPartType();
+                part.unpack(result);
+                loader.partTypes[partID] = part;
 	    }
 	    else {
-		stillToBeBuilt.push(part);
+		stillToBeBuilt.push(partID);
 	    }
-	    onHandled();
+	    onHandled(partID);
 	};
     }
+
     parts.forEach(fetch);
 }
