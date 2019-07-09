@@ -11,8 +11,9 @@
     position: absolute;
     bottom: 0;
     height: 100px;
-    width: 100%;
     text-align: center;
+    left: 50%;
+    transform: translate(-50%, 0);
 }
 #lower_right_buttons {
   position: absolute;

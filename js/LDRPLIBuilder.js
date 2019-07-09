@@ -235,17 +235,16 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
         });
         // Draw highlight for ghosted parts:
         if(ldrOptions.showEditor) {
+            context.strokeStyle = "#5DD";
+            context.lineWidth = '4';
             self.clickMap.forEach(icon => {
-                    if(!icon.part.original.ghost) {
-                        return; // Do not draw highlight.
+                    if(icon.part.original.ghost) {
+                        let x = parseInt((icon.x)*DPR);
+                        let y = parseInt((icon.y)*DPR);
+                        let w = parseInt((icon.DX)*DPR);
+                        let h = parseInt((icon.DY)*DPR);
+                        context.strokeRect(x, y, w, h);
                     }
-                    const x = parseInt((icon.x+8)*DPR);
-                    const y = parseInt((icon.y+5)*DPR);
-                    const w = parseInt((icon.DX)*DPR);
-                    const h = parseInt((icon.DY)*DPR);
-                    context.strokeStyle = "#5DD";
-                    context.lineWidth = '4';
-                    context.strokeRect(x, y, w, h);
                 });
         }
     }
