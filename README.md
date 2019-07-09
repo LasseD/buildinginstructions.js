@@ -22,6 +22,7 @@ sample_part.htm provides a break down of a single part. Points highlight where l
 
 sample_functions.htm shows how to perform operations on LDraw models, such as changing all parts of a certain color, and applying improvements toward OMR-compliance.
 
+### Standard File Structure
 
 If you want to view additional models, then add the necessary LDraw files directly to the 'ldraw_parts' directory. Downloaded files from [the LDraw parts library](http://www.ldraw.org/parts/latest-parts.html) should thus result in a file structure as follows:
 
@@ -34,8 +35,13 @@ If you want to view additional models, then add the necessary LDraw files direct
 
 * /ldraw_parts/s - Place the content of '/parts/s', such as '10s01.dat' here.
 
+### LDraw File Structure with Searching
 
-These files fetch data asynchroneously, so opening them in your browser might not work out of the box due to default security settings. To get around this you can either host the files on a local server or disable the browser checks. As an example, Chrome can be started with the following parameters in order to disable these security settings:
+See the file sample_part_standard.htm for how to use buildinginstructions.js with the standard setup of ldraw files (official and unofficial). It searches for files in the two directories 'official/' and 'unofficial'.
+
+## Hosting Locally
+
+Files are fetched asynchroneously, so opening the sample files in your browser might not work out of the box due to default security settings. To get around this you can either host the files on a local server or disable the browser checks. As an example, Chrome can be started with the following parameters in order to disable these security settings:
 
 ```
  --disable-web-security --user-data-dir=some_directory_where_it_is_ok_that_chrome_saves_a_lot_of_files

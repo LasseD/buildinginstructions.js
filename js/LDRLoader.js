@@ -19,8 +19,7 @@
  *  - line: Line number in the loaded file where the error occured.
  *  - subModel: THREE.LDRPartType in which the error occured.
  * - saveFileLines: Set to 'true' if LDR.Line0, LDR.Line1, ... LDR.Line5-objects should be saved on part types.
- * - idToUrl(id,top) is used to translate an id into a file location. Set this function to fit your own directory structure if needed. A normal LDraw directory has files both under /parts and /p and requires you to search for dat files. You can choose to combine the directories, but this is not considered good practice. The function takes two parameters:
- *  - id is the part id to be translated.
+ * - idToUrl(id) is used to translate an id into all potential file locations. Set this function to fit your own directory structure if needed. A normal LDraw directory has files both under /parts and /p and requires you to search for dat files. You can choose to combine the directories to reduce the need for searching, but this is not considered good practice.
  */
 THREE.LDRLoader = function(onLoad, storage, options) {
     let self = this;
@@ -56,9 +55,9 @@ THREE.LDRLoader = function(onLoad, storage, options) {
 
     this.idToUrl = options.idToUrl || function(id) {
 	if(!id.endsWith(".dat")){
-	    return id;
+	    return [id];
 	}
-	return "ldraw_parts/"+id.toLowerCase();
+	return ["ldraw_parts/"+id.toLowerCase()];
     };
 }
 
@@ -69,8 +68,7 @@ THREE.LDRLoader = function(onLoad, storage, options) {
  * id is transformed using 'idToUrl' which can be parsed to the loader using the options parameter in the constructor..
  */
 THREE.LDRLoader.prototype.load = function(id) {
-    let url = this.idToUrl(id);
-    console.log('Loading ' + id + ' (' + url + ')');
+    let urls = this.idToUrl(id);
     id = id.toLowerCase().replace('\\', '/'); // Sanitize id. 
 
     if(this.partTypes[id]) { // Already loaded
@@ -79,6 +77,7 @@ THREE.LDRLoader.prototype.load = function(id) {
         }
 	return;
     }
+    console.log('Loading ' + id + ' (' + urls.join(' or ') + ')');
 
     this.partTypes[id] = true;
 
@@ -88,8 +87,19 @@ THREE.LDRLoader.prototype.load = function(id) {
 	self.unloadedFiles--; // Warning - might have concurrency issue when two threads simultaneously update this!
 	self.reportProgress(id);
     }
+    var urlID = 0;
+    let onError = function(event) {
+        urlID++;
+        if(urlID < urls.length) {
+            self.loader.load(urls[urlID], onFileLoaded, self.onProgress, onError);
+        }
+        else {
+            self.onError(event);
+        }
+    }
+
     this.unloadedFiles++;
-    this.loader.load(url, onFileLoaded, self.onProgress, self.onError);
+    this.loader.load(urls[urlID], onFileLoaded, self.onProgress, onError);
 };
 
 /*

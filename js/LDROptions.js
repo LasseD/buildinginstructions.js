@@ -5,7 +5,7 @@ LDR.Options = function() {
     
     // Default values for options (in case of first visit or no cookies:
     this.showOldColors = 0; // 0 = all colors. 1 = single color old
-    this.lineContrast = 1; // 0 = High contrast, 1 = LDraw. 2 = no lines.
+    this.lineContrast = 1; // 0 = High contrast, 1 = LDraw
     this.bgColor = 0xFFFFFF;
     this.pointColor = 0xFF0000;
     this.pointSize = 2;

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+ <head>
+    <meta charset=utf-8>
+    <title>Sample render of a part where part files are found in the official and unofficial folders</title>
+    <meta name="viewport" content="width=device-width" />
+ </head>
+ <body>
+    <script src="js/three.min.js"></script>
+    <script src="js/OrbitControls.js"></script>
+    <script src="js/colors.js"></script>
+    <script src="js/LDROptions.js"></script>
+    <script src="js/LDRShaders.js"></script>
+    <script src="js/LDRColorMaterials.js"></script>
+    <script src="js/LDRGeometries.js"></script>
+    <script src="js/LDRLoader.js"></script>
+    <script src="js/LDRMeasurer.js"></script>
+    <script>
+      // Set up camera:
+      var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
+      camera.position.set(10000, 7000, 10000);
+      camera.lookAt(new THREE.Vector3());
+
+      // Set up scene:
+      var scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xFFFFFF); // Set the background color of the renderer here!
+
+      var baseObject = new THREE.Group(), opaqueObject = new THREE.Group(), transObject = new THREE.Group();
+      baseObject.add(opaqueObject); // Draw non-trans before trans.
+      baseObject.add(transObject);
+      scene.add(baseObject);
+      var mc = new LDR.MeshCollector(opaqueObject, transObject);
+
+      // Set up renderer:
+      var renderer = new THREE.WebGLRenderer({antialias: true});
+      renderer.setPixelRatio(window.devicePixelRatio);
+      function render() {
+        renderer.render(scene, camera);
+      }
+      document.body.appendChild(renderer.domElement);
+
+      function onWindowResize(){
+        camera.left = -window.innerWidth;
+        camera.right = window.innerWidth;
+        camera.top = window.innerHeight;
+        camera.bottom = -window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        render();
+      }
+
+      // React to user input:
+      var controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.addEventListener('change', render);
+      window.addEventListener('resize', onWindowResize, false);
+
+      // Three.js loader for LDraw models:
+      var ldrLoader;
+
+      var onLoad = function() {
+        var mainModel = ldrLoader.partTypes[ldrLoader.mainModel];
+
+        // Place model in scene:
+        var origo = new THREE.Vector3();
+        var inv = new THREE.Matrix3(); 
+        inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
+
+        // Generate the mesh:
+        mainModel.generateThreePart(ldrLoader, 0, origo, inv, true, false, mc);
+
+        // Find center of drawn model:
+        var b = mc.boundingBox;
+        var elementCenter = new THREE.Vector3();
+        b.getCenter(elementCenter);
+        baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
+
+        let measurer = new LDR.Measurer(camera);
+        let [dx,dy] = measurer.measure(b, baseObject.matrixWorld);
+	camera.zoom = 1.6*Math.min(window.innerWidth/dx, window.innerHeight/dy); // 1.6 to make the part not fill the full element. Use 2.0 to max it out.
+
+        onWindowResize();
+      }
+
+      var ldrOptions = new LDR.Options(); // Determine how to show lines. See below:
+      ldrOptions.lineContrast = 1;
+
+      // The following function makes the ldrLoader search through the official
+      // and unofficial file structures (unofficial/ and unofficial/) for parts.
+      const OFFICIAL_DIR = 'official', UNOFFICIAL_DIR = 'unofficial';
+      var idToUrl = function(id) {
+        if(id.startsWith('48/') || id.startsWith('8/')) {
+          return [OFFICIAL_DIR + '/p/' + id, 
+                  UNOFFICIAL_DIR + '/p/' + id];
+        }
+        else if(id.startsWith('s/')) {
+          return [OFFICIAL_DIR + '/parts/' + id,
+                  UNOFFICIAL_DIR + '/parts/' + id];
+        }
+        else {
+          return [OFFICIAL_DIR + '/parts/' + id, 
+                  OFFICIAL_DIR + '/p/' + id,
+                  UNOFFICIAL_DIR + '/parts/' + id,
+                  UNOFFICIAL_DIR + '/p/' + id];
+        }
+      }
+
+      ldrLoader = new THREE.LDRLoader(onLoad, null, {idToUrl:idToUrl});
+      ldrLoader.load('4-4disc.dat');
+ </script>
+ </body>
+</html>
