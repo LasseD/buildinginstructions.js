@@ -66,7 +66,7 @@
         inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
 
         // Generate the mesh:
-        mainModel.generateThreePart(ldrLoader, 0, origo, inv, true, false, mc);
+        mainModel.generateThreePart(ldrLoader, 16, origo, inv, true, false, mc);
 
         // Find center of drawn model:
         var b = mc.boundingBox;
@@ -105,7 +105,8 @@
       }
 
       ldrLoader = new THREE.LDRLoader(onLoad, null, {idToUrl:idToUrl});
-      ldrLoader.load('4-4disc.dat');
+      ldrLoader.load('3001.dat'); // Set the part to load here. 
+      //ldrLoader.load('stud-logo.dat');
  </script>
  </body>
 </html>
