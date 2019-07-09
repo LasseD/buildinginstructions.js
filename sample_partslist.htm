@@ -26,6 +26,7 @@
     <script src="js/LDRButtons.js"></script>
     <script src="js/LDRPLIPreview.js"></script>
     <script src="js/LDRMeasurer.js"></script>
+    <script src="js/LDRStuds.js"></script>
 
     <div id="top">
       <div id="icon_toggles">
@@ -35,8 +36,8 @@
     </div>
    
     <div id="generated">
-      <div id="preview_background" onclick="pliPreviewer.hidePliPreview();"></div>
-      <div id="preview_holder">
+      <div class="background" id="preview_background" onclick="pliPreviewer.hidePliPreview();"></div>
+      <div class="holder" id="preview_holder">
         <div id="preview_parent"><canvas id="preview" /></div>
 
         <div id="preview_info">
@@ -426,10 +427,6 @@
         }
 
         var onLoad = function() {
-	  var geometryBuilder = new LDR.GeometryBuilder(ldrLoader, {});
-	  var toBeBuilt = geometryBuilder.getAllTopLevelToBeBuilt();
-	  geometryBuilder.build(toBeBuilt);
-
           var mainModel = ldrLoader.mainModel;
 
           builder = new LDR.PartsBuilder(ldrLoader, mainModel, 0);

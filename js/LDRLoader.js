@@ -44,7 +44,7 @@ THREE.LDRLoader = function(onLoad, storage, options) {
         onLoad();
         self.onLoad = () => console.warn('onLoad called more than once!');
     };
-    this.storage = storage || {retrievePartsFromStorage: (toBeFetched, onDone) => onDone(toBeFetched)}; // If there is no storage, simply act as if the storage is not able to fetch anything.
+    this.storage = storage || {retrievePartsFromStorage: (loader, toBeFetched, onDone) => onDone(toBeFetched)}; // If there is no storage, simply act as if the storage is not able to fetch anything.
 
     options = options || {};
     this.onProgress = options.onProgress || function(){};

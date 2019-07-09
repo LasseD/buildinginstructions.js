@@ -15,6 +15,7 @@
   <script src="js/LDRColorMaterials.js"></script>
   <script src="js/LDRGeometries.js"></script>
   <script src="js/LDRLoader.js"></script>
+  <script src="js/LDRStuds.js"></script>
   <script src="js/LDROMR.js"></script>
 
   <!--<div id="select_model"><input id="input_model" value="omr_3_all_errors.mpd" /><button onclick="load()">LOAD</button></div>-->
@@ -72,10 +73,6 @@
       var ldrLoader;
 
       var onLoad = function() {
-	var geometryBuilder = new LDR.GeometryBuilder(ldrLoader, {});
-	var toBeBuilt = geometryBuilder.getAllTopLevelToBeBuilt();
-	geometryBuilder.build(toBeBuilt);
-
         var mainModel = ldrLoader.partTypes[ldrLoader.mainModel]; // Main model from the LDraw file (first model encountered)
 
         // Place model in scene:
@@ -110,7 +107,7 @@
       }
 
       var ldrOptions = new LDR.Options(); // Determine how to show lines. Change this in sample_instruction.htm
-      ldrLoader = new THREE.LDRLoader(onLoad, {saveFileLines:true});
+      ldrLoader = new THREE.LDRLoader(onLoad, null, {saveFileLines:true});
       ldrLoader.load(modelTypeUrl);
 
       /*

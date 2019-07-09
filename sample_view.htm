@@ -14,6 +14,7 @@
     <script src="js/LDRColorMaterials.js"></script>
     <script src="js/LDRGeometries.js"></script>
     <script src="js/LDRLoader.js"></script>
+    <script src="js/LDRStuds.js"></script>
     <script>
       var startTime = new Date();
       // The model to be rendered:
@@ -61,10 +62,6 @@
       var ldrLoader;
 
       var onLoad = function() {
-	var geometryBuilder = new LDR.GeometryBuilder(ldrLoader, {});
-	var toBeBuilt = geometryBuilder.getAllTopLevelToBeBuilt();
-	geometryBuilder.build(toBeBuilt);
-
         var mainModel = ldrLoader.partTypes[ldrLoader.mainModel]; // Main model from the LDraw file (first model encountered)
 
         // Place model in scene:
@@ -84,11 +81,14 @@
 
 	camera.zoom = window.innerWidth/b.min.distanceTo(b.max);
         onWindowResize();
-        console.log("Model tendered in " + (new Date()-startTime) + "ms.");
+        console.log("Model rendered in " + (new Date()-startTime) + "ms.");
       }
 
-      var ldrOptions = new LDR.Options(); // Determine how to show lines. Change this in sample_instruction.htm
+      var ldrOptions = new LDR.Options(); // Determine how to show lines. Change options using sample_instruction.htm
       ldrLoader = new THREE.LDRLoader(onLoad);
+      LDR.Studs.setPrimitives(ldrLoader.partTypes); // Primitives used by studs.
+      LDR.Studs.setStuds(ldrLoader.partTypes, ldrOptions.studHighContrast, 0); // Studs.
+      
       ldrLoader.load(modelTypeUrl);
  </script>
  </body>

@@ -146,11 +146,7 @@
 	  mainModel = ldrLoader.partTypes[mainModelID + '.ldr'];
 	}
 	mainModel.isPart = function(){return false;};
-
-	var geometryBuilder = new LDR.GeometryBuilder(ldrLoader, {}); // {} is a fake storage
-	var toBeBuilt = geometryBuilder.getAllTopLevelToBeBuilt();
-	toBeBuilt.push(mainModel);
-	geometryBuilder.build(toBeBuilt);
+        mainModel.ensureGeometry(ldrLoader);
 
         // Place model in scene:
         var origo = new THREE.Vector3();
@@ -236,7 +232,7 @@
 	messageElement.appendChild(messageBody);
       }
 
-      ldrLoader = new THREE.LDRLoader(onLoad, {onError:onError, onWarning:onWarning, saveFileLines:true});
+      ldrLoader = new THREE.LDRLoader(onLoad, null, {onError:onError, onWarning:onWarning, saveFileLines:true});
       ldrLoader.load('3003.dat');
 
       // Color setup:
