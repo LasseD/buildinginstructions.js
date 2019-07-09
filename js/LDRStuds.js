@@ -116,8 +116,10 @@ LDR.Studs.setPrimitives = function(partTypes) {
 }
 
 LDR.Studs.setStuds = function(partTypes, highContrast, logoType) {
+    console.log('Creating studs. High contrast: ' + highContrast);
     LDR.Studs.setStud1(partTypes, highContrast, logoType);
-    LDR.Studs.setStud2(partTypes, highContrast, logoType);
+    LDR.Studs.setStud2(partTypes, highContrast, logoType, true);
+    LDR.Studs.setStud2(partTypes, highContrast, logoType, false);
 }
 
 LDR.Studs.setStud1 = function(partTypes, highContrast, logoType) {
@@ -143,9 +145,8 @@ LDR.Studs.setStud1 = function(partTypes, highContrast, logoType) {
     partTypes[pt.ID] = pt;
 }
 
-LDR.Studs.setStud2 = function(partTypes, highContrast, logoType) {
-    console.log('Creating studs. High contrast: ' + highContrast);
-    let pt = LDR.Studs.makePrimitivePartType('Stud Open', 'stud2.dat');
+LDR.Studs.setStud2 = function(partTypes, highContrast, logoType, withBaseEdges) {
+    let pt = LDR.Studs.makePrimitivePartType('Stud Open' + (withBaseEdges ? '' : ' without Base Edges'), 'stud2' + (withBaseEdges ? '' : 'a') + '.dat');
     let step = new THREE.LDRStep();
 
     let p0 = new THREE.Vector3();
@@ -156,8 +157,11 @@ LDR.Studs.setStud2 = function(partTypes, highContrast, logoType) {
     let r646 = new THREE.Matrix3(); r646.set(6, 0, 0, 0, 4, 0, 0, 0, 6);
     let r212 = new THREE.Matrix3(); r212.set(2, 0, 0, 0, 1, 0, 0, 0, 2);
 
-    step.addSubModel(new THREE.LDRPartDescription(16, p0, r414, '4-4edge.dat', true, false));
-    step.addSubModel(new THREE.LDRPartDescription(16, p0, r616, '4-4edge.dat', true, false));
+    // Base edges:
+    if(withBaseEdges) {
+	step.addSubModel(new THREE.LDRPartDescription(16, p0, r414, '4-4edge.dat', true, false));
+	step.addSubModel(new THREE.LDRPartDescription(16, p0, r616, '4-4edge.dat', true, false));
+    }
     step.addSubModel(new THREE.LDRPartDescription(16, p4, r414, '4-4edge.dat', true, false));
     step.addSubModel(new THREE.LDRPartDescription(16, p4, r616, '4-4edge.dat', true, false));
     step.addSubModel(new THREE.LDRPartDescription(16, p4, r444, '4-4cyli2.dat', true, true)); // inverted. Consider if the conditional lines should be included ot not.

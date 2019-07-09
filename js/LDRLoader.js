@@ -1167,6 +1167,7 @@ THREE.LDRPartType = function() {
 
 THREE.LDRPartType.prototype.canBePacked = function() {
     return this.inlined !== 'IDB' && // Don't re-pack.
+           this.inlined !== 'GENERATED' && // Don't pack generated parts.
            this.license === 'Redistributable under CCAL version 2.0 : see CAreadme.txt' &&
            this.steps.length === 1 &&
            this.lastRotation === null &&
@@ -1353,7 +1354,7 @@ THREE.LDRPartType.prototype.isPart = function() {
 }
 
 THREE.LDRPartType.prototype.countParts = function(loader) {
-    if(this.cnt >= 0) {
+    if(this.cnt >= 0 || this.isPart()) {
 	return this.cnt;
     }
     this.cnt = this.steps.map(step => step.countParts(loader)).reduce((a,b)=>a+b, 0);
