@@ -115,36 +115,67 @@ LDR.Studs.setPrimitives = function(partTypes) {
     partTypes[p.ID] = p;
 }
 
-LDR.Studs.setStuds = function(partTypes, highContrast, logoType) {
+LDR.Studs.setStuds = function(ldrLoader, partTypes, highContrast, logoType, onDone) {
+    console.log('Creating studs. High contrast: ' + highContrast + ' logo type: ' + logoType);
+
     LDR.Studs.setStud1(partTypes, highContrast, logoType);
     LDR.Studs.setStud2(partTypes, highContrast, logoType);
+
+    let logoID = 'logo' + (logoType === 1 ? '' : logoType) + '.dat';
+    if(logoType > 0 && !ldrLoader.partTypes.hasOwnProperty(logoID)) { // Load logoID if needed:
+        ldrLoader.onDone = onDone;
+        ldrLoader.load(logoID);
+    }
+    else {
+        onDone(); // All OK.
+    }
 }
 
 LDR.Studs.setStud1 = function(partTypes, highContrast, logoType) {
     let pt = LDR.Studs.makePrimitivePartType('Stud', 'stud.dat');
     let step = new THREE.LDRStep();
 
+    // Common positions and rotations:
     let p0 = new THREE.Vector3();
-    let p4 = new THREE.Vector3(0, -4, 0);
-    let r1 = new THREE.Matrix3(); r1.set(6, 0, 0, 0, 1, 0, 0, 0, 6);
-    let r4 = new THREE.Matrix3(); r4.set(6, 0, 0, 0, -4, 0, 0, 0, 6);
+    let r111 = new THREE.Matrix3(); r0.set(1, 0, 0, 0, 1, 0, 0, 0, 1);
+    let r616 = new THREE.Matrix3(); r1.set(6, 0, 0, 0, 1, 0, 0, 0, 6);
 
-    step.addSubModel(new THREE.LDRPartDescription(16, p0, r1, '4-4edge.dat', true, false));
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r1, '4-4edge.dat', true, false));
-    if(highContrast) {
-        step.addSubModel(new THREE.LDRPartDescription(0, p0, r4, '4-4cyli2.dat', true, false));
+    if(logoType < 2) {
+        var p4 = new THREE.Vector3(0, -4, 0); // 'var' allows drop-through.
+        var r646 = new THREE.Matrix3(); r4.set(6, 0, 0, 0, -4, 0, 0, 0, 6);
+        // Stud type one actually uses a 4-4cylc.dat, but then high contrast does not work!
+        step.addSubModel(new THREE.LDRPartDescription(16, p0, r616, '4-4edge.dat', true, false));
+        step.addSubModel(new THREE.LDRPartDescription(16, p4, r616, '4-4edge.dat', true, false));
+        step.addSubModel(new THREE.LDRPartDescription(16, p4, r616, '4-4disc.dat', true, false));
+
+        // Cylinder:
+        if(highContrast) {
+            step.addSubModel(new THREE.LDRPartDescription(0, p0, r646, '4-4cyli2.dat', true, false));
+        }
+        else {
+            step.addSubModel(new THREE.LDRPartDescription(16, p0, r646, '4-4cyli.dat', true, false));
+        }
     }
     else {
-        step.addSubModel(new THREE.LDRPartDescription(16, p0, r4, '4-4cyli.dat', true, false));
+        var p34 = new THREE.Vector3(0, -3.4, 0);
+        var p38 = new THREE.Vector3(0, -3.8, 0);
+        // TODO
     }
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r1, '4-4disc.dat', true, false));
+
+    // Logo:
+    let logo;
+    if(logoType === 1) {
+        logo = step.addSubModel(new THREE.LDRPartDescription(16, p4, r111, 'logo.dat', true, false));
+    }
+    else if(logoType > 1) {
+        logo = step.addSubModel(new THREE.LDRPartDescription(16, p38, r111, 'logo' + logoType + '.dat', true, false));
+    }
 
     pt.steps.push(step); // No need to user 'addStep()' for primitives.
     partTypes[pt.ID] = pt;
 }
 
 LDR.Studs.setStud2 = function(partTypes, highContrast, logoType) {
-    console.log('Creating studs. High contrast: ' + highContrast);
     let pt = LDR.Studs.makePrimitivePartType('Stud Open', 'stud2.dat');
     let step = new THREE.LDRStep();
 
@@ -172,8 +203,3 @@ LDR.Studs.setStud2 = function(partTypes, highContrast, logoType) {
     pt.steps.push(step); // No need to user 'addStep()' for primitives.
     partTypes[pt.ID] = pt;
 }
-
-LDR.Studs.removeGeometriesForAllWithStuds = function(partTypes) {
-    // TODO
-}
-
