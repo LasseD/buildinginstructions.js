@@ -20,6 +20,7 @@ LDR.Options = function() {
     this.rotateModel = 0; // 0=off, 1=on
     this.showEditor = 0; // 0=off, 1=on
     this.studHighContrast = 0; // 0=off, 1=on
+    this.studLogo = 0; // 0=off, 1...5=Types of logos from LDraw
 
     // Read values that might be in cookie:
     this.readOptionsFromCookie();
@@ -63,6 +64,7 @@ LDR.Options.prototype.saveOptionsToCookie = function() {
     addToKv("showPLI");
     addToKv("showEditor");
     addToKv("studHighContrast");
+    addToKv("studLogo");
     
     // Parts list-specific:
     addToKv("partsListType");
@@ -702,6 +704,38 @@ LDR.Options.prototype.appendStudHighContrastOptions = function(optionsBlock) {
 	svg.setAttribute('viewBox', '-100 -25 200 50');
 	buttons[1].appendChild(svg);
         this.createSvgCylinder(0, 0, true, red, lineColor, svg);
+    }
+}
+
+LDR.Options.prototype.appendStudLogoOptions = function(optionsBlock) {
+    let group = this.addOptionsGroup(optionsBlock, 6, "Logo on Studs");
+    let options = this;
+    let onChange = function(idx) {
+	options.studLogo = idx;
+	options.onChange(true);
+    };
+    let buttons = this.createButtons(group, 6, this.studLogo, onChange);
+
+    /* 
+       Option 0: Off
+    */
+    {
+	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	svg.setAttribute('viewBox', '-100 -50 200 100');
+	svg.setAttribute('class', 'ui_toggles');
+	svg.appendChild(LDR.SVG.makeOffIcon(0, 0, 100));
+	buttons[0].appendChild(svg);
+    }
+    for(let i = 1; i < 6; i++) {
+	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	svg.setAttribute('viewBox', '-25 -18 50 25');
+	svg.setAttribute('class', 'ui_toggles');
+        let lego = document.createElementNS(LDR.SVG.NS, 'text');
+        lego.innerHTML = 'LEGO';
+        lego.setAttribute('class', 'lego_' + i);
+        lego.setAttribute('text-anchor', 'middle');
+        svg.append(lego);
+	buttons[i].appendChild(svg);
     }
 }
 

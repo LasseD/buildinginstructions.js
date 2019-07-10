@@ -41,7 +41,6 @@ THREE.LDRLoader = function(onLoad, storage, options) {
         }
         unloaded.forEach(id => delete self.partTypes[id]);
         onLoad();
-        self.onLoad = () => console.warn('onLoad called more than once!');
     };
     this.storage = storage || {retrievePartsFromStorage: (loader, toBeFetched, onDone) => onDone(toBeFetched)}; // If there is no storage, simply act as if the storage is not able to fetch anything.
 
@@ -104,7 +103,7 @@ THREE.LDRLoader.prototype.load = function(id) {
 
 /*
  * Attempt to load multiple files (identified by 'ids', an array od ID's of the files).
- * This method will try to fetch the filew from 'storage' prior to loading using 'loader'.
+ * This method will try to fetch the files from 'storage' prior to loading using 'loader'.
  */
 THREE.LDRLoader.prototype.loadMultiple = function(ids) {
     let self = this;
@@ -1167,6 +1166,7 @@ THREE.LDRPartType = function() {
 
 THREE.LDRPartType.prototype.canBePacked = function() {
     return this.inlined !== 'IDB' && // Don't re-pack.
+           this.inlined !== 'GENERATED' && // Don't pack generated parts.
            this.license === 'Redistributable under CCAL version 2.0 : see CAreadme.txt' &&
            this.steps.length === 1 &&
            this.lastRotation === null &&
@@ -1353,7 +1353,7 @@ THREE.LDRPartType.prototype.isPart = function() {
 }
 
 THREE.LDRPartType.prototype.countParts = function(loader) {
-    if(this.cnt >= 0) {
+    if(this.cnt >= 0 || this.isPart()) {
 	return this.cnt;
     }
     this.cnt = this.steps.map(step => step.countParts(loader)).reduce((a,b)=>a+b, 0);

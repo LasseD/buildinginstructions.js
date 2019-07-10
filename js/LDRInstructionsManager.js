@@ -188,8 +188,8 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
     let onStorageReady = function() {
         self.ldrLoader = new THREE.LDRLoader(onLoad, self.storage, options);
         LDR.Studs.setPrimitives(self.ldrLoader.partTypes); // Primitives used by studs.
-        LDR.Studs.setStuds(self.ldrLoader.partTypes, ldrOptions.studHighContrast, 0); // Studs.
-        self.ldrLoader.load(modelUrl);
+        LDR.Studs.setStuds(self.ldrLoader, ldrOptions.studHighContrast, 
+                           ldrOptions.studLogo, () => self.ldrLoader.load(modelUrl));
     }
 
     document.getElementById("pli").addEventListener('click', e => self.onPLIClick(e));
@@ -704,6 +704,7 @@ LDR.InstructionsManager.prototype.setUpOptions = function() {
     ldrOptions.appendOldBrickColorOptions(optionsDiv);
     ldrOptions.appendContrastOptions(optionsDiv);
     ldrOptions.appendStudHighContrastOptions(optionsDiv);
+    ldrOptions.appendStudLogoOptions(optionsDiv);
     ldrOptions.appendAnimationOptions(optionsDiv);
     ldrOptions.appendShowPLIOptions(optionsDiv);
     ldrOptions.appendLROptions(optionsDiv, this.ldrButtons);
@@ -720,15 +721,22 @@ LDR.InstructionsManager.prototype.setUpOptions = function() {
                         }
                     }
                 }
-                LDR.Studs.setStuds(self.ldrLoader.partTypes, ldrOptions.studHighContrast, 0); // Studs.
-                let stepIndex = self.stepHandler.getCurrentStepIndex();
-                self.stepHandler.rebuild();
-                self.stepHandler.moveSteps(stepIndex, () => {});
-                self.handleStepsWalked();
+                function callBack() {
+                    let stepIndex = self.stepHandler.getCurrentStepIndex();
+                    self.stepHandler.rebuild();
+                    self.stepHandler.moveSteps(stepIndex, () => {});
+                    self.handleStepsWalked();
+                    
+                    self.stepHandler.updateMeshCollectors();
+                    self.updateUIComponents(true);
+                }
+                LDR.Studs.setStuds(self.ldrLoader, ldrOptions.studHighContrast, 
+                                   ldrOptions.studLogo, callBack); // Studs.
             }
-
-            self.stepHandler.updateMeshCollectors();
-            self.updateUIComponents(true);
+            else {
+                self.stepHandler.updateMeshCollectors();
+                self.updateUIComponents(true);
+            }
             self.ldrButtons.hideElementsAccordingToOptions();
         });
 }
