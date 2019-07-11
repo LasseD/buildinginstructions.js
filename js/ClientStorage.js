@@ -63,15 +63,17 @@ LDR.STORAGE.prototype.retrievePartsFromStorage = function(loader, parts, onDone)
         if(loader.partTypes.hasOwnProperty(partID)) {
             // Check if any sub model should be fetched:
             let part = loader.partTypes[partID];
-            let checkSubModel = function(sm) {
-                if(!(loader.partTypes.hasOwnProperty(sm.ID) || seen.hasOwnProperty(sm.ID))) {
-                    //console.log(partID + ' => fetch: ' + sm.ID);
-                    remaining++;
-                    seen[sm.ID] = true;
-                    fetch(sm.ID);
+            if(part !== true) {
+                let checkSubModel = function(sm) {
+                    if(!(loader.partTypes.hasOwnProperty(sm.ID) || seen.hasOwnProperty(sm.ID))) {
+                        //console.log(partID + ' => fetch: ' + sm.ID);
+                        remaining++;
+                        seen[sm.ID] = true;
+                        fetch(sm.ID);
+                    }
                 }
+                part.steps.forEach(step => step.subModels.forEach(checkSubModel));
             }
-            part.steps.forEach(step => step.subModels.forEach(checkSubModel));
         }
 
 	if(remaining === 0) {

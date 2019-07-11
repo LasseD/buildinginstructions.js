@@ -675,6 +675,9 @@ LDR.LDRGeometry.prototype.fromPartType = function(loader, pt) {
 
 LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
     let pt = loader.partTypes[pd.ID];
+    if(!pt) {
+        throw "Part not loaded: " + pd.ID;
+    }
     pt.ensureGeometry(loader);
 
     this.replaceWithDeep(pt.geometry);

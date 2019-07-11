@@ -44,15 +44,15 @@ THREE.LDRLoader = function(onLoad, storage, options) {
     };
     this.storage = storage || {retrievePartsFromStorage: (loader, toBeFetched, onDone) => onDone(toBeFetched)}; // If there is no storage, simply act as if the storage is not able to fetch anything.
 
-    options = options || {};
-    this.onProgress = options.onProgress || function(){};
-    this.onWarning = options.onWarning || function(msg){ console.warn(msg); };
-    this.onError = options.onError || function(msgObj){ console.dir(msgObj); };
-    this.loader = new THREE.FileLoader(options.manager || THREE.DefaultLoadingManager);
-    this.saveFileLines = options.saveFileLines || false;
+    this.options = options || {};
+    this.onProgress = this.options.onProgress || function(){};
+    this.onWarning = this.options.onWarning || function(msg){ console.warn(msg); };
+    this.onError = this.options.onError || function(msgObj){ console.dir(msgObj); };
+    this.loader = new THREE.FileLoader(this.options.manager || THREE.DefaultLoadingManager);
+    this.saveFileLines = this.options.saveFileLines || false;
     this.mainModel;
 
-    this.idToUrl = options.idToUrl || function(id) {
+    this.idToUrl = this.options.idToUrl || function(id) {
 	if(!id.endsWith(".dat")){
 	    return [id];
 	}
