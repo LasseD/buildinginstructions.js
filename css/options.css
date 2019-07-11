@@ -91,31 +91,31 @@
 #options .lego_1 {
   font: italic 16px arial narrow;
   fill: black;
-  stroke: white;
+  stroke: #FFF;
   stroke-width: 1;
 }
 #options .lego_2 {
   font: italic 16px arial narrow;
   fill: none;
-  stroke: currentcolor;
+  stroke: #000;
   stroke-width: 0.4;
 }
 #options .lego_3 {
   font: italic 16px arial narrow;
   fill: white;
-  stroke: currentcolor;
+  stroke: #000;
   stroke-width: 0.4;
   text-shadow: 3px 3px 0 #FFF, 3px 4px 0 #000;
 }
 #options .lego_4 {
   font: italic 16px arial rounded mt bold;
   fill: none;
-  stroke: currentcolor;
+  stroke: #000;
   stroke-width: 0.5;
 }
 #options .lego_5 {
   font: italic 16px arial rounded mt bold;
   fill: none;
-  stroke: currentcolor;
+  stroke: #000;
   stroke-width: 0.34;
 }
