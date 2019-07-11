@@ -16,11 +16,11 @@ LDR.Studs.makePrimitivePartType = function(desc, name) {
    return pt;
 }
 
-LDR.Studs.makeCircle4 = function(to) {
-    let pt = LDR.Studs.makePrimitivePartType('Circle ' + (to*0.25), to + '-4edge.dat');
+LDR.Studs.makeCircle4 = function(size) {
+    let pt = LDR.Studs.makePrimitivePartType('Circle ' + (size*0.25), size + '-4edge.dat');
     let step = new THREE.LDRStep();
     let prev = new THREE.Vector3(1, 0, 0);
-    for(let i = 1; i <= 4*to; i++) {
+    for(let i = 1; i <= 4*size; i++) {
         let angle = i*Math.PI/8;
         let c = Math.cos(angle), s = Math.sin(angle);
         let p = new THREE.Vector3(c, 0, s);
@@ -31,12 +31,12 @@ LDR.Studs.makeCircle4 = function(to) {
     return pt;
 }
 
-LDR.Studs.makeCylinder1 = function(cond) {
-    let desc = 'Cylinder 1.0';
+LDR.Studs.makeCylinder = function(cond, size) {
+    let desc = 'Cylinder ' + (size*0.25);
     if(!cond) {
         desc += ' without Conditional Lines';
     }
-    let pt = LDR.Studs.makePrimitivePartType(desc, cond ? '4-4cyli.dat' : '4-4cyli2.dat');
+    let pt = LDR.Studs.makePrimitivePartType(desc, size + (cond ? '-4cyli.dat' : '-4cyli2.dat'));
     let step = new THREE.LDRStep();
 
     let p0 = new THREE.Vector3(1, 0, 0), p1 = new THREE.Vector3(1, 1, 0);
@@ -45,7 +45,7 @@ LDR.Studs.makeCylinder1 = function(cond) {
     let next0 = new THREE.Vector3(c, 0, s);
     let next1 = new THREE.Vector3(c, 1, s);
 
-    for(let i = 2; i < 18; i++) {
+    for(let i = 2; i < 4*size+2; i++) {
         let prev0 = p0, prev1 = p1;
         p0 = next0;
         p1 = next1;
@@ -64,12 +64,13 @@ LDR.Studs.makeCylinder1 = function(cond) {
     return pt;
 }
 
-LDR.Studs.makeDisc1 = function() {
-    let pt = LDR.Studs.makePrimitivePartType('Disc 1.0', '4-4disc.dat');
+LDR.Studs.makeDisc = function(size) {
+    let pt = LDR.Studs.makePrimitivePartType('Disc ' + (size*0.25),
+                                             size+'-4disc.dat');
     let step = new THREE.LDRStep();
     let zero = new THREE.Vector3(0, 0, 0);
     let prev = new THREE.Vector3(1, 0, 0);
-    for(let i = 1; i <= 16; i++) {
+    for(let i = 1; i <= 4*size; i++) {
         let angle = i*Math.PI/8;
         let c = Math.cos(angle), s = Math.sin(angle);
         let p = new THREE.Vector3(c, 0, s);
@@ -80,16 +81,18 @@ LDR.Studs.makeDisc1 = function() {
     return pt;
 }
 
-LDR.Studs.makeRing2 = function() {
-    let pt = LDR.Studs.makePrimitivePartType('Ring 2 x 1.0', '4-4ring2.dat');
+LDR.Studs.makeRing = function(size) {
+    let pt = LDR.Studs.makePrimitivePartType('Ring ' + size + ' x 1.0', 
+                                             '4-4ring' + size + '.dat');
     let step = new THREE.LDRStep();
-    let prev1 = new THREE.Vector3(2, 0, 0);
-    let prev2 = new THREE.Vector3(3, 0, 0);
+    let SIZE = size+1;
+    let prev1 = new THREE.Vector3(size, 0, 0);
+    let prev2 = new THREE.Vector3(SIZE, 0, 0);
     for(let i = 1; i <= 16; i++) {
         let angle = i*Math.PI/8;
         let c = Math.cos(angle), s = Math.sin(angle);
-        let p1 = new THREE.Vector3(3*c, 0, 3*s);
-        let p2 = new THREE.Vector3(2*c, 0, 2*s);
+        let p1 = new THREE.Vector3(SIZE*c, 0, SIZE*s);
+        let p2 = new THREE.Vector3(size*c, 0, size*s);
         step.addQuadPoints(16, p1, p2, prev1, prev2);
         prev1 = p2;
         prev2 = p1;
@@ -99,26 +102,27 @@ LDR.Studs.makeRing2 = function() {
 }
 
 LDR.Studs.setPrimitives = function(partTypes) {
-    let p = LDR.Studs.makeCircle4(1);
-    partTypes[p.ID] = p;
-
-    p = LDR.Studs.makeCircle4(2);
-    partTypes[p.ID] = p;
-
-    p = LDR.Studs.makeCircle4(4);
-    partTypes[p.ID] = p;
-
-    p = LDR.Studs.makeCylinder1(true);
-    partTypes[p.ID] = p;
-
-    p = LDR.Studs.makeCylinder1(false);
-    partTypes[p.ID] = p;
-
-    p = LDR.Studs.makeDisc1();
-    partTypes[p.ID] = p;
-
-    p = LDR.Studs.makeRing2();
-    partTypes[p.ID] = p;
+    let a = [
+             LDR.Studs.makeCircle4(1),
+             LDR.Studs.makeCircle4(2),
+             LDR.Studs.makeCircle4(4),
+             LDR.Studs.makeCylinder(true, 1),
+             LDR.Studs.makeCylinder(false, 1),
+             LDR.Studs.makeCylinder(true, 2),
+             LDR.Studs.makeCylinder(false, 2),
+             LDR.Studs.makeCylinder(true, 4),
+             LDR.Studs.makeCylinder(false, 4),
+             LDR.Studs.makeCylinderClosed(1),
+             LDR.Studs.makeCylinderClosed(2),
+             LDR.Studs.makeCylinderClosed(4),
+             LDR.Studs.makeDisc(1),
+             LDR.Studs.makeDisc(2),
+             LDR.Studs.makeDisc(4),
+             LDR.Studs.makeRing(2),
+             LDR.Studs.makeRing(5),
+             LDR.Studs.makeRing(6)
+             ];
+    a.forEach(p => partTypes[p.ID] = p);
 }
 
 LDR.Studs.setStuds = function(ldrLoader, highContrast, logoType, onDone) {
@@ -140,23 +144,17 @@ LDR.Studs.setStuds = function(ldrLoader, highContrast, logoType, onDone) {
         case 1:
         case 2:
         case 5:
-            // logo: 2-4edge|1-4edge OK
-            // stud: 4-4edge|4-4disc|4-4cyli OK, t01o0714 LOAD
             idb.push('t01o0714.dat');
             break;
         case 3:
-            // logo: 2-4edge OK, 2-4cylc|1-4cylc|2-4ring1|2-4cyli LOAD
-            // stud: 4-4edge|4-4disc|4-4cyli OK, t01o0714 LOAD 
-            idb.push('t01o0714.dat', '2-4cylc.dat', '1-4cylc.dat', '2-4ring1.dat', '2-4cyli.dat');
+            idb.push('t01o0714.dat', '2-4ring1.dat');
             break;
         case 4: 
-            // logo: 2-4edge|1-4edge OK, 2-8sphe|1-8sphe|2-4cyls|2-4cyli|t02o3333|t02i3333|1-4cyli|1-4cyls LOAD 
-            // stud: 4-4edge|4-4disc|4-4cyli OK, t01o0714|4-4ring5|4-4ring6 LOAD
-            idb.push('t01o0714.dat', '2-8sphe.dat', '1-8sphe.dat', '2-4cyls.dat', '2-4cyli.dat', 't02o3333.dat', 't02i3333.dat', '1-4cyli.dat', '1-4cyls.dat');
+            idb.push('t01o0714.dat', '2-8sphe.dat', '1-8sphe.dat', '2-4cyls.dat', 
+                     't02o3333.dat', 't02i3333.dat', '1-4cyls.dat');
             break;
-        }
-        if(logoType > 1) {
-            idb.push('4-4ring5.dat', '4-4ring6.dat');
+        default: // No logo, no dependencies:
+            break;
         }
 
         if(idb.length === 0) {
@@ -323,3 +321,21 @@ LDR.Studs.setStud2 = function(partTypes, highContrast, logoType) {
     pt.steps.push(step); // No need to user 'addStep()' for primitives.
     partTypes[pt.ID] = pt;
 }
+
+LDR.Studs.makeCylinderClosed = function(size) {
+    let pt = LDR.Studs.makePrimitivePartType('Cylinder Closed ' + (size*0.25), size + '-4cylc.dat');
+    let step = new THREE.LDRStep();
+    
+    let p0 = new THREE.Vector3();
+    let p1 = new THREE.Vector3(0, 1, 0);
+    let r = LDR.Studs.makeRotation(1, 1);
+
+    step.addSubModel(new THREE.LDRPartDescription(16, p0, r, size+'-4edge.dat', true, false));
+    step.addSubModel(new THREE.LDRPartDescription(16, p1, r, size+'-4edge.dat', true, false));
+    step.addSubModel(new THREE.LDRPartDescription(16, p0, r, size+'-4disc.dat', true, false));
+    step.addSubModel(new THREE.LDRPartDescription(16, p0, r, size+'-4cyli.dat', true, false));
+
+    pt.steps.push(step); // No need to user 'addStep()' for primitives.
+    return pt;
+}
+
