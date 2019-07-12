@@ -263,6 +263,7 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
 
 	    if(!line.line1) {
                 let pt = new THREE.LDRPartType();
+                pt.ID = 'Shadow part for step';
 		pt.addStep(step);
 		pt.ensureGeometry(this.loader);
 		pt.generateThreePart(this.loader, c, new THREE.Vector3(), new THREE.Matrix3(), line.cull, line.ccw, line.mc);

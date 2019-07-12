@@ -1350,7 +1350,7 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 }
     
 THREE.LDRPartType.prototype.isPart = function() {
-    return this.steps.length === 1 && (this.ID.endsWith('dat') || this.steps[0].hasPrimitives);
+    return this.steps.length === 1 && (this.ID.endsWith('.dat') || this.steps[0].hasPrimitives);
 }
 
 THREE.LDRPartType.prototype.countParts = function(loader) {
