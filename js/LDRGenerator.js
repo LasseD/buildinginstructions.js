@@ -26,6 +26,7 @@ LDR.Generator.map = {
     '4-4ring3.dat': () => LDR.Generator.makeRing(4, 3),
     '4-4ring5.dat': () => LDR.Generator.makeRing(4, 5),
     '4-4ring6.dat': () => LDR.Generator.makeRing(4, 6),    
+    'logo.dat': () => LDR.Generator.makeLogo1()
 };
 
 LDR.Generator.make = function(id) {
@@ -194,6 +195,54 @@ LDR.Generator.makeRing = function(sections, size) {
         prev1 = p2;
         prev2 = p1;
     }
+    pt.steps.push(step); // No need to user 'addStep()' for primitives.
+    return pt;
+}
+
+LDR.Generator.makeLogo1 = function() {
+    let pt = LDR.Generator.makeP('LEGO Logo for Studs - Non-3D Thin Lines', 
+                                 'logo.dat');
+    pt.ldraw_org = 'Unofficial_Primitive';
+    let step = new THREE.LDRStep();
+
+    // Content below copied from logo.dat by Paul Easter [pneaster]
+    let a = [
+	[-2,0,-4,2,0,-5,
+	 2,0,-5,2,0,-3.5]
+	,
+	[-2,0,0,-2,0,-2,
+	 -2,0,-2,2,0,-3,
+	 2,0,-3,2,0,-1,
+	 0,0,-1,0,0,-2.5]
+	,
+	[-1.5,0,2.25,-2,0,2,
+	 -2,0,2,-2,0,1,
+	 -2,0,1,-1.5,0,0.5,
+	 -1.5,0,0.5,1.5,0,-0.25,
+	 1.5,0,-0.25,2,0,0,
+	 2,0,0,2,0,1,
+	 2,0,1,1.5,0,1.5,
+	 1.5,0,1.5,0,0,2,
+	 0,0,2,0,0,1]
+	,
+	[-1.5,0,4.75,-2,0,4.5,
+	 -2,0,4.5,-2,0,3.5,
+	 -2,0,3.5,-1.5,0,3,
+	 -1.5,0,3,1.5,0,2.25,
+	 1.5,0,2.25,2,0,2.5,
+	 2,0,2.5,2,0,3.5,
+	 2,0,3.5,1.5,0,4,
+	 1.5,0,4,-1.5,0,4.75]
+    ];
+
+    a.forEach(letter => {
+	for(let i = 0; i < letter.length; i+=6) {
+            let p1 = new THREE.Vector3(letter[i], letter[i+1], letter[i+2]);
+            let p2 = new THREE.Vector3(letter[i+3], letter[i+4], letter[i+5]);
+	    step.addLine(24, p1, p2);
+	}    
+    });
+
     pt.steps.push(step); // No need to user 'addStep()' for primitives.
     return pt;
 }
