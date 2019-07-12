@@ -9,6 +9,7 @@
     <script src="js/three.min.js"></script>
     <script src="js/OrbitControls.js"></script>
     <script src="js/colors.js"></script>
+    <script src="js/ClientStorage.js"></script>
     <script src="js/LDROptions.js"></script>
     <script src="js/LDRShaders.js"></script>
     <script src="js/LDRColorMaterials.js"></script>
@@ -20,6 +21,7 @@
       var startTime = new Date();
       // The model to be rendered:
       var modelTypeUrl = 'models/fail1.mpd';
+      //var modelTypeUrl = 'models/vette.mpd';
 
       // Set up camera:
       var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
@@ -85,12 +87,16 @@
         console.log("Model rendered in " + (new Date()-startTime) + "ms.");
       }
 
-      var ldrOptions = new LDR.Options(); // Determine how to show lines. Change options using sample_instruction.htm
-      ldrLoader = new THREE.LDRLoader(onLoad);
-      LDR.Studs.setPrimitives(ldrLoader.partTypes); // Primitives used by studs.
-      LDR.Studs.setStuds(ldrLoader.partTypes, ldrOptions.studHighContrast, 0); // Studs.
-      
-      ldrLoader.load(modelTypeUrl);
+      let storage;
+      var ldrOptions = new LDR.Options(); // Determine how to show lines, studs, and logos. Change options using sample_instruction.htm
+
+      let onStorageReady = function() {
+        ldrLoader = new THREE.LDRLoader(onLoad, storage);
+        LDR.Studs.setStuds(ldrLoader, ldrOptions.studHighContrast, 
+                           ldrOptions.studLogo, () => ldrLoader.load(modelTypeUrl));
+      }
+
+      storage = new LDR.STORAGE(onStorageReady);
  </script>
  </body>
 </html>
