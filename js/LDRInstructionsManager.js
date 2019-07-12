@@ -187,7 +187,6 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
 
     let onStorageReady = function() {
         self.ldrLoader = new THREE.LDRLoader(onLoad, self.storage, options);
-        LDR.Studs.setPrimitives(self.ldrLoader.partTypes); // Primitives used by studs.
         LDR.Studs.setStuds(self.ldrLoader, ldrOptions.studHighContrast, 
                            ldrOptions.studLogo, () => self.ldrLoader.load(modelUrl));
     }
