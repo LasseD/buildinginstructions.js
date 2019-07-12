@@ -32,7 +32,7 @@ THREE.LDRLoader = function(onLoad, storage, options) {
             if(self.partTypes.hasOwnProperty(id)) {
                 let partType = self.partTypes[id];
                 if(partType === true) {
-                    console.warn('Unloaded sub model: ' + id);
+                    console.warn('Unloaded sub model during cleanup: ' + id);
                     unloaded.push(id);
                     continue;
                 }
