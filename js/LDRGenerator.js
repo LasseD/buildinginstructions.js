@@ -15,6 +15,9 @@ LDR.Generator.map = {
     '1-4cylc.dat': () => LDR.Generator.makeCylinderClosed(1),
     '2-4cylc.dat': () => LDR.Generator.makeCylinderClosed(2),
     '4-4cylc.dat': () => LDR.Generator.makeCylinderClosed(4),
+    '1-4cyls.dat': () => LDR.Generator.makeCylinderSloped(1),
+    '2-4cyls.dat': () => LDR.Generator.makeCylinderSloped(2),
+    '4-4cyls.dat': () => LDR.Generator.makeCylinderSloped(4),
     '1-4disc.dat': () => LDR.Generator.makeDisc(1),
     '2-4disc.dat': () => LDR.Generator.makeDisc(2),
     '4-4disc.dat': () => LDR.Generator.makeDisc(4),
@@ -117,6 +120,42 @@ LDR.Generator.makeCylinder = function(cond, sections) {
         if(cond) {
             step.addConditionalLine(24, p0, p1, prev0, next0);
         }
+    }
+    pt.steps.push(step); // No need to user 'addStep()' for primitives.
+    return pt;
+}
+
+LDR.Generator.makeCylinderSloped = function(sections) {
+    let desc = 'Cylinder Sloped ' + (sections*0.25);
+    let pt = LDR.Generator.makeP(desc, sections + '-4cyls.dat');
+    let step = new THREE.LDRStep();
+
+    let p0 = new THREE.Vector3(1, 0, 0), p1 = new THREE.Vector3(1, 0, 0);
+    let angle = Math.PI/8;
+    let c = Math.cos(angle), s = Math.sin(angle);
+    let next0 = new THREE.Vector3(c, 0, s);
+    let next1 = new THREE.Vector3(c, 1-c, s);
+
+    for(let i = 2; i < 4*sections+2; i++) {
+        let prev0 = p0, prev1 = p1;
+        p0 = next0;
+        p1 = next1;
+        angle = i*Math.PI/8;
+        c = Math.cos(angle);
+        s = Math.sin(angle);
+        next0 = new THREE.Vector3(c, 0, s);
+        next1 = new THREE.Vector3(c, 1-c, s);
+
+        if(i === 2) {
+            step.addTrianglePoints(16, prev1, p1, p0);
+        }
+        else if(i === 17) {
+            step.addTrianglePoints(16, prev1, p1, prev0);
+        }
+        else {
+            step.addQuadPoints(16, prev1, p1, p0, prev0);
+        }
+        step.addConditionalLine(24, p0, p1, prev0, next0);
     }
     pt.steps.push(step); // No need to user 'addStep()' for primitives.
     return pt;
