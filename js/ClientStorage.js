@@ -46,6 +46,10 @@ LDR.STORAGE = function(onReady) {
   Attempts to fetch all in array 'parts' and calls onDone(stillToBeBuilt) on completion.
  */
 LDR.STORAGE.prototype.retrievePartsFromStorage = function(loader, parts, onDone) {
+    if(parts.length === 0) { // Ensure onDone is called when nothing is fetched.
+        onDone([]);
+        return;
+    }
     console.log('Attempting to retrieve ' + parts.length + ' part(s) from indexedDB: ' + parts.slice(0, 10).join('/') + '...');
     let stillToBeBuilt = [];
     let seen = {};
@@ -85,6 +89,16 @@ LDR.STORAGE.prototype.retrievePartsFromStorage = function(loader, parts, onDone)
     }
 
     function fetch(partID) {
+        // Try first to generate the parts as this is quicker:
+        if(LDR.Generator) {
+            let pt = LDR.Generator.make(partID);
+            if(pt) {
+                loader.partTypes[partID] = pt;
+                onHandled(partID);
+                return;
+            }
+        }
+
         let shortPartID = partID;
         if(partID.endsWith('.dat')) {
             shortPartID = partID.substring(0, partID.length-4); // Smaller keys.

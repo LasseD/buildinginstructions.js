@@ -113,6 +113,7 @@ THREE.LDRLoader.prototype.loadMultiple = function(ids) {
         self.reportProgress(ids[0]);
     }
     this.unloadedFiles++; // Prevent early exit.
+
     this.storage.retrievePartsFromStorage(this, ids, onStorageFetchingDone);
 }
 
