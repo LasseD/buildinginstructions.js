@@ -715,7 +715,7 @@ LDR.InstructionsManager.prototype.setUpOptions = function() {
                 for(let pt in self.ldrLoader.partTypes) {
                     if(self.ldrLoader.partTypes.hasOwnProperty(pt)) {
                         pt = self.ldrLoader.partTypes[pt];
-                        if(pt.isPart()) {
+                        if(pt !== true && pt.isPart()) {
                             pt.geometry = pt.mesh = null;
                         }
                     }

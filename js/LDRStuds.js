@@ -18,18 +18,19 @@ LDR.Studs.setStuds = function(ldrLoader, highContrast, logoType, onDone) {
         }
     }
 
-    if(idb.length === 0) {
+    function loadStuds() {
+        partTypes[s1.ID] = s1;
+        partTypes[s2.ID] = s2;
+        partTypes[s2a.ID] = s2a;
         onDone();
+    }
+
+    if(idb.length === 0) {
+        loadStuds();
     }
     else {
         // Build a different loader to fetch these two since we have to wait for the callback:
-        let loader2 = new THREE.LDRLoader(() => {
-                console.log('Shadow loader complete.');
-                partTypes[s1.ID] = s1;
-                partTypes[s2.ID] = s2;
-                partTypes[s2a.ID] = s2a;
-                onDone();
-            }, ldrLoader.storage, ldrLoader.options);
+        let loader2 = new THREE.LDRLoader(loadStuds, ldrLoader.storage, ldrLoader.options);
         loader2.partTypes = partTypes; // Load to same data store.
         loader2.loadMultiple(idb);
     }
