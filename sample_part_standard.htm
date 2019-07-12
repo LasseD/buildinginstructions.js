@@ -107,6 +107,12 @@
           return [OFFICIAL_DIR + '/parts/' + id,
                   UNOFFICIAL_DIR + '/parts/' + id];
         }
+        else if(id.match(/[a-z][a-z].*\.dat/)) {
+          return [OFFICIAL_DIR + '/p/' + id, 
+                  OFFICIAL_DIR + '/parts/' + id,
+                  UNOFFICIAL_DIR + '/p/' + id,
+                  UNOFFICIAL_DIR + '/parts/' + id];
+        }
         else {
           return [OFFICIAL_DIR + '/parts/' + id, 
                   OFFICIAL_DIR + '/p/' + id,
