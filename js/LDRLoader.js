@@ -56,7 +56,8 @@ THREE.LDRLoader = function(onLoad, storage, options) {
 	if(!id.endsWith(".dat")){
 	    return [id];
 	}
-	return ["ldraw_parts/"+id.toLowerCase()];
+        let lowerID = id.toLowerCase();
+	return ["ldraw_parts/"+lowerID, "ldraw_unofficial/"+lowerID];
     };
 }
 
