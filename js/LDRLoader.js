@@ -65,7 +65,7 @@ THREE.LDRLoader = function(onLoad, storage, options) {
  * Load an ldr/mpd/dat file without checking storage first.
  * 
  * id is the file name to load. 
- * id is transformed using 'idToUrl' which can be parsed to the loader using the options parameter in the constructor..
+ * id is transformed using 'idToUrl' which can be parsed to the loader using the options parameter in the constructor.
  */
 THREE.LDRLoader.prototype.load = function(id) {
     let urls = this.idToUrl(id);

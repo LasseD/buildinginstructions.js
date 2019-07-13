@@ -93,9 +93,9 @@
       }
 
       var ldrOptions = new LDR.Options(); // Determine how to show lines. See below:
-      ldrOptions.lineContrast = 1;
-      ldrOptions.studHighContrast = 0;
-      ldrOptions.studLogo = 1;
+      ldrOptions.lineContrast = 1; // Set to 0 for high contrast line colors, and 1 for normal line colors.
+      ldrOptions.studHighContrast = 0; // Set to 1 for showing black sides on studs like in official LEGO building instructions. Set to 0 for normal stud colors.
+      ldrOptions.studLogo = 1; // 0 for no logo, 1 to 5 for logos of types 1 to 5.
 
       // The following function makes the ldrLoader search through the official
       // and unofficial file structures (unofficial/ and unofficial/) for parts.
@@ -129,7 +129,8 @@
         LDR.Studs.setStuds(ldrLoader, ldrOptions.studHighContrast,
                            ldrOptions.studLogo, () => ldrLoader.load(partID));
       }
-      storage = new LDR.STORAGE(onStorageReady);
+      storage = new LDR.STORAGE(onStorageReady); // If you prefer not to use IndexedDB for client-side caching, then simply comment-out this line and use the one below.
+      // onStorageReady();
  </script>
  </body>
 </html>
