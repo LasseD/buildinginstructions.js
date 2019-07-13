@@ -136,8 +136,8 @@
         LDR.Studs.setStuds(ldrLoader, ldrOptions.studHighContrast,
                            ldrOptions.studLogo, () => ldrLoader.load(partID));
       }
-      storage = new LDR.STORAGE(onStorageReady); // If you prefer not to use IndexedDB for client-side caching, then simply comment-out this line and use the one below.
-      // onStorageReady();
+      //storage = new LDR.STORAGE(onStorageReady); // If you prefer not to use IndexedDB for client-side caching, then simply comment-out this line and use the one below.
+      onStorageReady();
  </script>
  </body>
 </html>
