@@ -122,15 +122,15 @@ LDR.OMR.FixLicenses = function() {
  */
 LDR.OMR.SetLDrawOrg = function(unofficial) {
     let type = unofficial ? 'Unofficial_Model' : 'Model';
-    let title = "Set all 'LDRAW_ORG' lines to '" + type + "'. ";
+    let title = "Set all 'LDRAW_ORG' lines to '" + type + "' ";
     if(unofficial) {
-        title += " This value indicates that the model is OMR compliant, but not yet accepted into the official library";
+        title += " indicating the model is OMR compliant, but not yet accepted into the official library";
     }
     else {
-        title += " This value indicates that the model is OMR compliant and accepted into the official library";
+        title += " indicating the model is OMR compliant and accepted into the official library";
     }
 
-    let checkers = {checkPartType: pt => (!pt.isPart() && pt.ldraw_org !== type) ? title : false};
+    let checkers = {checkPartType: pt => (!pt.isPart() && pt.ldraw_org !== type && pt.ldraw_org !== 'Model') ? title : false};
     let handlers = {handlePartType: pt => {if(!pt.isPart()){pt.ldraw_org = type;}}};
     return {checkers:checkers, handlers:handlers};
 }

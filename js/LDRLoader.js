@@ -578,7 +578,7 @@ THREE.LDRPartDescription.prototype.placedColor = function(pdColorID) {
 THREE.LDRPartDescription.prototype.toLDR = function(loader) {
     let pt = loader.partTypes[this.ID];
     let ID = pt.name; // Proper casing.
-    return '1 ' + this.colorID + ' ' + this.position.toLDR() + ' ' + this.rotation.toLDR() + ' ' + ID + '\n';
+    return '1 ' + this.colorID + ' ' + this.position.toLDR() + ' ' + this.rotation.toLDR() + ' ' + ID + '\r\n';
 }
 
 THREE.LDRPartDescription.prototype.placeAt = function(pd) {
@@ -620,7 +620,7 @@ THREE.LDRStepRotation.prototype.clone = function() {
 }
 
 THREE.LDRStepRotation.prototype.toLDR= function() {
-    return '0 ROTSTEP ' + this.x + ' ' + this.y + ' ' + this.z + ' ' + this.type + '\n';
+    return '0 ROTSTEP ' + this.x + ' ' + this.y + ' ' + this.z + ' ' + this.type + '\r\n';
 }
 
 // Get the rotation matrix by looking at the default camera position:
@@ -850,15 +850,15 @@ THREE.LDRStep.prototype.toLDR = function(loader, prevStepRotation, isLastStep) {
     this.fileLines.forEach(line => ret += line.toLDR(loader));
     if(!this.rotation) {
         if(prevStepRotation) {
-            ret += '0 ROTSTEP END\n';
+            ret += '0 ROTSTEP END\r\n';
         }
         else if(!isLastStep) {
-            ret += '0 STEP\n';
+            ret += '0 STEP\r\n';
         }
     }
     else { // We have a rotation. Check against prev:
         if(THREE.LDRStepRotation.equals(this.rotation, prevStepRotation)) {
-            ret += '0 STEP\n';            
+            ret += '0 STEP\r\n';            
         }
         else {
             ret += this.rotation.toLDR();
@@ -1057,7 +1057,7 @@ LDR.Line0 = function(txt) {
 }
 
 LDR.Line0.prototype.toLDR = function() {
-    return '0 ' + this.txt + '\n';
+    return '0 ' + this.txt + '\r\n';
 }
 
 LDR.Line1 = function(desc) {
@@ -1100,7 +1100,7 @@ LDR.Line2 = function(c, p1, p2) {
 }
 
 LDR.Line2.prototype.toLDR = function() {
-    return '2 ' + this.c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + '\n';
+    return '2 ' + this.c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + '\r\n';
 }
 
 LDR.Line3 = function(c, p1, p2, p3, cull, ccw) {
@@ -1114,7 +1114,7 @@ LDR.Line3 = function(c, p1, p2, p3, cull, ccw) {
 }
 
 LDR.Line3.prototype.toLDR = function() {
-    return '3 ' + this.c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + ' ' + this.p3.toLDR() + '\n';
+    return '3 ' + this.c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + ' ' + this.p3.toLDR() + '\r\n';
 }
 
 LDR.Line4 = function(c, p1, p2, p3, p4, cull, ccw) {
@@ -1129,7 +1129,7 @@ LDR.Line4 = function(c, p1, p2, p3, p4, cull, ccw) {
 }
 
 LDR.Line4.prototype.toLDR = function() {
-    return '4 ' + this.c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + ' ' + this.p3.toLDR() + ' ' + this.p4.toLDR() + '\n';
+    return '4 ' + this.c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + ' ' + this.p3.toLDR() + ' ' + this.p4.toLDR() + '\r\n';
 }
 
 LDR.Line5 = function(c, p1, p2, p3, p4) {
@@ -1142,7 +1142,7 @@ LDR.Line5 = function(c, p1, p2, p3, p4) {
 }
 
 LDR.Line5.prototype.toLDR = function() {
-    return '4 ' + this.c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + ' ' + this.p3.toLDR() + ' ' + this.p4.toLDR() + '\n';
+    return '4 ' + this.c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + ' ' + this.p3.toLDR() + ' ' + this.p4.toLDR() + '\r\n';
 }
 
 THREE.LDRPartType = function() {
@@ -1221,33 +1221,33 @@ THREE.LDRPartType.prototype.cleanUpSteps = function(loader) {
 }
 
 THREE.LDRPartType.prototype.toLDR = function(loader) {
-    let ret = '0 FILE ' + this.name + '\n';
+    let ret = '0 FILE ' + this.name + '\r\n';
     if(this.modelDescription) {
-        ret += '0 ' + this.modelDescription + '\n';
+        ret += '0 ' + this.modelDescription + '\r\n';
     }
-    ret += '0 Name: ' + this.name + '\n';
+    ret += '0 Name: ' + this.name + '\r\n';
     if(this.author) {
-        ret += '0 Author: ' + this.author + '\n';
+        ret += '0 Author: ' + this.author + '\r\n';
     }
     if(this.ldraw_org) {
-        ret += '0 !LDRAW_ORG ' + this.ldraw_org + '\n';
+        ret += '0 !LDRAW_ORG ' + this.ldraw_org + '\r\n';
     }
     if(this.license) {
-        ret += '0 !LICENSE ' + this.license + '\n';
+        ret += '0 !LICENSE ' + this.license + '\r\n';
     }
     if(this.headerLines.length > 0) {
-        ret += '\n'; // Empty line before additional header lines, such as 'THEME' and 'KEYWORDS'
+        ret += '\r\n'; // Empty line before additional header lines, such as 'THEME' and 'KEYWORDS'
         this.headerLines.forEach(line => ret += line.toLDR(loader));
     }
     if(this.historyLines.length > 0) {
-        ret += '\n';
-        this.historyLines.forEach(hl => ret += '0 !HISTORY ' + hl + '\n');
+        ret += '\r\n';
+        this.historyLines.forEach(hl => ret += '0 !HISTORY ' + hl + '\r\n');
     }
     if(this.steps.length > 0) {
-        ret += '\n';
+        ret += '\r\n';
         this.steps.forEach((step, idx, a) => ret += step.toLDR(loader, idx === 0 ? null : a[idx-1].rotation, idx === a.length-1));
     }
-    ret += '\n';
+    ret += '\r\n';
     return ret;
 }
 
