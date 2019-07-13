@@ -23,21 +23,18 @@
       //let partID = 'stud-logo.dat';
       //let partID = '4-4cyls.dat';
       //let partID = 'logo5.dat';
+      let color = 16;
 
       // Set up camera:
       var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
       camera.position.set(10000, 7000, 10000);
       camera.lookAt(new THREE.Vector3());
+      let measurer = new LDR.Measurer(camera); // Used for making the shown part fill the renderer.
 
       // Set up scene:
       var scene = new THREE.Scene();
+      var baseObject;
       scene.background = new THREE.Color(0xFFFFFF); // Set the background color of the renderer here!
-
-      var baseObject = new THREE.Group(), opaqueObject = new THREE.Group(), transObject = new THREE.Group();
-      baseObject.add(opaqueObject); // Draw non-trans before trans.
-      baseObject.add(transObject);
-      scene.add(baseObject);
-      var mc = new LDR.MeshCollector(opaqueObject, transObject);
 
       // Set up renderer:
       var renderer = new THREE.WebGLRenderer({antialias: true});
@@ -76,8 +73,19 @@
         var inv = new THREE.Matrix3(); 
         inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
 
+        // Set up objects for proper rendering order (when parts contain both transparent and opaque parts, the transparent parts should be rendered last:
+        if(baseObject) {
+          scene.remove(baseObject); // Remove existing geometries in case the user calls load more than once.
+        }
+        baseObject = new THREE.Group()
+        let opaqueObject = new THREE.Group(), transObject = new THREE.Group();
+        baseObject.add(opaqueObject);
+        baseObject.add(transObject);
+        scene.add(baseObject);
+        var mc = new LDR.MeshCollector(opaqueObject, transObject);
+
         // Generate the mesh:
-        pt.generateThreePart(ldrLoader, 1, origo, inv, true, false, mc);
+        pt.generateThreePart(ldrLoader, color, origo, inv, true, false, mc);
 
         // Find center of drawn model:
         var b = mc.boundingBox;
@@ -85,7 +93,6 @@
         b.getCenter(elementCenter);
         baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
 
-        let measurer = new LDR.Measurer(camera);
         let [dx,dy] = measurer.measure(b, baseObject.matrixWorld);
 	camera.zoom = 1.6*Math.min(window.innerWidth/dx, window.innerHeight/dy); // 1.6 to make the part not fill the full element. Use 2.0 to max it out.
 
