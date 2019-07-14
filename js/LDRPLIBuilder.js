@@ -90,15 +90,40 @@ LDR.PLIBuilder.prototype.createClickMap = function(step) {
     this.clickMap = [];
     for(let i = 0; i < step.subModels.length; i++) {
 	let dat = step.subModels[i];
-        if(!this.loader.partTypes[dat.ID].isPart()) {
+	let partType = this.loader.partTypes[dat.ID];
+        if(!partType.isPart()) {
             continue; // Do not show sub models.
         }
 	let partID = dat.ID;
 	let colorID = dat.colorID;
 	let key = partID.endsWith('.dat') ? partID.substring(0, partID.length-4) : partID;
 	let pliID = key;
-	key += '_' + colorID;
 
+	if(LDR.PLI && LDR.PLI.hasOwnProperty(pliID)) {
+	    let pliInfo = LDR.PLI[pliID];
+	    partID = "pli_" + partType.ID;
+	    //console.warn('CREATING PLI for ' + pliID + " => " + partID);
+	    if(!this.loader.partTypes.hasOwnProperty(partID)) {
+		let r = new THREE.Matrix3();
+		r.set(pliInfo[0], pliInfo[1], pliInfo[2],
+		      pliInfo[3], pliInfo[4], pliInfo[5],
+		      pliInfo[6], pliInfo[7], pliInfo[8]);
+		let step = new THREE.LDRStep();
+		step.addSubModel(new THREE.LDRPartDescription(16, new THREE.Vector3(), r,
+							      partType.ID, true, false));
+		let pt = new THREE.LDRPartType(); // Potentially rotated PLI.
+		pt.ID = partID;
+		pt.modelDescription = partType.modelDescription;
+		pt.author = partType.author;
+		pt.license = partType.license;
+		pt.inlined = partType.inlined;
+		pt.steps.push(step);
+		this.loader.partTypes[partID] = pt;
+	    }
+	    dat.ID = partID;
+	}
+
+	key += '_' + colorID;
 	let icon = icons[key];
         if(this.groupParts && icon) {
             icon.mult++;

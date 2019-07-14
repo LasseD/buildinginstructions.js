@@ -3,8 +3,6 @@
 /*
   The LDRPartsBuilder is used for displaying parts list image icons for LEGO models.
 */
-var LDR = LDR || {};
-
 LDR.PartsBuilder = function(loader, mainModelID, mainModelColor, onBuiltPart) {
     this.loader = loader;
     this.mainModelID = mainModelID;
@@ -92,7 +90,7 @@ LDR.PartAndColor = function(key, part, colorID, loader) {
     if(this.partType.pli) {
         this.partType = this.partType.pli;
     }
-    else if(LDR.PLI && LDR.PLI[pliID]) {
+    else if(LDR.PLI && LDR.PLI.hasOwnProperty(pliID)) {
 	let pliInfo = LDR.PLI[pliID];
 	let pliName = "pli_" + this.part.ID;
 	let pt;

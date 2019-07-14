@@ -84,6 +84,9 @@ LDR.PliPreviewer.prototype.showPliPreview = function(icon) {
     // Update description:
     let nameEle = document.getElementById('preview_info_name');
     let partIdNoDat = icon.partID.slice(0, -4);
+    if(partIdNoDat.startsWith('pli_')) {
+	partIdNoDat = partIdNoDat.substring(4);
+    }
     let partIdBricklink;
     if(LDR.BL && LDR.BL.hasOwnProperty(partIdNoDat)) {
 	partIdBricklink = LDR.BL[partIdNoDat];
