@@ -96,7 +96,7 @@ LDR.PLIBuilder.prototype.createClickMap = function(step) {
 	let partID = dat.ID;
 	let colorID = dat.colorID;
 	let key = partID.endsWith('.dat') ? partID.substring(0, partID.length-4) : partID;
-	let pliID = 'pli_' + key;
+	let pliID = key;
 	key += '_' + colorID;
 
 	let icon = icons[key];

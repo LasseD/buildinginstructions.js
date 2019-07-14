@@ -84,14 +84,21 @@ LDR.PliPreviewer.prototype.showPliPreview = function(icon) {
     // Update description:
     let nameEle = document.getElementById('preview_info_name');
     let partIdNoDat = icon.partID.slice(0, -4);
+    let partIdBricklink;
+    if(LDR.BL && LDR.BL.hasOwnProperty(partIdNoDat)) {
+	partIdBricklink = LDR.BL[partIdNoDat];
+    }
+    else {
+	partIdBricklink = partIdNoDat;
+    }
     let desc = icon.desc || partIdNoDat;
     nameEle.innerHTML = desc + " (" + partIdNoDat + ")";
     let blA = document.getElementById('preview_info_bl_link');
     if(color.bricklink_name) {
-	blA.setAttribute('href', 'https://www.bricklink.com/catalogItemIn.asp?P=' + partIdNoDat + '&colorID=' + color.bricklink_id + '&in=A');
+	blA.setAttribute('href', 'https://www.bricklink.com/catalogItemIn.asp?P=' + partIdBricklink + '&colorID=' + color.bricklink_id + '&in=A');
     }
     else {
-	blA.setAttribute('href', 'https://www.bricklink.com/catalogItem.asp?P=' + partIdNoDat);
+	blA.setAttribute('href', 'https://www.bricklink.com/catalogItem.asp?P=' + partIdBricklink);
     }
 
     let bhA = document.getElementById('preview_info_bh_link');
@@ -111,6 +118,7 @@ LDR.PliPreviewer.prototype.showPliPreview = function(icon) {
 
     document.getElementById('preview_info_color_ldraw').innerHTML = color.name + " (" + colorID + ")";
     document.getElementById('preview_info_color_lego').innerHTML = color.lego_name ? (color.lego_name + " (" + color.lego_id + ")") : 'Unknown official LEGO color';
+    document.getElementById('preview_info_id_bricklink').innerHTML = partIdBricklink;
     document.getElementById('preview_info_color_bricklink').innerHTML = color.bricklink_name ? (color.bricklink_name + " (" + color.bricklink_id + ")") : 'Unknown Bricklink color';
     
     let fadeInTime = 400;

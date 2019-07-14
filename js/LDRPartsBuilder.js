@@ -88,7 +88,7 @@ LDR.PartAndColor = function(key, part, colorID, loader) {
     }
 
     // Rotate for pli:
-    let pliID = "pli_" + this.partType.ID.slice(0, -4);
+    let pliID = this.partType.ID.slice(0, -4);
     if(this.partType.pli) {
         this.partType = this.partType.pli;
     }
@@ -114,6 +114,7 @@ LDR.PartAndColor = function(key, part, colorID, loader) {
 	    pt.modelDescription = this.partType.modelDescription;
 	    pt.author = this.partType.author;
 	    pt.license = this.partType.license;
+	    pt.inlined = this.partType.inlined;
 	    pt.steps.push(step);
 	    loader.partTypes[pliName] = pt;
 	    //console.log("Replaced PLI for " + pliName);
