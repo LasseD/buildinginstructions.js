@@ -30,7 +30,12 @@ LDR.PartsBuilder = function(loader, mainModelID, mainModelColor, onBuiltPart) {
                 let dat = step.subModels[j];
                 let datColorID = dat.colorID == 16 ? colorID : dat.colorID;
                 // Key consists of ID (without .dat) '_', and color ID
-                let key = dat.ID.endsWith('.dat') ? dat.ID.substring(0, dat.ID.length-4) : dat.ID;
+		if(dat.REPLACEMENT_PLI === true) {
+		    console.log('Skipped PLI for ' + dat.ID);
+		    continue; // Replaced part.
+		}
+		let id = dat.REPLACEMENT_PLI ? dat.REPLACEMENT_PLI : dat.ID;
+                let key = id.endsWith('.dat') ? id.substring(0, dat.ID.length-4) : id;
                 key += '_' + datColorID;
                 let pc = pcs[key];
                 if(!pc) {
@@ -60,15 +65,16 @@ LDR.PartsBuilder = function(loader, mainModelID, mainModelColor, onBuiltPart) {
 LDR.PartAndColor = function(key, part, colorID, loader) {
     this.key = key;
     this.part = part;
+    this.ID = part.REPLACEMENT_PLI ? part.REPLACEMENT_PLI : part.ID
     this.colorID = colorID;
     this.loader = loader;
 
     this.amount = 0;
 
-    this.partType = loader.getPartType(part.ID);
+    this.partType = loader.getPartType(this.ID);
     if(!this.partType) {
 	console.dir(loader);
-	throw "Unknown part type: " + part.ID;
+	throw "Unknown part type: " + this.ID;
     }
 
     // Use replacement part:
@@ -78,7 +84,7 @@ LDR.PartAndColor = function(key, part, colorID, loader) {
             pt = this.partType.replacementPartType;
         }
         else {
-            //console.log("Replacing: " + part.ID + " -> " + this.partType.replacement);
+            //console.log("Replacing: " + this.ID + " -> " + this.partType.replacement);
             pt = loader.getPartType(this.partType.replacement);
             this.partType.replacementPartType = pt;
         }
@@ -92,7 +98,7 @@ LDR.PartAndColor = function(key, part, colorID, loader) {
     }
     else if(LDR.PLI && LDR.PLI.hasOwnProperty(pliID)) {
 	let pliInfo = LDR.PLI[pliID];
-	let pliName = "pli_" + this.part.ID;
+	let pliName = "pli_" + this.ID;
 	let pt;
 	if(!loader.partTypes.hasOwnProperty(pliName)) {
 	    let r = new THREE.Matrix3();
@@ -100,7 +106,7 @@ LDR.PartAndColor = function(key, part, colorID, loader) {
 		  pliInfo[3], pliInfo[4], pliInfo[5],
 		  pliInfo[6], pliInfo[7], pliInfo[8]);
 	    let dat = new THREE.LDRPartDescription(16, new THREE.Vector3(),
-						   r, this.part.ID,
+						   r, this.ID,
 						   true, false); // Potentially rotated PLI.
 	    let step = new THREE.LDRStep();
 	    step.addSubModel(dat);
@@ -140,11 +146,12 @@ LDR.PartAndColor.prototype.ensureMeshCollector = function(baseObject) {
 }
 
 LDR.PartAndColor.prototype.getBounds = function() {
-    if(!this.partType.pliMC)
+    if(!this.partType.pliMC) {
 	throw 'Mesh collector not built!';
+    }
     if(!this.partType.pliMC.boundingBox) {
 	console.dir(this);
-	throw "No bounding box for " + this.part.ID + " / " + this.partDesc;
+	throw "No bounding box for " + this.ID + " / " + this.partDesc;
     }
     return this.partType.pliMC.boundingBox;
 }

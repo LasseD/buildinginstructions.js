@@ -90,11 +90,14 @@ LDR.PLIBuilder.prototype.createClickMap = function(step) {
     this.clickMap = [];
     for(let i = 0; i < step.subModels.length; i++) {
 	let dat = step.subModels[i];
-	let partType = this.loader.getPartType(dat.ID);
+	if(dat.REPLACEMENT_PLI === true) {
+	    continue; // Do not show replaced part.
+	}
+	let partID = dat.REPLACEMENT_PLI ? dat.REPLACEMENT_PLI : dat.ID;
+	let partType = this.loader.getPartType(partID);
         if(!partType.isPart()) {
             continue; // Do not show sub models.
         }
-	let partID = dat.ID;
 	let colorID = dat.colorID;
 	let key = partID.endsWith('.dat') ? partID.substring(0, partID.length-4) : partID;
 	let pliID = key;
@@ -102,7 +105,6 @@ LDR.PLIBuilder.prototype.createClickMap = function(step) {
 	if(LDR.PLI && LDR.PLI.hasOwnProperty(pliID)) {
 	    let pliInfo = LDR.PLI[pliID];
 	    partID = "pli_" + partType.ID;
-	    //console.warn('CREATING PLI for ' + pliID + " => " + partID);
 	    if(!this.loader.partTypes.hasOwnProperty(partID)) {
 		let r = new THREE.Matrix3();
 		r.set(pliInfo[0], pliInfo[1], pliInfo[2],

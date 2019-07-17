@@ -32,6 +32,7 @@
     <script src="js/LDRStepEditor.js"></script>
     <script src="js/LDRGenerator.js"></script>
     <script src="js/LDRStuds.js"></script>
+    <script src="js/LDRAssemblies.js"></script>
     <script src="js/LDRInstructionsManager.js"></script>
     <div id="main_canvas_holder">
      <canvas id="main_canvas"></canvas>
@@ -97,16 +98,17 @@
     </div>
     <div id="options" /></div>
     <script>
-      var modelUrl = 'models/fail1.mpd?x=b';
+      //var modelUrl = 'models/fail1.mpd?x=b';
       //var modelUrl = 'models/test_studs.ldr';
       //var modelUrl = 'models/vette.mpd';
+      var modelUrl = 'models/test_assemblies.ldr';
 
       var baseURL = 'sample_instructions.htm?step='; // Change this line so it fits the page that renders instructions for you (probably not 'sample_instructions.htm')
       var manager;
       var ldrOptions = new LDR.Options(); // Global scope for options.
 
       $(function() {
-        var options = {canEdit:false, saveFileLines:true};
+        var options = {canEdit:false, saveFileLines:true, buildAssemblies:true};
         manager = new LDR.InstructionsManager(modelUrl, '?', null, ()=>{}, baseURL, 1, options);
       });
     </script>

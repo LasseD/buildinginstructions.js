@@ -26,7 +26,7 @@ THREE.LDRLoader = function(onLoad, storage, options) {
 
     this.partTypes = {}; // id => part. id is typically something like "parts/3001.dat", and "model.mpd".
     this.unloadedFiles = 0;
-    let assemblyManager;
+
     this.onLoad = function() {
         let unloaded = [];
         for(let id in self.partTypes) {
@@ -38,9 +38,6 @@ THREE.LDRLoader = function(onLoad, storage, options) {
                     continue;
                 }
                 partType.cleanUpSteps(self);
-                if(assemblyManager && !partType.isPart()) {
-                    partType.steps.forEach(step => assemblyManager.handleStep(step));
-                }
             }
         }
         unloaded.forEach(id => delete self.partTypes[id]);
@@ -55,7 +52,7 @@ THREE.LDRLoader = function(onLoad, storage, options) {
     this.loader = new THREE.FileLoader(this.options.manager || THREE.DefaultLoadingManager);
     this.saveFileLines = this.options.saveFileLines || false;
     if(this.options.buildAssemblies) {
-        assemblyManager = new LDR.AssemblyManager(this);
+        this.assemblyManager = new LDR.AssemblyManager(this);
     }
     this.mainModel;
 
@@ -484,13 +481,21 @@ THREE.LDRLoader.prototype.parse = function(data) {
     // Load the unknown parts:    
     let unloadedPartsSet = {};
     let unloadedPartsList = [];
-    function checkPart(sm) {
-        if(!(self.partTypes.hasOwnProperty(sm.ID) || unloadedPartsSet.hasOwnProperty(sm.ID))) {
-            unloadedPartsSet[sm.ID] = true;
-            unloadedPartsList.push(sm.ID);
+    function checkPart(id) {
+        if(!(self.partTypes.hasOwnProperty(id) || unloadedPartsSet.hasOwnProperty(id))) {
+            unloadedPartsSet[id] = true;
+            unloadedPartsList.push(id);
         }
     }
-    loadedParts.forEach(pt => pt.steps.forEach(s => s.subModels.forEach(checkPart)));
+    loadedParts.forEach(pt => pt.steps.forEach(s => s.subModels.forEach(sm => checkPart(sm.ID))));
+
+    // Check assemblies:
+    if(this.assemblyManager) {
+	loadedParts.forEach(pt => { if(!pt.isPart()) { pt.steps.forEach(
+	    step => self.assemblyManager.handleStep(step).forEach(checkPart)
+	)} });
+    }
+
     if(unloadedPartsList.length > 0) {
         self.loadMultiple(unloadedPartsList);
     }
@@ -595,6 +600,7 @@ THREE.LDRPartDescription.prototype.cloneColored = function(colorID) {
     }
     let ret = new THREE.LDRPartDescription(c, this.position, this.rotation, this.ID, 
 					   this.cull, this.invertCCW);
+    ret.REPLACEMENT_PLI = this.REPLACEMENT_PLI;
     ret.original = this;
     this.ghost = false; // For editor.
     return ret;

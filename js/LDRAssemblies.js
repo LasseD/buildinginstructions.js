@@ -19,9 +19,8 @@ LDR.AssemblyManager = function(loader) {
             continue;
         }
         let parts = LDR.Assemblies[ID];
-        let desc = parts[0];
-        let mainPart = parts[1]+'.dat', mainColor = parts[2];
-        parts = parts.slice(3);
+        let mainPart = parts[0]+'.dat', mainColor = parts[1];
+        parts = parts.slice(2);
 
         // If sm.colorID=16 => sm2.colorID=16
         let keys = [];
@@ -29,7 +28,7 @@ LDR.AssemblyManager = function(loader) {
             keys.push(parts[i] + '.dat_' + parts[i+1]);
         }
 
-        let obj = {ID:ID+'.dat',c:mainColor,keys:keys,desc:desc};
+        let obj = {ID:ID+'.dat',c:mainColor,keys:keys};
         if(this.map.hasOwnProperty(mainPart)) {
             this.map[mainPart].push(obj);
         }
@@ -37,11 +36,11 @@ LDR.AssemblyManager = function(loader) {
             this.map[mainPart] = [obj];
         }
     }
-    console.log('AssemblyManager built:'); console.dir(this.map);
 }
 
 LDR.AssemblyManager.prototype.handleStep = function(step) {
     let self = this;
+    let ret = []; // Parts to be fetched.
 
     // First find all sub models that are main models of assemblies:
     function handleSubModel(sm, idx) {
@@ -51,7 +50,7 @@ LDR.AssemblyManager.prototype.handleStep = function(step) {
 
         let aList = self.map[sm.ID];
         for(let i = 0; i < aList.length; i++) { // Try to build all assemblies that have sm as main model:
-            let obj = aList[i]; // {ID, c, keys, desc}
+            let obj = aList[i]; // {ID, c, keys}
             if(obj.c !== 16 && obj.c !== sm.colorID) {
                 continue; // Color does not match.
             }
@@ -82,7 +81,7 @@ LDR.AssemblyManager.prototype.handleStep = function(step) {
             // First check that all parts are in the step:
             let found = []; // Indices of found parts
             step.subModels.forEach((sm2, idx2) => {
-                    if(idx2 === idx || sm2.REMOVE) {
+                    if(idx2 === idx || sm2.REPLACEMENT_PLI) {
                         return; // Main model or already removed.
                     }
 
@@ -105,36 +104,13 @@ LDR.AssemblyManager.prototype.handleStep = function(step) {
 
             // Assembly found! Update step:
             console.log('Replacing ' + sm.ID + ' with ' + obj.ID);
-            found.forEach(f => step.subModels[f.idx].REMOVE = true);
-
-            if(!self.loader.getPartType(obj.ID)) {
-                let step2 = new THREE.LDRStep();
-                
-                let origo = new THREE.Matrix3(); origo.set(1, 0, 0, 0, 1, 0, 0, 0, 1);
-                let smCopy = new THREE.LDRPartDescription(obj.c, new THREE.Vector3(), origo, sm.ID, true, false);
-                step2.addSubModel(smCopy);
-
-                found.forEach(f => {
-                        let sm3 = step.subModels[f.idx];
-                        sm3.colorID = f.c;
-                        step2.addSubModel(sm3);
-                    });
-
-                let pt = new THREE.LDRPartType();
-                pt.name = pt.ID = obj.ID;
-                pt.modelDescription = obj.desc;
-                pt.author = 'LDRAssemblies.js';
-                pt.license = 'Redistributable under CCAL version 2.0 : see CAreadme.txt';
-                pt.inlined = 'GENERATED';
-                pt.ldraw_org = 'Part';
-                pt.cleanSteps = pt.certifiedBFC = pt.CCW = pt.consistentFileAndName = true;
-                pt.steps = [step2];
-
-                self.loader.partTypes[obj.ID] = pt;
-            }
-            sm.ID = obj.ID;
+            found.forEach(f => step.subModels[f.idx].REPLACEMENT_PLI = true);
+	    sm.REPLACEMENT_PLI = obj.ID;
+	    if(!self.loader.partTypes.hasOwnProperty(obj.ID)) {
+		ret.push(obj.ID);
+	    }
         } // for elements in aList = map[sm.ID]
     } // function handleSubModel
     step.subModels.forEach(handleSubModel);
-    step.subModels = step.subModels.filter(sm => !sm.REMOVE);
+    return ret;
 }
