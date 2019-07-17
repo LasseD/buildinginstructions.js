@@ -674,7 +674,7 @@ LDR.LDRGeometry.prototype.fromPartType = function(loader, pt) {
 }
 
 LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
-    let pt = loader.partTypes[pd.ID];
+    let pt = loader.getPartType(pd.ID);
     if(!pt) {
         throw "Part not loaded: " + pd.ID;
     }

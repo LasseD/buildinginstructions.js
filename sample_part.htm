@@ -137,14 +137,14 @@
       var onLoad = function() {
         onWindowResize();
 
-	var mainModelID = ldrLoader.mainModel;
-        var mainModel = ldrLoader.partTypes[mainModelID];
+        var mainModel = ldrLoader.getMainModel();
 	if(!mainModel) {
-	  mainModel = ldrLoader.partTypes[mainModelID + '.dat'];
+	  mainModel = ldrLoader.getPartType(ldrLoader.mainModel + '.dat');
+          if(!mainModel) {
+            mainModel = ldrLoader.getPartType(ldrLoader.mainModel + '.ldr');
+          }
 	}
-	if(!mainModel) {
-	  mainModel = ldrLoader.partTypes[mainModelID + '.ldr'];
-	}
+
 	mainModel.isPart = function(){return false;};
         mainModel.ensureGeometry(ldrLoader);
 

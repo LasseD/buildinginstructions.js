@@ -74,7 +74,7 @@
       var ldrLoader;
 
       var onLoad = function() {
-        var mainModel = ldrLoader.partTypes[ldrLoader.mainModel]; // Main model from the LDraw file (first model encountered)
+        var mainModel = ldrLoader.getMainModel();
 
         // Place model in scene:
         var origo = new THREE.Vector3();
@@ -95,15 +95,13 @@
         createFunctionButtons();
 
         var fileContent = mainModel.toLDR(ldrLoader);
-        for(let id in ldrLoader.partTypes) {
-          if(id === ldrLoader.mainModel || !ldrLoader.partTypes.hasOwnProperty(id)) {
-            continue;
-          }
-          let pt = ldrLoader.partTypes[id];
-          if(pt.isPart() ? pt.ldraw_org === 'Unofficial_Part' : true) {
+        ldrLoader.applyOnPartTypes(pt =>{
+          if(pt.ID !== ldrLoader.mainModel &&
+             (pt.isPart() ? pt.ldraw_org === 'Unofficial_Part' : true)) {
             fileContent += pt.toLDR(ldrLoader);
           }
-        }
+        });
+
         document.getElementById('file_content').innerHTML = fileContent;
       }
 
@@ -151,7 +149,7 @@
       }
 
       function createFunctionButton(checks, handlers) {
-        let mainPT = ldrLoader.partTypes[ldrLoader.mainModel];
+        let mainPT = ldrLoader.getMainModel();
 
         // Check if function button should be shown:
         let checkPD = function(pd) {
@@ -160,7 +158,7 @@
             console.log('Function enabled due to ' + pd.ID + ' in color ' + pd.colorID);
             return ret;
           }
-          let pt = ldrLoader.partTypes[pd.ID];
+          let pt = ldrLoader.getPartType(pd.ID);
           return checkPT(pt);
         }
         let checkStep = function(step) {
@@ -194,7 +192,7 @@
         let handlePD = function(pd, state) {
           //console.log('Handling part desc ' + pd.ID);
           handlers.handlePartDescription && handlers.handlePartDescription(pd, state);
-          let pt = ldrLoader.partTypes[pd.ID];
+          let pt = ldrLoader.getPartType(pd.ID);
           handlePT(pt, state);
         }
         let handleStep = function(step, state) {

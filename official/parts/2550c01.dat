@@ -1,0 +1,22 @@
+0 Animal Monkey (Complete, Crouching)
+0 Name: 2550c01.dat
+0 Author: Andy Westrate [westrate]
+0 !LDRAW_ORG Shortcut UPDATE 2013-02
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+
+0 BFC CERTIFY CCW
+
+0 !KEYWORDS Pirates, Adventurers, Amazon, Jungle
+0 !KEYWORDS Town, Divers, Time Cruisers
+
+0 !HISTORY 2013-12-23 [PTadmin] Official Update 2013-02
+
+1 16 0 0 0 1 0 0 0 1 0 0 0 1 2550.dat
+1 16 10 -9 -14 1 0 0 0 1 0 0 0 1 3819.dat
+1 16 -10 -9 -14 1 0 0 0 1 0 0 0 1 3818.dat
+1 16 -10 -9 14 -1 0 0 0 1 0 0 0 -1 3819.dat
+1 16 10 -9 14 -1 0 0 0 1 0 0 0 -1 3818.dat
+1 14 -15 9.9 -23.9 1 0 0 0 0.707107 -0.707107 0 0.707107 0.707107 3820.dat
+1 14 15 9.9 -23.9 1 0 0 0 0.707107 -0.707107 0 0.707107 0.707107 3820.dat
+1 14 15 9.9 23.899 -1 0 0 0 0.707107 -0.707107 0 -0.707107 -0.707107 3820.dat
+1 14 -15 9.9 23.899 -1 0 0 0 0.707107 -0.707107 0 -0.707107 -0.707107 3820.dat

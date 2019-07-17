@@ -42,7 +42,7 @@ LDR.Generator.makeP = function(desc, name) {
    let pt = new THREE.LDRPartType();
 
    pt.name = pt.ID = name;
-   pt.modelDescriptiomn = desc;
+   pt.modelDescription = desc;
    pt.author = 'LDRGenerator.js';
    pt.license = 'Redistributable under CCAL version 2.0 : see CAreadme.txt';
    pt.inlined = 'GENERATED';

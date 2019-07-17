@@ -26,7 +26,7 @@ LDR.StepHandler = function(opaqueObject, transObject, loader, partDescs, isForMa
     this.storage = storage;
 
     // Build state:
-    this.part = loader.partTypes[partDescs[0].ID];
+    this.part = loader.getPartType(partDescs[0].ID);
     this.hasExtraParts = partDescs.length > 1;
     this.rebuild();
 }

@@ -44,7 +44,7 @@ LDR.OMR.UpgradeToNewParts = function() {
         checkers: {checkPartType:pt => pt.replacement ? "Click here to upgrade all moved parts, such as " + pt.ID + " to latest versions" : false},
 
         handlers: {handlePartDescription: pd => {
-                let pt = ldrLoader.partTypes[pd.ID];
+                let pt = ldrLoader.getPartType(pd.ID);
                 if(pt.replacement) {
                     pd.ID = pt.replacement;
                 }

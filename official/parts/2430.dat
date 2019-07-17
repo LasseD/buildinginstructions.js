@@ -1,0 +1,48 @@
+0 Hinge Plate  1 x  4 Top
+0 Name: 2430.dat
+0 Author: James Jessiman
+0 !LDRAW_ORG Part UPDATE 2003-03
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+
+0 BFC CERTIFY CCW
+
+0 !HISTORY 2003-06-08 [jriley] BFC compliant
+0 !HISTORY 2003-12-19 [PTadmin] Official Update 2003-03
+0 !HISTORY 2007-05-08 [PTadmin] Header formatted for Contributor Agreement
+0 !HISTORY 2008-07-01 [PTadmin] Official Update 2008-01
+
+1 16 20 4 10 1 0 0 0 -1 0 0 0 1 stud3.dat
+1 16 0 4 0 2.67 0 0 0 1 0 0 0 2.67 4-4edge.dat
+1 16 0 4 0 4 0 0 0 1 0 0 0 4 4-4edge.dat
+1 16 0 4 0 8 0 0 0 1 0 0 0 -8 3-4edge.dat
+1 16 0 0 0 8 0 0 0 1 0 0 0 -8 3-4edge.dat
+1 16 1.25 6 9.95 1.25 0 0 0 0 2 -1.25 1 0 rect.dat
+1 16 3.25 6 9.45 -0.75 -1 0 0 0 2 -0.75 0 0 rect2p.dat
+1 16 9.45 6 3.25 -0.75 1 0 0 0 2 -0.75 0 0 rect2p.dat
+1 16 9.95 6 1.25 1.25 0 0 0 0 2 -1.25 1 0 rect.dat
+3 16 0 8 11.2 4 8 10.2 2.5 8 8.7
+4 16 0 8 11.2 0 8 20 4 8 16 4 8 10.2
+4 16 40 8 20 36 8 16 4 8 16 0 8 20
+4 16 40 8 0 36 8 4 36 8 16 40 8 20
+4 16 40 8 0 11.2 8 0 10.2 8 4 36 8 4
+3 16 10.2 8 4 11.2 8 0 8.7 8 2.5
+4 16 36 4 4 4 4 4 4 4 16 36 4 16
+4 16 11.2 4 11.2 11.2 4 0 0 4 0 0 4 11.2
+1 16 0 4 0 8 0 0 0 -1 0 0 0 -8 4-4disc.dat
+4 16 40 0 20 0 0 20 0 0 0 40 0 0
+1 16 0 0 0 8 0 0 0 1 0 0 0 8 4-4disc.dat
+1 16 20 4 20 20 0 0 0 0 4 0 -1 0 rect.dat
+1 16 20 6 16 -16 0 0 0 0 2 0 1 0 rect2p.dat
+1 16 23.1 6 4 12.9 0 0 0 0 2 0 -1 0 rect.dat
+1 16 25.6 4 0 -14.4 0 0 0 0 4 0 1 0 rect2p.dat
+1 16 9.6 2 0 0 0 -1.6 -2 0 0 0 1 0 rect3.dat
+1 16 40 4 10 0 -1 0 -4 0 0 0 0 -10 rect3.dat
+1 16 36 6 10 0 1 0 -2 0 0 0 0 6 rect3.dat
+1 16 4 6 13.1 0 -1 0 2 0 0 0 0 2.9 rect.dat
+1 16 0 4 15.6 0 1 0 0 0 4 -4.4 0 0 rect2p.dat
+1 16 0 2 9.6 0 1 0 -2 0 0 0 0 -1.6 rect3.dat
+1 16 0 0 0 8 0 0 0 4 0 0 0 -8 3-4cyli.dat
+1 16 0 4 0 -0.46 0 0.46 0 -0.2 0 0.46 0 0.46 connect2.dat
+1 16 10 0 10 1 0 0 0 1 0 0 0 1 stud.dat
+1 16 30 0 10 1 0 0 0 1 0 0 0 1 stud.dat
+0

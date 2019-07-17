@@ -34,7 +34,7 @@ LDR.PLIBuilder = function(loader, canEdit, mainModelID, pliElement, pliRenderEle
 }
 
 LDR.PLIBuilder.prototype.getPartType = function(id) {
-    let pt = this.loader.partTypes[id];
+    let pt = this.loader.getPartType(id);
     if(!pt.mesh) { // Ensure size is computed.
 	pt.mesh = new THREE.Group();
 
@@ -50,7 +50,7 @@ LDR.PLIBuilder.prototype.getPartType = function(id) {
 	let b = pt.pliMC.boundingBox;
 	b.getCenter(elementCenter);
 	pt.mesh.position.sub(elementCenter);
-        b.translate(elementCenter.negate()); // TODO: RM
+        //b.translate(elementCenter.negate()); // TODO: RM
 	let [width,height,linesBelow,linesAbove] = this.measurer.measureConvexHull(b, pt.mesh.matrixWorld);
 	pt.dx = width;
 	pt.dy = height;
@@ -90,7 +90,7 @@ LDR.PLIBuilder.prototype.createClickMap = function(step) {
     this.clickMap = [];
     for(let i = 0; i < step.subModels.length; i++) {
 	let dat = step.subModels[i];
-	let partType = this.loader.partTypes[dat.ID];
+	let partType = this.loader.getPartType(dat.ID);
         if(!partType.isPart()) {
             continue; // Do not show sub models.
         }

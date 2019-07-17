@@ -21,13 +21,14 @@
     <script src="js/LDROptions.js"></script>
     <script src="js/ClientStorage.js"></script>
     <script src="js/LDRGeometries.js"></script>
-    <script src="js/LDRLoader.js"></script>
     <script src="js/LDRPartsBuilder.js"></script>
     <script src="js/LDRButtons.js"></script>
     <script src="js/LDRPLIPreview.js"></script>
     <script src="js/LDRMeasurer.js"></script>
     <script src="js/LDRGenerator.js"></script>
     <script src="js/LDRStuds.js"></script>
+    <script src="js/LDRAssemblies.js"></script>
+    <script src="js/LDRLoader.js"></script>
 
     <div id="top">
       <div id="icon_toggles">
@@ -70,7 +71,7 @@
 
     <script>
       //var modelTypeUrl = 'models/fail1.mpd';
-      var modelTypeUrl = 'models/pyramid2.ldr';
+      var modelTypeUrl = 'models/test_assemblies.ldr';
       var ldrOptions = new LDR.Options();
       var builder = null;
       var ldrLoader;
@@ -462,7 +463,7 @@
           buildItem(0);
         }
 
-        ldrLoader = new THREE.LDRLoader(onLoad);
+        ldrLoader = new THREE.LDRLoader(onLoad, null, {buildAssemblies:true});
         ldrLoader.load(modelTypeUrl);
     </script>
 

@@ -65,7 +65,7 @@
       var ldrLoader;
 
       var onLoad = function() {
-        var mainModel = ldrLoader.partTypes[ldrLoader.mainModel]; // Main model from the LDraw file (first model encountered)
+        var mainModel = ldrLoader.getMainModel(); // Main model from the LDraw file (first model encountered)
 
         // Place model in scene:
         var origo = new THREE.Vector3();

@@ -164,15 +164,11 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
         // Enable editor:
         if(self.canEdit) {
             function removeGeometries() {
-                for(let pt in self.ldrLoader.partTypes) {
-                    if(!self.ldrLoader.partTypes.hasOwnProperty(pt)) {
-                        continue;
-                    }
-                    pt = self.ldrLoader.partTypes[pt];
-                    if(!pt.isPart()) {
-                        pt.geometry = null;
-                    }
-                }
+                self.ldrLoader.applyOnPartTypes(pt => {
+                        if(!pt.isPart()) {
+                            pt.geometry = null;
+                        }
+                    });
             }
 	    
             self.stepEditor = new LDR.StepEditor(self.ldrLoader, self.stepHandler,
@@ -712,14 +708,12 @@ LDR.InstructionsManager.prototype.setUpOptions = function() {
     ldrOptions.appendFooter(optionsDiv);
     ldrOptions.listeners.push(function(partGeometriesChanged) {
             if(partGeometriesChanged) { // Update all studs:
-                for(let pt in self.ldrLoader.partTypes) {
-                    if(self.ldrLoader.partTypes.hasOwnProperty(pt)) {
-                        pt = self.ldrLoader.partTypes[pt];
-                        if(pt !== true && pt.isPart()) {
+                self.ldrLoader.applyOnPartTypes(pt => {
+                        if(pt.isPart()) {
                             pt.geometry = pt.mesh = null;
                         }
-                    }
-                }
+                    });
+
                 function callBack() {
                     let stepIndex = self.stepHandler.getCurrentStepIndex();
                     self.stepHandler.rebuild();

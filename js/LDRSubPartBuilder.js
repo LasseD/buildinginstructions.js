@@ -166,7 +166,7 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
 	    let step = new THREE.LDRStep(); // Not used by line1.
 
 	    if(line.line1) {
-                let pt = this.loader.partTypes[line.desc.ID];
+                let pt = this.loader.getPartType(line.desc.ID);
 		if(!pt) {
 		    throw {
 			name: "UnloadedPartTypeException",

@@ -18,7 +18,7 @@ LDR.PartsBuilder = function(loader, mainModelID, mainModelColor, onBuiltPart) {
 	if(colorID == 16) {
 	    throw "Building with default color not allowed! Part ID: " + partID;
         }
-	let model = loader.partTypes[partID];
+	let model = loader.getPartType(partID);
 
         function handleStep(step) {
             if(step.containsNonPartSubModels(loader)) {
@@ -65,7 +65,7 @@ LDR.PartAndColor = function(key, part, colorID, loader) {
 
     this.amount = 0;
 
-    this.partType = loader.partTypes[part.ID];
+    this.partType = loader.getPartType(part.ID);
     if(!this.partType) {
 	console.dir(loader);
 	throw "Unknown part type: " + part.ID;
@@ -79,7 +79,7 @@ LDR.PartAndColor = function(key, part, colorID, loader) {
         }
         else {
             //console.log("Replacing: " + part.ID + " -> " + this.partType.replacement);
-            pt = loader.partTypes[this.partType.replacement];
+            pt = loader.getPartType(this.partType.replacement);
             this.partType.replacementPartType = pt;
         }
 	this.partType = pt;
@@ -94,17 +94,14 @@ LDR.PartAndColor = function(key, part, colorID, loader) {
 	let pliInfo = LDR.PLI[pliID];
 	let pliName = "pli_" + this.part.ID;
 	let pt;
-	if(!loader.partTypes[pliName]) {
+	if(!loader.partTypes.hasOwnProperty(pliName)) {
 	    let r = new THREE.Matrix3();
 	    r.set(pliInfo[0], pliInfo[1], pliInfo[2],
 		  pliInfo[3], pliInfo[4], pliInfo[5],
 		  pliInfo[6], pliInfo[7], pliInfo[8]);
-	    let dat = new THREE.LDRPartDescription(16, 
-						   new THREE.Vector3(),
-						   r,
-						   this.part.ID,
-						   true,
-						   false); // Potentially rotated PLI.
+	    let dat = new THREE.LDRPartDescription(16, new THREE.Vector3(),
+						   r, this.part.ID,
+						   true, false); // Potentially rotated PLI.
 	    let step = new THREE.LDRStep();
 	    step.addSubModel(dat);
 	    pt = new THREE.LDRPartType();
@@ -118,7 +115,7 @@ LDR.PartAndColor = function(key, part, colorID, loader) {
 	    //console.log("Replaced PLI for " + pliName);
 	}
 	else {
-	    pt = loader.partTypes[pliName];
+	    pt = loader.getPartType(pliName);
 	}
         this.partType.pli = pt;
 	this.partType = pt;

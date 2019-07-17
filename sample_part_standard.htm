@@ -66,7 +66,7 @@
         if(!ldrLoader.mainModel) {
           ldrLoader.mainModel = partID;
         }
-        var pt = ldrLoader.partTypes[ldrLoader.mainModel];
+        var pt = ldrLoader.getMainModel();
 
         // Place model in scene:
         var origo = new THREE.Vector3();

@@ -26,6 +26,7 @@ THREE.LDRLoader = function(onLoad, storage, options) {
 
     this.partTypes = {}; // id => part. id is typically something like "parts/3001.dat", and "model.mpd".
     this.unloadedFiles = 0;
+    let assemblyManager;
     this.onLoad = function() {
         let unloaded = [];
         for(let id in self.partTypes) {
@@ -37,6 +38,9 @@ THREE.LDRLoader = function(onLoad, storage, options) {
                     continue;
                 }
                 partType.cleanUpSteps(self);
+                if(assemblyManager && !partType.isPart()) {
+                    partType.steps.forEach(step => assemblyManager.handleStep(step));
+                }
             }
         }
         unloaded.forEach(id => delete self.partTypes[id]);
@@ -50,6 +54,9 @@ THREE.LDRLoader = function(onLoad, storage, options) {
     this.onError = this.options.onError || function(msgObj){ console.dir(msgObj); };
     this.loader = new THREE.FileLoader(this.options.manager || THREE.DefaultLoadingManager);
     this.saveFileLines = this.options.saveFileLines || false;
+    if(this.options.buildAssemblies) {
+        assemblyManager = new LDR.AssemblyManager(this);
+    }
     this.mainModel;
 
     this.idToUrl = this.options.idToUrl || function(id) {
@@ -77,9 +84,9 @@ THREE.LDRLoader.prototype.load = function(id) {
         }
 	return;
     }
-    console.log('Loading ' + id + ' (' + urls.join(' or ') + ')');
+    //console.log('Loading ' + id + ' (' + urls.join(' or ') + ')');
 
-    this.partTypes[id] = true;
+    this.partTypes[id] = true; // Temporary value to prevent concurrent fetching over network.
 
     let self = this;
     let onFileLoaded = function(text) {
@@ -498,36 +505,66 @@ THREE.LDRLoader.prototype.parse = function(data) {
     //console.log(loadedParts.length + " LDraw file(s) read in " + (parseEndTime-parseStartTime) + "ms.");
 };
 
-THREE.LDRLoader.prototype.toLDR = function() {
-    let ret = this.partTypes[this.mainModel].toLDR(this);
-    for(let modelName in this.partTypes) {
-        if(!this.partTypes.hasOwnProperty(modelName)) {
-            continue;
-        }
-        let partType = this.partTypes[modelName];
-        if(partType.inlined || partType.ID === this.mainModel) {
-            continue;
-        }
-        ret += partType.toLDR(this);
+THREE.LDRLoader.prototype.getPartType = function(id) {
+    if(!this.partTypes.hasOwnProperty(id)) {
+        return null;
     }
+    let pt = this.partTypes[id];
+    if(pt === true) {
+        return null;
+    }
+    return pt;
+}
+
+THREE.LDRLoader.prototype.getMainModel = function() {
+    if(!this.mainModel) {
+        throw 'No main model set for ldrLoader!';
+    }
+    if(!this.partTypes.hasOwnProperty(this.mainModel)) {
+        throw 'Inconsistent internal storage for ldrLoader: No main model!';
+    }
+    let pt = this.partTypes[this.mainModel];
+    if(pt === true) {
+        throw 'Main model not yet loaded!';
+    }
+    return pt;
+}
+
+THREE.LDRLoader.prototype.applyOnPartTypes = function(f) {
+    for(let id in this.partTypes) {
+        if(!this.partTypes.hasOwnProperty(id)) {
+            continue;
+        }
+        let pt = this.partTypes[id];
+        if(pt === true) {
+            continue;
+        }
+        f(pt);
+    }
+}
+
+THREE.LDRLoader.prototype.toLDR = function() {
+    let self = this;
+    let ret = this.partTypes[this.mainModel].toLDR(this);
+    this.applyOnParts(partType => {
+            if(!(partType.inlined || partType.ID === self.mainModel)) {
+                ret += partType.toLDR(self);
+            }
+        });
     return ret;
 }
 
 THREE.LDRLoader.prototype.removeGeometries = function() {
     throw "UNSUPPORTED";
-    for(let ptID in this.partTypes) {
-	if(!this.partTypes.hasOwnProperty(ptID))
-	    continue; // Not a part.
-	let partType = this.partTypes[ptID];
-
-	for(let i = 0; i < partType.steps.length; i++) {
-	    partType.steps[i].removePrimitivesAndSubParts(); // Remove unused 'geometries'.
-	}
-
-	if(!this.saveFileLines && partType.geometry) {
-	    delete partType.geometry; // Only delete geometries when file lines are not saved as this indicates that data is not reused.
-        }
-    }
+    let self = this;
+    this.applyOnParts(partType => {
+            for(let i = 0; i < partType.steps.length; i++) {
+                partType.steps[i].removePrimitivesAndSubParts(); // Remove unused 'geometries'.
+            }
+            if(!self.saveFileLines && partType.geometry) {
+                delete partType.geometry; // Only delete geometries when file lines are not saved as this indicates that data is not reused.
+            }
+        });
 }
 
 /*
@@ -576,7 +613,7 @@ THREE.LDRPartDescription.prototype.placedColor = function(pdColorID) {
 }
 
 THREE.LDRPartDescription.prototype.toLDR = function(loader) {
-    let pt = loader.partTypes[this.ID];
+    let pt = loader.getPartType(this.ID);
     let ID = pt.name; // Proper casing.
     return '1 ' + this.colorID + ' ' + this.position.toLDR() + ' ' + this.rotation.toLDR() + ' ' + ID + '\r\n';
 }
@@ -904,7 +941,7 @@ THREE.LDRStep.prototype.containsNonPartSubModels = function(loader) {
         return false;
     }
     // We only have to check first sub model, since steps with sub assemblies will be separate:
-    let firstSubModel = loader.partTypes[this.subModels[0].ID];
+    let firstSubModel = loader.getPartType(this.subModels[0].ID);
     return !(!firstSubModel || firstSubModel.isPart());
 }
 
@@ -912,7 +949,7 @@ THREE.LDRStep.prototype.containsPartSubModels = function(loader) {
     if(this.subModels.length === 0) {
         return false;
     }
-    let firstSubModel = loader.partTypes[this.subModels[0].ID];
+    let firstSubModel = loader.getPartType(this.subModels[0].ID);
     return firstSubModel.isPart();
 }
 
@@ -923,7 +960,7 @@ THREE.LDRStep.prototype.countParts = function(loader) {
     let cnt = 0;
 
     this.subModels.forEach(function(subModel) {
-	let pt = loader.partTypes[subModel.ID];
+            let pt = loader.getPartType(subModel.ID);
         if(!pt) {
 	    console.warn("Unknown part type: " + subModel.ID);
         }
@@ -957,7 +994,7 @@ THREE.LDRStep.prototype.cleanUp = function(loader, newSteps) {
     let subModelsByTypeAndColor = {};
 
     function handleSubModel(subModelDesc) {
-        let subModel = loader.partTypes[subModelDesc.ID];
+        let subModel = loader.getPartType(subModelDesc.ID);
         if(!subModel || subModel.isPart()) {
             parts.push(subModelDesc);
         }
@@ -1023,14 +1060,14 @@ THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, 
 
 	let subModelColor = transformColor(subModelDesc.colorID);
 	
-	let subModel = loader.partTypes[subModelDesc.ID];
-	if(subModel === undefined) {
+	let subModel = loader.getPartType(subModelDesc.ID);
+	if(!subModel) {
 	    loader.onError("Unloaded sub model: " + subModelDesc.ID);
 	    return;
 	}
 	if(subModel.replacement) {
-	    let replacementSubModel = loader.partTypes[subModel.replacement];
-	    if(replacementSubModel === undefined) {
+	    let replacementSubModel = loader.getPartType(subModel.replacement);
+	    if(!replacementSubModel) {
 		throw { 
 		    name: "UnloadedSubmodelException", 
 		    level: "Severe",

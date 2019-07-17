@@ -1,0 +1,54 @@
+0 Animal Monkey Body (Needs Work)
+0 Name: 2550.dat
+0 Author: Andy Westrate [westrate]
+0 !LDRAW_ORG Part UPDATE 2013-02
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+
+0 BFC CERTIFY CCW
+
+0 !KEYWORDS Pirates, Adventurers, Amazon, Jungle
+0 !KEYWORDS Town, Divers, Time Cruisers
+
+0 !HISTORY 2013-12-23 [PTadmin] Official Update 2013-02
+
+0 // Underside Stud needs to be adjusted.
+
+1 16 0 0 0  1 0 0 0 1 0 0 0 1 s\2550s01.dat
+1 16 0 0 0 -1 0 0 0 1 0 0 0 1 s\2550s01.dat
+
+0 // Leg holes
+1 16 10 -9 -14 0 -1 0 -5 0 0 0 0 5 4-4ndis.dat
+1 16 10 -9 -14 0 1 0 -5 0 0 0 0 5 4-4edge.dat
+1 16 7 -9 -14 0 1 0 -5 0 0 0 0 -5 4-4ndis.dat
+1 16 7 -9 -14 0 1 0 -5 0 0 0 0 5 4-4edge.dat
+0 BFC INVERTNEXT
+1 16 10 -9 -14 0 -3 0 -5 0 0 0 0 5 4-4cyli.dat
+
+1 16 -10 -9 -14 0 1 0 -5 0 0 0 0 -5 4-4ndis.dat
+1 16 -10 -9 -14 0 1 0 -5 0 0 0 0 -5 4-4edge.dat
+1 16 -7 -9 -14 0 1 0 -5 0 0 0 0 -5 4-4edge.dat
+1 16 -7 -9 -14 0 -1 0 -5 0 0 0 0 5 4-4ndis.dat
+0 BFC INVERTNEXT
+1 16 -10 -9 -14 0 3 0 -5 0 0 0 0 -5 4-4cyli.dat
+
+1 16 10 -9 14 0 -1 0 -5 0 0 0 0 5 4-4ndis.dat
+1 16 10 -9 14 0 1 0 -5 0 0 0 0 5 4-4edge.dat
+1 16 7 -9 14 0 1 0 -5 0 0 0 0 5 4-4edge.dat
+1 16 7 -9 14 0 1 0 -5 0 0 0 0 -5 4-4ndis.dat
+0 BFC INVERTNEXT
+1 16 10 -9 14 0 -3 0 -5 0 0 0 0 -5 4-4cyli.dat
+
+1 16 -10 -9 14 0 1 0 -5 0 0 0 0 -5 4-4ndis.dat
+1 16 -10 -9 14 0 -1 0 -5 0 0 0 0 -5 4-4edge.dat
+1 16 -7 -9 14 0 -1 0 -5 0 0 0 0 -5 4-4edge.dat
+1 16 -7 -9 14 0 -1 0 -5 0 0 0 0 5 4-4ndis.dat
+0 BFC INVERTNEXT
+1 16 -10 -9 14 0 3 0 -5 0 0 0 0 -5 4-4cyli.dat
+
+0 // bottom stud hole
+0 BFC INVERTNEXT
+1 16 0 0 0 6 0 0 0 -16 0 0 0 6 4-4cyli.dat
+1 16 0 0 0 6 0 0 0 1 0 0 0 6 4-4edge.dat
+1 16 0 0 0 8 0 0 0 -16 0 0 0 8 4-4cyli.dat
+1 16 0 0 0 8 0 0 0 1 0 0 0 8 4-4edge.dat
+1 16 0 0 0 2 0 0 0 -1 0 0 0 2 4-4ring3.dat
