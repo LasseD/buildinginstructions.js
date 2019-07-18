@@ -110,7 +110,7 @@ LDR.PliPreviewer.prototype.showPliPreview = function(icon) {
 	bhA.setAttribute('href', "../p/part.php?user_id=" + icon.inlined + "&id=" + encodeURI(partIdNoDat));
 	blA.style.visibility = "hidden";
     }
-    else if(icon.inlined === undefined || icon.inlined === 'undefined') {
+    else if(!(icon.ldraw_org && !icon.ldraw_org.startsWith('Unofficial_')) && (icon.inlined === undefined || icon.inlined === 'undefined')) {
 	bhA.setAttribute('href', "../p/part.php?from=" + this.modelID + "&id=" + encodeURI(partIdNoDat));
 	blA.style.visibility = "hidden";
     }

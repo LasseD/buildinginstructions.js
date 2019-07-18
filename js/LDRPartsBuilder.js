@@ -31,11 +31,10 @@ LDR.PartsBuilder = function(loader, mainModelID, mainModelColor, onBuiltPart) {
                 let datColorID = dat.colorID == 16 ? colorID : dat.colorID;
                 // Key consists of ID (without .dat) '_', and color ID
 		if(dat.REPLACEMENT_PLI === true) {
-		    console.log('Skipped PLI for ' + dat.ID);
 		    continue; // Replaced part.
 		}
 		let id = dat.REPLACEMENT_PLI ? dat.REPLACEMENT_PLI : dat.ID;
-                let key = id.endsWith('.dat') ? id.substring(0, dat.ID.length-4) : id;
+                let key = id.endsWith('.dat') ? id.substring(0, id.length-4) : id;
                 key += '_' + datColorID;
                 let pc = pcs[key];
                 if(!pc) {
@@ -65,7 +64,7 @@ LDR.PartsBuilder = function(loader, mainModelID, mainModelColor, onBuiltPart) {
 LDR.PartAndColor = function(key, part, colorID, loader) {
     this.key = key;
     this.part = part;
-    this.ID = part.REPLACEMENT_PLI ? part.REPLACEMENT_PLI : part.ID
+    this.ID = part.REPLACEMENT_PLI ? part.REPLACEMENT_PLI : part.ID;
     this.colorID = colorID;
     this.loader = loader;
 
@@ -116,6 +115,7 @@ LDR.PartAndColor = function(key, part, colorID, loader) {
 	    pt.author = this.partType.author;
 	    pt.license = this.partType.license;
 	    pt.inlined = this.partType.inlined;
+	    pt.ldraw_org = this.partType.ldraw_org;
 	    pt.steps.push(step);
 	    loader.partTypes[pliName] = pt;
 	    //console.log("Replaced PLI for " + pliName);
