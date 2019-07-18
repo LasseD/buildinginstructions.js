@@ -70,8 +70,7 @@
       </div>
 
     <script>
-      //var modelTypeUrl = 'models/fail1.mpd';
-      var modelTypeUrl = 'models/test_assemblies.ldr';
+      var modelTypeUrl = 'models/test_torso.mpd';
       var ldrOptions = new LDR.Options();
       var builder = null;
       var ldrLoader;
@@ -463,8 +462,13 @@
           buildItem(0);
         }
 
-        ldrLoader = new THREE.LDRLoader(onLoad, null, {buildAssemblies:true});
-        ldrLoader.load(modelTypeUrl);
+        var storage;
+        let onStorageReady = function() {
+          ldrLoader = new THREE.LDRLoader(onLoad, storage, {buildAssemblies:true});
+          LDR.Studs.setStuds(ldrLoader, ldrOptions.studHighContrast, 
+                             ldrOptions.studLogo, () => ldrLoader.load(modelTypeUrl));
+        }
+        storage = new LDR.STORAGE(onStorageReady);
     </script>
 
       <script>

@@ -51,9 +51,6 @@ THREE.LDRLoader = function(onLoad, storage, options) {
     this.onError = this.options.onError || function(msgObj){ console.dir(msgObj); };
     this.loader = new THREE.FileLoader(this.options.manager || THREE.DefaultLoadingManager);
     this.saveFileLines = this.options.saveFileLines || false;
-    if(this.options.buildAssemblies) {
-        this.assemblyManager = new LDR.AssemblyManager(this);
-    }
     this.mainModel;
 
     this.idToUrl = this.options.idToUrl || function(id) {
@@ -490,7 +487,10 @@ THREE.LDRLoader.prototype.parse = function(data) {
     loadedParts.forEach(pt => pt.steps.forEach(s => s.subModels.forEach(sm => checkPart(sm.ID))));
 
     // Check assemblies:
-    if(this.assemblyManager) {
+    if(this.options.buildAssemblies) {
+        if(!this.assemblyManager) {
+            this.assemblyManager = new LDR.AssemblyManager(this);
+        }
 	loadedParts.forEach(pt => { if(!pt.isPart()) { pt.steps.forEach(
 	    step => self.assemblyManager.handleStep(step).forEach(checkPart)
 	)} });
