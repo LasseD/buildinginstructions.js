@@ -551,25 +551,12 @@ THREE.LDRLoader.prototype.applyOnPartTypes = function(f) {
 THREE.LDRLoader.prototype.toLDR = function() {
     let self = this;
     let ret = this.partTypes[this.mainModel].toLDR(this);
-    this.applyOnParts(partType => {
+    this.applyOnPartTypes(partType => {
             if(!(partType.inlined || partType.ID === self.mainModel)) {
                 ret += partType.toLDR(self);
             }
         });
     return ret;
-}
-
-THREE.LDRLoader.prototype.removeGeometries = function() {
-    throw "UNSUPPORTED";
-    let self = this;
-    this.applyOnParts(partType => {
-            for(let i = 0; i < partType.steps.length; i++) {
-                partType.steps[i].removePrimitivesAndSubParts(); // Remove unused 'geometries'.
-            }
-            if(!self.saveFileLines && partType.geometry) {
-                delete partType.geometry; // Only delete geometries when file lines are not saved as this indicates that data is not reused.
-            }
-        });
 }
 
 /*
