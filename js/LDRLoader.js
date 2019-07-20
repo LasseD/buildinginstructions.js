@@ -290,6 +290,10 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		part.ldraw_org = parts[2];
                 saveThisHeaderLine = false;
 	    }
+	    else if(is("!CMDLINE")) {
+		part.preferredColor = parseInt(parts[2].substring(2));
+                saveThisHeaderLine = false;
+	    }
 	    else if(parts[1] === "BFC") {
 		// BFC documentation: http://www.ldraw.org/article/415
 		let option = parts[2];
@@ -1199,12 +1203,10 @@ THREE.LDRPartType = function() {
 THREE.LDRPartType.prototype.canBePacked = function() {
     return this.inlined !== 'IDB' && // Don't re-pack.
            this.inlined !== 'GENERATED' && // Don't pack generated parts.
+           this.isPart() && // Should be a part.
            this.license === 'Redistributable under CCAL version 2.0 : see CAreadme.txt' &&
-           this.steps.length === 1 &&
-           this.lastRotation === null &&
-           (this.ldraw_org === 'Part' || this.ldraw_org === 'Primitive' || 
-            this.ldraw_org === 'Subpart' || this.ldraw_org === '48_Primitive' ||
-            this.ldraw_org === '8_Primitive');
+	   this.ldraw_org && // And an LDRAW_ORG statement.
+           !this.ldraw_org.startsWith('Unofficial_'); // And not be unofficial.
 }
 
 THREE.LDRPartType.prototype.pack = function() {
@@ -1268,6 +1270,9 @@ THREE.LDRPartType.prototype.toLDR = function(loader) {
     if(this.headerLines.length > 0) {
         ret += '\r\n'; // Empty line before additional header lines, such as 'THEME' and 'KEYWORDS'
         this.headerLines.forEach(line => ret += line.toLDR(loader));
+    }
+    if(this.hasOwnProperty('preferredColor')) {
+        ret += '\r\n0 !CMDLINE -c' + this.preferredColor + '\r\n';
     }
     if(this.historyLines.length > 0) {
         ret += '\r\n';
