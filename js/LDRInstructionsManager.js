@@ -664,7 +664,7 @@ LDR.InstructionsManager.prototype.onPLIClick = function(e) {
     else { // Show preview if no editor:
         this.pliPreviewer.scene.remove(this.pliHighlighted);
         
-        let pt = this.pliBuilder.getPartType(icon.part.ID);
+        let pt = this.pliBuilder.getPartType(icon.partID);
         this.pliHighlighted = pt.mesh;
         this.pliPreviewer.scene.add(this.pliHighlighted);
         
