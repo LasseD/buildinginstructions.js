@@ -129,10 +129,6 @@
 
       // Half-Harlequin-mode:
       var acceptedColors = [1, 2, 4, 5, 13, 14, 19, 22, 25, 27, 69, 71, 72, 73, 74, 77, 288, 308, 484];
-      THREE.LDRStep.prototype.addSubModel = function(subModel) {
-        subModel.colorID = acceptedColors[Math.floor(Math.random() * acceptedColors.length)];
-        this.subModels.push(subModel);
-      }
       LDR.LDRGeometry.prototype.fromPartType = function(loader, pt) {
         loader.getMainModel().IS_MAIN_MODEL = true;
         let geometries = [];
@@ -144,6 +140,7 @@
           pt.steps.forEach(step => {
             step.quads.forEach(quad => quad.colorID = acceptedColors[Math.floor(Math.random() * acceptedColors.length)]);
             step.triangles.forEach(triangle => triangle.colorID = acceptedColors[Math.floor(Math.random() * acceptedColors.length)]);
+            step.subModels.forEach(sm => sm.colorID = acceptedColors[Math.floor(Math.random() * acceptedColors.length)]);
           });
         }
 
