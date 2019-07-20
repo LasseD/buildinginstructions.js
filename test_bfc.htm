@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+ <head>
+    <meta charset=utf-8>
+    <title>Sample render of a part where part files are found in the official and unofficial folders</title>
+    <meta name="viewport" content="width=device-width" />
+ </head>
+ <body>
+    <script src="js/three.min.js"></script>
+    <script src="js/OrbitControls.js"></script>
+    <script src="js/colors.js"></script>
+    <script src="js/LDROptions.js"></script>
+    <script src="js/LDRShaders.js"></script>
+    <script src="js/LDRColorMaterials.js"></script>
+    <script src="js/LDRGeometries.js"></script>
+    <script src="js/LDRMeasurer.js"></script>
+    <script src="js/LDRGenerator.js"></script>
+    <script src="js/LDRStuds.js"></script>
+    <script src="js/ClientStorage.js"></script>
+    <script src="js/LDRLoader.js"></script>
+    <script>
+      let partID = '44375bps0.dat';
+      let color = 16;
+
+      // Set up camera:
+      var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
+      camera.position.set(10000, 7000, 10000);
+      camera.lookAt(new THREE.Vector3());
+      let measurer = new LDR.Measurer(camera); // Used for making the shown part fill the renderer.
+
+      // Set up scene:
+      var scene = new THREE.Scene();
+      var baseObject;
+      scene.background = new THREE.Color(0xFFFFFF); // Set the background color of the renderer here!
+
+      // Set up renderer:
+      var renderer = new THREE.WebGLRenderer({antialias: true});
+      renderer.setPixelRatio(window.devicePixelRatio);
+      function render() {
+        renderer.render(scene, camera);
+      }
+      document.body.appendChild(renderer.domElement);
+
+      function onWindowResize(){
+        camera.left = -window.innerWidth;
+        camera.right = window.innerWidth;
+        camera.top = window.innerHeight;
+        camera.bottom = -window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        render();
+      }
+
+      // React to user input:
+      var controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.addEventListener('change', render);
+      window.addEventListener('resize', onWindowResize, false);
+
+      // Three.js loader for LDraw models:
+      var ldrLoader;
+
+      var onLoad = function() {
+        if(!ldrLoader.mainModel) {
+          ldrLoader.mainModel = partID;
+        }
+        var pt = ldrLoader.getMainModel();
+
+        // Place model in scene:
+        var origo = new THREE.Vector3();
+        var inv = new THREE.Matrix3(); 
+        inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
+
+        // Set up objects for proper rendering order (when parts contain both transparent and opaque parts, the transparent parts should be rendered last:
+        if(baseObject) {
+          scene.remove(baseObject); // Remove existing geometries in case the user calls load more than once.
+        }
+        baseObject = new THREE.Group()
+        let opaqueObject = new THREE.Group(), transObject = new THREE.Group();
+        baseObject.add(opaqueObject);
+        baseObject.add(transObject);
+        scene.add(baseObject);
+        var mc = new LDR.MeshCollector(opaqueObject, transObject);
+
+        // Generate the mesh:
+        pt.generateThreePart(ldrLoader, color, origo, inv, true, false, mc);
+
+        // Find center of drawn model:
+        var b = mc.boundingBox;
+        var elementCenter = new THREE.Vector3();
+        b.getCenter(elementCenter);
+        baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
+
+        let [dx,dy] = measurer.measure(b, baseObject.matrixWorld);
+	camera.zoom = 1.6*Math.min(window.innerWidth/dx, window.innerHeight/dy); // 1.6 to make the part not fill the full element. Use 2.0 to max it out.
+
+        onWindowResize();
+      }
+
+      var ldrOptions = new LDR.Options(); // Determine how to show lines. See below:
+      ldrOptions.lineContrast = 1; // Set to 0 for high contrast line colors, and 1 for normal line colors.
+      ldrOptions.studHighContrast = 0; // Set to 1 for showing black sides on studs like in official LEGO building instructions. Set to 0 for normal stud colors.
+      ldrOptions.studLogo = 1; // 0 for no logo, 1 to 5 for logos of types 1 to 5.
+
+      // The following function makes the ldrLoader search through the official
+      // and unofficial file structures (unofficial/ and unofficial/) for parts.
+      const OFFICIAL_DIR = 'official', UNOFFICIAL_DIR = 'unofficial';
+      var idToUrl = function(id) {
+        if(id.startsWith('48/') || id.startsWith('8/')) {
+          return [OFFICIAL_DIR + '/p/' + id, 
+                  UNOFFICIAL_DIR + '/p/' + id];
+        }
+        else if(id.startsWith('s/')) {
+          return [OFFICIAL_DIR + '/parts/' + id,
+                  UNOFFICIAL_DIR + '/parts/' + id];
+        }
+        else if(id.match(/[a-z][a-z].*\.dat/)) {
+          return [OFFICIAL_DIR + '/p/' + id, 
+                  OFFICIAL_DIR + '/parts/' + id,
+                  UNOFFICIAL_DIR + '/p/' + id,
+                  UNOFFICIAL_DIR + '/parts/' + id];
+        }
+        else {
+          return [OFFICIAL_DIR + '/parts/' + id, 
+                  OFFICIAL_DIR + '/p/' + id,
+                  UNOFFICIAL_DIR + '/parts/' + id,
+                  UNOFFICIAL_DIR + '/p/' + id];
+        }
+      }
+
+      // BFC Mode:
+      THREE.LDRStep.prototype.addTrianglePoints = function(c, p1, p2, p3) {
+        this.empty = false;
+        this.hasPrimitives = true;
+        this.triangles.push({colorID:this.cull?2:1, p1:p1, p2:p2, p3:p3});
+        this.triangles.push({colorID:this.cull?4:1, p1:p3, p2:p2, p3:p1});
+      }
+      THREE.LDRStep.prototype.addQuadPoints = function(c, p1, p2, p3, p4) {
+        this.empty = false;
+        this.hasPrimitives = true;
+        this.quads.push({colorID:this.cull?2:1, p1:p1, p2:p2, p3:p3, p4:p4});
+        this.quads.push({colorID:this.cull?4:1, p1:p4, p2:p3, p3:p2, p4:p1});
+      }
+
+      let storage;
+      let onStorageReady = function() {
+        ldrLoader = new THREE.LDRLoader(onLoad, storage, {idToUrl:idToUrl});
+        LDR.Studs.setStuds(ldrLoader, ldrOptions.studHighContrast,
+                           ldrOptions.studLogo, () => ldrLoader.load(partID));
+      }
+      //storage = new LDR.STORAGE(onStorageReady); // If you prefer not to use IndexedDB for client-side caching, then simply comment-out this line and use the one below.
+      onStorageReady();
+ </script>
+ </body>
+</html>
