@@ -19,7 +19,7 @@
     <script src="js/ClientStorage.js"></script>
     <script src="js/LDRLoader.js"></script>
     <script>
-      let partID = 's/18675s01.dat';
+      let partID = '18675ps2.dat';
       let color = 16;
 
       // Set up camera:
@@ -128,12 +128,32 @@
       }
 
       // Half-Harlequin-mode:
-      var acceptedColor = 0;
+      var acceptedColors = [1, 2, 4, 5, 13, 14, 19, 22, 25, 27, 69, 71, 72, 73, 74, 77, 288, 308, 484];
       THREE.LDRStep.prototype.addSubModel = function(subModel) {
-        subModel.colorID = acceptedColor++;
-        if(acceptedColor === 2)
-          acceptedColor = 0;
+        subModel.colorID = acceptedColors[Math.floor(Math.random() * acceptedColors.length)];
         this.subModels.push(subModel);
+      }
+      LDR.LDRGeometry.prototype.fromPartType = function(loader, pt) {
+        loader.getMainModel().IS_MAIN_MODEL = true;
+        let geometries = [];
+        if(pt.steps.length === 0) {
+          console.warn("No steps in " + pt.ID);
+          return; // Empty - just make empty.
+        }
+        if(pt.IS_MAIN_MODEL) { // Harlequin the triangles and quads:
+          pt.steps.forEach(step => {
+            step.quads.forEach(quad => quad.colorID = acceptedColors[Math.floor(Math.random() * acceptedColors.length)]);
+            step.triangles.forEach(triangle => triangle.colorID = acceptedColors[Math.floor(Math.random() * acceptedColors.length)]);
+          });
+        }
+
+        pt.steps.forEach(step => {
+            let g = new LDR.LDRGeometry();
+            g.fromStep(loader, step);
+            geometries.push(g);
+        });
+
+        this.replaceWith(LDR.mergeGeometries(geometries));
       }
 
       let storage;
