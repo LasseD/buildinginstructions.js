@@ -42,51 +42,66 @@ LDR.AssemblyManager = function(loader) {
     }
 
     // Add torsos:
-    loader.applyOnPartTypes((pt, idx) => {
-            if(!(pt.isPart() && pt.ID.startsWith('973p') && pt.ID.endsWith('.dat'))) {
-                return; // Not a torso.
-            }
-            let ID = pt.ID.substring(0, pt.ID.length-4) + 'c01.dat';
-            if(self.loader.partTypes.hasOwnProperty(ID)) {
-                return; // Already built.
-            }
+    function handleTorsosInStep(step) {
+	// Try to find a torso, two arms and two hands:
+	let torso = step.subModels.find(sm => sm.ID.startsWith('973p') && sm.ID.endsWith('.dat')); if(!torso) return; // No torsos.
+        let ID = torso.ID.substring(0, torso.ID.length-4) + 'c01.dat'; // Assembly ID
+        if(self.loader.partTypes.hasOwnProperty(ID)) {
+            return; // Already built.
+        }
+	let armLeft = step.subModels.find(sm => sm.ID.startsWith('3819') && sm.ID.endsWith('.dat')); if(!armLeft) return; // Missing left arm.
+	let armRight = step.subModels.find(sm => sm.ID.startsWith('3818') && sm.ID.endsWith('.dat')); if(!armRight) return; // Missing right arm.
+	let hand = step.subModels.find(sm => sm.ID.startsWith('3820') && sm.ID.endsWith('.dat')); if(!hand) return; // Only need one to get the color
             
-            // New torso part type:
-            let torsoStep = new THREE.LDRStep();
-            let zeroVector = new THREE.Vector3();
-            let idMatrix = new THREE.Matrix3(); idMatrix.set(1, 0, 0, 0, 1, 0, 0, 0, 1);
+        // New torso part type:
+        let torsoStep = new THREE.LDRStep();
+        let zeroVector = new THREE.Vector3();
+        let idMatrix = new THREE.Matrix3(); idMatrix.set(1, 0, 0, 0, 1, 0, 0, 0, 1);
 
-            // Torso:
-            torsoStep.addSubModel(new THREE.LDRPartDescription(16, zeroVector, idMatrix, pt.ID, true, false));
-
-            // Arms:
-            let armMatrix1 = new THREE.Matrix3(); armMatrix1.set(1, 0.17, 0, -0.17, 1, 0, 0, 0, 1);
-            torsoStep.addSubModel(new THREE.LDRPartDescription(16, new THREE.Vector3(15.5, 8, 0), armMatrix1, '3819.dat', true, false));
-            let armMatrix2 = new THREE.Matrix3(); armMatrix2.set(1, -0.17, 0, 0.17, 1, 0, 0, 0, 1);
-            torsoStep.addSubModel(new THREE.LDRPartDescription(16, new THREE.Vector3(-15.5, 8, 0), armMatrix2, '3818.dat', true, false));
-
-            // Hands:
-            let handMatrix1 = new THREE.Matrix3(); handMatrix1.set(1, 0.12, -0.12, -0.17, 0.697, -0.697, 0, 0.707, 0.707);
-            torsoStep.addSubModel(new THREE.LDRPartDescription(14, new THREE.Vector3(23.658, 25.851, -10), handMatrix1, '3820.dat', true, false));
-            let handMatrix2 = new THREE.Matrix3(); handMatrix2.set(1, -0.12, 0.12, 0.17, 0.697, -0.697, 0, 0.707, 0.707);
-            torsoStep.addSubModel(new THREE.LDRPartDescription(14, new THREE.Vector3(-23.658, 25.851, -10), handMatrix2, '3820.dat', true, false));
-
-            // Torso part type:
-            let torsoPT = new THREE.LDRPartType();
-            torsoPT.name = torsoPT.ID = ID;
-            torsoPT.modelDescription = pt.modelDescription + ' / Arms / Yellow Hands';
-            torsoPT.author = 'LDRAssemblies.js';
-            torsoPT.license = 'Redistributable under CCAL version 2.0 : see CAreadme.txt';
-            torsoPT.ldraw_org = 'Unofficial_Part';
-            torsoPT.inlined = 'UNOFFICIAL';
-            torsoPT.cleanSteps = torsoPT.certifiedBFC = torsoPT.CCW = torsoPT.consistentFileAndName = true;
-            torsoPT.steps = [torsoStep];
-            self.loader.partTypes[ID] = torsoPT;
-
-            let keys = ['3818.dat_16', '3819.dat_16', '3820.dat_14', '3820.dat_14'];
-            let obj = {ID:ID,c:16,keys:keys};
-            addToMap(pt.ID, obj);
-        });
+        // Torso:
+        torsoStep.addSubModel(new THREE.LDRPartDescription(torso.colorID, zeroVector, idMatrix, torso.ID, true, false));
+	
+        // Arms:
+        let armMatrix1 = new THREE.Matrix3(); armMatrix1.set(1, 0.17, 0, -0.17, 1, 0, 0, 0, 1);
+        torsoStep.addSubModel(new THREE.LDRPartDescription(armLeft.colorID, new THREE.Vector3(15.5, 8, 0), armMatrix1, armLeft.ID, true, false));
+        let armMatrix2 = new THREE.Matrix3(); armMatrix2.set(1, -0.17, 0, 0.17, 1, 0, 0, 0, 1);
+        torsoStep.addSubModel(new THREE.LDRPartDescription(armRight.colorID, new THREE.Vector3(-15.5, 8, 0), armMatrix2, armRight.ID, true, false));
+	
+        // Hands:
+        let handMatrix1 = new THREE.Matrix3(); handMatrix1.set(1, 0.12, -0.12, -0.17, 0.697, -0.697, 0, 0.707, 0.707);
+        torsoStep.addSubModel(new THREE.LDRPartDescription(hand.colorID, new THREE.Vector3(23.658, 25.851, -10), handMatrix1, hand.ID, true, false));
+        let handMatrix2 = new THREE.Matrix3(); handMatrix2.set(1, -0.12, 0.12, 0.17, 0.697, -0.697, 0, 0.707, 0.707);
+        torsoStep.addSubModel(new THREE.LDRPartDescription(hand.colorID, new THREE.Vector3(-23.658, 25.851, -10), handMatrix2, hand.ID, true, false));
+	
+        // Torso part type:
+        let torsoPT = new THREE.LDRPartType();
+	let pt = loader.getPartType(torso.ID);
+        torsoPT.name = torsoPT.ID = ID;
+        torsoPT.modelDescription = LDR.Colors[torso.colorID].name + ' ' + pt.modelDescription + ' / ';
+	if(armLeft.colorID === armRight.colorID) {
+	    torsoPT.modelDescription += LDR.Colors[armLeft.colorID].name + ' Arms';
+	}
+	else {
+	    torsoPT.modelDescription += LDR.Colors[armLeft.colorID].name + ' Left Arm / ' +
+		LDR.Colors[armRight.colorID].name + ' Right Arm';
+	}
+	torsoPT.modelDescription += ' / ' + LDR.Colors[hand.colorID].name + ' Hands';
+        torsoPT.author = 'LDRAssemblies.js';
+        torsoPT.license = 'Redistributable under CCAL version 2.0 : see CAreadme.txt';
+        torsoPT.ldraw_org = 'Unofficial_Part';
+        torsoPT.inlined = 'UNOFFICIAL';
+        torsoPT.cleanSteps = torsoPT.certifiedBFC = torsoPT.CCW = torsoPT.consistentFileAndName = true;
+        torsoPT.steps = [torsoStep];
+        self.loader.partTypes[ID] = torsoPT;
+	
+        let keys = [armLeft.ID + '_' + armLeft.colorID, 
+		    armRight.ID + '_' + armRight.colorID,
+		    hand.ID + '_' + hand.colorID,
+		    hand.ID + '_' + hand.colorID];
+        let obj = {ID:ID,c:16,keys:keys};
+        addToMap(pt.ID, obj);
+    }
+    loader.applyOnPartTypes(pt => pt.steps.forEach(handleTorsosInStep));
 }
 
 LDR.AssemblyManager.prototype.handleStep = function(step) {

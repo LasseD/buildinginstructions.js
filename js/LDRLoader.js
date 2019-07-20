@@ -957,11 +957,16 @@ THREE.LDRStep.prototype.countParts = function(loader) {
     let cnt = 0;
 
     this.subModels.forEach(function(subModel) {
-            let pt = loader.getPartType(subModel.ID);
-        if(!pt) {
+	if(subModel.REPLACEMENT_PLI) {
+	    console.log('REPLACED');
+	    return;
+	}
+        let pt = loader.getPartType(subModel.ID);
+	if(!pt) {
 	    console.warn("Unknown part type: " + subModel.ID);
-        }
-        else if(pt.isPart()) {
+	    return;
+	}
+        if(pt.isPart()) {
             cnt++;
         }
         else {
@@ -1290,7 +1295,6 @@ THREE.LDRPartType.prototype.ensureGeometry = function(loader) {
     if(this.geometry) {
 	return; // Already prepared.
     }
-    this.countParts(loader);
     this.geometry = new LDR.LDRGeometry();
     this.geometry.fromPartType(loader, this);
     // Clean up after data has moved to this.geometry:
