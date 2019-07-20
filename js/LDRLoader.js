@@ -196,7 +196,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		colorID = parseInt(colorID);
 	    }
 	}
-	//console.log("Parsing line " + i + " of type " + lineType + ": " + line); // Useful if you encounter parse errors.
+	//console.log("Parsing line " + i + " of type " + lineType + ', color ' + colorID + ": " + line); // Useful if you encounter parse errors.
 
 	let l3 = parts.length >= 3;
 	function is(type) {

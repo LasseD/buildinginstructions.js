@@ -511,13 +511,13 @@ LDR.LDRGeometry.prototype.fromPrimitives = function(lines, conditionalLines, tri
   Assumes unsorted vertices that reference the primitives.
   This function sort the vertices and updates the primitives to reference the vertices.
  */
-LDR.LDRGeometry.prototype.sortAndBurnVertices = function(vertices, primitives, type) {
+LDR.LDRGeometry.prototype.sortAndBurnVertices = function(vertices, primitives) {
     vertices.sort(LDR.vertexSorter);
     let prev;
     for(let i = 0; i < vertices.length; i++) {
 	let v = vertices[i];
 	if(!(prev && prev.x === v.x && prev.y === v.y && prev.z === v.z)) {
-	    this.vertices.push(v);
+	    this.vertices.push({x:v.x, y:v.y, z:v.z});
 	}
 
         let p = primitives[v.c][v.idx];
@@ -533,9 +533,6 @@ LDR.LDRGeometry.prototype.sortAndBurnVertices = function(vertices, primitives, t
 	else {
 	    p.p4 = this.vertices.length-1;
         }
-	delete v.idx;
-	delete v.p;
-	delete v.c;
 	prev = v;
     }
 }
@@ -698,28 +695,34 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
     // Function to update color (notice that input and output are strings):
     let replaceColor;
     if(pd.colorID === 16) {
-	replaceColor = function(x){return x;}; // Do nothing.
+	replaceColor = x => ''+x; // Do nothing.
     }
     else if(pd.colorID === 24) {	    
+	replaceColor = x => x === '16' ? '24' : ''+x;
+    }
+    else if(pd.colorID < 0) { // Edge color
+        let pos = ''+pd.colorID;
 	replaceColor = function(x) {
- 	    if(x === '16') {
-		return '24';
+	    if(x === '16' || x === '24') {
+		return pos;
             }
 	    else {
-		return x;
+		return ''+x;
             }
 	};
     }
-    else {
+    else { // Normal color
+        let pos = ''+pd.colorID;
+        let neg = ''+(-pd.colorID-1);
 	replaceColor = function(x) {
 	    if(x === '16') {
-		return ''+pd.colorID;
+		return pos;
             }
 	    else if(x === '24') {
-		return ''+(-pd.colorID - 1);
+		return neg;
             }
 	    else {
-		return x;
+		return ''+x;
             }
 	};
     }
@@ -730,7 +733,7 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
     // First decorate with initial index and update position:
     for(let i = 0; i < this.vertices.length; i++) {
 	let v = this.vertices[i];
-	v.idx = i;
+	v.oldIndex = i;
 	
 	let position = new THREE.Vector3(v.x, v.y, v.z);
 	position.applyMatrix3(pd.rotation);
@@ -739,216 +742,82 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
 	v.y = position.y;
 	v.z = position.z;
     }
+    let newIndices = [];
     this.vertices.sort(LDR.vertexSorter);
     for(let i = 0; i < this.vertices.length; i++) {
 	let v = this.vertices[i];
-	this.vertices[v.idx].newIndex = i;
+	newIndices[v.oldIndex] = i;
     }
+    // Clean up vertices:
+    this.vertices.forEach(v => delete v.oldIndex);    
     
     // Update the indices and colors on the primitives:
 
-    for(let c in this.lines) {
-	if(!this.lines.hasOwnProperty(c)) {
-	    continue;
+    function t(withColors, transform) {
+        let ret = {};
+        for(let c in withColors) {
+            if(!withColors.hasOwnProperty(c)) {
+                continue;
+            }
+            let primitives = withColors[c].map(transform);
+            let toColor = replaceColor(c);
+            if(ret.hasOwnProperty(toColor)) {
+                ret[toColor].push(...primitives);
+            }
+            else {
+                ret[toColor] = primitives;
+            }
         }
-	let lines = this.lines[c];
-	for(let i = 0; i < lines.length; i++) {
-            let p = lines[i];
-	    let v1 = this.vertices[p.p1];
-	    let v2 = this.vertices[p.p2];
-	    p.p1 = v1.newIndex;
-	    p.p2 = v2.newIndex;
-	}
-	let toColor = replaceColor(c);
-	if(toColor !== c) {
-	    if(this.lines.hasOwnProperty(toColor)) {
-		this.lines[toColor].push(...lines);
-	    }
-	    else {
-		this.lines[toColor] = lines;
-	    }
-	    delete this.lines[c];
-	}
-    }
-    for(let c in this.conditionalLines) {
-	if(!this.conditionalLines.hasOwnProperty(c)) {
-	    continue;
-        }
-	let conditionalLines = this.conditionalLines[c];
-	for(let i = 0; i < conditionalLines.length; i++) {
-            let p = conditionalLines[i];
-	    let v1 = this.vertices[p.p1];
-	    let v2 = this.vertices[p.p2];
-	    let v3 = this.vertices[p.p3];
-	    let v4 = this.vertices[p.p4];
-	    p.p1 = v1.newIndex;
-	    p.p2 = v2.newIndex;
-	    p.p3 = v3.newIndex;
-	    p.p4 = v4.newIndex;
-	}
-	let toColor = replaceColor(c);
-	if(toColor !== c) {
-	    if(this.conditionalLines.hasOwnProperty(toColor)) {
-		this.conditionalLines[toColor].push(...conditionalLines);
-	    }
-	    else {
-		this.conditionalLines[toColor] = conditionalLines;
-	    }
-	    delete this.conditionalLines[c];
-	}
+        return ret;
     }
 
+    this.lines = t(this.lines, p => {return {p1:newIndices[p.p1],p2:newIndices[p.p2]};});
+    this.conditionalLines = t(this.conditionalLines, p => {return {p1:newIndices[p.p1],p2:newIndices[p.p2],p3:newIndices[p.p3],p4:newIndices[p.p4]};});
     if(invert) {
-	for(let c in this.triangles) {
-	    if(!this.triangles.hasOwnProperty(c)) {
-		continue;
-            }
-	    let triangles = this.triangles[c];
-	    for(let i = 0; i < triangles.length; i++) {
-		let p = triangles[i];
-		let v1 = this.vertices[p.p1];
-		let v2 = this.vertices[p.p2];
-		let v3 = this.vertices[p.p3];
-		p.p1 = v3.newIndex;
-		p.p2 = v2.newIndex;
-		p.p3 = v1.newIndex;
-	    }
-	    let toColor = replaceColor(c);
-	    if(toColor !== c) {
-		if(this.triangles.hasOwnProperty(toColor)) {
-		    this.triangles[toColor].push(...triangles);
-		}
-		else {
-		    this.triangles[toColor] = triangles;
-		}
-		delete this.triangles[c];
-	    }
-	}
-	for(let c in this.quads) {
-	    if(!this.quads.hasOwnProperty(c)) {
-		continue;
-            }
-	    let quads = this.quads[c];
-	    for(let i = 0; i < quads.length; i++) {
-		let p = quads[i];
-		let v1 = this.vertices[p.p1];
-		let v2 = this.vertices[p.p2];
-		let v3 = this.vertices[p.p3];
-		let v4 = this.vertices[p.p4];
-		p.p1 = v4.newIndex;
-		p.p2 = v3.newIndex;
-		p.p3 = v2.newIndex;
-		p.p4 = v1.newIndex;
-	    }	    
-	    let toColor = replaceColor(c);
-	    if(toColor !== c) {
-		if(this.quads.hasOwnProperty(toColor)) {
-		    this.quads[toColor].push(...quads);
-		}
-		else {
-		    this.quads[toColor] = quads;
-		}
-		delete this.quads[c];
-	    }
-	}
+        this.triangles = t(this.triangles, p => {return {p1:newIndices[p.p3],p2:newIndices[p.p2],p3:newIndices[p.p1]};});
+        this.quads = t(this.quads, p => {return {p1:newIndices[p.p4],p2:newIndices[p.p3],p3:newIndices[p.p2],p4:newIndices[p.p1]};});
     }
     else {
-	for(let c in this.triangles) {
-	    if(!this.triangles.hasOwnProperty(c)) {
-		continue;
-            }
-	    let triangles = this.triangles[c];
-	    for(let i = 0; i < triangles.length; i++) {
-		let p = triangles[i];
-		let v1 = this.vertices[p.p1];
-		let v2 = this.vertices[p.p2];
-		let v3 = this.vertices[p.p3];
-		p.p1 = v1.newIndex;
-		p.p2 = v2.newIndex;
-		p.p3 = v3.newIndex;
-	    }
-	    let toColor = replaceColor(c);
-	    if(toColor !== c) {
-		if(this.triangles.hasOwnProperty(toColor)) {
-		    this.triangles[toColor].push(...triangles);
-		}
-		else {
-		    this.triangles[toColor] = triangles;
-		}
-		delete this.triangles[c];
-	    }
-	}
-	for(let c in this.quads) {
-	    if(!this.quads.hasOwnProperty(c)) {
-		continue;
-            }
-	    let quads = this.quads[c];
-	    for(let i = 0; i < quads.length; i++) {
-		let p = quads[i];
-		let v1 = this.vertices[p.p1];
-		let v2 = this.vertices[p.p2];
-		let v3 = this.vertices[p.p3];
-		let v4 = this.vertices[p.p4];
-		p.p1 = v1.newIndex;
-		p.p2 = v2.newIndex;
-		p.p3 = v3.newIndex;
-		p.p4 = v4.newIndex;
-	    }	    
-	    let toColor = replaceColor(c);
-	    if(toColor !== c) {
-		if(this.quads.hasOwnProperty(toColor)) {
-		    this.quads[toColor].push(...quads);
-		}
-		else {
-		    this.quads[toColor] = quads;
-		}
-		delete this.quads[c];
-	    }
-	}
-    }
-
-    // Clean up:
-    for(let i = 0; i < this.vertices.length; i++) {
-	let v = this.vertices[i];
-	delete v.idx;
-	delete v.newIndex;
+        this.triangles = t(this.triangles, p => {return {p1:newIndices[p.p1],p2:newIndices[p.p2],p3:newIndices[p.p3]};});
+        this.quads = t(this.quads, p => {return {p1:newIndices[p.p1],p2:newIndices[p.p2],p3:newIndices[p.p3],p4:newIndices[p.p4]};});
     }
 }
 
-LDR.map2 = function(p, map) {
-    p.p1 = map[p.p1];
-    p.p2 = map[p.p2];
-}
-LDR.map3 = function(p, map) {
-    p.p1 = map[p.p1];
-    p.p2 = map[p.p2];
-    p.p3 = map[p.p3];
-}
-LDR.map4 = function(p, map) {
-    p.p1 = map[p.p1];
-    p.p2 = map[p.p2];
-    p.p3 = map[p.p3];
-    p.p4 = map[p.p4];
-}
 LDR.LDRGeometry.prototype.mapIndices = function(map) {
+    let map2 = function(p, map) {
+        p.p1 = map[p.p1];
+        p.p2 = map[p.p2];
+    }
+    let map3 = function(p, map) {
+        p.p1 = map[p.p1];
+        p.p2 = map[p.p2];
+        p.p3 = map[p.p3];
+    }
+    let map4 = function(p, map) {
+        p.p1 = map[p.p1];
+        p.p2 = map[p.p2];
+        p.p3 = map[p.p3];
+        p.p4 = map[p.p4];
+    }
+
     for(let c in this.lines) {
 	if(this.lines.hasOwnProperty(c)) {
-	    this.lines[c].forEach(function(x){LDR.map2(x, map);});
+	    this.lines[c].forEach(x => map2(x, map));
         }
     }
     for(let c in this.conditionalLines) {
 	if(this.conditionalLines.hasOwnProperty(c)) {
-	    this.conditionalLines[c].forEach(function(x){LDR.map4(x, map);});
+	    this.conditionalLines[c].forEach(x => map4(x, map));
         }
     }
     for(let c in this.triangles) {
 	if(this.triangles.hasOwnProperty(c)) {
-	    this.triangles[c].forEach(function(x){LDR.map3(x, map);});
+	    this.triangles[c].forEach(x => map3(x, map));
         }
     }
     for(let c in this.quads) {
 	if(this.quads.hasOwnProperty(c)) {
-	    this.quads[c].forEach(function(x){LDR.map4(x, map);});
+	    this.quads[c].forEach(x => map4(x, map));
         }
     }
 }
@@ -982,6 +851,19 @@ LDR.LDRGeometry.prototype.ensureCull = function() {
     this.cull = true;
 }
 
+LDR.LDRGeometry.prototype.print = function() {
+    console.log(this.vertices.length);
+    this.vertices.forEach((v,idx) => console.log(idx + ': ' + v.x + ' ' + v.y + ' ' + v.z));
+    for(let c in this.lines) {
+        if(this.lines.hasOwnProperty(c)) {
+            let lines = this.lines[c];
+            let s = 'Color ' + c + ': ' + lines.length + ' lines: ';
+            lines.forEach(p => s += ' ' + p.p1 + '->' + p.p2);
+            console.log(s);
+        }
+    }
+}
+
 LDR.LDRGeometry.prototype.merge = function(other) {
     this.ensureCull();
     other.ensureCull();
@@ -996,6 +878,7 @@ LDR.LDRGeometry.prototype.merge = function(other) {
     let indexMapOther = []; // Same for other.
     let idxThis = 0, idxOther = 0;
 
+    // Perform merging:
     while(idxThis < this.vertices.length && idxOther < other.vertices.length) {
 	let pThis = this.vertices[idxThis];
 	let pOther = other.vertices[idxOther];
@@ -1035,48 +918,22 @@ LDR.LDRGeometry.prototype.merge = function(other) {
     this.mapIndices(indexMapThis);
     other.mapIndices(indexMapOther);
 
-    for(let c in other.lines) {
-	if(!other.lines.hasOwnProperty(c)) {
-	    continue;
-        }
-	if(this.lines.hasOwnProperty(c)) {
-	    this.lines[c].push(...other.lines[c]);
-        }
-	else {
-	    this.lines[c] = other.lines[c];
-        }
-    }
-    for(let c in other.conditionalLines) {
-	if(!other.conditionalLines.hasOwnProperty(c)) {
-	    continue;
-        }
-	if(this.conditionalLines.hasOwnProperty(c)) {
-	    this.conditionalLines[c].push(...other.conditionalLines[c]);
-        }
-	else {
-	    this.conditionalLines[c] = other.conditionalLines[c];
+    function mergePrimitives(thisPrim, otherPrim) {
+        for(let c in otherPrim) {
+            if(!otherPrim.hasOwnProperty(c)) {
+                continue;
+            }
+            if(thisPrim.hasOwnProperty(c)) {
+                thisPrim[c].push(...otherPrim[c]);
+            }
+            else {
+                thisPrim[c] = otherPrim[c];
+            }
         }
     }
-    for(let c in other.triangles) {
-	if(!other.triangles.hasOwnProperty(c)) {
-	    continue;
-        }
-	if(this.triangles.hasOwnProperty(c)) {
-	    this.triangles[c].push(...other.triangles[c]);
-        }
-	else {
-	    this.triangles[c] = other.triangles[c];
-        }
-    }
-    for(let c in other.quads) {
-	if(!other.quads.hasOwnProperty(c)) {
-	    continue;
-        }
-	if(this.quads.hasOwnProperty(c)) {
-	    this.quads[c].push(...other.quads[c]);
-        }
-	else {
-	    this.quads[c] = other.quads[c];
-        }
-    }
+
+    mergePrimitives(this.lines, other.lines);
+    mergePrimitives(this.conditionalLines, other.conditionalLines);
+    mergePrimitives(this.triangles, other.triangles);
+    mergePrimitives(this.quads, other.quads);
 }
