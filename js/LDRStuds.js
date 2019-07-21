@@ -7,9 +7,10 @@ LDR.Studs.setStuds = function(ldrLoader, highContrast, logoType, onDone) {
 
     let partTypes = ldrLoader.partTypes;
     let idb = []; // Primitives that we know are needed and would like to see fetched using ClientStorage:
-    let s1 = LDR.Studs.makeStud1(idb, highContrast, logoType);
-    let s2 = LDR.Studs.makeStud2(idb, highContrast, logoType);
-    let s2a = LDR.Studs.makeStud2a(idb, highContrast);
+    let force = ldrLoader.options.force ? (ldrLoader.options.force+'/') : ''; // Either 8, 48 or undefined.
+    let s1 = LDR.Studs.makeStud1(idb, highContrast, logoType, force);
+    let s2 = LDR.Studs.makeStud2(idb, highContrast, logoType, force);
+    let s2a = LDR.Studs.makeStud2a(idb, highContrast, force);
 
     if(logoType > 0) {
         let logoID = 'logo' + (logoType === 1 ? '' : logoType) + '.dat';
@@ -36,24 +37,24 @@ LDR.Studs.setStuds = function(ldrLoader, highContrast, logoType, onDone) {
     }
 }
 
-LDR.Studs.makeStud1 = function(toFetch, highContrast, logoType) {
+LDR.Studs.makeStud1 = function(toFetch, highContrast, logoType, force) {
     let pt = LDR.Generator.makeP('Stud', 'stud.dat');
     let step = new THREE.LDRStep();
 
-    toFetch.push('4-4edge.dat', '4-4disc.dat');
+    toFetch.push(force+'4-4edge.dat', force+'4-4disc.dat');
 
     // Common positions and rotations:
     let p0 = new THREE.Vector3();
     let r11 = LDR.Generator.makeR(1, 1);
     let r61 = LDR.Generator.makeR(6, 1);
-    step.addSubModel(new THREE.LDRPartDescription(16, p0, r61, '4-4edge.dat', true, false));
+    step.addSubModel(new THREE.LDRPartDescription(16, p0, r61, force+'4-4edge.dat', true, false));
 
     if(logoType < 2) {
         var p4 = new THREE.Vector3(0, -4, 0); // 'var' used for drop-through.
         var r64 = LDR.Generator.makeR(6, -4); // 'var' used for drop-through.
         // Stud type one actually uses a 4-4cylc.dat, but then high contrast does not work!
-        step.addSubModel(new THREE.LDRPartDescription(16, p4, r61, '4-4edge.dat', true, false));
-        step.addSubModel(new THREE.LDRPartDescription(16, p4, r61, '4-4disc.dat', true, false));
+        step.addSubModel(new THREE.LDRPartDescription(16, p4, r61, force+'4-4edge.dat', true, false));
+        step.addSubModel(new THREE.LDRPartDescription(16, p4, r61, force+'4-4disc.dat', true, false));
     }
     else {
         let p34 = new THREE.Vector3(0, -3.4, 0);
@@ -63,18 +64,18 @@ LDR.Studs.makeStud1 = function(toFetch, highContrast, logoType) {
         let r561 = LDR.Generator.makeR(5.6, 1);
 
         step.addSubModel(new THREE.LDRPartDescription(16, p34, r5656, 't01o0714.dat', true, false));
-        step.addSubModel(new THREE.LDRPartDescription(16, p38, r561, '4-4disc.dat', true, false));
+        step.addSubModel(new THREE.LDRPartDescription(16, p38, r561, force+'4-4disc.dat', true, false));
         toFetch.push('t01o0714.dat');
     }
 
     // Cylinder:
     if(highContrast) {
-        step.addSubModel(new THREE.LDRPartDescription(0, p0, r64, '4-4cyli2.dat', true, false));
-        toFetch.push('4-4cyli2.dat');
+        step.addSubModel(new THREE.LDRPartDescription(0, p0, r64, force+'4-4cyli2.dat', true, false));
+        toFetch.push(force+'4-4cyli2.dat');
     }
     else {
-        step.addSubModel(new THREE.LDRPartDescription(16, p0, r64, '4-4cyli.dat', true, false));
-        toFetch.push('4-4cyli.dat');
+        step.addSubModel(new THREE.LDRPartDescription(16, p0, r64, force+'4-4cyli.dat', true, false));
+        toFetch.push(force+'4-4cyli.dat');
     }
 
     // Logo:
@@ -91,11 +92,11 @@ LDR.Studs.makeStud1 = function(toFetch, highContrast, logoType) {
     return pt;
 }
 
-LDR.Studs.makeStud2a = function(toFetch, highContrast) {
+LDR.Studs.makeStud2a = function(toFetch, highContrast, force) {
     let pt = LDR.Generator.makeP('Stud Open without Base Edges', 'stud2a.dat');
     let step = new THREE.LDRStep();
     
-    toFetch.push('4-4edge.dat', '4-4cyli2.dat', '4-4ring2.dat');
+    toFetch.push(force+'4-4edge.dat', force+'4-4cyli2.dat', force+'4-4ring2.dat');
 
     let p0 = new THREE.Vector3();
     let p4 = new THREE.Vector3(0, -4, 0);
@@ -105,23 +106,23 @@ LDR.Studs.makeStud2a = function(toFetch, highContrast) {
     let r64 = LDR.Generator.makeR(6, 4);
     let r21 = LDR.Generator.makeR(2, 1);
 
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r41, '4-4edge.dat', true, false));
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r61, '4-4edge.dat', true, false));
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r44, '4-4cyli2.dat', true, true)); // inverted. Consider if the conditional lines should be included ot not.
+    step.addSubModel(new THREE.LDRPartDescription(16, p4, r41, force+'4-4edge.dat', true, false));
+    step.addSubModel(new THREE.LDRPartDescription(16, p4, r61, force+'4-4edge.dat', true, false));
+    step.addSubModel(new THREE.LDRPartDescription(16, p4, r44, force+'4-4cyli2.dat', true, true)); // inverted. Consider if the conditional lines should be included ot not.
     if(highContrast) {
-        step.addSubModel(new THREE.LDRPartDescription(0, p4, r64, '4-4cyli2.dat', true, false));
+        step.addSubModel(new THREE.LDRPartDescription(0, p4, r64, force+'4-4cyli2.dat', true, false));
     }
     else {
-        step.addSubModel(new THREE.LDRPartDescription(16, p4, r64, '4-4cyli.dat', true, false));
+        step.addSubModel(new THREE.LDRPartDescription(16, p4, r64, force+'4-4cyli.dat', true, false));
         toFetch.push('4-4cyli.dat');
     }
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r21, '4-4ring2.dat', true, false));
+    step.addSubModel(new THREE.LDRPartDescription(16, p4, r21, force+'4-4ring2.dat', true, false));
 
     pt.steps.push(step); // No need to user 'addStep()' for primitives.
     return pt;
 }
 
-LDR.Studs.makeStud2 = function(toFetch, highContrast, logoType) {
+LDR.Studs.makeStud2 = function(toFetch, highContrast, logoType, force) {
     let pt = LDR.Generator.makeP('Stud Open', 'stud2.dat');
     let step = new THREE.LDRStep();
 
@@ -133,52 +134,52 @@ LDR.Studs.makeStud2 = function(toFetch, highContrast, logoType) {
     let r64 = LDR.Generator.makeR(6, 4);
     let r21 = LDR.Generator.makeR(2, 1);
 
-    toFetch.push('4-4edge.dat', '4-4cyli2.dat');
+    toFetch.push(force+'4-4edge.dat', force+'4-4cyli2.dat');
 
-    step.addSubModel(new THREE.LDRPartDescription(16, p0, r41, '4-4edge.dat', true, false));
+    step.addSubModel(new THREE.LDRPartDescription(16, p0, r41, force+'4-4edge.dat', true, false));
 
     if(logoType < 2) {
         // 1 16 0 -4 0 6 0 0 0 1 0 0 0 6 4-4edge.dat
-        step.addSubModel(new THREE.LDRPartDescription(16, p4, r61, '4-4edge.dat', true, false));
+        step.addSubModel(new THREE.LDRPartDescription(16, p4, r61, force+'4-4edge.dat', true, false));
         // 1 16 0 -4 0 2 0 0 0 1 0 0 0 2 4-4ring2.dat
-        step.addSubModel(new THREE.LDRPartDescription(16, p4, r21, '4-4ring2.dat', true, false));
+        step.addSubModel(new THREE.LDRPartDescription(16, p4, r21, force+'4-4ring2.dat', true, false));
         // 1 16 0 -4 0 6 0 0 0 4 0 0 0 6 4-4cyli.dat
         if(highContrast) {
-            step.addSubModel(new THREE.LDRPartDescription(0, p4, r64, '4-4cyli2.dat', true, false));
+            step.addSubModel(new THREE.LDRPartDescription(0, p4, r64, force+'4-4cyli2.dat', true, false));
         }
         else {
-            step.addSubModel(new THREE.LDRPartDescription(16, p4, r64, '4-4cyli.dat', true, false));
-            toFetch.push('4-4cyli.dat');
+            step.addSubModel(new THREE.LDRPartDescription(16, p4, r64, force+'4-4cyli.dat', true, false));
+            toFetch.push(force+'4-4cyli.dat');
         }
-        toFetch.push('4-4ring2.dat');
+        toFetch.push(force+'4-4ring2.dat');
     }
     else {
         let p36 = new THREE.Vector3(0, -3.6, 0);
         let r636 = LDR.Generator.makeR(6, 3.6);
         // 1 16 0 -3.6 0 6 0 0 0 3.6 0 0 0 6 4-4cyli.dat
         if(highContrast) {
-            step.addSubModel(new THREE.LDRPartDescription(0, p36, r636, '4-4cyli2.dat', true, false));
+            step.addSubModel(new THREE.LDRPartDescription(0, p36, r636, force+'4-4cyli2.dat', true, false));
         }
         else {
-            step.addSubModel(new THREE.LDRPartDescription(16, p36, r636, '4-4cyli.dat', true, false));
-            toFetch.push('4-4cyli.dat');
+            step.addSubModel(new THREE.LDRPartDescription(16, p36, r636, force+'4-4cyli.dat', true, false));
+            toFetch.push(force+'4-4cyli.dat');
         }
         
         let r081 = LDR.Generator.makeR(0.8, 1);
         // 1 16 0 -4 0 0.8 0 0 0 1 0 0 0 0.8 4-4ring5.dat
-        step.addSubModel(new THREE.LDRPartDescription(16, p4, r081, '4-4ring5.dat', true, false));
+        step.addSubModel(new THREE.LDRPartDescription(16, p4, r081, force+'4-4ring5.dat', true, false));
         // 1 16 0 -4 0 0.8 0 0 0 1 0 0 0 0.8 4-4ring6.dat
-        step.addSubModel(new THREE.LDRPartDescription(16, p4, r081, '4-4ring6.dat', true, false));
+        step.addSubModel(new THREE.LDRPartDescription(16, p4, r081, force+'4-4ring6.dat', true, false));
 
         let r5656 = LDR.Generator.makeR(5.6, -5.6);
         // 1 16 0 -3.6 0 5.6 0 0 0 -5.6 0 0 0 5.6 t01o0714.dat
         step.addSubModel(new THREE.LDRPartDescription(16, p36, r5656, 't01o0714.dat', true, false));
-        toFetch.push('4-4ring5.dat', '4-4ring6.dat', 't01o0714.dat');
+        toFetch.push(force+'4-4ring5.dat', force+'4-4ring6.dat', 't01o0714.dat');
     }
 
-    step.addSubModel(new THREE.LDRPartDescription(16, p0, r61, '4-4edge.dat', true, false));
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r41, '4-4edge.dat', true, false));
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r44, '4-4cyli2.dat', true, true)); // inverted. Consider if the conditional lines should be included ot not.
+    step.addSubModel(new THREE.LDRPartDescription(16, p0, r61, force+'4-4edge.dat', true, false));
+    step.addSubModel(new THREE.LDRPartDescription(16, p4, r41, force+'4-4edge.dat', true, false));
+    step.addSubModel(new THREE.LDRPartDescription(16, p4, r44, force+'4-4cyli2.dat', true, true)); // inverted. Consider if the conditional lines should be included ot not.
 
     // Logo:
     if(logoType === 1) {

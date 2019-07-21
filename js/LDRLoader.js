@@ -957,8 +957,7 @@ THREE.LDRStep.prototype.countParts = function(loader) {
     let cnt = 0;
 
     this.subModels.forEach(function(subModel) {
-	if(subModel.REPLACEMENT_PLI) {
-	    console.log('REPLACED');
+	if(subModel.REPLACEMENT_PLI === true) {
 	    return;
 	}
         let pt = loader.getPartType(subModel.ID);
