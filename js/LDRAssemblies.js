@@ -44,7 +44,7 @@ LDR.AssemblyManager = function(loader) {
     // Add torsos:
     function handleTorsosInStep(step) {
 	// Try to find a torso, two arms and two hands:
-	let torso = step.subModels.find(sm => sm.ID.startsWith('973p') && sm.ID.endsWith('.dat')); if(!torso) return; // No torsos.
+	let torso = step.subModels.find(sm => sm.ID.length >= 10 && sm.ID.startsWith('973') && sm.ID.endsWith('.dat')); if(!torso) return; // No torsos.
         let ID = torso.ID.substring(0, torso.ID.length-4) + 'c01.dat'; // Assembly ID
         if(self.loader.partTypes.hasOwnProperty(ID)) {
             return; // Already built.
