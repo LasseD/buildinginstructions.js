@@ -160,7 +160,7 @@ body {
   position: relative;
   top: -0.1em;
 }
-.editor_button, .pli_button1, .pli_button2, .pli_button3 {
+.editor_button, .pli_button {
   border: none;
   margin: 0;
   padding: 0 0.5vw;
@@ -185,19 +185,10 @@ body {
   stroke-width: 1;
   stroke: black;
 }
-.editor_button svg, .pli_button1 svg, .pli_button2 svg, .pli_button3 svg {
+.editor_button svg, .pli_button svg {
   width: 3vw;
   height: 3vw;
   fill: #F66;
   stroke-width: 1;
   stroke: black;
-}
-.pli_button1 svg {
-  width: 6vw;
-}
-.pli_button2 svg {
-  width: 12vw;
-}
-.pli_button3 svg {
-  width: 18vw;
 }

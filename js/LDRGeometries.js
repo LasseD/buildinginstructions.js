@@ -48,7 +48,7 @@ LDR.LDRGeometry = function() {
     this.lines = {}; // c -> [{p1,p2},...] (color -> indices)
     this.conditionalLines = {}; // c -> [{p1,p2,p3,p4},...]
     this.triangles = {}; // c -> [{p1,p2,p3},...]
-    this.quads = {}; // c -> [{p1,p2,p3},...]
+    this.quads = {}; // c -> [{p1,p2,p3,p4},...]
     this.cull = true;
     // geometries:
     this.lineColorManager;

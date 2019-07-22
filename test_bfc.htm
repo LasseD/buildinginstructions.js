@@ -12,14 +12,14 @@
     <script src="js/LDROptions.js"></script>
     <script src="js/LDRShaders.js"></script>
     <script src="js/LDRColorMaterials.js"></script>
-    <script src="js/LDRGeometries.js"></script>
+    <script src="js/LDRBFCGeometries.js"></script>
     <script src="js/LDRMeasurer.js"></script>
     <script src="js/LDRGenerator.js"></script>
     <script src="js/LDRStuds.js"></script>
-    <script src="js/ClientStorage.js"></script>
     <script src="js/LDRLoader.js"></script>
     <script>
       let partID = '44375bps0.dat';
+      //let partID = '3024.dat';
       let color = 16;
 
       // Set up camera:
@@ -127,27 +127,12 @@
         }
       }
 
-      // BFC Mode:
-      THREE.LDRStep.prototype.addTrianglePoints = function(c, p1, p2, p3) {
-        this.empty = false;
-        this.hasPrimitives = true;
-        this.triangles.push({colorID:this.cull?2:1, p1:p1, p2:p2, p3:p3});
-        this.triangles.push({colorID:this.cull?4:1, p1:p3, p2:p2, p3:p1});
-      }
-      THREE.LDRStep.prototype.addQuadPoints = function(c, p1, p2, p3, p4) {
-        this.empty = false;
-        this.hasPrimitives = true;
-        this.quads.push({colorID:this.cull?2:1, p1:p1, p2:p2, p3:p3, p4:p4});
-        this.quads.push({colorID:this.cull?4:1, p1:p4, p2:p3, p3:p2, p4:p1});
-      }
-
       let storage;
       let onStorageReady = function() {
         ldrLoader = new THREE.LDRLoader(onLoad, storage, {idToUrl:idToUrl});
         LDR.Studs.setStuds(ldrLoader, ldrOptions.studHighContrast,
                            ldrOptions.studLogo, () => ldrLoader.load(partID));
       }
-      //storage = new LDR.STORAGE(onStorageReady); // If you prefer not to use IndexedDB for client-side caching, then simply comment-out this line and use the one below.
       onStorageReady();
  </script>
  </body>
