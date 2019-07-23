@@ -1,6 +1,6 @@
 'use strict';
 
-LDR.LDRGeometry = function() {
+LDR.BFCGeometry = function() {
     this.vertices = []; // sorted (x,y,z)
     this.lines = []; // [{p1,p2},...] (indices)
     this.conditionalLines = []; // [{p1,p2,p3,p4},...]
@@ -19,7 +19,7 @@ LDR.LDRGeometry = function() {
 /*
   Three.js geometries and color managers.
  */
-LDR.LDRGeometry.prototype.buildGeometriesAndColors = function() {
+LDR.BFCGeometry.prototype.buildGeometriesAndColors = function() {
     if(this.geometriesBuilt) {
 	return;
     }
@@ -63,7 +63,7 @@ LDR.LDRGeometry.prototype.buildGeometriesAndColors = function() {
     this.geometriesBuilt = true;
 }
 
-LDR.LDRGeometry.prototype.buildGeometry = function(indices, vertexAttribute) {
+LDR.BFCGeometry.prototype.buildGeometry = function(indices, vertexAttribute) {
     if(indices.length === 0) {
 	return null;
     }
@@ -73,7 +73,7 @@ LDR.LDRGeometry.prototype.buildGeometry = function(indices, vertexAttribute) {
     return g;
 }
 
-LDR.LDRGeometry.prototype.buildGeometryForConditionalLines = function() {
+LDR.BFCGeometry.prototype.buildGeometryForConditionalLines = function() {
     if(this.conditionalLines.length === 0) {
 	return;
     }
@@ -104,7 +104,7 @@ LDR.LDRGeometry.prototype.buildGeometryForConditionalLines = function() {
     this.conditionalLineGeometry.addAttribute('p4', new THREE.BufferAttribute(new Float32Array(p4s), 3));
 }
 
-LDR.LDRGeometry.prototype.replaceWith = function(g) {
+LDR.BFCGeometry.prototype.replaceWith = function(g) {
     this.vertices = g.vertices;
     this.lines = g.lines;
     this.conditionalLines = g.conditionalLines;
@@ -113,7 +113,7 @@ LDR.LDRGeometry.prototype.replaceWith = function(g) {
     this.boundingBox = g.boundingBox;
 }
 
-LDR.LDRGeometry.prototype.replaceWithDeep = function(g) {
+LDR.BFCGeometry.prototype.replaceWithDeep = function(g) {
     let self = this;
 
     g.vertices.forEach(v => self.vertices.push({x:v.x, y:v.y, z:v.z}))
@@ -128,26 +128,26 @@ LDR.LDRGeometry.prototype.replaceWithDeep = function(g) {
 /*
   Build this from the 4 types of primitives.
 */
-LDR.LDRGeometry.prototype.fromPrimitives = function(cull, lines, conditionalLines, triangles, quads) {
+LDR.BFCGeometry.prototype.fromPrimitives = function(cull, lines, conditionalLines, triangles, quads) {
     let geometries = [];
 
     if(lines.length > 0) {
-	let g = new LDR.LDRGeometry(); 
+	let g = new LDR.BFCGeometry(); 
 	g.fromLines(lines);
 	geometries.push(g);
     }
     if(conditionalLines.length > 0) {
-	let g = new LDR.LDRGeometry(); 
+	let g = new LDR.BFCGeometry(); 
 	g.fromConditionalLines(conditionalLines);
 	geometries.push(g);
     }
     if(triangles.length > 0) {
-	let g = new LDR.LDRGeometry(); 
+	let g = new LDR.BFCGeometry(); 
 	g.fromTriangles(cull, triangles);
 	geometries.push(g);
     }
     if(quads.length > 0) {
-	let g = new LDR.LDRGeometry(); 
+	let g = new LDR.BFCGeometry(); 
 	g.fromQuads(cull, quads);
 	geometries.push(g);
     }
@@ -158,7 +158,7 @@ LDR.LDRGeometry.prototype.fromPrimitives = function(cull, lines, conditionalLine
   Assumes unsorted vertices that reference the primitives.
   This function sort the vertices and updates the primitives to reference the vertices.
  */
-LDR.LDRGeometry.prototype.sortAndBurnVertices = function(vertices, primitives) {
+LDR.BFCGeometry.prototype.sortAndBurnVertices = function(vertices, primitives) {
     vertices.sort(LDR.vertexSorter);
     let prev;
     for(let i = 0; i < vertices.length; i++) {
@@ -187,7 +187,7 @@ LDR.LDRGeometry.prototype.sortAndBurnVertices = function(vertices, primitives) {
 /*
   Build a geometry from normal {p1,p2,colorID} lines.
  */
-LDR.LDRGeometry.prototype.fromLines = function(ps) {
+LDR.BFCGeometry.prototype.fromLines = function(ps) {
     let vertices = [];
     for(let i = 0; i < ps.length; i++) {
 	let p = ps[i];
@@ -200,7 +200,7 @@ LDR.LDRGeometry.prototype.fromLines = function(ps) {
     this.sortAndBurnVertices(vertices, this.lines);
 }
 
-LDR.LDRGeometry.prototype.fromConditionalLines = function(ps) {
+LDR.BFCGeometry.prototype.fromConditionalLines = function(ps) {
     let vertices = [];
     for(let i = 0; i < ps.length; i++) {
 	let p = ps[i];
@@ -215,7 +215,7 @@ LDR.LDRGeometry.prototype.fromConditionalLines = function(ps) {
     this.sortAndBurnVertices(vertices, this.conditionalLines);
 }
 
-LDR.LDRGeometry.prototype.fromTriangles = function(cull, ps) {
+LDR.BFCGeometry.prototype.fromTriangles = function(cull, ps) {
     let vertices = [];
     let t = cull ? this.triangles : this.triangles2;
     for(let i = 0; i < ps.length; i++) {
@@ -232,7 +232,7 @@ LDR.LDRGeometry.prototype.fromTriangles = function(cull, ps) {
     this.sortAndBurnVertices(vertices, t);
 }
 
-LDR.LDRGeometry.prototype.fromQuads = function(cull, ps) {
+LDR.BFCGeometry.prototype.fromQuads = function(cull, ps) {
     let vertices = [];
     let t = cull ? this.triangles : this.triangles2;
     for(let i = 0; i < ps.length; i++) {
@@ -256,16 +256,16 @@ LDR.LDRGeometry.prototype.fromQuads = function(cull, ps) {
 /*
   Consolidate the primitives and sub-parts of the step.
 */
-LDR.LDRGeometry.prototype.fromStep = function(loader, step) {
+LDR.BFCGeometry.prototype.fromStep = function(loader, step) {
     let geometries = [];
     if(step.hasPrimitives) {
-        let g = new LDR.LDRGeometry();
+        let g = new LDR.BFCGeometry();
 	g.fromPrimitives(step.cull, step.lines, step.conditionalLines, step.triangles, step.quads);
         geometries.push(g);
     }
 
     function handleSubModel(subModel) {
-        let g = new LDR.LDRGeometry(); 
+        let g = new LDR.BFCGeometry(); 
 	g.fromPartDescription(loader, subModel);
         geometries.push(g);
     }
@@ -274,7 +274,7 @@ LDR.LDRGeometry.prototype.fromStep = function(loader, step) {
     this.replaceWith(LDR.mergeGeometries(geometries));
 }
 
-LDR.LDRGeometry.prototype.fromPartType = function(loader, pt) {
+LDR.BFCGeometry.prototype.fromPartType = function(loader, pt) {
     let geometries = [];
     if(pt.steps.length === 0) {
 	console.warn("No steps in " + pt.ID);
@@ -282,7 +282,7 @@ LDR.LDRGeometry.prototype.fromPartType = function(loader, pt) {
     }
 
     pt.steps.forEach(step => { // Each step has BFC and culling info.
-            let g = new LDR.LDRGeometry();
+            let g = new LDR.BFCGeometry();
             g.fromStep(loader, step);
             geometries.push(g);
         }); // Only one step expected, but we do not know if someone suddenly gets the bright idea to have stes in part files..
@@ -290,7 +290,7 @@ LDR.LDRGeometry.prototype.fromPartType = function(loader, pt) {
     this.replaceWith(LDR.mergeGeometries(geometries));
 }
 
-LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
+LDR.BFCGeometry.prototype.fromPartDescription = function(loader, pd) {
     let pt = loader.getPartType(pd.ID);
     if(!pt) {
         throw "Part not loaded: " + pd.ID;
@@ -351,7 +351,7 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
     }
 }
 
-LDR.LDRGeometry.prototype.mapIndices = function(map) {
+LDR.BFCGeometry.prototype.mapIndices = function(map) {
     let map2 = function(p, map) {
         p.p1 = map[p.p1];
         p.p2 = map[p.p2];
@@ -373,7 +373,7 @@ LDR.LDRGeometry.prototype.mapIndices = function(map) {
     this.triangles2.forEach(x => map3(x, map));
 }
 
-LDR.LDRGeometry.prototype.merge = function(other) {
+LDR.BFCGeometry.prototype.merge = function(other) {
     // Merge bounding box:
     this.boundingBox.min.min(other.boundingBox.min);
     this.boundingBox.max.max(other.boundingBox.max);

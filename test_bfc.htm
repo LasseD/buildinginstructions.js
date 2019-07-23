@@ -20,8 +20,6 @@
     <script src="js/LDRLoader.js"></script>
     <script>
       let partID = '44375bps0.dat';
-      //let partID = '3024.dat';
-      let color = 16;
 
       // Set up camera:
       var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
@@ -83,7 +81,7 @@
         var mc = new LDR.MeshCollector(opaqueObject, transObject);
 
         // Generate the mesh:
-        pt.generateThreePart(ldrLoader, color, origo, inv, true, false, mc);
+        pt.generateThreePart(ldrLoader, 0, origo, inv, true, false, mc);
 
         // Find center of drawn model:
         var b = mc.boundingBox;
@@ -125,6 +123,14 @@
                   OFFICIAL_DIR + '/p/' + id,
                   UNOFFICIAL_DIR + '/parts/' + id,
                   UNOFFICIAL_DIR + '/p/' + id];
+        }
+      }
+
+      // Enable BFC:
+      THREE.LDRPartType.prototype.ensureGeometry = function(loader) {
+        if(!this.geometry) {
+          this.geometry = new LDR.BFCGeometry();
+          this.geometry.fromPartType(loader, this);
         }
       }
 

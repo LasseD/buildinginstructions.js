@@ -1337,8 +1337,7 @@ THREE.LDRPartType.prototype.addStep = function(step) {
 THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, inv, mc, pd) {
     if(!this.geometry) {
 	if(this.isPart()) {
-	    this.geometry = new LDR.LDRGeometry();
-	    this.geometry.fromPartType(loader, this);
+	    this.ensureGeometry(loader);
 	}
 	else {
             this.steps.forEach(step => step.generateThreePart(loader, c, p, r, cull, inv, mc));
