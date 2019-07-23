@@ -1,48 +1,5 @@
 'use strict';
 
-/*
-  Binary merge of the geometry streams.
- */
-LDR.mergeGeometries = function(geometries) {
-    while(geometries.length > 1) { // Repeat rounds until only 1 left:
-	let nextGeometries = []; // Result of round.
-
-	if(geometries.length % 2 === 1) {
-	    nextGeometries.push(geometries[geometries.length-1]); // Take last geometry without merging it.
-	}
-
-	for(let i = 0; i < geometries.length-1; i+=2) {
-	    geometries[i].merge(geometries[i+1]);
-	    nextGeometries.push(geometries[i]);
-	}
-	geometries = nextGeometries;
-    }
-    return geometries[0];
-}
-
-/*
-  A vertex is sorted by {x,y,z,c}.
- */
-LDR.vertexSorter = function(a, b) {
-    if(a.x !== b.x) {
-	return a.x - b.x;
-    }
-    if(a.y !== b.y) {
-	return a.y - b.y;
-    }
-    return a.z - b.z;
-}
-
-LDR.vertexLessThan = function(a, b) {
-    if(a.x !== b.x) {
-	return a.x < b.x;
-    }
-    if(a.y !== b.y) {
-	return a.y < b.y;
-    }
-    return a.z < b.z;
-}
-
 LDR.LDRGeometry = function() {
     this.vertices = []; // sorted (x,y,z)
     this.lines = []; // [{p1,p2},...] (indices)

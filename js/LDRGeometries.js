@@ -48,8 +48,9 @@ LDR.LDRGeometry = function() {
     this.lines = {}; // c -> [{p1,p2},...] (color -> indices)
     this.conditionalLines = {}; // c -> [{p1,p2,p3,p4},...]
     this.triangles = {}; // c -> [{p1,p2,p3},...]
+    this.triangles2 = {}; // Triangles without culling
     this.quads = {}; // c -> [{p1,p2,p3,p4},...]
-    this.cull = true;
+    this.quads2 = {}; // Quads without culling
     // geometries:
     this.lineColorManager;
     this.lineGeometry;
@@ -60,134 +61,16 @@ LDR.LDRGeometry = function() {
     this.boundingBox = new THREE.Box3();
 }
 
-LDR.LDRGeometry.prototype.pack = function() {
-    let arrayF = [];
-    let arrayI = [];
-
-    // Add vertices:
-    let x = this.vertices[0].x;
-    let buf = [];
-    let bufSize = 0;
-    for(let i = 0; i < this.vertices.length; i++) {
-	let v = this.vertices[i];
-	if(v.x !== x) {
-	    arrayI.push(bufSize);
-	    arrayF.push(x);
-	    arrayF.push(...buf);
-	    bufSize = 0;
-	    buf = [];
-	}
-	bufSize++;
-	x = v.x;
-	buf.push(v.y, v.z);
-    }
-    arrayI.push(bufSize, -1);
-    arrayF.push(x);
-    arrayF.push(...buf);
-
-    // Lines:
-    function handle(x, size) {
-	for(let c in x) {
-	    if(!x.hasOwnProperty(c)) {
-		continue; // Not a part.
-            }
-	    let primitives = x[c];
-	    arrayI.push(primitives.length, c);
-	    for(let i = 0; i < primitives.length; i++) {
-		let p = primitives[i];
-		arrayI.push(p.p1,p.p2);
-		if(size === 3) {
-		    arrayI.push(p.p3);
-		}
-		else if(size === 4) {
-		    arrayI.push(p.p3, p.p4);
-		}
-	    }
-	}
-	arrayI.push(0); // Length 0 indicating end of content of this type.
-    }
-    handle(this.lines, 2);
-    handle(this.conditionalLines, 4);
-    handle(this.triangles, 3);
-    handle(this.quads, 4);
-
-    let i = arrayI.some(val => val > 32767) ? new Int32Array(arrayI) : new Int16Array(arrayI);
-    return {f:new Float32Array(arrayF), i:i};
-}
-
-LDR.LDRGeometry.prototype.unpack = function(packed) {
-    let arrayF = packed.f;
-    let arrayI = packed.i;
-    let idxI = 0, idxF = 0;
-
-    while(true) {
-	if(idxI >= arrayI.length) {
-	    throw 'Deserialization error 1!';
-        }
-	let numVertices = arrayI[idxI++];
-	if(numVertices < 0) {
-	    break;
-        }
-	let x = arrayF[idxF++];
-	for(let i = 0; i < numVertices; i++) {
-	    let v = {x:x, y:arrayF[idxF++], z:arrayF[idxF++]};
-	    this.vertices.push(v);
-	}
-    }
-    //console.log('Geometry from storage. Vertices: ' + numVertices + " x " + a.length + " from " + txt.substring(0, 500));
-
-    var self = this;
-    function extract(size, into, pointsForBoundingBox) {
-	while(true) {
-	    if(idxI >= arrayI.length) {
-		throw 'Deserialization error 2!';
-            }
-	    let ret = [];
-	    let len = arrayI[idxI++];	    
-	    if(len === 0) {
-		return;
-	    }
-	    let c = arrayI[idxI++];	    
-	    for(let i = 0; i < len; i++) {
-                for(let j = 0; j < pointsForBoundingBox; j++) {
-                    self.vertices[arrayI[idxI+j]].forBoundingBox = true;
-                }
-		let p = {p1:arrayI[idxI++], p2:arrayI[idxI++]};
-		if(size === 3) {
-		    p.p3 = arrayI[idxI++];
-		}
-		else if(size === 4) {
-		    p.p3 = arrayI[idxI++];
-		    p.p4 = arrayI[idxI++];
-		}
-		ret.push(p);
-	    }
-	    into[c] = ret;
-	}
-    }
-    extract(2, this.lines, 2);
-    extract(4, this.conditionalLines, 2);
-    extract(3, this.triangles, 3);
-    extract(4, this.quads, 4);
-
-    // Build bounding box:
-    this.vertices.forEach(v => {
-            if(v.forBoundingBox) {
-                self.boundingBox.expandByPoint(v);
-                delete v.forBoundingBox;
-            }
-        });
-}
-
+/*
+  Used for showing points where all vertices are.
+ */
 LDR.LDRGeometry.prototype.buildVertexAttribute = function(rotation) {
     let vertices = [];
-    for(let i = 0; i < this.vertices.length; i++) {
-	let v = this.vertices[i];
-	let position = new THREE.Vector3(v.x, v.y, v.z);
-	position.applyMatrix3(rotation);
-
-	vertices.push(position.x, position.y, position.z);
-    }
+    this.vertices.forEach(v => {
+            let position = new THREE.Vector3(v.x, v.y, v.z);
+            position.applyMatrix3(rotation);
+            vertices.push(position.x, position.y, position.z);
+        });
     return new THREE.Float32BufferAttribute(vertices, 3);
 }
 
@@ -198,7 +81,6 @@ LDR.LDRGeometry.prototype.buildGeometriesAndColors = function() {
     if(this.geometriesBuilt) {
 	return;
     }
-    this.ensureCull();
 
     this.triangleColorManager = new LDR.ColorManager();
     this.lineColorManager = new LDR.ColorManager();
@@ -207,20 +89,18 @@ LDR.LDRGeometry.prototype.buildGeometriesAndColors = function() {
     // First handle line vertices:
     let allLineColors = [];
     for(let c in this.lines) {
-	if(!this.lines.hasOwnProperty(c)) {
-	    continue; // Not a color.
+	if(this.lines.hasOwnProperty(c)) {
+            allLineColors.push(c);
         }
-	allLineColors.push(c);
     }
     for(let c in this.conditionalLines) {
-	if(!this.conditionalLines.hasOwnProperty(c) || this.lines.hasOwnProperty(c)) {
-	    continue; // Not a color.
+	if(!this.lines.hasOwnProperty(c) && this.conditionalLines.hasOwnProperty(c)) {
+            allLineColors.push(c);
         }
-	allLineColors.push(c);
     }
 
-    let colorIdx = 0;
     var self = this;
+    let colorIdx = 0;
     let handleVertex = function(vertices, idx, fc) {
 	let v = self.vertices[idx];
 	if(v.c !== colorIdx) {
@@ -235,18 +115,11 @@ LDR.LDRGeometry.prototype.buildGeometriesAndColors = function() {
     if(allLineColors.length === 1) {
 	let c = allLineColors[0];
 	this.lineColorManager.get(c); // Ensure color is present.
-	for(let i = 0; i < this.vertices.length; i++) {
-	    let v = this.vertices[i];
-	    lineVertices.push(v.x, v.y, v.z);
-	}
+	this.vertices.forEach(v => lineVertices.push(v.x, v.y, v.z));
 	lineVertexAttribute = new THREE.Float32BufferAttribute(lineVertices, 3);
 	// No need to update indices of lines.
 	if(this.lines.hasOwnProperty(c)) {
-	    let lines = this.lines[c];
-	    for(let i = 0; i < lines.length; i++) {
-		let line = lines[i];
-		lineIndices.push(line.p1, line.p2);
-	    }
+	    this.lines[c].forEach(line => lineIndices.push(line.p1, line.p2));
 	}
     }
     else if(allLineColors.length > 1) {
@@ -260,12 +133,10 @@ LDR.LDRGeometry.prototype.buildGeometriesAndColors = function() {
 	    }
 	    let fc = this.lineColorManager.get(c);
 
-	    let lines = this.lines[c];
-	    for(let i = 0; i < lines.length; i++) {
-		let line = lines[i];
-		lineIndices.push(handleVertex(lineVertices, line.p1, fc)); // Update index
-		lineIndices.push(handleVertex(lineVertices, line.p2, fc));
-	    }
+	    this.lines[c].forEach(line => {
+                    lineIndices.push(handleVertex(lineVertices, line.p1, fc)); // Update indices
+                    lineIndices.push(handleVertex(lineVertices, line.p2, fc));
+                });
 	}
 	lineVertexAttribute = new THREE.Float32BufferAttribute(lineVertices, 4);
     }
@@ -279,90 +150,100 @@ LDR.LDRGeometry.prototype.buildGeometriesAndColors = function() {
 	}
 	colorIdx++;
 	let fc = this.lineColorManager.get(c);
-	let primitives = this.conditionalLines[c];
-	for(let i = 0; i < primitives.length; i++) {
-            let p = primitives[i];
-
-	    let p1 = this.vertices[p.p1];
-	    let p2 = this.vertices[p.p2];
-	    let p3 = this.vertices[p.p3];
-	    let p4 = this.vertices[p.p4];
-	    conditionalLines.push({p1:p1, p2:p2, p3:p3, p4:p4, fc:fc});
-	}
+	this.conditionalLines[c].forEach(p => {
+                let p1 = this.vertices[p.p1];
+                let p2 = this.vertices[p.p2];
+                let p3 = this.vertices[p.p3];
+                let p4 = this.vertices[p.p4];
+                conditionalLines.push({p1:p1, p2:p2, p3:p3, p4:p4, fc:fc});
+            });
     }
     this.buildGeometryForConditionalLines(allLineColors.length > 1, conditionalLines);
 
     // Now handle triangle colors and vertices:
-
     let allTriangleColors = [];
-    for(let c in this.triangles) {
-	if(this.triangles.hasOwnProperty(c)) {
-	    allTriangleColors.push(c);
+    let seen = {};
+    function getColorsFrom(p) {
+        for(let c in p) {
+            if(!seen.hasOwnProperty(c) && p.hasOwnProperty(c)) {
+                allTriangleColors.push(c);
+                seen[c] = true;
+            }
         }
     }
-    for(let c in this.quads) {
-	if(this.quads.hasOwnProperty(c) && !this.triangles.hasOwnProperty(c)) {
-	    allTriangleColors.push(c);
-        }
-    }
+    getColorsFrom(this.triangles);
+    getColorsFrom(this.triangles2);
+    getColorsFrom(this.quads);
+    getColorsFrom(this.quads2);
 
     let triangleVertexAttribute, triangleVertices = [], triangleIndices = [];
     if(allTriangleColors.length === 1) {
 	let c = allTriangleColors[0];
 	this.triangleColorManager.get(c); // Ensure color is present.
 
-	for(let i = 0; i < this.vertices.length; i++) {
-	    let v = this.vertices[i];
-	    triangleVertices.push(v.x, v.y, v.z);
-	}
+        this.vertices.forEach(v => triangleVertices.push(v.x, v.y, v.z));
 	triangleVertexAttribute = new THREE.Float32BufferAttribute(triangleVertices, 3);
 
 	// No need to update indices for triangles and quads:
 	if(this.triangles.hasOwnProperty(c)) {
-	    let triangles = this.triangles[c];
-	    for(let i = 0; i < triangles.length; i++) {
-		let triangle = triangles[i];
-		triangleIndices.push(triangle.p1, triangle.p2, triangle.p3);
-	    }
+	    this.triangles[c].forEach(t => triangleIndices.push(t.p1, t.p2, t.p3));
+	}
+	if(this.triangles2.hasOwnProperty(c)) {
+	    this.triangles2[c].forEach(t => triangleIndices.push(t.p1, t.p2, t.p3,
+                                                                 t.p3, t.p2, t.p1));
 	}
 	if(this.quads.hasOwnProperty(c)) {
-	    let quads = this.quads[c];
-	    for(let i = 0; i < quads.length; i++) {
-		let q = quads[i];
-		triangleIndices.push(q.p1, q.p2, q.p4, q.p2, q.p3, q.p4);
-	    }
+	    this.quads[c].forEach(q => triangleIndices.push(q.p1, q.p2, q.p4, q.p2, q.p3, q.p4));
+	}
+	if(this.quads2.hasOwnProperty(c)) {
+	    this.quads2[c].forEach(q => triangleIndices.push(q.p1, q.p2, q.p4, q.p2, q.p3, q.p4,
+                                                             q.p4, q.p3, q.p2, q.p4, q.p2, q.p1));
 	}
     }
     else if(allTriangleColors.length > 1) {
 	/*
 	  Duplicate vertices for each color.
 	 */
-	for(let j = 0; j < allTriangleColors.length; j++) {
-	    let c = allTriangleColors[j];
-	    colorIdx++;
-	    let fc = this.triangleColorManager.get(c);
+        allTriangleColors.forEach(c => {
+                colorIdx++;
+                let fc = this.triangleColorManager.get(c);
 
-	    if(this.triangles.hasOwnProperty(c)) {
-		let triangles = this.triangles[c];
-		for(let i = 0; i < triangles.length; i++) {
-		    let triangle = triangles[i];
-		    triangleIndices.push(handleVertex(triangleVertices, triangle.p1, fc));
-		    triangleIndices.push(handleVertex(triangleVertices, triangle.p2, fc));
-		    triangleIndices.push(handleVertex(triangleVertices, triangle.p3, fc));
+                if(this.triangles.hasOwnProperty(c)) {
+                    this.triangles[c].forEach(triangle => {
+                            let i1 = handleVertex(triangleVertices, triangle.p1, fc);
+                            let i2 = handleVertex(triangleVertices, triangle.p2, fc);
+                            let i3 = handleVertex(triangleVertices, triangle.p3, fc);
+                            triangleIndices.push(i1, i2, i3);
+                        });
 		}
-	    }
-	    if(this.quads.hasOwnProperty(c)) {
-		let quads = this.quads[c];
-		for(let i = 0; i < quads.length; i++) {
-		    let quad = quads[i];
-		    let i1 = handleVertex(triangleVertices, quad.p1, fc);
-		    let i2 = handleVertex(triangleVertices, quad.p2, fc);
-		    let i3 = handleVertex(triangleVertices, quad.p3, fc);
-		    let i4 = handleVertex(triangleVertices, quad.p4, fc);
-		    triangleIndices.push(i1, i2, i4, i2, i3, i4);
+                if(this.triangles2.hasOwnProperty(c)) {
+                    this.triangles2[c].forEach(triangle => {
+                            let i1 = handleVertex(triangleVertices, triangle.p1, fc);
+                            let i2 = handleVertex(triangleVertices, triangle.p2, fc);
+                            let i3 = handleVertex(triangleVertices, triangle.p3, fc);
+                            triangleIndices.push(i1, i2, i3, i3, i2, i1);
+                        });
 		}
-	    }
-	}
+                if(this.quads.hasOwnProperty(c)) {
+                    this.quads[c].forEach(quad => {
+                            let i1 = handleVertex(triangleVertices, quad.p1, fc);
+                            let i2 = handleVertex(triangleVertices, quad.p2, fc);
+                            let i3 = handleVertex(triangleVertices, quad.p3, fc);
+                            let i4 = handleVertex(triangleVertices, quad.p4, fc);
+                            triangleIndices.push(i1, i2, i4, i2, i3, i4);
+                        });
+                }
+                if(this.quads2.hasOwnProperty(c)) {
+                    this.quads2[c].forEach(quad => {
+                            let i1 = handleVertex(triangleVertices, quad.p1, fc);
+                            let i2 = handleVertex(triangleVertices, quad.p2, fc);
+                            let i3 = handleVertex(triangleVertices, quad.p3, fc);
+                            let i4 = handleVertex(triangleVertices, quad.p4, fc);
+                            triangleIndices.push(i1, i2, i4, i2, i3, i4,
+                                                 i4, i3, i2, i4, i2, i1);
+                        });
+                }
+            });
 	triangleVertexAttribute = new THREE.Float32BufferAttribute(triangleVertices, 4);
     }
     this.triangleGeometry = this.buildGeometry(triangleIndices, triangleVertexAttribute);
@@ -414,74 +295,71 @@ LDR.LDRGeometry.prototype.replaceWith = function(g) {
     this.lines = g.lines;
     this.conditionalLines = g.conditionalLines;
     this.triangles = g.triangles;
+    this.triangles2 = g.triangles2;
     this.quads = g.quads;
-    this.cull = g.cull;
+    this.quads2 = g.quads2;
     this.boundingBox = g.boundingBox;
 }
 
 LDR.LDRGeometry.prototype.replaceWithDeep = function(g) {
-    for(let i = 0; i < g.vertices.length; i++) {
-	let v = g.vertices[i];
-	this.vertices.push({x:v.x, y:v.y, z:v.z});
-    }
+    let self = this;
+    g.vertices.forEach(v => self.vertices.push({x:v.x, y:v.y, z:v.z}));
 
     for(let c in g.lines) {
 	if(!g.lines.hasOwnProperty(c)) {
 	    continue;
         }
-	let primitives = g.lines[c];
 	let ps = [];
-	for(let i = 0; i < primitives.length; i++) {
-            let p = primitives[i];
-            ps.push({p1:p.p1, p2:p.p2});
-	}
+	g.lines[c].forEach(p => ps.push({p1:p.p1, p2:p.p2}));
 	this.lines[c] = ps;
     }
     for(let c in g.conditionalLines) {
 	if(!g.conditionalLines.hasOwnProperty(c)) {
 	    continue;
         }
-	let primitives = g.conditionalLines[c];
 	let ps = [];
-	for(let i = 0; i < primitives.length; i++) {
-            let p = primitives[i];
-            ps.push({p1:p.p1, p2:p.p2, p3:p.p3, p4:p.p4});
-	}
+	g.conditionalLines[c].forEach(p => ps.push({p1:p.p1, p2:p.p2, p3:p.p3, p4:p.p4}));
 	this.conditionalLines[c] = ps;
     }
     for(let c in g.triangles) {
 	if(!g.triangles.hasOwnProperty(c)) {
 	    continue;
         }
-	let primitives = g.triangles[c];
 	let ps = [];
-	for(let i = 0; i < primitives.length; i++) {
-            let p = primitives[i];
-            ps.push({p1:p.p1, p2:p.p2, p3:p.p3});
-	}
+	g.triangles[c].forEach(p => ps.push({p1:p.p1, p2:p.p2, p3:p.p3}));
 	this.triangles[c] = ps;
+    }
+    for(let c in g.triangles2) {
+	if(!g.triangles2.hasOwnProperty(c)) {
+	    continue;
+        }
+	let ps = [];
+	g.triangles2[c].forEach(p => ps.push({p1:p.p1, p2:p.p2, p3:p.p3}));
+	this.triangles2[c] = ps;
     }
     for(let c in g.quads) {
 	if(!g.quads.hasOwnProperty(c)) {
 	    continue;
         }
-	let primitives = g.quads[c];
 	let ps = [];
-	for(let i = 0; i < primitives.length; i++) {
-            let p = primitives[i];
-            ps.push({p1:p.p1, p2:p.p2, p3:p.p3, p4:p.p4});
-	}
+	g.quads[c].forEach(p => ps.push({p1:p.p1, p2:p.p2, p3:p.p3, p4:p.p4}));
 	this.quads[c] = ps;
     }
-
-    this.cull = g.cull;
+    for(let c in g.quads2) {
+	if(!g.quads2.hasOwnProperty(c)) {
+	    continue;
+        }
+	let ps = [];
+	g.quads2[c].forEach(p => ps.push({p1:p.p1, p2:p.p2, p3:p.p3, p4:p.p4}));
+	this.quads2[c] = ps;
+    }
     this.boundingBox.copy(g.boundingBox);
 }
 
 /*
   Build this from the 4 types of primitives.
 */
-LDR.LDRGeometry.prototype.fromPrimitives = function(lines, conditionalLines, triangles, quads) {
+LDR.LDRGeometry.prototype.fromPrimitives = function(cull, lines, conditionalLines, triangles, quads) {
     let geometries = [];
 
     if(lines.length > 0) {
@@ -496,12 +374,12 @@ LDR.LDRGeometry.prototype.fromPrimitives = function(lines, conditionalLines, tri
     }
     if(triangles.length > 0) {
 	let g = new LDR.LDRGeometry(); 
-	g.fromTriangles(triangles);
+	g.fromTriangles(cull, triangles);
 	geometries.push(g);
     }
     if(quads.length > 0) {
 	let g = new LDR.LDRGeometry(); 
-	g.fromQuads(quads);
+	g.fromQuads(cull, quads);
 	geometries.push(g);
     }
     this.replaceWith(LDR.mergeGeometries(geometries));
@@ -584,52 +462,56 @@ LDR.LDRGeometry.prototype.fromConditionalLines = function(ps) {
     this.sortAndBurnVertices(vertices, this.conditionalLines);
 }
 
-LDR.LDRGeometry.prototype.fromTriangles = function(ps) {
+LDR.LDRGeometry.prototype.fromTriangles = function(cull, ps) {
     let vertices = [];
-    for(let i = 0; i < ps.length; i++) {
-	let p = ps[i], idx;
-	if(this.triangles.hasOwnProperty(p.colorID)) {
-	    let t = this.triangles[p.colorID];
-	    idx = t.length;
-	    t.push({});
-	}
-	else {
-	    this.triangles[p.colorID] = [{}];
-	    idx = 0;
-	}
-	vertices.push({x:p.p1.x, y:p.p1.y, z:p.p1.z, c:p.colorID, idx:idx, p:1},
-		      {x:p.p2.x, y:p.p2.y, z:p.p2.z, c:p.colorID, idx:idx, p:2},
-		      {x:p.p3.x, y:p.p3.y, z:p.p3.z, c:p.colorID, idx:idx, p:3});
-        this.boundingBox.expandByPoint(p.p1);
-        this.boundingBox.expandByPoint(p.p2);
-        this.boundingBox.expandByPoint(p.p3);
-    }
-    this.sortAndBurnVertices(vertices, this.triangles);
+    let triangles = cull ? this.triangles : this.triangles2;
+    let self = this;
+    ps.forEach(p => {
+            let idx;
+            if(triangles.hasOwnProperty(p.colorID)) {
+                let t = triangles[p.colorID];
+                idx = t.length;
+                t.push({});
+            }
+            else {
+                triangles[p.colorID] = [{}];
+                idx = 0;
+            }
+            vertices.push({x:p.p1.x, y:p.p1.y, z:p.p1.z, c:p.colorID, idx:idx, p:1},
+                          {x:p.p2.x, y:p.p2.y, z:p.p2.z, c:p.colorID, idx:idx, p:2},
+                          {x:p.p3.x, y:p.p3.y, z:p.p3.z, c:p.colorID, idx:idx, p:3});
+            self.boundingBox.expandByPoint(p.p1);
+            self.boundingBox.expandByPoint(p.p2);
+            self.boundingBox.expandByPoint(p.p3);
+        });
+    this.sortAndBurnVertices(vertices, triangles);
 }
 
-LDR.LDRGeometry.prototype.fromQuads = function(ps) {
+LDR.LDRGeometry.prototype.fromQuads = function(cull, ps) {
     let vertices = [];
-    for(let i = 0; i < ps.length; i++) {
-	let p = ps[i], idx;
-	if(this.quads.hasOwnProperty(p.colorID)) {
-	    let t = this.quads[p.colorID];
-	    idx = t.length;
-	    t.push({});
-	}
-	else {
-	    this.quads[p.colorID] = [{}];
-	    idx = 0;
-	}
-	vertices.push({x:p.p1.x, y:p.p1.y, z:p.p1.z, c:p.colorID, idx:idx, p:1},
-		      {x:p.p2.x, y:p.p2.y, z:p.p2.z, c:p.colorID, idx:idx, p:2},
-		      {x:p.p3.x, y:p.p3.y, z:p.p3.z, c:p.colorID, idx:idx, p:3},
-		      {x:p.p4.x, y:p.p4.y, z:p.p4.z, c:p.colorID, idx:idx, p:4});
-        this.boundingBox.expandByPoint(p.p1);
-        this.boundingBox.expandByPoint(p.p2);
-        this.boundingBox.expandByPoint(p.p3);
-        this.boundingBox.expandByPoint(p.p4);
-    }
-    this.sortAndBurnVertices(vertices, this.quads);
+    let quads = cull ? this.quads : this.quads2;
+    let self = this;
+    ps.forEach(p => {
+            let idx;
+            if(quads.hasOwnProperty(p.colorID)) {
+                let t = quads[p.colorID];
+                idx = t.length;
+                t.push({});
+            }
+            else {
+                quads[p.colorID] = [{}];
+                idx = 0;
+            }
+            vertices.push({x:p.p1.x, y:p.p1.y, z:p.p1.z, c:p.colorID, idx:idx, p:1},
+		          {x:p.p2.x, y:p.p2.y, z:p.p2.z, c:p.colorID, idx:idx, p:2},
+		          {x:p.p3.x, y:p.p3.y, z:p.p3.z, c:p.colorID, idx:idx, p:3},
+		          {x:p.p4.x, y:p.p4.y, z:p.p4.z, c:p.colorID, idx:idx, p:4});
+            self.boundingBox.expandByPoint(p.p1);
+            self.boundingBox.expandByPoint(p.p2);
+            self.boundingBox.expandByPoint(p.p3);
+            self.boundingBox.expandByPoint(p.p4);
+        });
+    this.sortAndBurnVertices(vertices, quads);
 }
 
 /*
@@ -639,7 +521,7 @@ LDR.LDRGeometry.prototype.fromStep = function(loader, step) {
     let geometries = [];
     if(step.hasPrimitives) {
         let g = new LDR.LDRGeometry();
-	g.fromPrimitives(step.lines, step.conditionalLines, step.triangles, step.quads);
+	g.fromPrimitives(step.cull, step.lines, step.conditionalLines, step.triangles, step.quads);
         geometries.push(g);
     }
 
@@ -651,7 +533,6 @@ LDR.LDRGeometry.prototype.fromStep = function(loader, step) {
     step.subModels.forEach(handleSubModel);
 
     this.replaceWith(LDR.mergeGeometries(geometries));
-    this.cull = step.cull;
 }
 
 LDR.LDRGeometry.prototype.fromPartType = function(loader, pt) {
@@ -678,7 +559,6 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
     pt.ensureGeometry(loader);
 
     this.replaceWithDeep(pt.geometry);
-    this.cull = this.cull && pd.cull;
 
     let m4 = new THREE.Matrix4();
     let m3e = pd.rotation.elements;
@@ -781,6 +661,8 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
         this.triangles = t(this.triangles, p => {return {p1:newIndices[p.p1],p2:newIndices[p.p2],p3:newIndices[p.p3]};});
         this.quads = t(this.quads, p => {return {p1:newIndices[p.p1],p2:newIndices[p.p2],p3:newIndices[p.p3],p4:newIndices[p.p4]};});
     }
+    this.triangles2 = t(this.triangles2, p => {return {p1:newIndices[p.p3],p2:newIndices[p.p2],p3:newIndices[p.p1]};});
+    this.quads2 = t(this.quads2, p => {return {p1:newIndices[p.p4],p2:newIndices[p.p3],p3:newIndices[p.p2],p4:newIndices[p.p1]};});
 }
 
 LDR.LDRGeometry.prototype.mapIndices = function(map) {
@@ -815,40 +697,21 @@ LDR.LDRGeometry.prototype.mapIndices = function(map) {
 	    this.triangles[c].forEach(x => map3(x, map));
         }
     }
+    for(let c in this.triangles2) {
+	if(this.triangles2.hasOwnProperty(c)) {
+	    this.triangles2[c].forEach(x => map3(x, map));
+        }
+    }
     for(let c in this.quads) {
 	if(this.quads.hasOwnProperty(c)) {
 	    this.quads[c].forEach(x => map4(x, map));
         }
     }
-}
-
-LDR.LDRGeometry.prototype.ensureCull = function() {
-    if(this.cull) {
-	return;
-    }
-    for(let c in this.triangles) {
-	if(!this.triangles.hasOwnProperty(c)) {
-	    continue;
+    for(let c in this.quads2) {
+	if(this.quads2.hasOwnProperty(c)) {
+	    this.quads2[c].forEach(x => map4(x, map));
         }
-	let triangles = this.triangles[c];
-	let T = triangles.length;
-	for(let i = 0; i < T; i++) {
-	    let t = triangles[i];
-	    triangles.push({p1:t.p3, p2:t.p2, p3:t.p1});
-	}
     }
-    for(let c in this.quads) {
-	if(!this.quads.hasOwnProperty(c)) {
-	    continue;
-        }
-	let quads = this.quads[c];
-	let Q = quads.length;
-	for(let i = 0; i < Q; i++) {
-	    let q = quads[i];
-	    quads.push({p1:q.p4, p2:q.p3, p3:q.p2, p4:q.p1});
-	}
-    }
-    this.cull = true;
 }
 
 LDR.LDRGeometry.prototype.print = function() {
@@ -865,9 +728,6 @@ LDR.LDRGeometry.prototype.print = function() {
 }
 
 LDR.LDRGeometry.prototype.merge = function(other) {
-    this.ensureCull();
-    other.ensureCull();
-
     // Merge bounding box:
     this.boundingBox.min.min(other.boundingBox.min);
     this.boundingBox.max.max(other.boundingBox.max);
@@ -935,5 +795,7 @@ LDR.LDRGeometry.prototype.merge = function(other) {
     mergePrimitives(this.lines, other.lines);
     mergePrimitives(this.conditionalLines, other.conditionalLines);
     mergePrimitives(this.triangles, other.triangles);
+    mergePrimitives(this.triangles2, other.triangles2);
     mergePrimitives(this.quads, other.quads);
+    mergePrimitives(this.quads2, other.quads2);
 }
