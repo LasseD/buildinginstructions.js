@@ -108,6 +108,9 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
     let onLoad = function() {
         console.log("Done loading at " + (new Date()-startTime) + "ms.");
 
+	// Ensure replaced parts are substituted:
+	self.ldrLoader.substituteReplacementParts();
+
         // Find what should be built for first step:
         let mainModel = self.ldrLoader.mainModel;
         let origo = new THREE.Vector3();

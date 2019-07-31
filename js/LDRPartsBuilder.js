@@ -9,10 +9,12 @@ LDR.PartsBuilder = function(loader, mainModelID, mainModelColor, onBuiltPart) {
     this.mainModelColor = mainModelColor;
 
     this.pcs = {}; // partID_colorID -> PartAndColor objects
-    this.pcKeys = []; // Used for lookup and sorting.
-    
+    this.pcKeys = []; // Used for lookup and sorting.    
     const pcs = this.pcs;
     const pcKeys = this.pcKeys;
+
+    // First fix all replacements:
+    loader.substituteReplacementParts();
 
     function build(multiplier, partID, colorID) {
 	if(colorID == 16) {
@@ -74,20 +76,6 @@ LDR.PartAndColor = function(key, part, colorID, loader) {
     if(!this.partType) {
 	console.dir(loader);
 	throw "Unknown part type: " + this.ID;
-    }
-
-    // Use replacement part:
-    if(this.partType.replacement) {
-        let pt;
-        if(this.partType.replacementPartType) { // Only perform lookup the first time.
-            pt = this.partType.replacementPartType;
-        }
-        else {
-            //console.log("Replacing: " + this.ID + " -> " + this.partType.replacement);
-            pt = loader.getPartType(this.partType.replacement);
-            this.partType.replacementPartType = pt;
-        }
-	this.partType = pt;
     }
 
     // Rotate for pli:

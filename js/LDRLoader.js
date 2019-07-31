@@ -37,7 +37,7 @@ THREE.LDRLoader = function(onLoad, storage, options) {
                     unloaded.push(id);
                     continue;
                 }
-                partType.cleanUpSteps(self);
+                partType.cleanUp(self);
             }
         }
         unloaded.forEach(id => delete self.partTypes[id]);
@@ -211,15 +211,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
             }
 	    part.modelDescription = previousComment;
             saveThisHeaderLine = false; // Because we are saving it as modelDescription.
-	    if(previousComment.toLowerCase().startsWith("~moved to ")) {
-		let newID = previousComment.substring("~moved to ".length).toLowerCase();
-		if(!newID.endsWith(".dat")) {
-		    newID += ".dat";
-                }
-		self.onWarning({message:'The part "' + part.ID + '" has been moved to "' + newID + '". Instructions and parts lists will show "' + newID + '".', line:i, subModel:part});
-		part.replacement = newID;
-	    }
-	    else if(previousComment.startsWith("~Unknown part ")) {
+	    if(previousComment.startsWith("~Unknown part ")) {
 		self.onError({message:'Unknown part "' + part.ID + '" will be shown as a cube.', line:i, subModel:part});
 	    }
 	    previousComment = undefined;
@@ -561,6 +553,27 @@ THREE.LDRLoader.prototype.toLDR = function() {
             }
         });
     return ret;
+}
+
+THREE.LDRLoader.prototype.substituteReplacementParts = function() {
+    let self = this;
+
+    let replacementMap = {};
+    function buildReplacementMap(pt) {
+	if(pt.replacement) {
+	    replacementMap[pt.ID] = pt.replacement;
+	}
+    }
+    this.applyOnPartTypes(buildReplacementMap);
+
+    function fixReplacedParts(pt) {
+	pt.steps.forEach(step => step.subModels.forEach(sm => {
+	    if(replacementMap.hasOwnProperty(sm.ID)) {
+		sm.ID = replacementMap[sm.ID]
+	    }
+	}));
+    }
+    this.applyOnPartTypes(fixReplacedParts);
 }
 
 /*
@@ -1000,7 +1013,7 @@ THREE.LDRStep.prototype.cleanUp = function(loader, newSteps) {
             parts.push(subModelDesc);
         }
         else { // Not a part:
-            subModel.cleanUpSteps(loader);
+            subModel.cleanUp(loader);
             let key = subModelDesc.colorID + '_' + subModel.ID;
             if(subModelsByTypeAndColor.hasOwnProperty(key)) {
                 subModelsByTypeAndColor[key].push(subModelDesc);
@@ -1243,16 +1256,21 @@ THREE.LDRPartType.prototype.unpack = function(obj) {
   Clean up all steps.
   This can cause additional steps (such as when a step contains both parts and sub models.
  */
-THREE.LDRPartType.prototype.cleanUpSteps = function(loader) {
+THREE.LDRPartType.prototype.cleanUp = function(loader) {
     if(this.cleanSteps) {
         return; // Already done.
     }
 
-    let newSteps = [];
+    if(this.isReplacedPart()) {
+	this.replacement = this.steps[0].subModels[0].ID;
+	loader.onWarning({message:'The part "' + this.ID + '" has been replaced by "' + this.replacement + '".', line:0, subModel:this});
+    }
+    else {
+	let newSteps = [];
+	this.steps.forEach(step => step.cleanUp(loader, newSteps));
+	this.steps = newSteps;
+    }
 
-    this.steps.forEach(step => step.cleanUp(loader, newSteps));
-
-    this.steps = newSteps;
     this.cleanSteps = true;
 }
 
@@ -1389,6 +1407,28 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
     
 THREE.LDRPartType.prototype.isPart = function() {
     return this.steps.length === 1 && (this.ID.endsWith('.dat') || this.steps[0].hasPrimitives);
+}
+
+THREE.LDRPartType.prototype.isReplacedPart = function() {
+    if(this.steps.length !== 1) {
+	return false; // Not exactly one step.
+    }
+    let step = this.steps[0];
+    if(step.hasPrimitives || step.subModels.length !== 1) {
+	return false; // Has primitives or is not consisting of a single sub model.
+    }
+    let sm = step.subModels[0];
+    if(sm.colorID !== 16 || sm.position.x !== 0 || sm.position.y !== 0 || sm.position.z !== 0) {
+	return false; // Not color 16 or at position (0,0,0).
+    }
+    let e = sm.rotation.elements;
+    let check = [1,0,0,0,1,0,0,0,1];
+    for(let i = 0; i < 9; i++) {
+	if(e[i] !== check[i]) {
+	    return false; // Not default rotation.
+	}
+    }
+    return true;
 }
 
 THREE.LDRPartType.prototype.countParts = function(loader) {
