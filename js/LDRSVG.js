@@ -174,15 +174,18 @@ LDR.SVG.makePolygon = function(pts) {
     poly.setAttribute('fill', 'none');
     return poly;
 }
+
 LDR.SVG.makePolyLine = function(pts) {
     let poly = document.createElementNS(LDR.SVG.NS, 'polyline');
     poly.setAttribute('points', pts);
     return poly;
 }
+
 LDR.SVG.makeTriangle = function(sideX, pointX) {
     let pts = sideX + ",20 " + sideX + ",80" + " " + pointX + ",50";
     return LDR.SVG.makePolygon(pts);
 }
+
 LDR.SVG.makeLine = function(x1, y1, x2, y2, forceStroke) {
     let ret = document.createElementNS(LDR.SVG.NS, 'line');
     if(forceStroke)
@@ -193,6 +196,17 @@ LDR.SVG.makeLine = function(x1, y1, x2, y2, forceStroke) {
     ret.setAttribute('y2', y2);
     return ret;
 }
+
+LDR.SVG.makeCross = function(parent, x, y, r) {
+    parent.append(LDR.SVG.makeLine(x-r, y-r, x+r, y+r));
+    parent.append(LDR.SVG.makeLine(x-r, y+r, x+r, y-r));
+}
+
+LDR.SVG.makePlus = function(parent, x, y, r) {
+    parent.append(LDR.SVG.makeLine(x, y-r, x, y+r));
+    parent.append(LDR.SVG.makeLine(x-r, y, x+r, y));
+}
+
 LDR.SVG.makeRect = function(x, y, w, h, fill) {
     let ret = document.createElementNS(LDR.SVG.NS, 'rect');
     ret.setAttribute('x', x);
@@ -204,6 +218,7 @@ LDR.SVG.makeRect = function(x, y, w, h, fill) {
     }
     return ret;
 }
+
 LDR.SVG.makeRoundRect = function(x, y, w, h, r) {
     let ret = LDR.SVG.makeRect(x, y, w, h);
     ret.setAttribute('class', 'show');
@@ -211,6 +226,7 @@ LDR.SVG.makeRoundRect = function(x, y, w, h, r) {
     ret.setAttribute('ry', r);
     return ret;
 }
+
 LDR.SVG.makeCircle = function(x, y, r, forceStroke) {
     let ret = document.createElementNS(LDR.SVG.NS, 'circle');
     if(forceStroke)
@@ -221,6 +237,7 @@ LDR.SVG.makeCircle = function(x, y, r, forceStroke) {
     ret.setAttribute('fill', 'none');
     return ret;
 }
+
 LDR.SVG.appendRotationCircle = function(x, y, r, svg) {
     let d = r/3;
     let circle = LDR.SVG.makeCircle(x, y, r, true);
@@ -231,15 +248,18 @@ LDR.SVG.appendRotationCircle = function(x, y, r, svg) {
     svg.appendChild(LDR.SVG.makeLine(x+r, y, x+r-d, y-d, true));
     svg.appendChild(LDR.SVG.makeLine(x+r, y, x+r+d, y-d, true));
 }
+
 LDR.SVG.makeGear = function(x, y, r, t, svg) {
     // Crown:
     svg.appendChild(LDR.SVG.makeGearCrown(x, y, r, r-4.5, 0.1, 0.1, t));
     // Cross axle:
     svg.appendChild(LDR.SVG.makeCrossAxleHole(x, y));
     // Circle if big enough:
-    if(r > 20)
+    if(r > 20) {
 	svg.appendChild(LDR.SVG.makeCircle(x, y, r*0.55));
+    }
 }
+
 LDR.SVG.makeGearCrown = function(x, y, ro, ri, ao, ai, t) {
     let a = (2*Math.PI/t - ai - ao)/2;
     let pts = "M" + (x+ro) + " " + y + " ";
@@ -258,6 +278,7 @@ LDR.SVG.makeGearCrown = function(x, y, ro, ri, ao, ai, t) {
     ret.setAttribute('fill', 'none');    
     return ret;
 }
+
 LDR.SVG.makeCrossAxleHole = function(x, y) {
     let d = 3;
     let D = 1.5*d;
@@ -271,6 +292,7 @@ LDR.SVG.makeCrossAxleHole = function(x, y) {
     ret.setAttribute('fill', 'none');    
     return ret;
 }
+
 LDR.SVG.makeOffIcon = function(x, y, w) {
     let d = w/10;
     let D = w/2 - 2*d;
@@ -284,6 +306,7 @@ LDR.SVG.makeOffIcon = function(x, y, w) {
     ret.setAttribute('fill', 'none');    
     return ret;
 }
+
 /**
    Misc icons for buttons:
  */
@@ -294,6 +317,7 @@ LDR.SVG.makeArrow = function(x1, y1, x2, y2, svg) {
     svg.append(LDR.SVG.makeLine(x2, y2, x3-dy, y3-dx, true));
     svg.append(LDR.SVG.makeLine(x2, y2, x3+dy, y3+dx, true));
 }
+
 LDR.SVG.makeBlock3D = function(x, y, parent) {
     let dx2 = 15, dy = 25, dy2 = dy*0.3;
 
@@ -315,6 +339,7 @@ LDR.SVG.makeBlock3D = function(x, y, parent) {
 
     parent.appendChild(p);
 }
+
 LDR.SVG.makeEdit = function() {
     let ret = document.createElementNS(LDR.SVG.NS, 'svg');
     ret.setAttribute("viewBox", "-50 -50 100 100");
@@ -331,6 +356,7 @@ LDR.SVG.makeEdit = function() {
 
     return ret;    
 }
+
 LDR.SVG.makePencil = function(w, h, parent) {
     let h2 = h/2, h6 = h/6, w2 = w/2;
     let pts = 'M-' + w2 + ' -' + (h2-h6) + ' h' + w + ' v-' + h6 + ' h-' + w + ' v' + h +

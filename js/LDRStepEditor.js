@@ -6,20 +6,18 @@
     - PLI always shown when editor opened
     - and parts shown individually
    - modify step rotation: ABS,REL, x, y, z --- 2 buttons + 3*3 inputs
-   - Remove highlighted parts --- 1 button
    - Color highlighted parts --- 1 button
+   - Remove highlighted parts or empty step --- 1 button X
+   - add step --- 1 button --- +
    - save --- 1 button
    Operations on TODO-list:
-   - add step (left and right, move highlighted parts to new step) --- 2 + 2 buttons (with and without parts)
-   - remove step (merge left or right) --- 2 buttons
-   - Move parts to previous/next step --- 2 buttons
-   - inline sub model at current location --- 1 button
-   - Group parts into sub model --- 1 button
+   - Merge step left --- 1 button --- <- X
+   - Move parts to previous/next step, include sub models --- 2 buttons --- -v and v- icons.
+   - Move parts to previous/next step, skip sub models --- 2 buttons --- -u-> and <-u- icons.
+   - inline sub model --- 1 button --- Arrow up
+   - Group parts into sub model --- 1 button --- Arrow down
  */
 LDR.StepEditor = function(loader, stepHandler, reset, onChange, modelID) {
-    if(!modelID) {
-        throw "Missing model ID!";
-    }
     this.loader = loader;
     this.stepHandler = stepHandler;
     this.reset = reset;
@@ -140,18 +138,21 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
     function makeNormal() { // Copy previous step rotation, or set to null if first step.
         propagate(self.stepIndex === 0 ? null : self.part.steps[self.stepIndex-1].original.rotation);
     }
-    function makeRel() { 
+
+    function makeRel() {
 	let step = self.step.original;
         let rot = step.rotation ? step.rotation.clone() : new THREE.LDRStepRotation(0, 0, 0, 'REL');
         rot.type = 'REL';
         propagate(rot);
     }
+
     function makeAbs() {
 	let step = self.step.original;
         let rot = step.rotation ? step.rotation.clone() : new THREE.LDRStepRotation(0, 0, 0, 'ABS');
         rot.type = 'ABS';
         propagate(rot);
     }
+
     function makeEnd() {
         propagate(null);
     }
@@ -234,33 +235,41 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
 
 LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
     let self = this;
-
-    function setColor(colorID) {
-	self.reset();
-	self.stepHandler.colorGhosted(colorID);
-	self.onChange();
-	self.makeSaveElementGreen();
-    }
-    let colorPicker = new LDR.ColorPicker(setColor);
-
     let ele = this.makeEle(parentEle, 'span', 'editor_control');
-    function remove() {
+    function update(actualChange) {
 	self.reset();
-	self.stepHandler.removeGhosted();
+	actualChange();
 	self.onChange();
 	self.makeSaveElementGreen();
     }
-    let removeButton = this.makeEle(ele, 'button', 'pli_button1', remove, 'REMOVE', self.makeRemovePartsIcon());
+
+    // Color:
+    let colorPicker = new LDR.ColorPicker(c => update(() => self.stepHandler.colorGhosted(c)));
     let colorButton = colorPicker.createButton();
     ele.append(colorButton);
 
-    function onlyShowButtonsIfPartsAreHighlighted() {
+    // Remove:
+    let removeButton = this.makeEle(ele, 'button', 'pli_button', 
+                                    () => update(() => self.stepHandler.remove()),
+                                    'REMOVE', self.makeRemoveIcon());
+
+    // Add step:
+    let addButton = this.makeEle(ele, 'button', 'pli_button', 
+                                 () => update(() => self.stepHandler.addStep()),
+                                 'ADD STEP', self.makeAddIcon());
+
+
+    function showAndHideButtons() {
         let anyHighlighted = self.step.subModels.some(pd => pd.original.ghost);
-        let display = anyHighlighted ? 'inline' : 'none';
-        removeButton.style.display = display;
-        colorButton.style.display = display;
+        let emptyButNotLast = self.step.subModels.length === 0 && self.part.steps.length > 0;
+
+        let display = show => show ? 'inline' : 'none';
+
+        colorButton.style.display = display(anyHighlighted);
+        removeButton.style.display = display(anyHighlighted || emptyButNotLast);
+        addButton.style.display = display(true); // You can always add a step.
     }
-    this.onStepSelectedListeners.push(onlyShowButtonsIfPartsAreHighlighted);
+    this.onStepSelectedListeners.push(showAndHideButtons);
 }
 
 /**
@@ -274,6 +283,7 @@ LDR.StepEditor.prototype.makeStepIcon = function() {
     LDR.SVG.makeBlock3D(50, 0, svg);
     return svg;
 }
+
 LDR.StepEditor.prototype.makeRelIcon = function() {
     let svg = document.createElementNS(LDR.SVG.NS, 'svg');
     svg.setAttribute('viewBox', '-75 -25 150 50');
@@ -292,6 +302,7 @@ LDR.StepEditor.prototype.makeRelIcon = function() {
 
     return svg;
 }
+
 LDR.StepEditor.prototype.makeAbsIcon = function() {
     let svg = document.createElementNS(LDR.SVG.NS, 'svg');
     svg.setAttribute('viewBox', '-75 -25 150 50');
@@ -300,6 +311,7 @@ LDR.StepEditor.prototype.makeAbsIcon = function() {
     svg.append(LDR.SVG.makeRect(37, -13, 24, 31, true));
     return svg;
 }
+
 LDR.StepEditor.prototype.makeEndIcon = function() {
     let svg = document.createElementNS(LDR.SVG.NS, 'svg');
     svg.setAttribute('viewBox', '-75 -25 150 50');
@@ -327,59 +339,24 @@ LDR.StepEditor.prototype.makeBoxArrowIcon = function(x1, y1, x2, y2) {
 }
 
 /**
-  Element editing icons
+  Step editing icons
 */
-LDR.StepEditor.prototype.addPLIIcon = function(svg, startX, options) {
-    svg.append(LDR.SVG.makeRoundRect(-60+startX, -30, 120, 60, 10));
-    for(let x = -1; x <= 1; x+=2) {
-        LDR.SVG.makeBlock3D(x*30 + startX, 0, svg);
-    }
-    if(options.ghost) {
-        let highlight = LDR.SVG.makeRect(5, -23, 48, 48);
-        highlight.setAttribute('stroke', '#5DD');
-        svg.append(highlight);
-    }
-}
-
-LDR.StepEditor.prototype.makeRemovePartsIcon = function() {
+LDR.StepEditor.prototype.makeRemoveIcon = function() {
     let svg = document.createElementNS(LDR.SVG.NS, 'svg');
-    svg.setAttribute('viewBox', '-60 -30 120 60');
-    this.addPLIIcon(svg, 0, {ghost:true});
-    svg.appendChild(LDR.SVG.makeLine(0, -30, 60, 30, true));
-    svg.appendChild(LDR.SVG.makeLine(0, 30, 60, -30, true));
+    svg.setAttribute('viewBox', '-25 -25 50 50');
+    LDR.SVG.makeCross(svg, 0, 0, 20);
+    return svg;
+}
+LDR.StepEditor.prototype.makeAddIcon = function() {
+    let svg = document.createElementNS(LDR.SVG.NS, 'svg');
+    svg.setAttribute('viewBox', '-25 -25 50 50');
+    LDR.SVG.makePlus(svg, 0, 0, 25);
     return svg;
 }
 
 //
 // Editor operations on StepHandler:
 //
-
-LDR.StepHandler.prototype.removeGhosted = function() {
-    let [part, current, stepInfo] = this.getCurrentStepInfo();
-    let step = stepInfo.step;
-    if(!step) {
-        console.warn('Not at a step where parts can be removed.');
-        return;
-    }
-
-    // Update sub models in step:
-    let stepIndex = this.getCurrentStepIndex(); // To move back to once the model has been rebuilt.
-    let originalStep = step.original;
-    let originalSubModels = originalStep.subModels;
-    originalStep.subModels = originalSubModels.filter(pd => !pd.ghost);
-    if(part.steps[0].isEmpty()) { // Remove empty first step:
-	if(part.steps.length === 1) {
-	    originalStep.subModels = originalSubModels;
-	    throw "Can't remove last content of part";
-	}
-	part.steps = part.steps.slice(1);
-    }
-    // All OK: Update lines in step:
-    originalStep.fileLines = originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
-
-    this.rebuild();
-    this.moveSteps(stepIndex, () => {});
-}
 
 LDR.StepHandler.prototype.colorGhosted = function(colorID) {
     let [part, current, stepInfo] = this.getCurrentStepInfo();
@@ -395,4 +372,92 @@ LDR.StepHandler.prototype.colorGhosted = function(colorID) {
 
     this.rebuild();
     this.moveSteps(stepIndex, () => {});
+}
+
+LDR.StepHandler.prototype.remove = function() {
+    let [part, current, stepInfo] = this.getCurrentStepInfo();
+    let step = stepInfo.step;
+    if(!step) {
+        console.warn('Not at a step where parts can be removed.');
+        return;
+    }
+
+    // Update sub models in step:
+    let stepIndex = this.getCurrentStepIndex(); // To move back to once the model has been rebuilt.
+    let originalStep = step.original;
+    let originalSubModels = originalStep.subModels;
+
+    if(originalStep.isEmpty()) { // Remove the step:
+        part.steps = part.steps.filter(s => s !== originalStep);
+        stepIndex -= this.countUsages(part.ID);
+    }
+    else { // Remove content from the step:
+        originalStep.subModels = originalSubModels.filter(pd => !pd.ghost);
+        if(part.steps[0].isEmpty()) { // Remove empty first step:
+            if(part.steps.length === 1) {
+                let mainModel = this.loader.getMainModel();
+                mainModel.purgePart(this.loader, part.ID);
+            }
+            part.steps = part.steps.slice(1);
+            stepIndex -= this.countUsages(part.ID);
+        }
+        // All OK: Update lines in step:
+        originalStep.fileLines = originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
+    }
+
+    this.rebuild();
+    this.moveSteps(stepIndex, () => {});
+}
+
+LDR.StepHandler.prototype.addStep = function() {
+    let [part, current, stepInfo] = this.getCurrentStepInfo();
+    let step = stepInfo.step;
+    if(!step) {
+        console.warn('Not at a valid step!');
+        return;
+    }
+
+    // Update sub models in step:
+    let stepIndex = this.getCurrentStepIndex(); // To move back to once the model has been rebuilt.
+    let originalStep = step.original;
+
+    let newStep = new THREE.LDRStep();
+    if(originalStep.rotation) {
+        newStep.rotation = originalStep.rotation.clone();
+    }
+    part.steps.splice(current+1, 0, newStep);
+    console.dir(this);
+    stepIndex += this.countUsages(part.ID)+1; // Move to new step.
+
+    this.rebuild();
+    this.moveSteps(stepIndex, () => {});
+}
+
+LDR.StepHandler.prototype.countUsages = function(ID) {
+    let ret = 0;
+
+    for(let i = 0; i < this.current; i++) {
+        let subStepHandler = this.steps[i].stepHandler;
+        if(subStepHandler) {
+            if(subStepHandler.part.ID === ID) {
+                console.log('Found instance in'); console.dir(subStepHandler);
+                ret += 1;
+            }
+            else {
+                ret += subStepHandler.countUsages(ID);
+            }
+        }
+    }
+    return ret;
+}
+
+THREE.LDRPartType.prototype.purgePart = function(loader, ID) {
+    if(this.isPart()) {
+        return;
+    }
+    function handleStep(step) {
+        step.subModels = step.subModels.filter(sm => sm.ID !== ID);
+        step.subModels.forEach(sm => loader.getPartType(sm.ID).purgePart(loader, ID));
+    }
+    this.steps.forEach(handleStep);
 }
