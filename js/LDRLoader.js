@@ -606,7 +606,7 @@ THREE.LDRPartDescription.prototype.cloneColored = function(colorID) {
 					   this.cull, this.invertCCW);
     ret.REPLACEMENT_PLI = this.REPLACEMENT_PLI;
     ret.original = this;
-    this.ghost = false; // For editor.
+    this.ghost = this.ghost || false; // For editor.
     return ret;
 }
 
