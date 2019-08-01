@@ -2,19 +2,16 @@
 
 /**
    Operations:
-   - Open/Close editor in top bar
-    - PLI always shown when editor opened
-    - and parts shown individually
-   - modify step rotation: ABS,REL, x, y, z --- 2 buttons + 3*3 inputs
-   - Color highlighted parts --- 1 button
-   - Remove highlighted parts or empty step --- 1 button X
-   - add step --- 1 button --- +
-   - save --- 1 button
+   - Open/Close editor using button shown in top bar
+   - modify step rotation: ABS,REL, x, y, z
+   - Color highlighted parts
+   - add step
+   - Remove highlighted parts / remove empty step / merge step left
+   - save
    Operations on TODO-list:
-   - Merge step left --- 1 button --- <- X
-   - Move parts to previous/next step, include sub models --- 2 buttons --- -v and v- icons.
-   - Move parts to previous/next step, skip sub models --- 2 buttons --- -u-> and <-u- icons.
-   - inline sub model --- 1 button --- Arrow up
+   - Move parts to previous/next step, skip sub models --- 2 buttons --- -> and <- icons.
+   - Move parts to previous/next step, include sub models, create other steps when necessary --- 2 buttons --- -u-> and <-u- icons.
+   - inline parts to sub model above / inline whole step / dissolve sub model --- 1 button --- Arrow up
    - Group parts into sub model --- 1 button --- Arrow down
  */
 LDR.StepEditor = function(loader, stepHandler, reset, onChange, modelID) {
@@ -248,25 +245,24 @@ LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
     let colorButton = colorPicker.createButton();
     ele.append(colorButton);
 
-    // Remove:
-    let removeButton = this.makeEle(ele, 'button', 'pli_button', 
-                                    () => update(() => self.stepHandler.remove()),
-                                    'REMOVE', self.makeRemoveIcon());
-
     // Add step:
     let addButton = this.makeEle(ele, 'button', 'pli_button', 
                                  () => update(() => self.stepHandler.addStep()),
-                                 'ADD STEP', self.makeAddIcon());
+                                 '+', self.makeAddIcon());
 
+    // Remove:
+    let removeButton = this.makeEle(ele, 'button', 'pli_button', 
+                                    () => update(() => self.stepHandler.remove()),
+                                    'X', self.makeRemoveIcon());
 
     function showAndHideButtons() {
         let anyHighlighted = self.step.subModels.some(pd => pd.original.ghost);
-        let emptyButNotLast = self.step.subModels.length === 0 && self.part.steps.length > 0;
+        let notLast = self.part.steps.length > 1;
 
         let display = show => show ? 'inline' : 'none';
 
         colorButton.style.display = display(anyHighlighted);
-        removeButton.style.display = display(anyHighlighted || emptyButNotLast);
+        removeButton.style.display = display(anyHighlighted || notLast);
         addButton.style.display = display(true); // You can always add a step.
     }
     this.onStepSelectedListeners.push(showAndHideButtons);
@@ -374,41 +370,6 @@ LDR.StepHandler.prototype.colorGhosted = function(colorID) {
     this.moveSteps(stepIndex, () => {});
 }
 
-LDR.StepHandler.prototype.remove = function() {
-    let [part, current, stepInfo] = this.getCurrentStepInfo();
-    let step = stepInfo.step;
-    if(!step) {
-        console.warn('Not at a step where parts can be removed.');
-        return;
-    }
-
-    // Update sub models in step:
-    let stepIndex = this.getCurrentStepIndex(); // To move back to once the model has been rebuilt.
-    let originalStep = step.original;
-    let originalSubModels = originalStep.subModels;
-
-    if(originalStep.isEmpty()) { // Remove the step:
-        part.steps = part.steps.filter(s => s !== originalStep);
-        stepIndex -= this.countUsages(part.ID);
-    }
-    else { // Remove content from the step:
-        originalStep.subModels = originalSubModels.filter(pd => !pd.ghost);
-        if(part.steps[0].isEmpty()) { // Remove empty first step:
-            if(part.steps.length === 1) {
-                let mainModel = this.loader.getMainModel();
-                mainModel.purgePart(this.loader, part.ID);
-            }
-            part.steps = part.steps.slice(1);
-            stepIndex -= this.countUsages(part.ID);
-        }
-        // All OK: Update lines in step:
-        originalStep.fileLines = originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
-    }
-
-    this.rebuild();
-    this.moveSteps(stepIndex, () => {});
-}
-
 LDR.StepHandler.prototype.addStep = function() {
     let [part, current, stepInfo] = this.getCurrentStepInfo();
     let step = stepInfo.step;
@@ -428,6 +389,47 @@ LDR.StepHandler.prototype.addStep = function() {
     part.steps.splice(current+1, 0, newStep);
     console.dir(this);
     stepIndex += this.countUsages(part.ID)+1; // Move to new step.
+
+    this.rebuild();
+    this.moveSteps(stepIndex, () => {});
+}
+
+LDR.StepHandler.prototype.remove = function() {
+    let [part, current, stepInfo] = this.getCurrentStepInfo();
+    let step = stepInfo.step;
+    if(!step) {
+        console.warn('Not at a step where parts can be removed.');
+        return;
+    }
+
+    // Update sub models in step:
+    let stepIndex = this.getCurrentStepIndex(); // To move back to once the model has been rebuilt.
+    let originalStep = step.original;
+    let originalSubModels = originalStep.subModels;
+
+    if(originalStep.isEmpty()) { // Remove empty step:
+        part.steps.splice(current, 1);
+        stepIndex -= this.countUsages(part.ID);
+    }
+    else if(originalSubModels.some(pd => pd.ghost)) { // Remove ghosted parts:
+        originalStep.subModels = originalSubModels.filter(pd => !pd.ghost);
+        if(part.steps[0].isEmpty()) { // Remove empty first step:
+            if(part.steps.length === 1) {
+                let mainModel = this.loader.getMainModel();
+                mainModel.purgePart(this.loader, part.ID);
+            }
+            part.steps = part.steps.slice(1);
+            stepIndex -= this.countUsages(part.ID);
+        }
+        // All OK: Update lines in step:
+        originalStep.fileLines = originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
+    }
+    else if(current > 0) { // Merge step left:
+        let prevStep = part.steps[current-1];
+        prevStep.subModels.push(...originalStep.subModels);
+        part.steps.splice(current, 1);
+        stepIndex -= this.countUsages(part.ID)+1;
+    }
 
     this.rebuild();
     this.moveSteps(stepIndex, () => {});
