@@ -658,8 +658,7 @@ LDR.InstructionsManager.prototype.onPLIClick = function(e) {
         });
 
     if(this.canEdit && ldrOptions.showEditor) {
-        console.log('Clicked icon:');
-        console.dir(icon);
+        //console.log('Clicked icon:'); console.dir(icon);
         icon.part.original.ghost = !icon.part.original.ghost;
         this.stepHandler.updateMeshCollectors();
         this.updateUIComponents(true);

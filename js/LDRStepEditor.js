@@ -244,17 +244,16 @@ LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
     let colorButton = colorPicker.createButton();
     ele.append(colorButton);
 
-    // Add step:
+    // Controls:
     let addButton = this.makeEle(ele, 'button', 'pli_button', 
                                  () => update(() => self.stepHandler.addStep()),
                                  '+', self.makeAddIcon());
-
-    // Remove:
     let removeButton = this.makeEle(ele, 'button', 'pli_button', 
                                     () => update(() => self.stepHandler.remove()),
                                     'X', self.makeRemoveIcon());
-
-    // MoveNext:
+    let movePrevButton = this.makeEle(ele, 'button', 'pli_button', 
+                                      () => update(() => self.stepHandler.movePrev()),
+                                      '<=', self.makeMovePrevIcon());
     let moveNextButton = this.makeEle(ele, 'button', 'pli_button', 
                                       () => update(() => self.stepHandler.moveNext()),
                                       '->', self.makeMoveNextIcon());
@@ -267,8 +266,6 @@ LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
 
         colorButton.style.display = display(anyHighlighted);
         removeButton.style.display = display(anyHighlighted || notLast);
-        addButton.style.display = display(true); // You can always add a step.
-        moveNextButton.style.display = display(true); // You can always move stuff right.
     }
     this.onStepSelectedListeners.push(showAndHideButtons);
 }
@@ -360,6 +357,13 @@ LDR.StepEditor.prototype.makeMoveNextIcon = function() {
     let svg = document.createElementNS(LDR.SVG.NS, 'svg');
     svg.setAttribute('viewBox', '-25 -25 50 50');
     LDR.SVG.makeArrow(-25, 0, 25, 0, svg);
+    return svg;
+}
+
+LDR.StepEditor.prototype.makeMovePrevIcon = function() {
+    let svg = document.createElementNS(LDR.SVG.NS, 'svg');
+    svg.setAttribute('viewBox', '-25 -25 50 50');
+    LDR.SVG.makeArrow(25, 0, -25, 0, svg);
     return svg;
 }
 
@@ -510,6 +514,68 @@ LDR.StepHandler.prototype.moveNext = function() {
     this.moveSteps(stepIndex, () => {});
 }
 
+LDR.StepHandler.prototype.movePrev = function() {
+    let [part, current, stepInfo] = this.getCurrentStepInfo();
+    let step = stepInfo.step;
+    if(!step) {
+        console.warn('Not at a valid step!');
+        return;
+    }
+
+    // Update sub models in step:
+    let stepIndex = this.getCurrentStepIndex(); // To move back to once the model has been rebuilt.
+    let originalStep = step.original;
+    let originalSubModels = originalStep.subModels;
+
+    // Create new empty previous step if necessary:
+    if(current === 0) {
+        let newStep = new THREE.LDRStep();
+        if(originalStep.rotation) {
+            newStep.rotation = originalStep.rotation.clone();
+        }
+        part.steps.splice(0, 0, newStep);
+        current++; // Position has moved.
+        stepIndex++; // Position has moved.
+    }
+
+    // TODO FROM HERE:
+    if(!originalSubModels.some(pd => pd.ghost)) { // Move full step:
+        stepIndex -= this.countStepsInsideOfPreviousStep();
+        part.steps.splice(current, 1); // Remove current step.
+        part.steps.splice(current-1, 0, originalStep); // Insert current step before previous.
+    }
+    else { // Move ghosted parts:
+        // First check if there is a step to move data to:
+        let prevStepIdx = current-1;
+        stepIndex--;
+        if(part.steps[prevStepIdx].containsNonPartSubModels(this.loader)) {
+            stepIndex -= this.countStepsInsideOfPreviousStep();
+            // Ensure the step bbefore is available:           
+            prevStepIdx--;
+            // Add a new step if necessary:
+            if(prevStepIdx === part.steps.length ||
+               part.steps[prevStepIdx].containsNonPartSubModels(this.loader)) {
+                let skippedStep = part.steps[current-1];
+                let newStep = new THREE.LDRStep();
+                if(skippedStep.rotation) {
+                    newStep.rotation = skippedStep.rotation.clone();
+                }
+                part.steps.splice(current-2, 0, newStep);
+            }
+        }
+        let prevStep = part.steps[prevStepIdx];
+
+        // Update steps:
+        prevStep.subModels.push(...originalSubModels.filter(pd => pd.ghost));
+        originalStep.subModels = originalSubModels.filter(pd => !pd.ghost);
+        prevStep.fileLines.push(...originalStep.fileLines.filter(line => (line.line1 ? line.desc.ghost : false)));
+        originalStep.fileLines = originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
+    }
+
+    this.rebuild();
+    this.moveSteps(stepIndex, () => {});
+}
+
 LDR.StepHandler.prototype.countUsages = function(ID) {
     let ret = 0;
 
@@ -534,6 +600,15 @@ LDR.StepHandler.prototype.countStepsInsideOfNextStep = function() {
     }
     let nextStep = sh.steps[sh.current+1];
     return nextStep.stepHandler ? nextStep.stepHandler.totalNumberOfSteps+1 : 1;
+}
+
+LDR.StepHandler.prototype.countStepsInsideOfPreviousStep = function() {
+    let sh = this.getCurrentStepHandler();
+    if(sh.current === 0) {
+        return 1; // No previous step - assume one will be created.
+    }
+    let prevStep = sh.steps[sh.current-1];
+    return prevStep.stepHandler ? prevStep.stepHandler.totalNumberOfSteps+1 : 1;
 }
 
 THREE.LDRPartType.prototype.purgePart = function(loader, ID) {
