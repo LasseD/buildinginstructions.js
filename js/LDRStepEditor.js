@@ -7,12 +7,12 @@
    - Color highlighted parts
    - add step
    - Remove highlighted parts / remove empty step / merge step left
+   - Move parts to previous/next step, skip sub models
+   - Group parts into sub model
    - save
    Operations on TODO-list:
-   - Move parts to previous/next step, skip sub models --- 2 buttons --- -> and <- icons.
-   - Move parts to previous/next step, include sub models, create other steps when necessary --- 2 buttons --- -u-> and <-u- icons.
-   - inline parts to sub model above / inline whole step / dissolve sub model --- 1 button --- Arrow up
-   - Group parts into sub model --- 1 button --- Arrow down
+   - Move parts to previous/next step, include sub models, create other steps when necessary --- 2 buttons --- -v and -^
+   - inline parts to sub model above / inline whole step / dissolve sub model --- 1 button --- ^
  */
 LDR.StepEditor = function(loader, stepHandler, reset, onChange, modelID) {
     this.loader = loader;
@@ -27,6 +27,7 @@ LDR.StepEditor = function(loader, stepHandler, reset, onChange, modelID) {
     this.part;
     this.stepIndex;
     this.step;
+    this.nextID = 0;
 
     function showOrHide() {
         if(ldrOptions.showEditor) {
@@ -61,6 +62,14 @@ LDR.StepEditor = function(loader, stepHandler, reset, onChange, modelID) {
 
         return ret;
     }
+}
+
+LDR.StepEditor.prototype.generateNextID = function() {
+    const radix = 36;
+    while(this.loader.partTypes.hasOwnProperty(this.nextID.toString(radix) + '.ldr')) {
+        this.nextID++;
+    }
+    return this.nextID.toString(radix) + '.ldr';
 }
 
 LDR.StepEditor.prototype.updateCurrentStep = function() {
@@ -245,27 +254,32 @@ LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
     ele.append(colorButton);
 
     // Controls:
-    let addButton = this.makeEle(ele, 'button', 'pli_button', 
-                                 () => update(() => self.stepHandler.addStep()),
-                                 '+', self.makeAddIcon());
-    let removeButton = this.makeEle(ele, 'button', 'pli_button', 
+    this.makeEle(ele, 'button', 'pli_button',
+                 () => update(() => self.stepHandler.addStep()),
+                 '+', self.makeAddIcon());
+    let removeButton = this.makeEle(ele, 'button', 'pli_button',
                                     () => update(() => self.stepHandler.remove()),
                                     'X', self.makeRemoveIcon());
-    let movePrevButton = this.makeEle(ele, 'button', 'pli_button', 
-                                      () => update(() => self.stepHandler.movePrev()),
-                                      '<=', self.makeMovePrevIcon());
-    let moveNextButton = this.makeEle(ele, 'button', 'pli_button', 
-                                      () => update(() => self.stepHandler.moveNext()),
-                                      '->', self.makeMoveNextIcon());
+    this.makeEle(ele, 'button', 'pli_button',
+                 () => update(() => self.stepHandler.movePrev()),
+                 '<=', self.makeMovePrevIcon());
+    let moveToNewSubModelButton = this.makeEle(ele, 'button', 'pli_button',
+                                               () => update(() => self.stepHandler.moveToNewSubModel(self.generateNextID())),
+                                               'v', self.makeMoveToNewSubModelIcon());
+    this.makeEle(ele, 'button', 'pli_button',
+                 () => update(() => self.stepHandler.moveNext()),
+                 '->', self.makeMoveNextIcon());
 
     function showAndHideButtons() {
         let anyHighlighted = self.step.subModels.some(pd => pd.original.ghost);
-        let notLast = self.part.steps.length > 1;
+        let last = self.part.steps.length === 1;
+        let empty = self.step.subModels.length === 0;
 
         let display = show => show ? 'inline' : 'none';
 
         colorButton.style.display = display(anyHighlighted);
-        removeButton.style.display = display(anyHighlighted || notLast);
+        removeButton.style.display = display(anyHighlighted || !last);
+        moveToNewSubModelButton.style.display = display(!(empty || (!anyHighlighted && last)));
     }
     this.onStepSelectedListeners.push(showAndHideButtons);
 }
@@ -356,14 +370,21 @@ LDR.StepEditor.prototype.makeAddIcon = function() {
 LDR.StepEditor.prototype.makeMoveNextIcon = function() {
     let svg = document.createElementNS(LDR.SVG.NS, 'svg');
     svg.setAttribute('viewBox', '-25 -25 50 50');
-    LDR.SVG.makeArrow(-25, 0, 25, 0, svg);
+    LDR.SVG.makeArrow(-25, 0, 25, 0, svg, true);
     return svg;
 }
 
 LDR.StepEditor.prototype.makeMovePrevIcon = function() {
     let svg = document.createElementNS(LDR.SVG.NS, 'svg');
     svg.setAttribute('viewBox', '-25 -25 50 50');
-    LDR.SVG.makeArrow(25, 0, -25, 0, svg);
+    LDR.SVG.makeArrow(25, 0, -25, 0, svg, true);
+    return svg;
+}
+
+LDR.StepEditor.prototype.makeMoveToNewSubModelIcon = function() {
+    let svg = document.createElementNS(LDR.SVG.NS, 'svg');
+    svg.setAttribute('viewBox', '-25 -25 50 50');
+    LDR.SVG.makeArrow(0, -25, 0, 25, svg, true);
     return svg;
 }
 
@@ -538,7 +559,6 @@ LDR.StepHandler.prototype.movePrev = function() {
         stepIndex++; // Position has moved.
     }
 
-    // TODO FROM HERE:
     if(!originalSubModels.some(pd => pd.ghost)) { // Move full step:
         stepIndex -= this.countStepsInsideOfPreviousStep();
         part.steps.splice(current, 1); // Remove current step.
@@ -570,6 +590,58 @@ LDR.StepHandler.prototype.movePrev = function() {
         originalStep.subModels = originalSubModels.filter(pd => !pd.ghost);
         prevStep.fileLines.push(...originalStep.fileLines.filter(line => (line.line1 ? line.desc.ghost : false)));
         originalStep.fileLines = originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
+    }
+
+    this.rebuild();
+    this.moveSteps(stepIndex, () => {});
+}
+
+LDR.StepHandler.prototype.moveToNewSubModel = function(newID) {
+    let [part, current, stepInfo] = this.getCurrentStepInfo();
+    let step = stepInfo.step;
+    if(!step) {
+        console.warn('Not at a valid step!');
+        return;
+    }
+    let stepIndex = this.getCurrentStepIndex(); // To move back to once the model has been rebuilt.
+    let originalStep = step.original;
+    let originalSubModels = originalStep.subModels;
+
+    // Create new part type:
+    let newPT = new THREE.LDRPartType();
+    newPT.ID = newPT.name = newPT.modelDescription = newID;
+    newPT.author = 'LDRStepEditor';
+    newPT.license = 'Redistributable under CCAL version 2.0 : see CAreadme.txt';
+    newPT.cleanSteps = newPT.certifiedBFC = newPT.CCW = newPT.consistentFileAndName = true;
+    this.loader.partTypes[newID] = newPT;
+    console.log('Created model type ' + newPT.ID);
+
+    // Create drop step (where the new part type is inserted):
+    let r = new THREE.Matrix3(); r.set(1, 0, 0, 0, 1, 0, 0, 0, 1);
+    let newPD = new THREE.LDRPartDescription(16, new THREE.Vector3(), r, newPT.ID, true, false);
+    let dropStep = new THREE.LDRStep();
+    if(originalStep.rotation) {
+        dropStep.rotation = originalStep.rotation.clone();
+    }
+    dropStep.fileLines = new LDR.Line1(newPD);
+    dropStep.addSubModel(newPD);
+
+    if(originalSubModels.some(pd => pd.ghost)) { // Create new step with sub model:
+        stepIndex += 2*this.countUsages(part.ID)+1; // Move to new step. x2 for new placement steps.
+        part.steps.splice(current+1, 0, dropStep); // Push in drop step.
+
+        // Move lines to new step:
+        let newStep = new THREE.LDRStep();
+        newStep.subModels.push(...originalSubModels.filter(pd => pd.ghost));
+        originalStep.subModels = originalSubModels.filter(pd => !pd.ghost);
+        newStep.fileLines.push(...originalStep.fileLines.filter(line => (line.line1 ? line.desc.ghost : false)));
+        originalStep.fileLines = originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
+        newPT.steps = [ newStep ];
+    }
+    else { // Move full step to new sub model by simply switching the steps:
+        stepIndex += this.countUsages(part.ID); // Move to new step.
+        newPT.steps = [ part.steps[current] ];
+        part.steps[current] = dropStep;
     }
 
     this.rebuild();

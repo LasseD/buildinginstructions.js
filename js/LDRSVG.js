@@ -310,12 +310,15 @@ LDR.SVG.makeOffIcon = function(x, y, w) {
 /**
    Misc icons for buttons:
  */
-LDR.SVG.makeArrow = function(x1, y1, x2, y2, svg) {
+LDR.SVG.makeArrow = function(x1, y1, x2, y2, svg, includeBase) {
     svg.append(LDR.SVG.makeLine(x1, y1, x2, y2, true));
     let dx = (x2-x1)*0.3, dy = (y2-y1)*0.3;
     let x3 = x2-dx, y3 = y2-dy;
     svg.append(LDR.SVG.makeLine(x2, y2, x3-dy, y3-dx, true));
     svg.append(LDR.SVG.makeLine(x2, y2, x3+dy, y3+dx, true));
+    if(includeBase) {
+        svg.append(LDR.SVG.makeLine(x1+dy, y1+dx, x1-dy, y1-dx, true));
+    }
 }
 
 LDR.SVG.makeBlock3D = function(x, y, parent) {
