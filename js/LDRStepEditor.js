@@ -9,10 +9,10 @@
    - Remove highlighted parts / remove empty step / merge step left
    - Move parts to previous/next step, skip sub models
    - Group parts into sub model
+   - inline parts/step to all instances of sub models above
    - save
-   Operations on TODO-list:
-   - Move parts to previous/next step, include sub models, create other steps when necessary --- 2 buttons --- -v and -^
-   - inline parts to sub model above / inline whole step / dissolve sub model --- 1 button --- ^
+   TODO:
+   - Move parts to sub model in previous/next step --- 2 buttons --- -v and -^
  */
 LDR.StepEditor = function(loader, stepHandler, reset, onChange, modelID) {
     this.loader = loader;
@@ -263,23 +263,38 @@ LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
     this.makeEle(ele, 'button', 'pli_button',
                  () => update(() => self.stepHandler.movePrev()),
                  '<=', self.makeMovePrevIcon());
-    let moveToNewSubModelButton = this.makeEle(ele, 'button', 'pli_button',
-                                               () => update(() => self.stepHandler.moveToNewSubModel(self.generateNextID())),
-                                               'v', self.makeMoveToNewSubModelIcon());
     this.makeEle(ele, 'button', 'pli_button',
                  () => update(() => self.stepHandler.moveNext()),
                  '->', self.makeMoveNextIcon());
+    let moveToNewSubModelButton = this.makeEle(ele, 'button', 'pli_button',
+                                               () => update(() => self.stepHandler.moveToNewSubModel(self.generateNextID())),
+                                               'v', self.makeMoveToNewSubModelIcon());
+    let moveUpLeftButton = this.makeEle(ele, 'button', 'pli_button',
+                                        () => update(() => self.stepHandler.moveUp(false)),
+                                        '<^', self.makeMoveUpSideIcon(false));
+    let moveUpRightButton = this.makeEle(ele, 'button', 'pli_button',
+                                         () => update(() => self.stepHandler.moveUp(true)),
+                                         '^>', self.makeMoveUpSideIcon(true));
+    let dissolveSubModelButton = this.makeEle(ele, 'button', 'pli_button',
+                                         () => update(() => self.stepHandler.moveUp(true)),
+                                         '^', self.makeDissolveSubModelIcon());
 
     function showAndHideButtons() {
         let anyHighlighted = self.step.subModels.some(pd => pd.original.ghost);
         let last = self.part.steps.length === 1;
         let empty = self.step.subModels.length === 0;
+        let isMainModel = self.part.ID === self.loader.mainModel;
+        let isAtFirstStepInSubModel = self.stepIndex === 0;
+        let isAtLastStepInSubModel = self.stepIndex === self.part.steps.length-1;
 
         let display = show => show ? 'inline' : 'none';
 
         colorButton.style.display = display(anyHighlighted);
         removeButton.style.display = display(anyHighlighted || !last);
         moveToNewSubModelButton.style.display = display(!(empty || (!anyHighlighted && last)));
+        moveUpLeftButton.style.display = display(!isMainModel && isAtFirstStepInSubModel && !isAtLastStepInSubModel);
+        moveUpRightButton.style.display = display(!isMainModel && isAtLastStepInSubModel && !isAtFirstStepInSubModel);
+        dissolveSubModelButton.style.display = display(!isMainModel && isAtLastStepInSubModel && isAtFirstStepInSubModel);
     }
     this.onStepSelectedListeners.push(showAndHideButtons);
 }
@@ -385,6 +400,23 @@ LDR.StepEditor.prototype.makeMoveToNewSubModelIcon = function() {
     let svg = document.createElementNS(LDR.SVG.NS, 'svg');
     svg.setAttribute('viewBox', '-25 -25 50 50');
     LDR.SVG.makeArrow(0, -25, 0, 25, svg, true);
+    return svg;
+}
+
+LDR.StepEditor.prototype.makeDissolveSubModelIcon = function() {
+    let svg = document.createElementNS(LDR.SVG.NS, 'svg');
+    svg.setAttribute('viewBox', '-25 -25 50 50');
+    LDR.SVG.makeArrow(0, 25, 0, -25, svg, true);
+    return svg;
+}
+
+LDR.StepEditor.prototype.makeMoveUpSideIcon = function(right) {
+    let svg = document.createElementNS(LDR.SVG.NS, 'svg');
+    svg.setAttribute('viewBox', '-25 -25 50 50');
+    LDR.SVG.makeArrow(0, 0, right ? 25 : -25, 0, svg);
+    svg.appendChild(LDR.SVG.makeLine(0, 0, 0, 25));
+    svg.appendChild(LDR.SVG.makeLine(-10, 25, 10, 25));
+    
     return svg;
 }
 
@@ -648,6 +680,74 @@ LDR.StepHandler.prototype.moveToNewSubModel = function(newID) {
     this.moveSteps(stepIndex, () => {});
 }
 
+LDR.StepHandler.prototype.moveUp = function(right) {
+    let [part, current, stepInfo] = this.getCurrentStepInfo();
+    let step = stepInfo.step;
+    if(!step) {
+        console.warn('Not at a valid step!');
+        return;
+    }
+    let stepIndex = this.getCurrentStepIndex(); // To move back to once the model has been rebuilt.
+    let originalStep = step.original;
+    let originalSubModels = originalStep.subModels;
+    let ghosts = originalSubModels.filter(pd => pd.ghost);
+    let moveFullStep = ghosts.length === 0;
+    if(moveFullStep) {
+        ghosts = originalSubModels;
+    }
+
+    // Create new step in all models that use this:
+    function handlePT(pt) {
+        // Find a step where part is referred:
+        for(let i = 0; i < pt.steps.length; i++) {
+            let step = pt.steps[i];
+            if(!step.subModels.some(sm => sm.ID === part.ID)) {
+                continue;
+            }
+            // Add new step before or after this step:
+            let newStep = new THREE.LDRStep();
+            function handleSubModel(sm) {
+                ghosts.forEach(ghost => {
+                        let g = ghost.cloneNoPR(); // No position or rotation - set below:
+                
+                        g.position = new THREE.Vector3();
+                        g.position.copy(ghost.position);
+                        g.position.applyMatrix3(sm.rotation);
+                        g.position.add(sm.position);
+                        
+                        g.rotation = new THREE.Matrix3();
+                        g.rotation.multiplyMatrices(sm.rotation, ghost.rotation);
+                        
+                        newStep.subModels.push(g);
+                        newStep.fileLines.push(new LDR.Line1(g));
+                    });
+            }
+            step.subModels.forEach(handleSubModel);
+            pt.steps.splice(right ? i+1 : i, 0, newStep); // Add step.
+            i++; // We can now skip the next step.
+        } // for
+    } // handlePT
+    this.loader.applyOnPartTypes(handlePT);
+
+    // Update or remove old step:
+    if(moveFullStep) { // Remove the step from the sub model:
+        if(part.steps.length === 1) {
+            this.loader.getMainModel().purgePart(this.loader, part.ID);
+        }
+        else {
+            part.steps.splice(current, 1);
+        }
+    }
+    else { // Update the step:
+        originalStep.subModels = originalStep.subModels.filter(pd => !pd.ghost);
+        originalStep.fileLines = originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
+        stepIndex += this.countUsages(part.ID);
+    }
+
+    this.rebuild();
+    this.moveSteps(stepIndex, () => {});
+}
+
 LDR.StepHandler.prototype.countUsages = function(ID) {
     let ret = 0;
 
@@ -689,7 +789,21 @@ THREE.LDRPartType.prototype.purgePart = function(loader, ID) {
     }
     function handleStep(step) {
         step.subModels = step.subModels.filter(sm => sm.ID !== ID);
-        step.subModels.forEach(sm => loader.getPartType(sm.ID).purgePart(loader, ID));
+        if(step.subModels.length === 0) {
+            step.RM = true;
+        }
+        else {
+            step.subModels.forEach(sm => loader.getPartType(sm.ID).purgePart(loader, ID));
+        }
     }
     this.steps.forEach(handleStep);
+    this.steps = this.steps.filter(step => !step.RM);
+}
+
+THREE.LDRPartDescription.prototype.cloneNoPR = function() {
+    let ret = new THREE.LDRPartDescription(this.colorID, null, null, this.ID, 
+					   this.cull, this.invertCCW);
+    ret.REPLACEMENT_PLI = this.REPLACEMENT_PLI;
+    ret.ghost = this.ghost;
+    return ret;
 }
