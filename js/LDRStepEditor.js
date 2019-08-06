@@ -12,10 +12,9 @@
    - inline parts/step to all instances of sub models above
    - Move parts to sub model in previous/next step
    - Split sub models in step to more steps when in placement step
+   - Join with sub models in step to the right
    - save
    TODO:
-   - Join with sub models in step to the right --- 1 button --- ->|<-
-   - Ensure functions work on placement steps.
    - Add keyboard shortcuts
  */
 LDR.StepEditor = function(loader, stepHandler, reset, onChange, modelID) {
@@ -308,9 +307,13 @@ LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
     let splitButton = this.makeEle(ele, 'button', 'pli_button',
                                    () => update(info => self.stepHandler.split(info)),
                                    '<-|->', self.makeSplitIcon());
+    let joinButton = this.makeEle(ele, 'button', 'pli_button',
+                                  () => update(info => self.stepHandler.joinWithNext(info)),
+                                   '->|<-', self.makeJoinIcon());
 
     function showAndHideButtons() {
         let anyHighlighted = self.step.subModels.some(pd => pd.original.ghost);
+        let allHighlighted = !self.step.subModels.some(pd => !pd.original.ghost);
         let last = self.part.steps.length === 1;
         let empty = self.step.subModels.length === 0;
         let isMainModel = self.part.ID === self.loader.mainModel;
@@ -323,18 +326,21 @@ LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
             self.part.steps[self.stepIndex-1].containsNonPartSubModels(self.loader) &&
             self.part.steps[self.stepIndex-1].subModels.length === 1;
         let atPlacementStep = self.subStepHandler && self.subStepHandler.isAtPlacementStep();
+        let isThisAndNextWithSameSubModels = isNextASubModel && !empty && self.step.containsNonPartSubModels(self.loader) && 
+            self.step.subModels[0].ID === self.part.steps[self.stepIndex+1].subModels[0].ID;
 
         let display = show => show ? 'inline' : 'none';
 
         colorButton.style.display = display(anyHighlighted);
-        removeButton.style.display = display(anyHighlighted || !last);
-        moveToNewSubModelButton.style.display = display(!(empty || (!anyHighlighted && last)));
+        removeButton.style.display = display(!(last && (!anyHighlighted || allHighlighted) && isMainModel));
+        moveToNewSubModelButton.style.display = display(!empty);
         moveUpLeftButton.style.display = display(!isMainModel && isAtFirstStepInSubModel && !isAtLastStepInSubModel);
         moveUpRightButton.style.display = display(!isMainModel && isAtLastStepInSubModel && !isAtFirstStepInSubModel);
         dissolveSubModelButton.style.display = display(!isMainModel && isAtLastStepInSubModel && isAtFirstStepInSubModel);
         moveDownLeftButton.style.display = display(isPrevASubModel);
         moveDownRightButton.style.display = display(isNextASubModel);
         splitButton.style.display = display(atPlacementStep && self.step.subModels.length > 1);
+        joinButton.style.display = display(isThisAndNextWithSameSubModels);
     }
     this.onStepSelectedListeners.push(showAndHideButtons);
 }
@@ -477,6 +483,14 @@ LDR.StepEditor.prototype.makeSplitIcon = function() {
     return svg;
 }
 
+LDR.StepEditor.prototype.makeJoinIcon = function() {
+    let svg = document.createElementNS(LDR.SVG.NS, 'svg');
+    svg.setAttribute('viewBox', '-25 -25 50 50');
+    LDR.SVG.makeArrow(-25, 0, 0, 0, svg, true);
+    LDR.SVG.makeArrow(25, 0, 0, 0, svg, true);
+    return svg;
+}
+
 //
 // Editor operations on StepHandler:
 //
@@ -507,21 +521,18 @@ LDR.StepHandler.prototype.addStep = function(info) {
 }
 
 LDR.StepHandler.prototype.remove = function(info) {
-    let part = info.part;
-    if(info.originalStep.isEmpty()) { // Remove empty step:
-        part.steps.splice(info.current, 1);
-        info.stepIndex -= this.countUsages(part.ID);
+    if(info.part.ID === this.loader.mainModel && info.step.length === 1 && 
+       (!info.originalSubModels.some(sm => sm.ghost) || 
+        !info.originalSubModels.some(sm => !sm.ghost))) {
+        return; // Can't remove last content of file.
     }
-    else if(info.originalSubModels.some(pd => pd.ghost)) { // Remove ghosted parts:
+
+    let part = info.part;
+    let ghosts = info.originalSubModels.filter(pd => pd.ghost);
+    let mergeFullStep = ghosts.length === 0;
+
+    if(!mergeFullStep) {
         info.originalStep.subModels = info.originalSubModels.filter(pd => !pd.ghost);
-        if(part.steps[0].isEmpty()) { // Remove empty first step:
-            if(part.steps.length === 1) {
-                this.loader.getMainModel().purgePart(this.loader, part.ID);
-            }
-            part.steps = part.steps.slice(1);
-            info.stepIndex -= this.countUsages(part.ID);
-        }
-        // All OK: Update lines in step:
         info.originalStep.fileLines = info.originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
     }
     else if(info.current > 0) { // Merge step left:
@@ -529,6 +540,15 @@ LDR.StepHandler.prototype.remove = function(info) {
         prevStep.subModels.push(...info.originalStep.subModels);
         part.steps.splice(info.current, 1);
         info.stepIndex -= this.countUsages(part.ID)+1;
+    }
+    else {
+        info.originalStep.subModels = [];
+    }
+
+    if(part.steps.length === 1 && part.steps[0].subModels.length === 0) {
+        this.loader.getMainModel().purgePart(this.loader, part.ID);
+        part.steps = part.steps.slice(1);
+        info.stepIndex -= this.countUsages(part.ID);
     }
 }
 
@@ -573,7 +593,7 @@ LDR.StepHandler.prototype.moveNext = function(info) {
 
         nextStep.subModels.push(...info.originalSubModels.filter(pd => pd.ghost));
         info.originalStep.subModels = info.originalSubModels.filter(pd => !pd.ghost);
-        if(part.steps[0].isEmpty()) { // Remove empty first step:
+        if(part.steps[0].subModels.length === 0) { // Remove empty first step:
             part.steps = part.steps.slice(1);
             info.stepIndex -= this.countUsages(part.ID);
         }
@@ -609,7 +629,7 @@ LDR.StepHandler.prototype.movePrev = function(info) {
         info.stepIndex--;
         if(part.steps[prevStepIdx].containsNonPartSubModels(this.loader)) {
             info.stepIndex -= this.countStepsInsideOfPreviousStep();
-            // Ensure the step bbefore is available:           
+            // Ensure the step before is available:           
             prevStepIdx--;
             // Add a new step if necessary:
             if(prevStepIdx === part.steps.length ||
@@ -633,6 +653,10 @@ LDR.StepHandler.prototype.movePrev = function(info) {
 }
 
 LDR.StepHandler.prototype.moveToNewSubModel = function(info, newID) {
+    if(info.originalSubModels.length === 0) {
+        return; // Can't move empty step into new sub model.
+    }
+
     // Create new part type:
     let newPT = new THREE.LDRPartType();
     newPT.ID = newPT.name = newPT.modelDescription = newID;
@@ -674,6 +698,10 @@ LDR.StepHandler.prototype.moveToNewSubModel = function(info, newID) {
 }
 
 LDR.StepHandler.prototype.moveUp = function(info, right) {
+    if(info.part.ID === this.loader.mainModel) {
+        return; // Can't move main model up!
+    }
+
     let part = info.part;
     let ghosts = info.originalSubModels.filter(pd => pd.ghost);
     let moveFullStep = ghosts.length === 0;
@@ -731,6 +759,17 @@ LDR.StepHandler.prototype.moveUp = function(info, right) {
 }
 
 LDR.StepHandler.prototype.moveDown = function(info, right) {
+    if(right && info.current === info.part.steps.length-1 ||
+       !right && info.current === 0) {
+        return; // No sub model to move down into!
+    }
+    let adjacentStep = info.part.steps[right ? (info.current+1) : (info.current-1)];
+    if(adjacentStep.subModels.length !== 1 ||
+       !adjacentStep.containsNonPartSubModels(this.loader)) {
+        return; // There has to be a single non-part sub model that this can be moved into.
+    }
+    let adjacentPD = adjacentStep.subModels[0];    
+
     let ghosts = info.originalSubModels.filter(pd => pd.ghost);
     let moveFullStep = ghosts.length === 0;
     if(moveFullStep) {
@@ -738,7 +777,6 @@ LDR.StepHandler.prototype.moveDown = function(info, right) {
     }
 
     // Create new step in sub model of adjacent step.
-    let adjacentPD = info.part.steps[right ? (info.current+1) : (info.current-1)].subModels[0];
     let inv = new THREE.Matrix3();
     inv.getInverse(adjacentPD.rotation, true);
     let adjacentPT = this.loader.getPartType(adjacentPD.ID);
@@ -755,7 +793,7 @@ LDR.StepHandler.prototype.moveDown = function(info, right) {
             
             g.rotation = new THREE.Matrix3();
             g.rotation.multiplyMatrices(inv, ghost.rotation);
-            g.ghost = true;
+            g.ghost = ghost.ghost;
             
             newStep.subModels.push(g);
             newStep.fileLines.push(new LDR.Line1(g));
@@ -775,6 +813,11 @@ LDR.StepHandler.prototype.moveDown = function(info, right) {
 }
 
 LDR.StepHandler.prototype.split = function(info) {
+    if(!info.step.containsNonPartSubModels(this.loader) ||
+       info.originalSubModels.length < 2) {
+        return; // Not with non-part sub models or not more than 1 sub model..
+    }
+
     for(let i = 1; i < info.originalSubModels.length; i++) {
         let newStep = new THREE.LDRStep();
         let pd = info.originalSubModels[i];
@@ -789,6 +832,33 @@ LDR.StepHandler.prototype.split = function(info) {
     info.stepIndex += (info.originalSubModels.length-1)*this.countUsages(info.part.ID);
 }
 
+/**
+   Merge content of next step into current step if current step is a placement step and
+   the next step contains one or more sub models of the same type.
+   This is almost the inverse of split. The difference being that this function only
+   merges two steps, while split can result in more.
+ */
+LDR.StepHandler.prototype.joinWithNext = function(info) {
+    if(!info.step.containsNonPartSubModels(this.loader) ||
+       info.current === info.part.steps.length-1) {
+        return; // No next step, or not with non-part sub models.
+    }
+    let nextStep = info.part.steps[info.current+1];
+    if(!nextStep.containsNonPartSubModels(this.loader) ||
+       info.originalSubModels[0].ID !== nextStep.subModels[0].ID) {
+        return; // Next step not with non-part sub models, or sub models do not match.
+    }
+
+    info.originalSubModels.push(...nextStep.subModels);
+    info.step.fileLines.push(...nextStep.fileLines);
+    info.part.steps.splice(info.current+1, 1); // Remove the next step.
+
+    info.stepIndex -= this.countUsages(info.part.ID);
+}
+
+/**
+   Helper functions:
+ */
 LDR.StepHandler.prototype.countUsages = function(ID) {
     let ret = 0;
 
