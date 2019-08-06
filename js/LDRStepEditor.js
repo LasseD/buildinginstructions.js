@@ -538,6 +538,7 @@ LDR.StepHandler.prototype.remove = function(info) {
     else if(info.current > 0) { // Merge step left:
         let prevStep = part.steps[info.current-1];
         prevStep.subModels.push(...info.originalStep.subModels);
+        prevStep.fileLines.push(...info.originalStep.fileLines);
         part.steps.splice(info.current, 1);
         info.stepIndex -= this.countUsages(part.ID)+1;
     }
