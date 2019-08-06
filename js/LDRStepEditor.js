@@ -10,9 +10,13 @@
    - Move parts to previous/next step, skip sub models
    - Group parts into sub model
    - inline parts/step to all instances of sub models above
+   - Move parts to sub model in previous/next step
+   - Split sub models in step to more steps when in placement step
    - save
    TODO:
-   - Move parts to sub model in previous/next step --- 2 buttons --- -v and -^
+   - Join with sub models in step to the right --- 1 button --- ->|<-
+   - Ensure functions work on placement steps.
+   - Add keyboard shortcuts
  */
 LDR.StepEditor = function(loader, stepHandler, reset, onChange, modelID) {
     this.loader = loader;
@@ -77,6 +81,7 @@ LDR.StepEditor.prototype.updateCurrentStep = function() {
     this.part = part;
     this.stepIndex = stepIndex;
     this.step = stepInfo.step;
+    this.subStepHandler = stepInfo.stepHandler;
     this.onStepSelectedListeners.forEach(listener => listener());
 }
 
@@ -243,7 +248,23 @@ LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
     let ele = this.makeEle(parentEle, 'span', 'editor_control');
     function update(actualChange) {
 	self.reset();
-	actualChange();
+
+        let [part, current, stepInfo] = self.stepHandler.getCurrentStepInfo();
+        let step = stepInfo.step;
+        if(step) {
+            let stepIndex = self.stepHandler.getCurrentStepIndex(); // To move back to once the model has been rebuilt.
+            let originalStep = step.original;
+            let originalSubModels = originalStep.subModels;
+            let info = {part:part, current:current, stepInfo:stepInfo, step:step,
+                        stepIndex:stepIndex, originalStep:originalStep,
+                        originalSubModels:originalSubModels};
+            actualChange(info);
+            self.stepHandler.rebuild();
+            self.stepHandler.moveSteps(info.stepIndex, () => {});
+        }
+        else {
+            console.warn('Not at a valid step!');
+        }
 	self.onChange();
 	self.makeSaveElementGreen();
     }
@@ -255,29 +276,38 @@ LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
 
     // Controls:
     this.makeEle(ele, 'button', 'pli_button',
-                 () => update(() => self.stepHandler.addStep()),
+                 () => update(info => self.stepHandler.addStep(info)),
                  '+', self.makeAddIcon());
     let removeButton = this.makeEle(ele, 'button', 'pli_button',
-                                    () => update(() => self.stepHandler.remove()),
+                                    () => update(info => self.stepHandler.remove(info)),
                                     'X', self.makeRemoveIcon());
     this.makeEle(ele, 'button', 'pli_button',
-                 () => update(() => self.stepHandler.movePrev()),
+                 () => update(info => self.stepHandler.movePrev(info)),
                  '<=', self.makeMovePrevIcon());
     this.makeEle(ele, 'button', 'pli_button',
-                 () => update(() => self.stepHandler.moveNext()),
+                 () => update(info => self.stepHandler.moveNext(info)),
                  '->', self.makeMoveNextIcon());
     let moveToNewSubModelButton = this.makeEle(ele, 'button', 'pli_button',
-                                               () => update(() => self.stepHandler.moveToNewSubModel(self.generateNextID())),
+                                               () => update(info => self.stepHandler.moveToNewSubModel(info, self.generateNextID())),
                                                'v', self.makeMoveToNewSubModelIcon());
     let moveUpLeftButton = this.makeEle(ele, 'button', 'pli_button',
-                                        () => update(() => self.stepHandler.moveUp(false)),
+                                        () => update(info => self.stepHandler.moveUp(info, false)),
                                         '<^', self.makeMoveUpSideIcon(false));
     let moveUpRightButton = this.makeEle(ele, 'button', 'pli_button',
-                                         () => update(() => self.stepHandler.moveUp(true)),
+                                         () => update(info => self.stepHandler.moveUp(info, true)),
                                          '^>', self.makeMoveUpSideIcon(true));
     let dissolveSubModelButton = this.makeEle(ele, 'button', 'pli_button',
-                                         () => update(() => self.stepHandler.moveUp(true)),
-                                         '^', self.makeDissolveSubModelIcon());
+                                              () => update(info => self.stepHandler.moveUp(info, true)),
+                                              '^', self.makeDissolveSubModelIcon());
+    let moveDownLeftButton = this.makeEle(ele, 'button', 'pli_button',
+                                          () => update(info => self.stepHandler.moveDown(info, false)),
+                                          'v<', self.makeMoveDownSideIcon(false));
+    let moveDownRightButton = this.makeEle(ele, 'button', 'pli_button',
+                                           () => update(info => self.stepHandler.moveDown(info, true)),
+                                           '>v', self.makeMoveDownSideIcon(true));
+    let splitButton = this.makeEle(ele, 'button', 'pli_button',
+                                   () => update(info => self.stepHandler.split(info)),
+                                   '<-|->', self.makeSplitIcon());
 
     function showAndHideButtons() {
         let anyHighlighted = self.step.subModels.some(pd => pd.original.ghost);
@@ -286,6 +316,13 @@ LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
         let isMainModel = self.part.ID === self.loader.mainModel;
         let isAtFirstStepInSubModel = self.stepIndex === 0;
         let isAtLastStepInSubModel = self.stepIndex === self.part.steps.length-1;
+        let isNextASubModel = !isAtLastStepInSubModel && 
+            self.part.steps[self.stepIndex+1].containsNonPartSubModels(self.loader) &&
+            self.part.steps[self.stepIndex+1].subModels.length === 1;
+        let isPrevASubModel = !isAtFirstStepInSubModel &&
+            self.part.steps[self.stepIndex-1].containsNonPartSubModels(self.loader) &&
+            self.part.steps[self.stepIndex-1].subModels.length === 1;
+        let atPlacementStep = self.subStepHandler && self.subStepHandler.isAtPlacementStep();
 
         let display = show => show ? 'inline' : 'none';
 
@@ -295,6 +332,9 @@ LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
         moveUpLeftButton.style.display = display(!isMainModel && isAtFirstStepInSubModel && !isAtLastStepInSubModel);
         moveUpRightButton.style.display = display(!isMainModel && isAtLastStepInSubModel && !isAtFirstStepInSubModel);
         dissolveSubModelButton.style.display = display(!isMainModel && isAtLastStepInSubModel && isAtFirstStepInSubModel);
+        moveDownLeftButton.style.display = display(isPrevASubModel);
+        moveDownRightButton.style.display = display(isNextASubModel);
+        splitButton.style.display = display(atPlacementStep && self.step.subModels.length > 1);
     }
     this.onStepSelectedListeners.push(showAndHideButtons);
 }
@@ -415,8 +455,25 @@ LDR.StepEditor.prototype.makeMoveUpSideIcon = function(right) {
     svg.setAttribute('viewBox', '-25 -25 50 50');
     LDR.SVG.makeArrow(0, 0, right ? 25 : -25, 0, svg);
     svg.appendChild(LDR.SVG.makeLine(0, 0, 0, 25));
-    svg.appendChild(LDR.SVG.makeLine(-10, 25, 10, 25));
-    
+    svg.appendChild(LDR.SVG.makeLine(-10, 25, 10, 25));    
+    return svg;
+}
+
+LDR.StepEditor.prototype.makeMoveDownSideIcon = function(right) {
+    let svg = document.createElementNS(LDR.SVG.NS, 'svg');
+    svg.setAttribute('viewBox', '-25 -25 50 50');
+    LDR.SVG.makeArrow(0, 0, 0, 25, svg);
+    let x = right ? -25 : 25;
+    svg.appendChild(LDR.SVG.makeLine(0, 0, x, 0));
+    svg.appendChild(LDR.SVG.makeLine(x, 10, x, -10));    
+    return svg;
+}
+
+LDR.StepEditor.prototype.makeSplitIcon = function() {
+    let svg = document.createElementNS(LDR.SVG.NS, 'svg');
+    svg.setAttribute('viewBox', '-25 -25 50 50');
+    LDR.SVG.makeArrow(0, 0, -25, 0, svg, true);
+    LDR.SVG.makeArrow(0, 0, 25, 0, svg, false);
     return svg;
 }
 
@@ -440,103 +497,65 @@ LDR.StepHandler.prototype.colorGhosted = function(colorID) {
     this.moveSteps(stepIndex, () => {});
 }
 
-LDR.StepHandler.prototype.addStep = function() {
-    let [part, current, stepInfo] = this.getCurrentStepInfo();
-    let step = stepInfo.step;
-    if(!step) {
-        console.warn('Not at a valid step!');
-        return;
-    }
-
-    // Update sub models in step:
-    let stepIndex = this.getCurrentStepIndex(); // To move back to once the model has been rebuilt.
-    let originalStep = step.original;
-
+LDR.StepHandler.prototype.addStep = function(info) {
     let newStep = new THREE.LDRStep();
-    if(originalStep.rotation) {
-        newStep.rotation = originalStep.rotation.clone();
+    if(info.originalStep.rotation) {
+        newStep.rotation = info.originalStep.rotation.clone();
     }
-    part.steps.splice(current+1, 0, newStep);
-    stepIndex += this.countUsages(part.ID)+1; // Move to new step.
-
-    this.rebuild();
-    this.moveSteps(stepIndex, () => {});
+    info.part.steps.splice(info.current+1, 0, newStep);
+    info.stepIndex += this.countUsages(info.part.ID)+1; // Move to new step.
 }
 
-LDR.StepHandler.prototype.remove = function() {
-    let [part, current, stepInfo] = this.getCurrentStepInfo();
-    let step = stepInfo.step;
-    if(!step) {
-        console.warn('Not at a valid step!');
-        return;
+LDR.StepHandler.prototype.remove = function(info) {
+    let part = info.part;
+    if(info.originalStep.isEmpty()) { // Remove empty step:
+        part.steps.splice(info.current, 1);
+        info.stepIndex -= this.countUsages(part.ID);
     }
-
-    // Update sub models in step:
-    let stepIndex = this.getCurrentStepIndex(); // To move back to once the model has been rebuilt.
-    let originalStep = step.original;
-    let originalSubModels = originalStep.subModels;
-
-    if(originalStep.isEmpty()) { // Remove empty step:
-        part.steps.splice(current, 1);
-        stepIndex -= this.countUsages(part.ID);
-    }
-    else if(originalSubModels.some(pd => pd.ghost)) { // Remove ghosted parts:
-        originalStep.subModels = originalSubModels.filter(pd => !pd.ghost);
+    else if(info.originalSubModels.some(pd => pd.ghost)) { // Remove ghosted parts:
+        info.originalStep.subModels = info.originalSubModels.filter(pd => !pd.ghost);
         if(part.steps[0].isEmpty()) { // Remove empty first step:
             if(part.steps.length === 1) {
-                let mainModel = this.loader.getMainModel();
-                mainModel.purgePart(this.loader, part.ID);
+                this.loader.getMainModel().purgePart(this.loader, part.ID);
             }
             part.steps = part.steps.slice(1);
-            stepIndex -= this.countUsages(part.ID);
+            info.stepIndex -= this.countUsages(part.ID);
         }
         // All OK: Update lines in step:
-        originalStep.fileLines = originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
+        info.originalStep.fileLines = info.originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
     }
-    else if(current > 0) { // Merge step left:
-        let prevStep = part.steps[current-1];
-        prevStep.subModels.push(...originalStep.subModels);
-        part.steps.splice(current, 1);
-        stepIndex -= this.countUsages(part.ID)+1;
+    else if(info.current > 0) { // Merge step left:
+        let prevStep = part.steps[info.current-1];
+        prevStep.subModels.push(...info.originalStep.subModels);
+        part.steps.splice(info.current, 1);
+        info.stepIndex -= this.countUsages(part.ID)+1;
     }
-
-    this.rebuild();
-    this.moveSteps(stepIndex, () => {});
 }
 
-LDR.StepHandler.prototype.moveNext = function() {
-    let [part, current, stepInfo] = this.getCurrentStepInfo();
-    let step = stepInfo.step;
-    if(!step) {
-        console.warn('Not at a valid step!');
-        return;
-    }
-
-    // Update sub models in step:
-    let stepIndex = this.getCurrentStepIndex(); // To move back to once the model has been rebuilt.
-    let originalStep = step.original;
-    let originalSubModels = originalStep.subModels;
+LDR.StepHandler.prototype.moveNext = function(info) {
+    let part = info.part;
+    let current = info.current;
 
     // Create new empty next step if necessary:
     if(current === part.steps.length-1) {
         let newStep = new THREE.LDRStep();
-        if(originalStep.rotation) {
-            newStep.rotation = originalStep.rotation.clone();
+        if(info.originalStep.rotation) {
+            newStep.rotation = info.originalStep.rotation.clone();
         }
         part.steps.push(newStep);
     }
 
-    if(!originalSubModels.some(pd => pd.ghost)) { // Move full step:
-        stepIndex += this.countStepsInsideOfNextStep(); // Move this many steps forward.
+    if(!info.originalSubModels.some(pd => pd.ghost)) { // Move full step:
+        info.stepIndex += this.countStepsInsideOfNextStep(); // Move this many steps forward.
         part.steps.splice(current, 1); // Remove current step.
-        part.steps.splice(current+1, 0, originalStep); // Insert current step after the next.
+        part.steps.splice(current+1, 0, info.originalStep); // Insert current step after the next.
     }
     else { // Move ghosted parts:
         // First check if there is a step to move data to:
         let nextStepIdx = current+1;
-        stepIndex++;
+        info.stepIndex++;
         if(part.steps[nextStepIdx].containsNonPartSubModels(this.loader)) {
-            stepIndex += this.countStepsInsideOfNextStep();
+            info.stepIndex += this.countStepsInsideOfNextStep();
             // Ensure the step after that is available:            
             nextStepIdx++;
             // Add a new step if necessary:
@@ -552,56 +571,44 @@ LDR.StepHandler.prototype.moveNext = function() {
         }
         let nextStep = part.steps[nextStepIdx];
 
-        nextStep.subModels.push(...originalSubModels.filter(pd => pd.ghost));
-        originalStep.subModels = originalSubModels.filter(pd => !pd.ghost);
+        nextStep.subModels.push(...info.originalSubModels.filter(pd => pd.ghost));
+        info.originalStep.subModels = info.originalSubModels.filter(pd => !pd.ghost);
         if(part.steps[0].isEmpty()) { // Remove empty first step:
             part.steps = part.steps.slice(1);
-            stepIndex -= this.countUsages(part.ID);
+            info.stepIndex -= this.countUsages(part.ID);
         }
         // All OK: Update lines in step:
-        nextStep.fileLines.push(...originalStep.fileLines.filter(line => (line.line1 ? line.desc.ghost : false)));
-        originalStep.fileLines = originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
+        nextStep.fileLines.push(...info.originalStep.fileLines.filter(line => (line.line1 ? line.desc.ghost : false)));
+        info.originalStep.fileLines = info.originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
     }
-
-    this.rebuild();
-    this.moveSteps(stepIndex, () => {});
 }
 
-LDR.StepHandler.prototype.movePrev = function() {
-    let [part, current, stepInfo] = this.getCurrentStepInfo();
-    let step = stepInfo.step;
-    if(!step) {
-        console.warn('Not at a valid step!');
-        return;
-    }
-
-    // Update sub models in step:
-    let stepIndex = this.getCurrentStepIndex(); // To move back to once the model has been rebuilt.
-    let originalStep = step.original;
-    let originalSubModels = originalStep.subModels;
+LDR.StepHandler.prototype.movePrev = function(info) {
+    let part = info.part;
+    let current = info.current;
 
     // Create new empty previous step if necessary:
     if(current === 0) {
         let newStep = new THREE.LDRStep();
-        if(originalStep.rotation) {
-            newStep.rotation = originalStep.rotation.clone();
+        if(info.originalStep.rotation) {
+            newStep.rotation = info.originalStep.rotation.clone();
         }
         part.steps.splice(0, 0, newStep);
         current++; // Position has moved.
-        stepIndex++; // Position has moved.
+        info.stepIndex++; // Position has moved.
     }
 
-    if(!originalSubModels.some(pd => pd.ghost)) { // Move full step:
-        stepIndex -= this.countStepsInsideOfPreviousStep();
+    if(!info.originalSubModels.some(pd => pd.ghost)) { // Move full step:
+        info.stepIndex -= this.countStepsInsideOfPreviousStep();
         part.steps.splice(current, 1); // Remove current step.
-        part.steps.splice(current-1, 0, originalStep); // Insert current step before previous.
+        part.steps.splice(current-1, 0, info.originalStep); // Insert current step before previous.
     }
     else { // Move ghosted parts:
         // First check if there is a step to move data to:
         let prevStepIdx = current-1;
-        stepIndex--;
+        info.stepIndex--;
         if(part.steps[prevStepIdx].containsNonPartSubModels(this.loader)) {
-            stepIndex -= this.countStepsInsideOfPreviousStep();
+            info.stepIndex -= this.countStepsInsideOfPreviousStep();
             // Ensure the step bbefore is available:           
             prevStepIdx--;
             // Add a new step if necessary:
@@ -618,27 +625,14 @@ LDR.StepHandler.prototype.movePrev = function() {
         let prevStep = part.steps[prevStepIdx];
 
         // Update steps:
-        prevStep.subModels.push(...originalSubModels.filter(pd => pd.ghost));
-        originalStep.subModels = originalSubModels.filter(pd => !pd.ghost);
-        prevStep.fileLines.push(...originalStep.fileLines.filter(line => (line.line1 ? line.desc.ghost : false)));
-        originalStep.fileLines = originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
+        prevStep.subModels.push(...info.originalSubModels.filter(pd => pd.ghost));
+        info.originalStep.subModels = info.originalSubModels.filter(pd => !pd.ghost);
+        prevStep.fileLines.push(...info.originalStep.fileLines.filter(line => (line.line1 ? line.desc.ghost : false)));
+        info.originalStep.fileLines = info.originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
     }
-
-    this.rebuild();
-    this.moveSteps(stepIndex, () => {});
 }
 
-LDR.StepHandler.prototype.moveToNewSubModel = function(newID) {
-    let [part, current, stepInfo] = this.getCurrentStepInfo();
-    let step = stepInfo.step;
-    if(!step) {
-        console.warn('Not at a valid step!');
-        return;
-    }
-    let stepIndex = this.getCurrentStepIndex(); // To move back to once the model has been rebuilt.
-    let originalStep = step.original;
-    let originalSubModels = originalStep.subModels;
-
+LDR.StepHandler.prototype.moveToNewSubModel = function(info, newID) {
     // Create new part type:
     let newPT = new THREE.LDRPartType();
     newPT.ID = newPT.name = newPT.modelDescription = newID;
@@ -652,48 +646,39 @@ LDR.StepHandler.prototype.moveToNewSubModel = function(newID) {
     let r = new THREE.Matrix3(); r.set(1, 0, 0, 0, 1, 0, 0, 0, 1);
     let newPD = new THREE.LDRPartDescription(16, new THREE.Vector3(), r, newPT.ID, true, false);
     let dropStep = new THREE.LDRStep();
-    if(originalStep.rotation) {
-        dropStep.rotation = originalStep.rotation.clone();
+    if(info.originalStep.rotation) {
+        dropStep.rotation = info.originalStep.rotation.clone();
     }
     dropStep.fileLines = new LDR.Line1(newPD);
     dropStep.addSubModel(newPD);
 
-    if(originalSubModels.some(pd => pd.ghost)) { // Create new step with sub model:
-        stepIndex += 2*this.countUsages(part.ID)+1; // Move to new step. x2 for new placement steps.
+    let part = info.part;
+    let current = info.current;
+    if(info.originalSubModels.some(pd => pd.ghost)) { // Create new step with sub model:
+        info.stepIndex += 2*this.countUsages(part.ID)+1; // Move to new step. x2 for new placement steps.
         part.steps.splice(current+1, 0, dropStep); // Push in drop step.
 
         // Move lines to new step:
         let newStep = new THREE.LDRStep();
-        newStep.subModels.push(...originalSubModels.filter(pd => pd.ghost));
-        originalStep.subModels = originalSubModels.filter(pd => !pd.ghost);
-        newStep.fileLines.push(...originalStep.fileLines.filter(line => (line.line1 ? line.desc.ghost : false)));
-        originalStep.fileLines = originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
+        newStep.subModels.push(...info.originalSubModels.filter(pd => pd.ghost));
+        info.originalStep.subModels = info.originalSubModels.filter(pd => !pd.ghost);
+        newStep.fileLines.push(...info.originalStep.fileLines.filter(line => (line.line1 ? line.desc.ghost : false)));
+        info.originalStep.fileLines = info.originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
         newPT.steps = [ newStep ];
     }
     else { // Move full step to new sub model by simply switching the steps:
-        stepIndex += this.countUsages(part.ID); // Move to new step.
+        info.stepIndex += this.countUsages(part.ID); // Move to new step.
         newPT.steps = [ part.steps[current] ];
         part.steps[current] = dropStep;
     }
-
-    this.rebuild();
-    this.moveSteps(stepIndex, () => {});
 }
 
-LDR.StepHandler.prototype.moveUp = function(right) {
-    let [part, current, stepInfo] = this.getCurrentStepInfo();
-    let step = stepInfo.step;
-    if(!step) {
-        console.warn('Not at a valid step!');
-        return;
-    }
-    let stepIndex = this.getCurrentStepIndex(); // To move back to once the model has been rebuilt.
-    let originalStep = step.original;
-    let originalSubModels = originalStep.subModels;
-    let ghosts = originalSubModels.filter(pd => pd.ghost);
+LDR.StepHandler.prototype.moveUp = function(info, right) {
+    let part = info.part;
+    let ghosts = info.originalSubModels.filter(pd => pd.ghost);
     let moveFullStep = ghosts.length === 0;
     if(moveFullStep) {
-        ghosts = originalSubModels;
+        ghosts = info.originalSubModels;
     }
 
     // Create new step in all models that use this:
@@ -735,17 +720,73 @@ LDR.StepHandler.prototype.moveUp = function(right) {
             this.loader.getMainModel().purgePart(this.loader, part.ID);
         }
         else {
-            part.steps.splice(current, 1);
+            part.steps.splice(info.current, 1);
         }
     }
     else { // Update the step:
-        originalStep.subModels = originalStep.subModels.filter(pd => !pd.ghost);
-        originalStep.fileLines = originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
-        stepIndex += this.countUsages(part.ID);
+        info.originalStep.subModels = info.originalStep.subModels.filter(pd => !pd.ghost);
+        info.originalStep.fileLines = info.originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
+        info.stepIndex += this.countUsages(part.ID);
+    }
+}
+
+LDR.StepHandler.prototype.moveDown = function(info, right) {
+    let ghosts = info.originalSubModels.filter(pd => pd.ghost);
+    let moveFullStep = ghosts.length === 0;
+    if(moveFullStep) {
+        ghosts = info.originalSubModels;
     }
 
-    this.rebuild();
-    this.moveSteps(stepIndex, () => {});
+    // Create new step in sub model of adjacent step.
+    let adjacentPD = info.part.steps[right ? (info.current+1) : (info.current-1)].subModels[0];
+    let inv = new THREE.Matrix3();
+    inv.getInverse(adjacentPD.rotation, true);
+    let adjacentPT = this.loader.getPartType(adjacentPD.ID);
+
+    // Add new step before or after this step:
+    let newStep = new THREE.LDRStep();
+    ghosts.forEach(ghost => {
+            let g = ghost.cloneNoPR(); // No position or rotation - set below:
+                
+            g.position = new THREE.Vector3();
+            g.position.copy(ghost.position);
+            g.position.sub(adjacentPD.position);
+            g.position.applyMatrix3(inv);
+            
+            g.rotation = new THREE.Matrix3();
+            g.rotation.multiplyMatrices(inv, ghost.rotation);
+            g.ghost = true;
+            
+            newStep.subModels.push(g);
+            newStep.fileLines.push(new LDR.Line1(g));
+        });
+    adjacentPT.steps.splice(right ? 0 : adjacentPT.steps.length, 0, newStep); // Add step.
+    info.stepIndex += this.countUsages(adjacentPT.ID);
+
+    // Update or remove old step:
+    if(moveFullStep) { // Remove the step from the sub model:
+        info.part.steps.splice(info.current, 1);
+        info.stepIndex -= this.countUsages(info.part.ID);
+    }
+    else { // Update the step:
+        info.originalStep.subModels = info.originalStep.subModels.filter(pd => !pd.ghost);
+        info.originalStep.fileLines = info.originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
+    }
+}
+
+LDR.StepHandler.prototype.split = function(info) {
+    for(let i = 1; i < info.originalSubModels.length; i++) {
+        let newStep = new THREE.LDRStep();
+        let pd = info.originalSubModels[i];
+        newStep.addSubModel(pd);
+        newStep.fileLines.push(new LDR.Line1(pd));
+        info.part.steps.splice(info.current+i, 0, newStep);
+    }
+    let pd0 = info.originalSubModels[0];
+    info.originalStep.subModels = [pd0];
+    info.originalStep.fileLines = [new LDR.Line1(pd0)];
+
+    info.stepIndex += (info.originalSubModels.length-1)*this.countUsages(info.part.ID);
 }
 
 LDR.StepHandler.prototype.countUsages = function(ID) {
