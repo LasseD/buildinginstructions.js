@@ -1573,8 +1573,9 @@ LDR.MeshCollector.prototype.removeAllMeshes = function() {
  */
 LDR.MeshCollector.prototype.updateMeshVisibility = function() {
     let v = this.visible;
+    let lineV = v && ldrOptions.lineContrast !== 2;
     for(let i = 0; i < this.lineMeshes.length; i++) {
-	this.lineMeshes[i].mesh.visible = v;
+	this.lineMeshes[i].mesh.visible = lineV;
     }
     for(let i = 0; i < this.triangleMeshes.length; i++) {
         let obj = this.triangleMeshes[i];
@@ -1609,29 +1610,29 @@ LDR.MeshCollector.prototype.setOldValue = function(old) {
 }
 
 LDR.MeshCollector.prototype.colorLinesLDraw = function() {
-    for(let i = 0; i < this.lineMeshes.length; i++) {
-	let m = this.lineMeshes[i].mesh.material;
-	let colors = m.colorManager.shaderColors;
-	if(colors.length === 1) {
-	    m.uniforms.color.value = colors[0];
-        }
-	else {
-	    m.uniforms.colors.value = colors;
-        }
-    }
+    this.lineMeshes.forEach(mesh => {
+            let m = mesh.mesh.material;
+            let colors = m.colorManager.shaderColors;
+            if(colors.length === 1) {
+                m.uniforms.color.value = colors[0];
+            }
+            else {
+                m.uniforms.colors.value = colors;
+            }
+        });
 }
 
 LDR.MeshCollector.prototype.colorLinesHighContrast = function() {
-    for(let i = 0; i < this.lineMeshes.length; i++) {
-	let m = this.lineMeshes[i].mesh.material;
-	let colors = m.colorManager.highContrastShaderColors;
-	if(colors.length === 1) {
-	    m.uniforms.color.value = colors[0];
-        }
-	else {
-	    m.uniforms.colors.value = colors;
-        }
-    }
+    this.lineMeshes.forEach(mesh => {
+            let m = mesh.mesh.material;
+            let colors = m.colorManager.highContrastShaderColors;
+            if(colors.length === 1) {
+                m.uniforms.color.value = colors[0];
+            }
+            else {
+                m.uniforms.colors.value = colors;
+            }
+        });
 }
 
 LDR.MeshCollector.prototype.updateState = function(old) {
