@@ -19,6 +19,7 @@
  *  - line: Line number in the loaded file where the error occured.
  *  - subModel: THREE.LDRPartType in which the error occured.
  * - saveFileLines: Set to 'true' if LDR.Line0, LDR.Line1, ... LDR.Line5-objects should be saved on part types.
+ * - physicalRenderingAge: Set to 0 for standard cell shaded rendering. Otherwise, this number indicates the age of physical materials to be rendered (older materials will appear yellowed for some colors)
  * - idToUrl(id) is used to translate an id into all potential file locations. Set this function to fit your own directory structure if needed. A normal LDraw directory has files both under /parts and /p and requires you to search for dat files. You can choose to combine the directories to reduce the need for searching, but this is not considered good practice.
  */
 THREE.LDRLoader = function(onLoad, storage, options) {
@@ -51,6 +52,7 @@ THREE.LDRLoader = function(onLoad, storage, options) {
     this.onError = this.options.onError || function(msgObj){ console.dir(msgObj); };
     this.loader = new THREE.FileLoader(this.options.manager || THREE.DefaultLoadingManager);
     this.saveFileLines = this.options.saveFileLines || false;
+    this.physicalRenderingAge = this.options.physicalRenderingAge || 0;
     this.mainModel;
 
     this.idToUrl = this.options.idToUrl || function(id) {
@@ -231,12 +233,12 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		self.mainModel = part.ID = fileName;
 	    }
 	    else if(part.steps.length === 0 && step.isEmpty() && self.mainModel === part.ID) {
-		console.log("Special case: Main model ID change from " + part.ID + " to " + fileName);
+		console.warn("Special case: Main model ID change from " + part.ID + " to " + fileName);
 		self.mainModel = part.ID = fileName;
 	    }
 	    else { // Close model and start new:
 		if(part.steps.length === 0 && step.isEmpty() && part.ID && !part.consistentFileAndName) {
-		    console.log("Special case: Empty '" + part.ID + "' does not match '" + fileName + "' - Create new shallow part!");		
+		    console.warn("Special case: Empty '" + part.ID + "' does not match '" + fileName + "' - Create new shallow part!");		
 		    // Create pseudo-model with just one of 'fileName' inside:
 		    let rotation = new THREE.Matrix3();
 		    rotation.set(1, 0, 0, 0, 1, 0, 0, 0, 1);
@@ -828,8 +830,8 @@ THREE.LDRStep.prototype.unpack = function(obj) {
     for(let i = 0; i < numSubModels; i++) {
         let colorID = arrayI[idxI++];
         let packed = arrayI[idxI++];
-        let cull = packed % 2 == 0;
-        let invertCCW = Math.floor(packed/2) % 2 == 0;
+        let cull = packed % 2 === 1;
+        let invertCCW = Math.floor(packed/2) % 2 === 1;
         let ID = subModelList[Math.floor(packed/4)];
         let position = new THREE.Vector3(arrayF[idxF++], arrayF[idxF++], arrayF[idxF++]);
         let rotation = new THREE.Matrix3();
@@ -1363,7 +1365,12 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 	}
     }
 
-    this.geometry.buildGeometriesAndColors();
+    if(loader.physicalRenderingAge === 0) {
+        this.geometry.buildGeometriesAndColors();
+    }
+    else {
+        this.geometry.buildPhysicalGeometriesAndColors();
+    }
     
     let m4 = new THREE.Matrix4();
     let m3e = r.elements;
@@ -1389,15 +1396,56 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
     }
     
     if(this.geometry.triangleGeometry) {
-	let material = new LDR.Colors.buildTriangleMaterial(this.geometry.triangleColorManager, c, LDR.Colors.isTrans(c));
-	let mesh = new THREE.Mesh(this.geometry.triangleGeometry.clone(), material); // Using clone to ensure matrix in next line doesn't affect other usages of the geometry..
-	mesh.geometry.applyMatrix(m4);
-	//mesh.applyMatrix(m4); // Doesn't work for LDraw library as the matrix needs to be decomposable to position, quaternion and scale.
-	if(LDR.Colors.isTrans(c)) {
-	    mc.addTrans(mesh, pd);
+        if(loader.physicalRenderingAge === 0) {
+            let material = new LDR.Colors.buildTriangleMaterial(this.geometry.triangleColorManager, c, LDR.Colors.isTrans(c));
+            let mesh = new THREE.Mesh(this.geometry.triangleGeometry.clone(), material); // Using clone to ensure matrix in next line doesn't affect other usages of the geometry..
+            mesh.geometry.applyMatrix(m4);
+            //mesh.applyMatrix(m4); // Doesn't work for LDraw library as the matrix needs to be decomposable to position, quaternion and scale.
+            if(LDR.Colors.isTrans(c)) {
+                mc.addTrans(mesh, pd);
+            }
+            else {
+                mc.addOpaque(mesh, pd);
+            }            
         }
-	else {
-	    mc.addOpaque(mesh, pd);
+        else {
+            for(let c in this.geometry.triangleGeometry) {
+                if(!this.geometry.triangleGeometry.hasOwnProperty(c)) {
+                    continue;
+                }
+                let params = {
+                    color: LDR.Colors.getColorHex(c),
+                    // TODO alphaMap for transparency.
+
+                    roughness: 0.4,
+                    metalness: 1.0,
+
+                    normalMap: normalMap,
+                    normalScale: new THREE.Vector2(1, -1),
+
+                    aoMap: aoMap,
+                    aoMapIntensity: 1,
+
+                    displacementMap: displacementMap,
+                    displacementScale: 2.436143,
+                    displacementBias: -0.428408,
+
+                    envMap: reflectionCube,
+                    envMapIntensity: 1.0,
+
+                    //side: THREE.DoubleSide
+                };
+                //let material = new THREE.MeshStandardMaterial(params);
+                let material = new THREE.MeshBasicMaterial( { color:LDR.Colors.getColorHex(c) } );
+                let mesh = new THREE.Mesh(this.geometry.triangleGeometry[c].clone(), material);
+                mesh.geometry.applyMatrix(m4);
+                if(LDR.Colors.isTrans(c)) {
+                    mc.addTrans(mesh, pd);
+                }
+                else {
+                    mc.addOpaque(mesh, pd);
+                }            
+            }
         }
     }
 

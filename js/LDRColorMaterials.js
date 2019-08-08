@@ -34,6 +34,14 @@ LDR.Colors.getDesaturatedColor4 = function(colorID) {
     return new THREE.Vector4(color.r, color.g, color.b, alpha);
 }
 
+LDR.Colors.getColorHex = function(colorID) {
+    let colorObject = LDR.Colors[colorID >= 0 ? colorID : -colorID - 1];
+    if(!colorObject) {
+	throw "Unknown color: " + colorID;
+    }
+    return colorID >= 0 ? colorObject.value : (colorObject.edge ? colorObject.edge : 0x333333);
+}
+
 LDR.Colors.int2RGB = function(i) {
     let b = (i & 0xff);
     i = i >> 8;

@@ -74,15 +74,7 @@ LDR.LDRGeometry.prototype.buildVertexAttribute = function(rotation) {
     return new THREE.Float32BufferAttribute(vertices, 3);
 }
 
-/*
-  Three.js geometries and color managers.
- */
-LDR.LDRGeometry.prototype.buildGeometriesAndColors = function() {
-    if(this.geometriesBuilt) {
-	return;
-    }
-
-    this.triangleColorManager = new LDR.ColorManager();
+LDR.LDRGeometry.prototype.buildGeometriesAndColorsForLines = function() {
     this.lineColorManager = new LDR.ColorManager();
 
     // Vertices for the geometries have size 3 for single color geometries and size 4 for multi-colored (they include color indices as fourth component):
@@ -159,6 +151,27 @@ LDR.LDRGeometry.prototype.buildGeometriesAndColors = function() {
             });
     }
     this.buildGeometryForConditionalLines(allLineColors.length > 1, conditionalLines);
+}
+
+LDR.LDRGeometry.prototype.buildGeometriesAndColors = function() {
+    if(this.geometriesBuilt) {
+	return;
+    }
+    this.buildGeometriesAndColorsForLines();
+
+    this.triangleColorManager = new LDR.ColorManager();
+
+    var self = this;
+    let colorIdx = 0;
+    let handleVertex = function(vertices, idx, fc) {
+	let v = self.vertices[idx];
+	if(v.c !== colorIdx) {
+	    v.c = colorIdx;
+	    v.idx = vertices.length/4;
+	    vertices.push(v.x, v.y, v.z, fc);
+	}
+	return v.idx;
+    }
 
     // Now handle triangle colors and vertices:
     let allTriangleColors = [];
@@ -248,6 +261,64 @@ LDR.LDRGeometry.prototype.buildGeometriesAndColors = function() {
     }
     this.triangleGeometry = this.buildGeometry(triangleIndices, triangleVertexAttribute);
 
+    this.geometriesBuilt = true;
+}
+
+LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
+    if(this.geometriesBuilt) {
+	return;
+    }
+    this.buildGeometriesAndColorsForLines();
+
+    var self = this;
+
+    // Now handle triangle colors and vertices:
+    let allTriangleColors = [];
+    let seen = {};
+    function getColorsFrom(p) {
+        for(let c in p) {
+            if(!seen.hasOwnProperty(c) && p.hasOwnProperty(c)) {
+                allTriangleColors.push(c);
+                seen[c] = true;
+            }
+        }
+    }
+    getColorsFrom(this.triangles);
+    getColorsFrom(this.triangles2);
+    getColorsFrom(this.quads);
+    getColorsFrom(this.quads2);
+
+    this.triangleGeometry = {}; // c -> geometry
+
+    let triangleVertices = [];
+    this.vertices.forEach(v => triangleVertices.push(v.x, v.y, v.z));
+    let triangleVertexAttribute = new THREE.Float32BufferAttribute(triangleVertices, 3);
+    console.dir(triangleVertices);
+
+    allTriangleColors.forEach(c => {
+            console.log('triangle color ' + c);
+            let triangleIndices = [];
+            if(self.triangles.hasOwnProperty(c)) {
+                self.triangles[c].forEach(t => triangleIndices.push(t.p1, t.p2, t.p3));
+            }
+            if(self.triangles2.hasOwnProperty(c)) {
+                self.triangles2[c].forEach(t => triangleIndices.push(t.p1, t.p2, t.p3,
+                                                                     t.p3, t.p2, t.p1));
+            }
+            if(self.quads.hasOwnProperty(c)) {
+                self.quads[c].forEach(q => triangleIndices.push(q.p1, q.p2, q.p4, q.p2, q.p3, q.p4));
+            }
+            if(self.quads2.hasOwnProperty(c)) {
+                self.quads2[c].forEach(q => triangleIndices.push(q.p1, q.p2, q.p4, q.p2, q.p3, q.p4,
+                                                                 q.p4, q.p3, q.p2, q.p4, q.p2, q.p1));
+            }
+            console.dir(triangleIndices);
+            if(triangleIndices.length > 0) {
+                self.triangleGeometry[c] = self.buildGeometry(triangleIndices, triangleVertexAttribute);
+            }
+        });
+
+    console.dir(self);
     this.geometriesBuilt = true;
 }
 

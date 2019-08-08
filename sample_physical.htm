@@ -20,10 +20,8 @@
     <script>
       var startTime = new Date();
       // The model to be rendered:
-      //var modelTypeUrl = 'models/fail1.mpd';
-      var modelTypeUrl = 'models/twostack.ldr';
-      //var modelTypeUrl = '3024.dat';
-      //var modelTypeUrl = 'models/vette.mpd';
+      //var modelTypeUrl = 'models/tristack.ldr';
+      var modelTypeUrl = '3001.dat';
 
       // Set up camera:
       var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
@@ -43,10 +41,44 @@
       // Set up renderer:
       var renderer = new THREE.WebGLRenderer({antialias: true});
       renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.gammaInput = true;
+      renderer.gammaOutput = true;
       function render() {
         renderer.render(scene, camera);
       }
       document.body.appendChild(renderer.domElement);
+
+      // lights
+      ambientLight = new THREE.AmbientLight( 0xffffff, 0.2 ); // 0.2 is ambient intensity
+      scene.add( ambientLight );
+
+      pointLight = new THREE.PointLight( 0xff0000, 0.5 );
+      pointLight.position.z = 2500;
+      scene.add( pointLight );
+
+      var pointLight2 = new THREE.PointLight( 0xff6666, 1 );
+      camera.add( pointLight2 );
+
+      var pointLight3 = new THREE.PointLight( 0x0000ff, 0.5 );
+      pointLight3.position.x = - 1000;
+      pointLight3.position.z = 1000;
+      scene.add( pointLight3 );
+
+      // env map
+      var path = "textures/cube/";
+      var format = '.jpg';
+      var urls = [
+        path + 'px' + format, path + 'nx' + format,
+        path + 'py' + format, path + 'ny' + format,
+        path + 'pz' + format, path + 'nz' + format
+      ]; // Scene around
+      var reflectionCube = new THREE.CubeTextureLoader().load( urls );
+
+      // textures
+      var textureLoader = new THREE.TextureLoader();
+      var normalMap = textureLoader.load( "textures/metal/normal.jpg" ); // blue/purple/red map of the mask - colors show dents.
+      var aoMap = textureLoader.load( "textures/metal/ao.jpg" ); // grayscale looking like a print of the mask
+      var displacementMap = textureLoader.load( "textures/metal/displacement.jpg" ); // grayscale looks like a negative print.
 
       function onWindowResize(){
         camera.left = -window.innerWidth;
@@ -75,7 +107,7 @@
         inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
 
         // Generate the mesh:
-        mainModel.generateThreePart(ldrLoader, 0, origo, inv, true, false, mc);
+        mainModel.generateThreePart(ldrLoader, 1, origo, inv, true, false, mc);
 
         // Find center of drawn model:
         var b = mc.boundingBox;
@@ -91,9 +123,10 @@
 
       let storage;
       var ldrOptions = new LDR.Options(); // Determine how to show lines, studs, and logos. Change options using sample_instruction.htm
+      ldrOptions.lineContrast = 1;
 
       let onStorageReady = function() {
-        ldrLoader = new THREE.LDRLoader(onLoad, storage);
+        ldrLoader = new THREE.LDRLoader(onLoad, storage, {physicalRenderingAge:0});
         LDR.Studs.setStuds(ldrLoader, ldrOptions.studHighContrast, 
                            ldrOptions.studLogo, () => ldrLoader.load(modelTypeUrl));
       }
