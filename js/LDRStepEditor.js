@@ -674,7 +674,7 @@ LDR.StepHandler.prototype.moveToNewSubModel = function(info, newID) {
     if(info.originalStep.rotation) {
         dropStep.rotation = info.originalStep.rotation.clone();
     }
-    dropStep.fileLines = new LDR.Line1(newPD);
+    dropStep.fileLines = [ new LDR.Line1(newPD) ];
     dropStep.addSubModel(newPD);
 
     let part = info.part;
