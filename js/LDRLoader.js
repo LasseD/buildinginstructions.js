@@ -828,8 +828,8 @@ THREE.LDRStep.prototype.unpack = function(obj) {
     for(let i = 0; i < numSubModels; i++) {
         let colorID = arrayI[idxI++];
         let packed = arrayI[idxI++];
-        let cull = packed % 2 == 0;
-        let invertCCW = Math.floor(packed/2) % 2 == 0;
+        let cull = packed % 2 === 1;
+        let invertCCW = Math.floor(packed/2) % 2 === 1;
         let ID = subModelList[Math.floor(packed/4)];
         let position = new THREE.Vector3(arrayF[idxF++], arrayF[idxF++], arrayF[idxF++]);
         let rotation = new THREE.Matrix3();
