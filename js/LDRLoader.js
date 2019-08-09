@@ -1409,37 +1409,17 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
             }            
         }
         else {
-            for(let c in this.geometry.triangleGeometry) {
-                if(!this.geometry.triangleGeometry.hasOwnProperty(c)) {
+            for(let tc in this.geometry.triangleGeometry) {
+                if(!this.geometry.triangleGeometry.hasOwnProperty(tc)) {
                     continue;
                 }
-                let params = {
-                    color: LDR.Colors.getColorHex(c),
-                    // TODO alphaMap for transparency.
-
-                    roughness: 0.4,
-                    metalness: 1.0,
-
-                    normalMap: normalMap,
-                    normalScale: new THREE.Vector2(1, -1),
-
-                    aoMap: aoMap,
-                    aoMapIntensity: 1,
-
-                    displacementMap: displacementMap,
-                    displacementScale: 2.436143,
-                    displacementBias: -0.428408,
-
-                    envMap: reflectionCube,
-                    envMapIntensity: 1.0,
-
-                    //side: THREE.DoubleSide
-                };
-                //let material = new THREE.MeshStandardMaterial(params);
-                let material = new THREE.MeshBasicMaterial( { color:LDR.Colors.getColorHex(c) } );
-                let mesh = new THREE.Mesh(this.geometry.triangleGeometry[c].clone(), material);
+                let shownColor = tc === '16' ? c : tc;
+                let material = LDR.Colors.buildStandardMaterial(shownColor);
+                let g = this.geometry.triangleGeometry[tc];
+                let mesh = new THREE.Mesh(g.clone(), material);
                 mesh.geometry.applyMatrix(m4);
-                if(LDR.Colors.isTrans(c)) {
+
+                if(LDR.Colors.isTrans(shownColor)) {
                     mc.addTrans(mesh, pd);
                 }
                 else {
@@ -1599,11 +1579,13 @@ LDR.MeshCollector.prototype.addLines = function(mesh, part, conditional) {
 }
 
 LDR.MeshCollector.prototype.addOpaque = function(mesh, part) {
+    //scene.add(new THREE.VertexNormalsHelper( mesh, 5, 0x00ff00));
     this.triangleMeshes.push({mesh:mesh, part:part, opaque:true});
     this.opaqueObject.add(mesh);
 }
 
 LDR.MeshCollector.prototype.addTrans = function(mesh, part) {
+    //scene.add(new THREE.VertexNormalsHelper( mesh, 5, 0x0000ff));
     this.triangleMeshes.push({mesh:mesh, part:part, opaque:false});
     this.transObject.add(mesh);
 }

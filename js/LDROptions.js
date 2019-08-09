@@ -35,8 +35,9 @@ LDR.Options = function() {
 }
 
 LDR.Options.prototype.readOptionsFromCookie = function() {
-    if(!document.cookie)
+    if(!document.cookie) {
 	return; // Can't read cookie.
+    }
     let cookieParts = decodeURIComponent(document.cookie).split(/\s*;\s*/);
     for(let i = 0; i < cookieParts.length; i++) {
 	let part = cookieParts[i];

@@ -150,3 +150,94 @@ LDR.Colors.buildTriangleMaterial = function(colorManager, color) {
     ret.colorManager = colorManager;
     return ret;
 }
+
+LDR.Colors.texturesLoaded = false;
+LDR.Colors.loadTextures = function() {
+    if(LDR.Colors.texturesLoaded) {
+        return;
+    }
+    // env map
+    var path = "textures/cube/";
+    var format = '.jpg';
+    var urls = [
+                path + 'px' + format, path + 'nx' + format,
+                path + 'py' + format, path + 'ny' + format,
+                path + 'pz' + format, path + 'nz' + format
+                ]; // Scene around
+    var reflectionCube = new THREE.CubeTextureLoader().load( urls );
+    
+    // textures
+    var textureLoader = new THREE.TextureLoader();
+    var normalMap = textureLoader.load( "textures/metal/normal.jpg" ); // blue/purple/red map of the mask - colors show dents.
+    var aoMap = textureLoader.load( "textures/metal/ao.jpg" ); // grayscale looking like a print of the mask
+    var displacementMap = textureLoader.load( "textures/metal/displacement.jpg" ); // grayscale looks like a negative print.
+    LDR.Colors.texturesLoaded = true;
+}
+
+LDR.Colors.buildStandardMaterial = function(colorID) {
+    let color = LDR.Colors[colorID < 0 ? (-colorID-1) : colorID]; // Assume non-negative color.
+    if(!color.m) {
+        LDR.Colors.loadTextures();
+
+        let params = {
+            color: colorID < 0 ? (color.edge ? color.edge : 0x333333) : color.value,
+            name: 'Standard material for color ' + color.name + ' (' + colorID + ')',
+            
+            roughness: 0.1, // Smooth ABS
+            metalness: 0,
+            
+            /*normalMap: normalMap,
+              normalScale: new THREE.Vector2(1, -1),*/
+            
+            /*aoMap: aoMap,
+              aoMapIntensity: 1,*/
+            
+            /*displacementMap: displacementMap,
+              displacementScale: 2.436143,
+              displacementBias: -0.428408,*/
+            
+            //envMap: reflectionCube,
+            //envMapIntensity: 0.2
+        };
+
+        if(color.material) { // Special materials:
+            if(color.material === 'CHROME') {
+                console.log('CHROME ' + colorID + ' -> ' + color.value);
+                params.metalness = 1.0;
+                params.roughness = 0.05;
+            }
+            else if(color.material === 'RUBBER') {
+                console.log('RUBBER ' + colorID + ' -> ' + color.value);
+                params.metalness = 0.0;
+                params.roughness = 0.9;
+            }
+            else if(color.material === 'METAL') {
+                console.log('METAL ' + colorID + ' -> ' + color.value);
+                params.metalness = 1.0;
+                params.roughness = 0.2;
+            }
+            else if(color.material === 'PEARLESCENT') {
+                console.log('PEARL ' + colorID + ' -> ' + color.value);
+                params.roughness = 0.05; // Smooth
+            }
+            else {
+                console.log('COMPLICATED! ' + colorID + ' -> ' + color.value);
+                // TODO: Stuff like 'MATERIAL GLITTER FRACTION 0.17 VFRACTION 0.2 SIZE 1' or
+                // 'MATERIAL SPECKLE FRACTION 0.4 MINSIZE 1 MAXSIZE 3'
+            }
+        }
+
+        let m = new THREE.MeshStandardMaterial(params);
+        if(color.alpha > 0) {
+            m.transparent = true;
+            m.opacity = color.alpha/255;
+        }
+        if(color.luminance > 0) {
+            console.log('EMISSIVE ' + colorID + ' -> ' + color.value);
+            m.emissive = color.value;
+            m.emissiveIntensity = color.luminance/15;
+        }
+        color.m = m;
+    }
+    return color.m;
+}

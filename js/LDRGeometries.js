@@ -264,13 +264,80 @@ LDR.LDRGeometry.prototype.buildGeometriesAndColors = function() {
     this.geometriesBuilt = true;
 }
 
+// Optimized version of the one found in https://github.com/mrdoob/three.js/blob/master/src/core/BufferGeometry.js
+THREE.BufferGeometry.prototype.computeVertexNormals = function() {
+    var attributes = this.attributes;
+    var positions = attributes.position.array;
+
+    this.addAttribute('normal', new THREE.BufferAttribute(new Float32Array(positions.length), 3));
+    var normals = attributes.normal.array;
+
+    var vA, vB, vC;
+    var pA = new THREE.Vector3(), pB = new THREE.Vector3(), pC = new THREE.Vector3();
+    var cb = new THREE.Vector3(), ab = new THREE.Vector3();
+    
+    var index = this.index;
+    var indices = index.array;
+    for(var i = 0, il = index.count; i < il; i += 3) {            
+        vA = indices[i] * 3;
+        vB = indices[i+1] * 3;
+        vC = indices[i+2] * 3;
+        
+        pA.fromArray(positions, vA);
+        pB.fromArray(positions, vB);
+        pC.fromArray(positions, vC);
+        
+        cb.subVectors(pC, pB);
+        ab.subVectors(pA, pB);
+        cb.cross(ab);
+        
+        normals[vA] += cb.x;
+        normals[vA + 1] += cb.y;
+        normals[vA + 2] += cb.z;
+        
+        normals[vB] += cb.x;
+        normals[vB + 1] += cb.y;
+        normals[vB + 2] += cb.z;
+        
+        normals[vC] += cb.x;
+        normals[vC + 1] += cb.y;
+        normals[vC + 2] += cb.z;            
+    }
+    this.normalizeNormals();
+    attributes.normal.needsUpdate = true;
+}
+
+/**
+   This function also computes normals to be used by standard materials.
+ */
 LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
     if(this.geometriesBuilt) {
 	return;
     }
     this.buildGeometriesAndColorsForLines();
-
     var self = this;
+    var vertices = this.vertices;
+
+    // Mark vertices shared by lines:
+    vertices.forEach(v => v.mark = 0);
+    let idx = 0;
+    function handleVertex(v) {
+        if(v.mark !== 0) {
+            v.mark = -1;
+            return; // Special case: Joins more than one conditional line.
+        }
+        v.mark = idx;
+    }
+    for(let c in this.conditionalLines) {
+	if(this.conditionalLines.hasOwnProperty(c)) {
+            let lines = this.conditionalLines[c];
+            lines.forEach(line => {
+                    idx++;
+                    handleVertex(vertices[line.p1]);
+                    handleVertex(vertices[line.p2]);
+                });
+        }
+    }
 
     // Now handle triangle colors and vertices:
     let allTriangleColors = [];
@@ -290,13 +357,62 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
 
     this.triangleGeometry = {}; // c -> geometry
 
+    function renew(i) {
+        let v = vertices[i];
+        vertices.push({x:v.x, y:v.y, z:v.z}); // No mark as it is new and will not be visited again.
+        return vertices.length-1;
+    }
+    function updateTriangleIndices(t) {
+        let v1 = vertices[t.p1], v2 = vertices[t.p2], v3 = vertices[t.p3];
+        let m1 = v1.mark, m2 = v2.mark, m3 = v3.mark;
+
+        if(!(m1 === -1 || (m1 !== 0 && (m1 === m2 || m1 === m3)))) {
+            t.p1 = renew(t.p1);
+        }
+        if(!(m2 === -1 || (m2 !== 0 && (m2 === m1 || m2 === m3)))) {
+            t.p2 = renew(t.p2);
+        }
+        if(!(m3 === -1 || (m3 !== 0 && (m3 === m1 || m3 === m2)))) {
+            t.p3 = renew(t.p3);
+        }
+    }
+    function updateQuadIndices(t) {
+        let v1 = vertices[t.p1], v2 = vertices[t.p2], v3 = vertices[t.p3], v4 = vertices[t.p4];
+        let m1 = v1.mark, m2 = v2.mark, m3 = v3.mark, m4 = v4.mark;
+
+        if(!(m1 === -1 || (m1 !== 0 && (m1 === m2 || m1 === m4)))) {
+            t.p1 = renew(t.p1);
+        }
+        if(!(m2 === -1 || (m2 !== 0 && (m2 === m1 || m2 === m3)))) {
+            t.p2 = renew(t.p2);
+        }
+        if(!(m3 === -1 || (m3 !== 0 && (m3 === m4 || m3 === m2)))) {
+            t.p3 = renew(t.p3);
+        }
+        if(!(m4 === -1 || (m4 !== 0 && (m4 === m1 || m4 === m3)))) {
+            t.p4 = renew(t.p4);
+        }
+    }
+    allTriangleColors.forEach(c => {
+            if(self.triangles.hasOwnProperty(c)) {
+                self.triangles[c].forEach(updateTriangleIndices);
+            }
+            if(self.triangles2.hasOwnProperty(c)) {
+                self.triangles2[c].forEach(updateTriangleIndices);
+            }
+            if(self.quads.hasOwnProperty(c)) {
+                self.quads[c].forEach(updateQuadIndices);
+            }
+            if(self.quads2.hasOwnProperty(c)) {
+                self.quads2[c].forEach(updateQuadIndices);
+            }
+        });
+
     let triangleVertices = [];
-    this.vertices.forEach(v => triangleVertices.push(v.x, v.y, v.z));
+    vertices.forEach(v => triangleVertices.push(v.x, v.y, v.z));
     let triangleVertexAttribute = new THREE.Float32BufferAttribute(triangleVertices, 3);
-    console.dir(triangleVertices);
 
     allTriangleColors.forEach(c => {
-            console.log('triangle color ' + c);
             let triangleIndices = [];
             if(self.triangles.hasOwnProperty(c)) {
                 self.triangles[c].forEach(t => triangleIndices.push(t.p1, t.p2, t.p3));
@@ -312,13 +428,18 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                 self.quads2[c].forEach(q => triangleIndices.push(q.p1, q.p2, q.p4, q.p2, q.p3, q.p4,
                                                                  q.p4, q.p3, q.p2, q.p4, q.p2, q.p1));
             }
-            console.dir(triangleIndices);
             if(triangleIndices.length > 0) {
-                self.triangleGeometry[c] = self.buildGeometry(triangleIndices, triangleVertexAttribute);
+                let g = self.buildGeometry(triangleIndices, triangleVertexAttribute);
+                g.computeVertexNormals();
+
+                // TODO: uv and uv2 used for textures:
+                //g.addAttribute('uv', new THREE.Float32BufferAttribute(triangleVertices, 2 )); // Garbage UV
+                //g.attributes.uv2 = g.attributes.uv;
+
+                self.triangleGeometry[c] = g;
             }
         });
 
-    console.dir(self);
     this.geometriesBuilt = true;
 }
 
@@ -329,6 +450,7 @@ LDR.LDRGeometry.prototype.buildGeometry = function(indices, vertexAttribute) {
     let g = new THREE.BufferGeometry();
     g.setIndex(indices);
     g.addAttribute('position', vertexAttribute);
+
     return g;
 }
 
@@ -487,7 +609,7 @@ LDR.LDRGeometry.prototype.sortAndBurnVertices = function(vertices, primitives) {
 }
 
 /*
-  Build a geometry from normal {p1,p2,colorID} lines.
+  Build a geometry from {p1,p2,colorID} lines.
  */
 LDR.LDRGeometry.prototype.fromLines = function(ps) {
     let vertices = [];
@@ -662,7 +784,7 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
             }
 	};
     }
-    else { // Normal color
+    else { // Standard color
         let pos = ''+pd.colorID;
         let neg = ''+(-pd.colorID-1);
 	replaceColor = function(x) {
