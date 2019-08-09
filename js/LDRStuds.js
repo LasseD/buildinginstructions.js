@@ -9,7 +9,8 @@ LDR.Studs.setStuds = function(ldrLoader, highContrast, logoType, onDone) {
     let idb = []; // Primitives that we know are needed and would like to see fetched using ClientStorage:
     let force = ldrLoader.options.force ? (ldrLoader.options.force+'/') : ''; // Either 8, 48 or undefined.
     let studs = [
-	LDR.Studs.makeStud1(idb, highContrast, logoType, force),
+	LDR.Studs.makeStud1(idb, highContrast, logoType, force, true),
+	LDR.Studs.makeStud1(idb, highContrast, logoType, force, false),
 	LDR.Studs.makeStud2(idb, highContrast, logoType, force),
 	LDR.Studs.makeStud2a(idb, highContrast, force),
 	LDR.Studs.makeStudP01(idb, highContrast, logoType, force),
@@ -40,8 +41,8 @@ LDR.Studs.setStuds = function(ldrLoader, highContrast, logoType, onDone) {
     }
 }
 
-LDR.Studs.makeStud1 = function(toFetch, highContrast, logoType, force) {
-    let pt = LDR.Generator.makeP('Stud', 'stud.dat');
+LDR.Studs.makeStud1 = function(toFetch, highContrast, logoType, force, withoutBaseEdge) {
+    let pt = LDR.Generator.makeP('Stud' + (withoutBaseEdge ? ' without Base Edges':''), withoutBaseEdge ? 'studa.dat' : 'stud.dat');
     let step = new THREE.LDRStep();
 
     toFetch.push(force+'4-4edge.dat', force+'4-4disc.dat');
@@ -50,7 +51,9 @@ LDR.Studs.makeStud1 = function(toFetch, highContrast, logoType, force) {
     let p0 = new THREE.Vector3();
     let r11 = LDR.Generator.makeR(1, 1);
     let r61 = LDR.Generator.makeR(6, 1);
-    step.addSubModel(new THREE.LDRPartDescription(16, p0, r61, force+'4-4edge.dat', true, false));
+    if(!withoutBaseEdge) {
+	step.addSubModel(new THREE.LDRPartDescription(16, p0, r61, force+'4-4edge.dat', true, false));
+    }
 
     if(logoType < 2) {
         var p4 = new THREE.Vector3(0, -4, 0); // 'var' used for drop-through.
