@@ -58,6 +58,43 @@ LDR.Generator.makeR = function(a, b) {
     return ret;
 }
 
+LDR.Generator.addLinesToStep = function(step, lines) {
+    for(let i = 0; i < lines.length; i+=6) {
+	step.addLine(24,
+		     new THREE.Vector3(lines[i], lines[i+1], lines[i+2]),
+		     new THREE.Vector3(lines[i+3], lines[i+4], lines[i+5]));
+    }
+}
+
+LDR.Generator.addConditionalLinesToStep = function(step, lines) {
+    for(let i = 0; i < lines.length; i+=12) {
+	step.addConditionalLine(24,
+				new THREE.Vector3(lines[i], lines[i+1], lines[i+2]),
+				new THREE.Vector3(lines[i+3], lines[i+4], lines[i+5]),
+				new THREE.Vector3(lines[i+6], lines[i+7], lines[i+8]),
+				new THREE.Vector3(lines[i+9], lines[i+10], lines[i+11]));
+    }
+}
+
+LDR.Generator.addTrianglesToStep = function(step, triangles, color = 16) {
+    for(let i = 0; i < triangles.length; i+=9) {
+	step.addTrianglePoints(color,
+			       new THREE.Vector3(triangles[i], triangles[i+1], triangles[i+2]),
+			       new THREE.Vector3(triangles[i+3], triangles[i+4], triangles[i+5]),
+			       new THREE.Vector3(triangles[i+6], triangles[i+7], triangles[i+8]));
+    }
+}
+
+LDR.Generator.addQuadsToStep = function(step, quads, color = 16) {
+    for(let i = 0; i < quads.length; i+=12) {
+	step.addQuadPoints(color,
+			   new THREE.Vector3(quads[i], quads[i+1], quads[i+2]),
+			   new THREE.Vector3(quads[i+3], quads[i+4], quads[i+5]),
+			   new THREE.Vector3(quads[i+6], quads[i+7], quads[i+8]),
+			   new THREE.Vector3(quads[i+9], quads[i+10], quads[i+11]));
+    }
+}
+
 LDR.Generator.makeCylinderClosed = function(sections) {
     let pt = LDR.Generator.makeP('Cylinder Closed ' + (sections*0.25),
                                  sections + '-4cylc.dat');
