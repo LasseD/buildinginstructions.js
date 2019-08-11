@@ -2,56 +2,72 @@
 
 LDR.Studs = {}; // Studs namespace
 
-LDR.Studs.setStuds = function(ldrLoader, highContrast, logoType, onDone) {
-    console.log('Creating studs. High contrast: ' + highContrast + ' logo type: ' + logoType);
-
-    let partTypes = ldrLoader.partTypes;
-    let idb = []; // Primitives that we know are needed and would like to see fetched using ClientStorage:
-    let force = ldrLoader.options.force ? (ldrLoader.options.force+'/') : ''; // Either 8, 48 or undefined.
-    let studs = [
-	LDR.Studs.makeStud1(idb, highContrast, logoType, force, true),
-	LDR.Studs.makeStud1(idb, highContrast, logoType, force, false),
-	LDR.Studs.makeStud2(idb, highContrast, logoType, force),
-	LDR.Studs.makeStud2a(idb, highContrast, force),
-	LDR.Studs.makeStud6(idb, highContrast, logoType, force, true),
-	LDR.Studs.makeStud6(idb, highContrast, logoType, force, false),
-	LDR.Studs.makeStud10(idb, highContrast, logoType, force),
-	LDR.Studs.makeStud13(idb, highContrast, logoType, force),
-	LDR.Studs.makeStud15(idb, highContrast, logoType, force),
-	LDR.Studs.makeStud17(idb, highContrast, logoType, force, true),
-	LDR.Studs.makeStud17(idb, highContrast, logoType, force, false),
-	LDR.Studs.makeStudP01(idb, highContrast, logoType, force),
-	LDR.Studs.makeStudEl(idb, highContrast, logoType, force),
+LDR.Studs.all = [
+    (hc, logoType, force) => LDR.Studs.makeStud1(hc, logoType, force, true),
+    (hc, logoType, force) => LDR.Studs.makeStud1(hc, logoType, force, false),
+    (hc, logoType, force) => LDR.Studs.makeStud2(hc, logoType, force),
+    (hc, logoType, force) => LDR.Studs.makeStud2a(hc, force),
+    (hc, logoType, force) => LDR.Studs.makeStud6(hc, logoType, force, true),
+    (hc, logoType, force) => LDR.Studs.makeStud6(hc, logoType, force, false),
+    (hc, logoType, force) => LDR.Studs.makeStud10(hc, logoType, force),
+    (hc, logoType, force) => LDR.Studs.makeStud13(hc, logoType, force),
+    (hc, logoType, force) => LDR.Studs.makeStud15(hc, logoType, force),
+    (hc, logoType, force) => LDR.Studs.makeStud17(hc, logoType, force, true),
+    (hc, logoType, force) => LDR.Studs.makeStud17(hc, logoType, force, false),
+    (hc, logoType, force) => LDR.Studs.makeStudP01(hc, logoType, force),
+    (hc, logoType, force) => LDR.Studs.makeStudEl(hc, logoType, force),
     ];
 
-    if(logoType > 0) {
-        let logoID = 'logo' + (logoType === 1 ? '' : logoType) + '.dat';
-        if(!partTypes.hasOwnProperty(logoID)) {
-            idb.push(logoID);
-        }
+LDR.Studs.makeGenerators = function(force, highContrast, logoType) {
+    if(LDR.Generator) {
+	LDR.Studs.all.forEach(f => LDR.Generator.map[f(false,0,false).ID] = () => f(highContrast, logoType, force));
     }
+}
 
-    function loadStuds() {
-	studs.forEach(s => partTypes[s.ID] = s);
-        onDone();
-    }
+LDR.Studs.setStuds = function(loader, highContrast, logoType, onDone) {
+    let partTypes = loader.partTypes;
+    let force = loader.options.force ? (loader.options.force+'/') : ''; // Either 8, 48 or undefined.
+
+    let idb = []; // Primitives that we know are needed and would like to see fetched using ClientStorage:
+    let seen = {};
+
+    LDR.Studs.all.forEach(f => {
+	let s = f(highContrast, logoType, force);
+	if(partTypes.hasOwnProperty(s.ID)) { // Used, so replace and ensure sub models are present:
+	    partTypes[s.ID] = s;
+	    s.steps.forEach(step => step.subModels.forEach(sm => {
+		if(!seen.hasOwnProperty(sm.ID)) {
+		    idb.push(sm.ID);
+		    seen[sm.ID] = true;
+		}
+	    }));
+	}
+    });
 
     if(idb.length === 0) {
-        loadStuds();
+        onDone();
     }
     else {
         // Build a different loader to fetch these two since we have to wait for the callback:
-        let loader2 = new THREE.LDRLoader(loadStuds, ldrLoader.storage, ldrLoader.options);
+	let options = {};
+	for(let option in loader.options) {
+	    if(option === 'key' || option === 'timestamp') {
+		continue; // Ensure the main model is not saved again.
+	    }
+	    if(loader.options.hasOwnProperty(option)) {
+		options[option] = loader.options[option];
+	    }
+	}
+	
+        let loader2 = new THREE.LDRLoader(onDone, loader.storage, options);
         loader2.partTypes = partTypes; // Load to same data store.
         loader2.loadMultiple(idb);
     }
 }
 
-LDR.Studs.makeStud1 = function(toFetch, highContrast, logoType, force, withoutBaseEdge) {
+LDR.Studs.makeStud1 = function(highContrast, logoType, force, withoutBaseEdge) {
     let pt = LDR.Generator.makeP('Stud' + (withoutBaseEdge ? ' without Base Edges':''), withoutBaseEdge ? 'studa.dat' : 'stud.dat');
     let step = new THREE.LDRStep();
-
-    toFetch.push(force+'4-4edge.dat', force+'4-4disc.dat');
 
     // Common positions and rotations:
     let p0 = new THREE.Vector3();
@@ -77,39 +93,32 @@ LDR.Studs.makeStud1 = function(toFetch, highContrast, logoType, force, withoutBa
 
         step.addSubModel(new THREE.LDRPartDescription(16, p34, r5656, 't01o0714.dat', true, false));
         step.addSubModel(new THREE.LDRPartDescription(16, p38, r561, force+'4-4disc.dat', true, false));
-        toFetch.push('t01o0714.dat');
     }
 
     // Cylinder:
     if(highContrast) {
         step.addSubModel(new THREE.LDRPartDescription(0, p0, r64, force+'4-4cyli2.dat', true, false));
-        toFetch.push(force+'4-4cyli2.dat');
     }
     else {
         step.addSubModel(new THREE.LDRPartDescription(16, p0, r64, force+'4-4cyli.dat', true, false));
-        toFetch.push(force+'4-4cyli.dat');
     }
 
     // Logo:
     if(logoType === 1) {
         step.addSubModel(new THREE.LDRPartDescription(16, p4, r11, 'logo.dat', true, false));
-        toFetch.push('logo.dat');
     }
     else if(logoType > 1) {
         step.addSubModel(new THREE.LDRPartDescription(16, p38, r11, 'logo' + logoType + '.dat', true, false));
-        toFetch.push('logo' + logoType + '.dat');
     }
 
     pt.steps.push(step);
     return pt;
 }
 
-LDR.Studs.makeStud2a = function(toFetch, highContrast, force) {
+LDR.Studs.makeStud2a = function(highContrast, force) {
     let pt = LDR.Generator.makeP('Stud Open without Base Edges', 'stud2a.dat');
     let step = new THREE.LDRStep();
     
-    toFetch.push(force+'4-4edge.dat', force+'4-4cyli2.dat', force+'4-4ring2.dat');
-
     let p0 = new THREE.Vector3();
     let p4 = new THREE.Vector3(0, -4, 0);
     let r41 = LDR.Generator.makeR(4, 1);
@@ -126,7 +135,6 @@ LDR.Studs.makeStud2a = function(toFetch, highContrast, force) {
     }
     else {
         step.addSubModel(new THREE.LDRPartDescription(16, p4, r64, force+'4-4cyli.dat', true, false));
-        toFetch.push('4-4cyli.dat');
     }
     step.addSubModel(new THREE.LDRPartDescription(16, p4, r21, force+'4-4ring2.dat', true, false));
 
@@ -134,7 +142,7 @@ LDR.Studs.makeStud2a = function(toFetch, highContrast, force) {
     return pt;
 }
 
-LDR.Studs.makeStud2 = function(toFetch, highContrast, logoType, force) {
+LDR.Studs.makeStud2 = function(highContrast, logoType, force) {
     let pt = LDR.Generator.makeP('Stud Open', 'stud2.dat');
     let step = new THREE.LDRStep();
 
@@ -146,7 +154,6 @@ LDR.Studs.makeStud2 = function(toFetch, highContrast, logoType, force) {
     let r64 = LDR.Generator.makeR(6, 4);
     let r21 = LDR.Generator.makeR(2, 1);
 
-    toFetch.push(force+'4-4edge.dat', force+'4-4cyli2.dat');
 
     step.addSubModel(new THREE.LDRPartDescription(16, p0, r41, force+'4-4edge.dat', true, false));
 
@@ -161,9 +168,7 @@ LDR.Studs.makeStud2 = function(toFetch, highContrast, logoType, force) {
         }
         else {
             step.addSubModel(new THREE.LDRPartDescription(16, p4, r64, force+'4-4cyli.dat', true, false));
-            toFetch.push(force+'4-4cyli.dat');
         }
-        toFetch.push(force+'4-4ring2.dat');
     }
     else {
         let p36 = new THREE.Vector3(0, -3.6, 0);
@@ -174,7 +179,6 @@ LDR.Studs.makeStud2 = function(toFetch, highContrast, logoType, force) {
         }
         else {
             step.addSubModel(new THREE.LDRPartDescription(16, p36, r636, force+'4-4cyli.dat', true, false));
-            toFetch.push(force+'4-4cyli.dat');
         }
         
         let r081 = LDR.Generator.makeR(0.8, 1);
@@ -186,7 +190,6 @@ LDR.Studs.makeStud2 = function(toFetch, highContrast, logoType, force) {
         let r5656 = LDR.Generator.makeR(5.6, -5.6);
         // 1 16 0 -3.6 0 5.6 0 0 0 -5.6 0 0 0 5.6 t01o0714.dat
         step.addSubModel(new THREE.LDRPartDescription(16, p36, r5656, 't01o0714.dat', true, false));
-        toFetch.push(force+'4-4ring5.dat', force+'4-4ring6.dat', 't01o0714.dat');
     }
 
     step.addSubModel(new THREE.LDRPartDescription(16, p0, r61, force+'4-4edge.dat', true, false));
@@ -198,24 +201,20 @@ LDR.Studs.makeStud2 = function(toFetch, highContrast, logoType, force) {
         // 1 16 0 0 0 0.6 0 0 0 1 0 0 0 0.6 logo.dat:
         let r061 = LDR.Generator.makeR(0.6, 1);
         step.addSubModel(new THREE.LDRPartDescription(16, p0, r061, 'logo.dat', true, false));
-        toFetch.push('logo.dat');
     }
     else if(logoType > 1) {
         // 1 16 0 0 0 0.62 0 0 0 0.62 0 0 0 0.62 logoX.dat
         let r062062 = LDR.Generator.makeR(0.62, 0.62);
         step.addSubModel(new THREE.LDRPartDescription(16, p0, r062062, 'logo' + logoType + '.dat', true, false));
-        toFetch.push('logo' + logoType + '.dat');
     }
 
     pt.steps.push(step);
     return pt;
 }
 
-LDR.Studs.makeStudP01 = function(toFetch, highContrast, logoType, force) {
+LDR.Studs.makeStudP01 = function(highContrast, logoType, force) {
     let pt = LDR.Generator.makeP('Stud with Dot Pattern', 'studp01.dat');
     let step = new THREE.LDRStep();
-
-    toFetch.push(force+'4-4edge.dat', force+'4-4disc.dat', force+'4-4ring2.dat');
 
     // Common positions and rotations:
     let p0 = new THREE.Vector3();
@@ -230,11 +229,9 @@ LDR.Studs.makeStudP01 = function(toFetch, highContrast, logoType, force) {
     step.addSubModel(new THREE.LDRPartDescription(16, p4, r61, force+'4-4edge.dat', true, false));
     if(highContrast) {
         step.addSubModel(new THREE.LDRPartDescription(0, p0, r64, force+'4-4cyli2.dat', true, false));
-        toFetch.push(force+'4-4cyli2.dat');
     }
     else {
         step.addSubModel(new THREE.LDRPartDescription(16, p0, r64, force+'4-4cyli.dat', true, false));
-        toFetch.push(force+'4-4cyli.dat');
     }
     step.addSubModel(new THREE.LDRPartDescription(16, p4, r21, force+'4-4ring2.dat', true, false));
     step.addSubModel(new THREE.LDRPartDescription(15, p4, r41, force+'4-4disc.dat', true, false));
@@ -243,24 +240,15 @@ LDR.Studs.makeStudP01 = function(toFetch, highContrast, logoType, force) {
     if(logoType === 1) { // Only logo type 1 is supported.
 	let r11 = LDR.Generator.makeR(1, 1);
         step.addSubModel(new THREE.LDRPartDescription(16, p4, r11, 'logo.dat', true, false));
-        toFetch.push('logo.dat');
     }
     
     pt.steps.push(step);
     return pt;
 }
 
-LDR.Studs.makeStudEl = function(toFetch, highContrast, logoType, force) {
+LDR.Studs.makeStudEl = function(highContrast, logoType, force) {
     let pt = LDR.Generator.makeP('Stud with Electric Contact', 'studel.dat');
     let step = new THREE.LDRStep();
-
-    toFetch.push(force+'4-4edge.dat',
-		 force+'1-4edge.dat',
-		 force+'3-4cyli.dat',
-		 force+'1-4cyli.dat',
-		 force+'4-4cyli.dat',
-		 force+'4-4disc.dat',
-		);
 
     // Common positions and rotations:
     let p0 = new THREE.Vector3();
@@ -305,19 +293,16 @@ LDR.Studs.makeStudEl = function(toFetch, highContrast, logoType, force) {
     if(logoType === 1) { // Only logo type 1 is supported.
 	let r11 = new THREE.Matrix3(); r11.set(0, 0, -1, 0, 1, 0, 1, 0, 0);
         step.addSubModel(new THREE.LDRPartDescription(16, p4, r11, 'logo.dat', true, false));
-        toFetch.push('logo.dat');
     }
     
     pt.steps.push(step);
     return pt;
 }
 
-LDR.Studs.makeStud10 = function(toFetch, highContrast, logoType, force) {
+LDR.Studs.makeStud10 = function(highContrast, logoType, force) {
     let pt = LDR.Generator.makeP('Stud For Round 2 x 2 Parts', 'stud10.dat');
     let step = new THREE.LDRStep();
     let contrastColor = highContrast ? 0 : 16;
-
-    toFetch.push(...['3-4cyli','3-4edge','3-4disc'].map(x=>force+x+'.dat'));
 
     // Lines:
     LDR.Generator.addLinesToStep(step, [6, 0, 0, 5.6145, 0, 1.9397,
@@ -353,7 +338,6 @@ LDR.Studs.makeStud10 = function(toFetch, highContrast, logoType, force) {
     if(logoType === 1) { // Only logo type 1 is supported.
 	let r11 = new THREE.Matrix3(); r11.set(1, 0, 0, 0, 1, 0, 0, 0, 1);
         step.addSubModel(new THREE.LDRPartDescription(16, p4, r11, 'logo.dat', true, false));
-        toFetch.push('logo.dat');
     }
 
     // Triangles:
@@ -372,12 +356,10 @@ LDR.Studs.makeStud10 = function(toFetch, highContrast, logoType, force) {
     return pt;
 }
 
-LDR.Studs.makeStud15 = function(toFetch, highContrast, logoType, force) {
+LDR.Studs.makeStud15 = function(highContrast, logoType, force) {
     let pt = LDR.Generator.makeP('Stud for Round 2 x 2 Parts, 1 Face, Complete Edges', 'stud15.dat');
     let step = new THREE.LDRStep();
     let contrastColor = highContrast ? 0 : 16;
-
-    toFetch.push(...['3-4cyli','3-4edge','3-4disc','rect2p','rect3'].map(x=>force+x+'.dat'));
 
     // Common positions and rotations:
     let p0 = new THREE.Vector3();
@@ -408,7 +390,6 @@ LDR.Studs.makeStud15 = function(toFetch, highContrast, logoType, force) {
     if(logoType === 1) { // Only logo type 1 is supported.
 	let r11 = new THREE.Matrix3(); r11.set(1, 0, 0, 0, 1, 0, 0, 0, 1);
         step.addSubModel(new THREE.LDRPartDescription(16, p4, r11, 'logo.dat', true, false));
-        toFetch.push('logo.dat');
     }
 
     LDR.Generator.addTrianglesToStep(step, [6, -4, 0, 0, -4, 6, 0, -4, 0], 16);
@@ -420,12 +401,10 @@ LDR.Studs.makeStud15 = function(toFetch, highContrast, logoType, force) {
     return pt;
 }
 
-LDR.Studs.makeStud17 = function(toFetch, highContrast, logoType, force, withoutBaseEdges) {
+LDR.Studs.makeStud17 = function(highContrast, logoType, force, withoutBaseEdges) {
     let pt = LDR.Generator.makeP('Stud Open For Octagonal Parts' + (withoutBaseEdges ? ' without Base Edges' : ''), (withoutBaseEdges ? 'stud17a.dat' : 'stud17.dat'));
     let step = new THREE.LDRStep();
     let contrastColor = highContrast ? 0 : 16;
-
-    toFetch.push(...['4-4cyli','4-4edge','7-8edge','7-8cyli','2-4ring2','3-8ring2'].map(x=>force+x+'.dat'));
 
     // Common positions and rotations:
     let p0 = new THREE.Vector3();
@@ -484,19 +463,16 @@ LDR.Studs.makeStud17 = function(toFetch, highContrast, logoType, force, withoutB
     if(!withoutBaseEdges && logoType === 1) {
         let r061 = LDR.Generator.makeR(0.6, 1);
         step.addSubModel(new THREE.LDRPartDescription(16, p0, r061, 'logo.dat', true, false));
-        toFetch.push('logo.dat');
     }
 
     pt.steps.push(step);
     return pt;
 }
 
-LDR.Studs.makeStud13 = function(toFetch, highContrast, logoType, force) {
+LDR.Studs.makeStud13 = function(highContrast, logoType, force) {
     let pt = LDR.Generator.makeP('Stud for Electric Light & Sound Brick  2 x  2 x  1.333', 'stud13.dat');
     let step = new THREE.LDRStep();
     let contrastColor = highContrast ? 0 : 16;
-
-    toFetch.push(...['3-4cyli','3-4edge','3-4disc'].map(x=>force+x+'.dat'));
 
     LDR.Generator.addLinesToStep(step, [6,0,0,5.782,0,1.095,
 					5.782,0,1.095,1.095,0,5.782,
@@ -535,19 +511,16 @@ LDR.Studs.makeStud13 = function(toFetch, highContrast, logoType, force) {
     if(logoType === 1) { // Only logo type 1 is supported.
 	let r11 = new THREE.Matrix3(); r11.set(1, 0, 0, 0, 1, 0, 0, 0, 1);
         step.addSubModel(new THREE.LDRPartDescription(16, p4, r11, 'logo.dat', true, false));
-        toFetch.push('logo.dat');
     }
 
     pt.steps.push(step);
     return pt;
 }
 
-LDR.Studs.makeStud6 = function(toFetch, highContrast, logoType, force, withoutBaseEdges) {
+LDR.Studs.makeStud6 = function(highContrast, logoType, force, withoutBaseEdges) {
     let pt = LDR.Generator.makeP('Stud Open For Round 2x2 Parts' + (withoutBaseEdges ? ' without Base Edges' : ''), withoutBaseEdges ? 'stud6a.dat' : 'stud6.dat');
     let step = new THREE.LDRStep();
     let contrastColor = highContrast ? 0 : 16;
-
-    toFetch.push(...['3-4edge','4-4edge','4-4cyli','1-4ring2','3-4cyli'].map(x=>force+x+'.dat'));
 
     LDR.Generator.addLinesToStep(step, [5.6145,-4,1.9397,5.6145,0,1.9397,
 					6,-4,0,5.6145,-4,1.9397,
@@ -613,7 +586,6 @@ LDR.Studs.makeStud6 = function(toFetch, highContrast, logoType, force, withoutBa
     if(!withoutBaseEdges && logoType === 1) {
         let r061 = LDR.Generator.makeR(0.6, 1);
         step.addSubModel(new THREE.LDRPartDescription(16, p0, r061, 'logo.dat', true, false));
-        toFetch.push('logo.dat');
     }
 
     pt.steps.push(step);

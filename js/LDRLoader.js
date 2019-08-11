@@ -114,7 +114,7 @@ THREE.LDRLoader.prototype.loadMultiple = function(ids) {
         unloadedParts.forEach(id => self.load(id));
         self.reportProgress(ids[0]);
     }
-    this.unloadedFiles++; // Prevent early exit.
+    self.unloadedFiles++; // Prevent early exit.
 
     this.storage.retrievePartsFromStorage(this, ids, onStorageFetchingDone);
 }
@@ -498,7 +498,10 @@ THREE.LDRLoader.prototype.parse = function(data) {
 
     // Save loaded parts into IndexedDB:
     if(this.storage.db) {
-        setTimeout(() => self.storage.savePartsToStorage(loadedParts), 2000); // Don't let this action delay rendering.
+	if(this.options.hasOwnProperty('key') && this.options.hasOwnProperty('timestamp')) {
+            setTimeout(() => self.storage.saveInstructionsToStorage(self, self.options.key, self.options.timestamp), 1500); // Don't let this action delay rendering.
+	}
+        setTimeout(() => self.storage.savePartsToStorage(loadedParts, self), 2000); // Don't let this action delay rendering.
         // Do not call storage.db.close() as there might be other parts that should be saved.
     }
 
@@ -574,6 +577,122 @@ THREE.LDRLoader.prototype.substituteReplacementParts = function() {
 	}));
     }
     this.applyOnPartTypes(fixReplacedParts);
+}
+
+THREE.LDRLoader.prototype.unpack = function(obj) {
+    let self = this;
+    let names = obj.names.split('¤');
+
+    let parts = [];
+    this.mainModel = names[0];
+
+    let arrayI = obj['i'];
+    let arrayF = obj['f'];
+    let idxI = 0, idxF = 0;
+    names.forEach((name, i) => {
+	let numSteps = arrayI[idxI++];
+	if(numSteps === 0) {
+	    parts.push(name);
+	    return; // Packable part to be loaded normally.
+	}
+
+	let pt = new THREE.LDRPartType();
+	pt.ID = pt.name = name;
+	pt.cleanSteps = true;
+
+	for(let j = 0; j < numSteps; j++) {
+	    let step = new THREE.LDRStep();
+	    [idxI, idxF] = step.unpackFrom(arrayI, arrayF, idxI, idxF, names);
+
+	    // Handle rotation:
+	    let r = arrayI[idxI++];
+	    if(r) {
+		step.rotation = new THREE.LDRStepRotation(arrayF[idxF++], arrayF[idxF++], arrayF[idxF++], r === 1 ? 'ABS' : 'REL');
+	    }
+
+	    pt.steps.push(step);	    
+	}
+
+	if(obj.hasOwnProperty('n'+i)) {
+	    pt.modelDescription = obj['d'+i];
+	    let inlined = obj['n'+i];
+	    pt.inlined = (inlined === -1) ? 'UNOFFICIAL' : inlined;
+	}
+
+	self.partTypes[name] = pt;
+    });
+
+    return parts;
+}
+
+THREE.LDRLoader.prototype.pack = function() {
+    let self = this;
+    let mainModel = this.getMainModel();
+
+    // First find all parts mentioned in those that will be packed:
+    let nameMap = {}; 
+    nameMap[mainModel.ID] = 0;
+    let names = [mainModel.ID];
+    function scanName(id) {
+	if(nameMap.hasOwnProperty(id)) {
+	    return; // Already handled.
+	}
+	nameMap[id] = names.length;
+	names.push(id);
+	let pt = self.getPartType(id);
+	if(!pt.canBePacked()) { // Only parts are packed.
+	    scanNames(pt);
+	}
+    }
+    function scanNames(pt) {
+	pt.steps.forEach(step => step.subModels.forEach(sm => scanName(sm.ID)));
+    }
+    scanNames(mainModel);
+
+    let ret = {names:names.join('¤')};
+
+    let arrayF = [];
+    let arrayI = [];
+
+    // Pack:
+    names.forEach((id, idx) => {
+	let pt = self.getPartType(id);
+	if(pt.canBePacked()) {
+	    arrayI.push(0); // 0 steps to indicate that it should be skipped.
+	    return;
+	}
+
+	arrayI.push(pt.steps.length);
+
+	pt.steps.forEach(step => {
+	    step.packInto(arrayF, arrayI, nameMap);
+
+	    // Also handle rotation:
+	    if(step.rotation) {
+		let r = step.rotation;
+		arrayI.push(r === 'ABS' ? 1 : 2);
+		arrayF.push(r.x, r.y, r.z);
+	    }
+	    else {
+		arrayI.push(0);
+	    }
+	});
+	
+	if(pt.isPart()) {
+	    ret['d' + idx] = pt.modelDescription;
+	    ret['n' + idx] = (pt.inlined === 'UNOFFICIAL' ? -1 : pt.inlined);
+	}
+    });
+
+    if(arrayI.some(val => val > 32767)) {
+	ret['i'] = new Int32Array(arrayI);
+    }
+    else {
+	ret['i'] = new Int16Array(arrayI);
+    }
+    ret['f'] = new Float32Array(arrayF);
+
+    return ret;
 }
 
 /*
@@ -745,27 +864,36 @@ THREE.LDRStep = function() {
     this.original;
 }
 
-LDR.BYTES_WRITTEN = 0;
 THREE.LDRStep.prototype.pack = function(obj) {
     let arrayF = [];
     let arrayI = [];
-
+    
     // SubModels:
     let subModelMap = {};
     let subModelList = [];
     this.subModels.forEach(sm => {
-            let id = sm.ID;
-            if(!subModelMap.hasOwnProperty(id)) {
-                if(!id.endsWith('.dat')) {
-                    throw 'Expected part to be packed to have .dat at the end of the name. Found: ' + id;
-                }
-                subModelMap[id] = subModelList.length;
-                let shortID = id.substring(0, id.length-4);
-                subModelList.push(shortID);
-            }
-        });
-    obj.sp = subModelList.join('|');
+        let id = sm.ID;
+        if(!subModelMap.hasOwnProperty(id)) {
+            subModelMap[id] = subModelList.length;
+	    let shortID = id.substring(0, id.length-4);
+            subModelList.push(shortID);
+        }
+    });
 
+    obj.sp = subModelList.join('|');
+    
+    this.packInto(arrayF, arrayI, subModelMap);
+    
+    if(arrayI.some(val => val > 32767)) {
+        obj.ai = new Int32Array(arrayI);
+    }
+    else {
+        obj.ai = new Int16Array(arrayI);
+    }
+    obj.af = new Float32Array(arrayF);
+}
+
+THREE.LDRStep.prototype.packInto = function(arrayF, arrayI, subModelMap) {
     arrayI.push(this.subModels.length);
     function handleSubModel(sm) {
         arrayI.push(sm.colorID);
@@ -802,35 +930,30 @@ THREE.LDRStep.prototype.pack = function(obj) {
     handle(this.conditionalLines, 4);
     handle(this.triangles, 3);
     handle(this.quads, 4);
-
-    LDR.BYTES_WRITTEN += arrayF.length * 4 + obj.sp.length*2;
-    if(arrayI.some(val => val > 32767)) {
-        obj.ai = new Int32Array(arrayI);
-        LDR.BYTES_WRITTEN += arrayI.length * 4;
-    }
-    else {
-        obj.ai = new Int16Array(arrayI);
-        LDR.BYTES_WRITTEN += arrayI.length * 2;
-    }
-
-    //obj.ai = arrayI.some(val => val > 32767) ? new Int32Array(arrayI) : new Int16Array(arrayI);
-    obj.af = new Float32Array(arrayF);
 }
 
 THREE.LDRStep.prototype.unpack = function(obj) {
     let arrayI = obj.ai;
     let arrayF = obj.af
     let subModelList = obj.sp.split('|').map(x => x += '.dat');
-    let idxI = 0, idxF = 0;
+    this.unpackFrom(arrayI, arrayF, 0, 0, subModelList)
+}
 
+THREE.LDRStep.prototype.unpackFrom = function(arrayI, arrayF, idxI, idxF, subModelList) {
     // Sub Models:
     let numSubModels = arrayI[idxI++];
     for(let i = 0; i < numSubModels; i++) {
         let colorID = arrayI[idxI++];
         let packed = arrayI[idxI++];
-        let cull = packed % 2 === 1;
-        let invertCCW = Math.floor(packed/2) % 2 === 1;
-        let ID = subModelList[Math.floor(packed/4)];
+        let cull = (packed % 2 === 1);
+	packed -= cull ? 1 : 0;
+        let invertCCW = (Math.floor(packed/2) % 2) === 1;
+	packed -= invertCCW ? 2 : 0;
+        let ID = subModelList[packed/4];
+
+	if(!ID) {
+	    subModelList.forEach((x,i) => console.log(i + ': ' + x));
+	}
         let position = new THREE.Vector3(arrayF[idxF++], arrayF[idxF++], arrayF[idxF++]);
         let rotation = new THREE.Matrix3();
         rotation.set(arrayF[idxF++], arrayF[idxF++], arrayF[idxF++], 
@@ -862,6 +985,7 @@ THREE.LDRStep.prototype.unpack = function(obj) {
     this.triangles = handle(3);
     this.quads = handle(4);
     this.hasPrimitives = this.lines.length > 0 || this.conditionalLines.length > 0 || this.triangles.length > 0 || this.quads.length > 0;
+    return [idxI, idxF];
 }
 
 THREE.LDRStep.prototype.removePrimitivesAndSubParts = function() {
@@ -1076,8 +1200,13 @@ THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, 
 	
 	let subModel = loader.getPartType(subModelDesc.ID);
 	if(!subModel) {
-	    loader.onError("Unloaded sub model: " + subModelDesc.ID);
-	    return;
+	    if(LDR.Generator && (subModel = LDR.Generator.make(subModelDesc.ID))) {
+		loader.partTypes[subModelDesc.ID] = subModel;
+	    }
+	    else {
+		loader.onError("Unloaded sub model: " + subModelDesc.ID);
+		return;
+	    }
 	}
 	if(subModel.replacement) {
 	    let replacementSubModel = loader.getPartType(subModel.replacement);
@@ -1218,25 +1347,24 @@ THREE.LDRPartType = function() {
 }
 
 THREE.LDRPartType.prototype.canBePacked = function() {
-    return this.inlined !== 'IDB' && // Don't re-pack.
-           this.inlined !== 'GENERATED' && // Don't pack generated parts.
+    return (this.inlined ? (this.inlined === 'OFFICIAL') : true) && // Only pack official parts (not 'GENERATED' (from LDRGenerator) or 'IDB' (unpacked from IndexedDB).
            this.isPart() && // Should be a part.
            this.license === 'Redistributable under CCAL version 2.0 : see CAreadme.txt' &&
 	   this.ldraw_org && // And an LDRAW_ORG statement.
-           !this.ldraw_org.startsWith('Unofficial_'); // And not be unofficial.
+           !this.ldraw_org.startsWith('Unofficial_'); // Double-check that it is official.
 }
 
-THREE.LDRPartType.prototype.pack = function() {
+THREE.LDRPartType.prototype.pack = function(loader) {
     let ret = {};
     let id = this.ID;
     if(id.endsWith('.dat')) {
         id = id.substring(0, id.length-4);
     }
     ret.ID = id;
-    ret.md = this.modelDescription;
-    LDR.BYTES_WRITTEN += (id.length + ret.md.length) * 2 + 1;
-    this.steps[0].pack(ret);
+
+    this.steps[0].pack(ret, loader);
     // Ignore headers and history to save space.
+    ret.md = this.modelDescription;
     ret.e = (this.CCW ? 2 : 0) + (this.certifiedBFC ? 1 : 0);
     return ret;
 }

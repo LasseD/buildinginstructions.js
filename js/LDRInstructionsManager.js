@@ -184,10 +184,23 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
         }
     }
 
+    let onInstructionsLoaded = function(ok, parts) {
+	if(ok) {
+	    if(parts.length === 0) {
+		onLoad(); // Done!
+	    }
+	    else {
+		self.ldrLoader.loadMultiple(parts);
+	    }
+	}
+	else { // Not loaded from storage. Proceed with normal loading:
+            self.ldrLoader.load(modelUrl);
+	}
+    }
     let onStorageReady = function() {
+        LDR.Studs.makeGenerators('', ldrOptions.studHighContrast, ldrOptions.studLogo);
         self.ldrLoader = new THREE.LDRLoader(onLoad, self.storage, options);
-        LDR.Studs.setStuds(self.ldrLoader, ldrOptions.studHighContrast, 
-                           ldrOptions.studLogo, () => self.ldrLoader.load(modelUrl));
+        self.storage.retrieveInstructionsFromStorage(self.ldrLoader, onInstructionsLoaded);
     }
 
     document.getElementById("pli").addEventListener('click', e => self.onPLIClick(e));
