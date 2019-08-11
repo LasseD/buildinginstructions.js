@@ -44,25 +44,27 @@ LDR.StepEditor = function(loader, stepHandler, reset, onChange, modelID) {
     showOrHide(ldrOptions);
     
     // Private function to make it easier to create GUI components:
-    this.makeEle = function(parent, type, cls, onclick, innerHTML, icon) {
+    this.makeEle = function(parent, type, cls, onclick, desc, icon) {
         let ret = document.createElement(type);
         parent.appendChild(ret);
 
         if(cls) {
             ret.setAttribute('class', cls);
         }
-
         if(onclick) {
             ret.addEventListener('click', onclick);
         }
-
         if(icon) {
             ret.append(icon);
         }
-        else if(innerHTML) {
-            ret.innerHTML = innerHTML;
+        if(desc) {
+	    if(icon) {
+		ret.setAttribute('title', desc);
+	    }
+	    else {
+		ret.innerHTML = desc;
+	    }
         }
-
         return ret;
     }
 }
@@ -188,7 +190,7 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
     function makeRotationRadioButton(value, onClick, icon) {
         let button = self.makeEle(Ele, 'input', 'editor_radio_button', onClick);
 
-        let label = self.makeEle(Ele, 'label', 'editor_radio_label', null, value, icon);
+        let label = self.makeEle(Ele, 'label', 'editor_radio_label', null, 'Set the rotation of the step to type "' + value + '"', icon);
         label.setAttribute('for', value);
 
         button.setAttribute('type', 'radio');
@@ -276,40 +278,40 @@ LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
     // Controls:
     this.makeEle(ele, 'button', 'pli_button',
                  () => update(info => self.stepHandler.addStep(info)),
-                 '+', self.makeAddIcon());
+                 'Add a step', self.makeAddIcon());
     let removeButton = this.makeEle(ele, 'button', 'pli_button',
                                     () => update(info => self.stepHandler.remove(info)),
-                                    'X', self.makeRemoveIcon());
+                                    'Delete', self.makeRemoveIcon());
     this.makeEle(ele, 'button', 'pli_button',
                  () => update(info => self.stepHandler.movePrev(info)),
-                 '<=', self.makeMovePrevIcon());
+                 'Move left (skipping sub models)', self.makeMovePrevIcon());
     this.makeEle(ele, 'button', 'pli_button',
                  () => update(info => self.stepHandler.moveNext(info)),
-                 '->', self.makeMoveNextIcon());
+                 'Move right (skipping sub models)', self.makeMoveNextIcon());
     let moveToNewSubModelButton = this.makeEle(ele, 'button', 'pli_button',
                                                () => update(info => self.stepHandler.moveToNewSubModel(info, self.generateNextID())),
-                                               'v', self.makeMoveToNewSubModelIcon());
+                                               'Move down into a new sub model', self.makeMoveToNewSubModelIcon());
     let moveUpLeftButton = this.makeEle(ele, 'button', 'pli_button',
                                         () => update(info => self.stepHandler.moveUp(info, false)),
-                                        '<^', self.makeMoveUpSideIcon(false));
+                                        'Move up to previous step', self.makeMoveUpSideIcon(false));
     let moveUpRightButton = this.makeEle(ele, 'button', 'pli_button',
                                          () => update(info => self.stepHandler.moveUp(info, true)),
-                                         '^>', self.makeMoveUpSideIcon(true));
+                                         'Move up to next step', self.makeMoveUpSideIcon(true));
     let dissolveSubModelButton = this.makeEle(ele, 'button', 'pli_button',
                                               () => update(info => self.stepHandler.moveUp(info, true)),
-                                              '^', self.makeDissolveSubModelIcon());
+                                              'Move up and remove this sub model', self.makeDissolveSubModelIcon());
     let moveDownLeftButton = this.makeEle(ele, 'button', 'pli_button',
                                           () => update(info => self.stepHandler.moveDown(info, false)),
-                                          'v<', self.makeMoveDownSideIcon(false));
+                                          'Move to the sub model in previous step', self.makeMoveDownSideIcon(false));
     let moveDownRightButton = this.makeEle(ele, 'button', 'pli_button',
                                            () => update(info => self.stepHandler.moveDown(info, true)),
-                                           '>v', self.makeMoveDownSideIcon(true));
+                                           'Move to the sub model in next step', self.makeMoveDownSideIcon(true));
     let splitButton = this.makeEle(ele, 'button', 'pli_button',
                                    () => update(info => self.stepHandler.split(info)),
-                                   '<-|->', self.makeSplitIcon());
+                                   'Split the sub models into separate steps', self.makeSplitIcon());
     let joinButton = this.makeEle(ele, 'button', 'pli_button',
                                   () => update(info => self.stepHandler.joinWithNext(info)),
-                                   '->|<-', self.makeJoinIcon());
+                                   'Join with the sub model from the next step', self.makeJoinIcon());
 
     function showAndHideButtons() {
         let anyHighlighted = self.step.subModels.some(pd => pd.original.ghost);
