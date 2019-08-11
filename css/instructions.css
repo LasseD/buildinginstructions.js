@@ -79,6 +79,14 @@ body {
   cursor: pointer;
   margin-left: 2px;
 }
+#empty_step {
+  display: none;
+  border: 2px dotted black;
+  margin-left: 2px;
+  padding: 4px;
+  color: black;
+  text-align: center;
+}
 .decoration_holder {
   display: inline;
 }

@@ -772,13 +772,25 @@ THREE.LDRStepRotation = function(x, y, z, type) {
 }
 
 THREE.LDRStepRotation.equals = function(a, b) {
-    let aNull = a === null;
-    let bNull = b === null;
-    if(aNull && bNull)
+    let aNull = !a;
+    let bNull = !b;
+    if(aNull && bNull) {
 	return true;
-    if(aNull !== bNull)
+    }
+    if(aNull !== bNull) {
+	if(!aNull) {
+	    return a.isDefault();
+	}
+	if(!bNull) {
+	    return b.isDefault();
+	}
 	return false;
+    }
     return (a.x === b.x) && (a.y === b.y) && (a.z === b.z) && (a.type === b.type);
+}
+
+THREE.LDRStepRotation.prototype.isDefault = function() {
+    return this.type === 'REL' && this.x === 0 && this.y === 0 && this.z === 0;
 }
 
 THREE.LDRStepRotation.prototype.clone = function() {
@@ -1538,8 +1550,8 @@ THREE.LDRPartType.prototype.isPart = function() {
 }
 
 THREE.LDRPartType.prototype.isReplacedPart = function() {
-    if(this.steps.length !== 1) {
-	return false; // Not exactly one step.
+    if(!this.isPart()) {
+	return false; // Not a part
     }
     let step = this.steps[0];
     if(step.hasPrimitives || step.subModels.length !== 1) {

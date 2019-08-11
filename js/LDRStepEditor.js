@@ -277,17 +277,20 @@ LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
 
     // Controls:
     this.makeEle(ele, 'button', 'pli_button',
-                 () => update(info => self.stepHandler.addStep(info)),
-                 'Add a step', self.makeAddIcon());
+                 () => update(info => self.stepHandler.movePrev(info, false)),
+                 'Move to previous step (skipping sub models) or move full step if nothing is selected', self.makeMovePrevIcon());
+    this.makeEle(ele, 'button', 'pli_button',
+                 () => update(info => self.stepHandler.movePrev(info, true)),
+                 'Move to new previous step', self.makeAddIcon(false));
     let removeButton = this.makeEle(ele, 'button', 'pli_button',
                                     () => update(info => self.stepHandler.remove(info)),
                                     'Delete', self.makeRemoveIcon());
     this.makeEle(ele, 'button', 'pli_button',
-                 () => update(info => self.stepHandler.movePrev(info)),
-                 'Move left (skipping sub models)', self.makeMovePrevIcon());
+                 () => update(info => self.stepHandler.moveNext(info, true)),
+                 'Move to new next step', self.makeAddIcon(true));
     this.makeEle(ele, 'button', 'pli_button',
-                 () => update(info => self.stepHandler.moveNext(info)),
-                 'Move right (skipping sub models)', self.makeMoveNextIcon());
+                 () => update(info => self.stepHandler.moveNext(info, false)),
+                 'Move to next step (skipping sub models) or move full step if nothing is selected', self.makeMoveNextIcon());
     let moveToNewSubModelButton = this.makeEle(ele, 'button', 'pli_button',
                                                () => update(info => self.stepHandler.moveToNewSubModel(info, self.generateNextID())),
                                                'Move down into a new sub model', self.makeMoveToNewSubModelIcon());
@@ -423,10 +426,13 @@ LDR.StepEditor.prototype.makeRemoveIcon = function() {
     return svg;
 }
 
-LDR.StepEditor.prototype.makeAddIcon = function() {
+LDR.StepEditor.prototype.makeAddIcon = function(right) {
     let svg = document.createElementNS(LDR.SVG.NS, 'svg');
     svg.setAttribute('viewBox', '-25 -25 50 50');
-    LDR.SVG.makePlus(svg, 0, 0, 25);
+    let m = right ? 1 : -1;
+    LDR.SVG.makePlus(svg, 17*m, 0, 8);
+    LDR.SVG.makeArrow(-25*m, 0, 4*m, 0, svg, true);
+    
     return svg;
 }
 
@@ -513,15 +519,6 @@ LDR.StepHandler.prototype.colorGhosted = function(colorID) {
     this.moveSteps(stepIndex, () => {});
 }
 
-LDR.StepHandler.prototype.addStep = function(info) {
-    let newStep = new THREE.LDRStep();
-    if(info.originalStep.rotation) {
-        newStep.rotation = info.originalStep.rotation.clone();
-    }
-    info.part.steps.splice(info.current+1, 0, newStep);
-    info.stepIndex += this.countUsages(info.part.ID)+1; // Move to new step.
-}
-
 LDR.StepHandler.prototype.remove = function(info) {
     if(info.part.ID === this.loader.mainModel && info.step.length === 1 && 
        (!info.originalSubModels.some(sm => sm.ghost) || 
@@ -555,12 +552,12 @@ LDR.StepHandler.prototype.remove = function(info) {
     }
 }
 
-LDR.StepHandler.prototype.moveNext = function(info) {
+LDR.StepHandler.prototype.moveNext = function(info, alwaysToNew) {
     let part = info.part;
     let current = info.current;
 
     // Create new empty next step if necessary:
-    if(current === part.steps.length-1) {
+    if(alwaysToNew || current === part.steps.length-1) {
         let newStep = new THREE.LDRStep();
         if(info.originalStep.rotation) {
             newStep.rotation = info.originalStep.rotation.clone();
@@ -606,12 +603,12 @@ LDR.StepHandler.prototype.moveNext = function(info) {
     }
 }
 
-LDR.StepHandler.prototype.movePrev = function(info) {
+LDR.StepHandler.prototype.movePrev = function(info, alwaysToNew) {
     let part = info.part;
     let current = info.current;
 
     // Create new empty previous step if necessary:
-    if(current === 0) {
+    if(alwaysToNew || current === 0) {
         let newStep = new THREE.LDRStep();
         if(info.originalStep.rotation) {
             newStep.rotation = info.originalStep.rotation.clone();

@@ -56,6 +56,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
     this.ldrLoader; // To be set once model is loaded.
     this.stepHandler; // Set in 'onPartsRetrieved'
     this.pliElement = document.getElementById('pli');
+    this.emptyElement = document.getElementById('empty_step');
     this.pliBuilder; // Set in 'onPartsRetrieved'
     this.pliHighlighted; // Set in onPLIClick. Indicates highlighted part for preview.
 
@@ -323,15 +324,19 @@ LDR.InstructionsManager.prototype.updateUIComponents = function(force) {
 
 LDR.InstructionsManager.prototype.updatePLI = function(force) {
     let step = this.stepHandler.getCurrentStep();
-    this.showPLI = ((ldrOptions.showEditor && this.canEdit) || ldrOptions.showPLI) && step.containsPartSubModels(this.ldrLoader);
+    let edit = ldrOptions.showEditor && this.canEdit;
+    this.showPLI = (edit || ldrOptions.showPLI) && step.containsPartSubModels(this.ldrLoader);
+    let e = this.pliElement;
+    this.emptyElement.style.display = (!edit || this.showPLI || step.containsNonPartSubModels(this.ldrLoader)) ? 'none' : 'block';
+
     if(!this.showPLI) {
-        this.pliBuilder.pliElement.style.display = 'none';
         this.pliW = this.pliH = 0;
+        e.style.display = 'none';
         return;
     }
-    this.pliBuilder.pliElement.style.display = 'inline';
+    e.style.display = 'inline';
     
-    let maxWidth = window.innerWidth - this.pliElement.offsetLeft - 18;
+    let maxWidth = window.innerWidth - e.offsetLeft - 18;
     let maxHeight = (window.innerHeight - 130 - this.adPeek);
     
     if(window.innerWidth > window.innerHeight) {
@@ -340,8 +345,8 @@ LDR.InstructionsManager.prototype.updatePLI = function(force) {
     else {
         this.pliBuilder.drawPLIForStep(false, step, maxWidth, maxHeight*0.35, this.maxSizePerPixel, force);
     }
-    this.pliW = parseInt(this.pliElement.offsetWidth + this.pliElement.offsetLeft)+6; // 6 for border.
-    this.pliH = parseInt(this.pliElement.offsetHeight);
+    this.pliW = parseInt(e.offsetWidth + e.offsetLeft)+6; // 6 for border.
+    this.pliH = parseInt(e.offsetHeight);
     //console.log("Setting PLI size " + this.pliW + ", " + this.pliH + " from " + maxWidth + "/" + maxHeight + ", maxSizePerPixel=" + this.maxSizePerPixel + ', step=' + step);
 }
 
