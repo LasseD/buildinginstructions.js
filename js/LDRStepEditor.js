@@ -562,7 +562,7 @@ LDR.StepHandler.prototype.moveNext = function(info, alwaysToNew) {
         if(info.originalStep.rotation) {
             newStep.rotation = info.originalStep.rotation.clone();
         }
-        part.steps.push(newStep);
+        part.steps.splice(current+1, 0, newStep);
     }
 
     if(!info.originalSubModels.some(pd => pd.ghost)) { // Move full step:
@@ -613,7 +613,7 @@ LDR.StepHandler.prototype.movePrev = function(info, alwaysToNew) {
         if(info.originalStep.rotation) {
             newStep.rotation = info.originalStep.rotation.clone();
         }
-        part.steps.splice(0, 0, newStep);
+        part.steps.splice(current, 0, newStep);
         current++; // Position has moved.
         info.stepIndex++; // Position has moved.
     }
