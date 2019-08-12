@@ -89,20 +89,23 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
 	    // Don't handle key events when ALT is pressed, as they indicate page shift overwrite!
 	    return;
         }
-        if(e.keyCode == '13') { // ENTER
+        if(e.keyCode === 13) { // ENTER
 	    let stepToGoTo = parseInt(self.ldrButtons.stepInput.value);
 	    self.goToStep(stepToGoTo);
         }
-        else if(e.keyCode == '37') { // Left:
+        else if(e.keyCode === 37) { // Left:
 	    self.prevStep();
         }
-        else if (e.keyCode == '39') { // Right:
+        else if (e.keyCode === 39) { // Right:
             self.nextStep();
         }
-        else if(e.keyCode == '27') { // ESC closes preview.
+        else if(e.keyCode === 27) { // ESC closes preview.
 	    self.hidePliPreview();
             self.hideDone();
         }
+	else if(ldrOptions.showEditor && self.canEdit) { // Send rest to editor if available:
+	    self.stepEditor.handleKeyDown(e);
+	}
     }
     document.onkeydown = handleKeyDown;
       

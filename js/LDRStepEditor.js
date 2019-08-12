@@ -14,8 +14,6 @@
    - Split sub models in step to more steps when in placement step
    - Join with sub models in step to the right
    - save
-   TODO:
-   - Add keyboard shortcuts
  */
 LDR.StepEditor = function(loader, stepHandler, reset, onChange, modelID) {
     this.loader = loader;
@@ -44,7 +42,7 @@ LDR.StepEditor = function(loader, stepHandler, reset, onChange, modelID) {
     showOrHide(ldrOptions);
     
     // Private function to make it easier to create GUI components:
-    this.makeEle = function(parent, type, cls, onclick, desc, icon) {
+    this.makeEle = function(parent, type, cls, onclick, desc, icon, key) {
         let ret = document.createElement(type);
         parent.appendChild(ret);
 
@@ -58,14 +56,37 @@ LDR.StepEditor = function(loader, stepHandler, reset, onChange, modelID) {
             ret.append(icon);
         }
         if(desc) {
-	    if(icon) {
-		ret.setAttribute('title', desc);
-	    }
-	    else {
+	    if(!icon) {
 		ret.innerHTML = desc;
 	    }
+	    ret.setAttribute('title', desc + ' (Press ' + key + ')');
         }
         return ret;
+    }
+}
+
+LDR.StepEditor.prototype.handleKeyDown = function(e) {
+    let k = e.keyCode;
+    switch(k) {
+    case 67: // 'C'
+	this.toggleRot();
+	break;
+    case 81: // 'Q'
+	this.save();
+	break;
+    case 88: // 'X'
+	this['X' + (e.shiftKey ? '-' : '+')]();
+	break;
+    case 89: // 'Y'
+	this['Y' + (e.shiftKey ? '-' : '+')]();
+	break;
+    case 90: // 'Z'
+	this['Z' + (e.shiftKey ? '-' : '+')]();
+	break;
+	// TODO: ALL OTHER BUTTONS + NAVIGATE PLI
+    default:
+	console.log('Unknown ' + k);
+	break;
     }
 }
 
@@ -91,35 +112,38 @@ LDR.StepEditor.prototype.toggleEnabled = function() {
     ldrOptions.onChange();
 }
 
+LDR.StepEditor.prototype.save = function() {
+    let fileContent = this.loader.toLDR();
+    let self = this;
+    self.saveEle.innerHTML = 'Saving...';
+    $.ajax({
+        url: 'ajax/save.htm',
+        type: 'POST',
+        data: {model: self.modelID, content: fileContent},
+        dataType: "text",
+        success: function(result) {
+            self.saveEle.innerHTML = 'SAVE';
+	    self.saveEle.style.backgroundColor = '#444';
+	    self.saveEle.style.borderColor = '#222';
+            console.dir(result);
+        },
+        error: function(xhr, status, error_message) {
+            self.saveEle.innerHTML = 'ERROR! PRESS TO SAVE AGAIN';
+            console.dir(xhr);
+            console.warn(status);
+            console.warn(error_message);
+        }
+    });
+}
+
 LDR.StepEditor.prototype.createGuiComponents = function(parentEle) {
     this.createRotationGuiComponents(parentEle);
     this.createPartGuiComponents(parentEle);
 
     let self = this;
-    function save() {
-        let fileContent = self.loader.toLDR();
-        self.saveEle.innerHTML = 'Saving...';
-        $.ajax({
-                url: 'ajax/save.htm',
-                type: 'POST',
-                data: {model: self.modelID, content: fileContent},
-                dataType: "text",
-                success: function(result) {
-                    self.saveEle.innerHTML = 'SAVE';
-		    self.saveEle.style.backgroundColor = '#444';
-		    self.saveEle.style.borderColor = '#222';
-                    console.dir(result);
-                },
-                error: function(xhr, status, error_message) {
-                    self.saveEle.innerHTML = 'ERROR! PRESS TO SAVE AGAIN';
-                    console.dir(xhr);
-                    console.warn(status);
-                    console.warn(error_message);
-                }
-            });
-    }
     let saveParentEle = this.makeEle(parentEle, 'span', 'editor_save');
-    this.saveEle = this.makeEle(saveParentEle, 'button', 'save_button', save, 'SAVE');
+    this.saveEle = this.makeEle(saveParentEle, 'button', 'save_button',
+				() => self.save(), 'SAVE', false, 'Q');
     this.updateCurrentStep();
 }
 
@@ -164,8 +188,11 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
         propagate(rot);
     }
 
-    function makeEnd() {
-        propagate(null);
+    this.toggleRot = function() {
+	let step = self.step.original;
+        let rot = step.rotation ? step.rotation.clone() : new THREE.LDRStepRotation(0, 0, 0, 'REL');
+        rot.type = (rot.type === 'REL') ? 'ABS' : 'REL';
+        propagate(rot);
     }
 
     function setXYZ(e) {
@@ -190,7 +217,7 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
     function makeRotationRadioButton(value, onClick, icon) {
         let button = self.makeEle(Ele, 'input', 'editor_radio_button', onClick);
 
-        let label = self.makeEle(Ele, 'label', 'editor_radio_label', null, 'Set the rotation of the step to type "' + value + '"', icon);
+        let label = self.makeEle(Ele, 'label', 'editor_radio_label', null, 'Set the rotation of the step to type "' + value + '"', icon, 'C');
         label.setAttribute('for', value);
 
         button.setAttribute('type', 'radio');
@@ -201,6 +228,7 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
     Rel = makeRotationRadioButton('REL', makeRel, this.makeRelIcon());
     Abs = makeRotationRadioButton('ABS', makeAbs, this.makeAbsIcon());
 
+    let ROT_DIFF = 90;
     function makeXYZ(icon, sub, add, x1, y1, x2, y2) {
         function subOrAdd(fun) {
 	    let step = self.step.original;
@@ -209,18 +237,24 @@ LDR.StepEditor.prototype.createRotationGuiComponents = function(parentEle) {
             propagate(rot);
             self.onChange();
         }
-        let subEle = self.makeEle(Ele, 'button', 'editor_button', () => subOrAdd(sub), icon+'-', self.makeBoxArrowIcon(x1, y1, x2, y2));
+	self[icon+'+'] = () => subOrAdd(add);
+	self[icon+'-'] = () => subOrAdd(sub);
+
+        let subEle = self.makeEle(Ele, 'button', 'editor_button', () => subOrAdd(sub), 
+				  'Reduce ' + icon + ' by ' + ROT_DIFF + ' degrees',
+				  self.makeBoxArrowIcon(x1, y1, x2, y2), 'SHIFT ' + icon);
         let ret = self.makeEle(Ele, 'input', 'editor_input', setXYZ);
-        let addEle = self.makeEle(Ele, 'button', 'editor_button', () => subOrAdd(add), icon+'+', self.makeBoxArrowIcon(x2, y2, x1, y1));
+        let addEle = self.makeEle(Ele, 'button', 'editor_button', () => subOrAdd(add),
+				  'Increase ' + icon + ' by ' + ROT_DIFF + ' degrees',
+				  self.makeBoxArrowIcon(x2, y2, x1, y1), icon);
 
         ret.addEventListener('keyup', setXYZ);
         ret.addEventListener('keydown', e => e.stopPropagation());
         return ret;
     }
-    let rotDiff = 90;
-    X = makeXYZ('X', rot => rot.x-=rotDiff, rot => rot.x+=rotDiff, -8, 11, -8, -5);
-    Y = makeXYZ('Y', rot => rot.y-=rotDiff, rot => rot.y+=rotDiff, -10, 4, 10, 4);
-    Z = makeXYZ('Z', rot => rot.z-=rotDiff, rot => rot.z+=rotDiff, 8, -5, 8, 11);
+    X = makeXYZ('X', rot => rot.x-=ROT_DIFF, rot => rot.x+=ROT_DIFF, -8, 11, -8, -5);
+    Y = makeXYZ('Y', rot => rot.y-=ROT_DIFF, rot => rot.y+=ROT_DIFF, -10, 4, 10, 4);
+    Z = makeXYZ('Z', rot => rot.z-=ROT_DIFF, rot => rot.z+=ROT_DIFF, 8, 11, 8, -5);
 
     function onStepSelected() {
         let rot = self.step.original.rotation;
@@ -387,21 +421,6 @@ LDR.StepEditor.prototype.makeAbsIcon = function() {
     LDR.SVG.makeBlock3D(-50, 0, svg);
     LDR.SVG.appendRotationCircle(0, 0, 18, svg);
     svg.append(LDR.SVG.makeRect(37, -13, 24, 31, true));
-    return svg;
-}
-
-LDR.StepEditor.prototype.makeEndIcon = function() {
-    let svg = document.createElementNS(LDR.SVG.NS, 'svg');
-    svg.setAttribute('viewBox', '-75 -25 150 50');
-
-    LDR.SVG.makeBlock3D(50, 0, svg);
-    LDR.SVG.appendRotationCircle(0, 0, 18, svg);
-
-    let g = document.createElementNS(LDR.SVG.NS, 'g');
-    svg.appendChild(g);
-    g.setAttribute('transform', 'rotate(90 0 0) translate(50 55)');
-    let turned = LDR.SVG.makeBlock3D(-50, 0, g);
-
     return svg;
 }
 
