@@ -1,7 +1,7 @@
 'use strict';
 
 LDR.STORAGE = function(onReady) {
-    this.req = indexedDB.open("ldraw", 3);
+    this.req = indexedDB.open("ldraw", 4);
     this.db;
 
     this.req.onupgradeneeded = function(event) {
@@ -11,16 +11,13 @@ LDR.STORAGE = function(onReady) {
 	if(event.oldVersion < 1) {
 	    db.createObjectStore("parts", {keyPath: "ID"});
 	}
-	else if(event.oldVersion < 2) {
-	    // Colors in the 10k+ range need to be updated to 100k+
-	    // This is the easy way to upgrade: Simply purge the store.
-	    var partsStore = this.transaction.objectStore("parts");
-	    partsStore.clear();
-	}
-	else if(event.oldVersion < 3) {
+	if(event.oldVersion < 3) {
 	    // New structure of the parts table - now storing lines instead of geometries.
 	    var partsStore = this.transaction.objectStore("parts");
 	    partsStore.clear();
+	}
+	if(event.oldVersion < 4) {
+	    db.createObjectStore("instructions", {keyPath: "key"});
 	}
     };
 
@@ -66,16 +63,17 @@ LDR.STORAGE.prototype.retrievePartsFromStorage = function(loader, parts, onDone)
 
         // Check if any sub model should be fetched:
         let part = loader.getPartType(partID);
-        if(part) {
+        if(part) { // Remember onHandled is also called on error, where part will not be set.
+	    let toFetch = [];
             let checkSubModel = function(sm) {
                 if(!(loader.partTypes.hasOwnProperty(sm.ID) || seen.hasOwnProperty(sm.ID))) {
-                    //console.log(partID + ' => fetch: ' + sm.ID);
-                    remaining++;
                     seen[sm.ID] = true;
-                    fetch(sm.ID);
+                    toFetch.push(sm.ID);
                 }
             }
             part.steps.forEach(step => step.subModels.forEach(checkSubModel));
+	    remaining += toFetch.length;
+	    toFetch.forEach(fetch);
         }
 
 	if(remaining === 0) {
@@ -112,9 +110,9 @@ LDR.STORAGE.prototype.retrievePartsFromStorage = function(loader, parts, onDone)
 	    let result = request.result;
 	    if(result) {
 		//console.log("Fetched " + shortPartID + " from indexedDB");
-		let part = new THREE.LDRPartType();
-                part.unpack(result);
-                loader.partTypes[partID] = part;
+		let pt = new THREE.LDRPartType();
+                pt.unpack(result);
+		loader.partTypes[pt.ID] = pt;
 	    }
 	    else {
 		stillToBeBuilt.push(partID);
@@ -126,7 +124,37 @@ LDR.STORAGE.prototype.retrievePartsFromStorage = function(loader, parts, onDone)
     parts.forEach(fetch);
 }
 
-LDR.STORAGE.prototype.savePartsToStorage = function(parts) {
+LDR.STORAGE.prototype.retrieveInstructionsFromStorage = function(loader, onDone) {
+    if(!loader.options.hasOwnProperty('key') || !loader.options.hasOwnProperty('timestamp')) {
+	onDone(false);
+	return;
+    }
+    let key = loader.options.key;
+    let timestamp = loader.options.timestamp;
+    console.log('Attempting to retrieve instructions ' + key + ' from indexedDB!');    
+    let transaction = this.db.transaction(["instructions"]);
+    let objectStore = transaction.objectStore("instructions");
+
+    let request = objectStore.get(key);
+    request.onerror = function(event) {
+	console.warn(shortPartID + " retrieval error from indexedDB!");
+	console.dir(event);
+	onDone(false);
+    };
+    request.onsuccess = function(event) {
+	let result = request.result;
+	if(result && result.timestamp === timestamp) {
+	    //console.log("Fetched " + key + " from indexedDB");
+	    let parts = loader.unpack(result);
+	    onDone(true, parts);
+	}
+	else {
+	    onDone(false);
+	}
+    };
+}
+
+LDR.STORAGE.prototype.savePartsToStorage = function(parts, loader) {
     let partsWritten = 0;
     let transaction = this.db.transaction(["parts"], "readwrite");
     
@@ -134,7 +162,7 @@ LDR.STORAGE.prototype.savePartsToStorage = function(parts) {
         if(partsWritten === 0) {
             console.log('No new parts were written to indexedDB');
         }
-        else {
+        else if(partsWritten > 1) {
             console.log('Completed writing of ' + partsWritten + ' parts');
         }
     };
@@ -147,9 +175,33 @@ LDR.STORAGE.prototype.savePartsToStorage = function(parts) {
     
     function savePartType(pt) {
         if(pt.canBePacked()) {
-            let packed = pt.pack();
+            let packed = pt.pack(loader);
             objectStore.put(packed).onsuccess = function(e) {partsWritten++;};
         }
     }
     parts.forEach(savePartType);
+}
+
+LDR.STORAGE.prototype.saveInstructionsToStorage = function(loader, key, timestamp) {
+    if(loader.hasOwnProperty('instructionsSaved')) {
+	console.warn('Attempting to save instructions more than once!');
+	return;
+    }
+    loader.instructionsSaved = true;
+    let transaction = this.db.transaction(["instructions"], "readwrite");
+    
+    transaction.oncomplete = function(event) {
+        console.log('Instructions transaction for saving completed successfully!');
+    };
+    transaction.onerror = function(event) {
+        console.warn('Error while writing instructions!');
+        console.dir(event);
+        console.dir(transaction.error);
+    };
+    let objectStore = transaction.objectStore("instructions");
+    
+    let packed = loader.pack();
+    packed.key = key;
+    packed.timestamp = timestamp;
+    objectStore.put(packed).onsuccess = () => console.log('Instructions saved!');
 }

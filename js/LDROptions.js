@@ -722,13 +722,13 @@ LDR.Options.prototype.appendStudHighContrastOptions = function(optionsBlock) {
 }
 
 LDR.Options.prototype.appendStudLogoOptions = function(optionsBlock) {
-    let group = this.addOptionsGroup(optionsBlock, 6, "Logo on Studs");
+    let group = this.addOptionsGroup(optionsBlock, 2, "Logo on Studs");
     let options = this;
     let onChange = function(idx) {
 	options.studLogo = idx;
 	options.onChange(true);
     };
-    let buttons = this.createButtons(group, 6, this.studLogo, onChange);
+    let buttons = this.createButtons(group, 2, this.studLogo > 0 ? 1 : 0, onChange);
 
     /* 
        Option 0: Off
@@ -740,7 +740,7 @@ LDR.Options.prototype.appendStudLogoOptions = function(optionsBlock) {
 	svg.appendChild(LDR.SVG.makeOffIcon(0, 0, 100));
 	buttons[0].appendChild(svg);
     }
-    for(let i = 1; i < 6; i++) {
+    for(let i = 1; i < 2; i++) {
 	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '-25 -18 50 25');
 	svg.setAttribute('class', 'ui_toggles');

@@ -6,7 +6,7 @@ LDR.ICON_SIZE = 200;
   The LDRSubPartBulder is used for displaying a part and all of its sub parts, 
   primitives, and comment lines.
 */
-LDR.SubPartBulder = function(baseMC, table, redPoints, loader, partType, colorID, position, rotation, scene, subjectSize, onIconClick, from) {
+LDR.SubPartBuilder = function(baseMC, table, redPoints, loader, partType, colorID, position, rotation, scene, subjectSize, onIconClick, from) {
     let self = this;
     this.baseMC = baseMC;
     this.table = table;
@@ -104,7 +104,7 @@ LDR.buildThumbnail = function(ele) {
 
 THREE.LDRStep.prototype.removePrimitivesAndSubParts = () => {}; // Ensure primitives are not deleted.
 
-LDR.SubPartBulder.prototype.setFileLineVisibility = function(v) {
+LDR.SubPartBuilder.prototype.setFileLineVisibility = function(v) {
     if(!this.linesBuilt) {
 	return;
     }
@@ -121,7 +121,7 @@ LDR.SubPartBulder.prototype.setFileLineVisibility = function(v) {
     }
 }
 
-LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
+LDR.SubPartBuilder.prototype.buildIcons = function(baseObject, linkPrefix) {
     const self = this;
     // Handle all lines:
     let transformColor = function(subColorID) {
@@ -334,7 +334,7 @@ LDR.SubPartBulder.prototype.buildIcons = function(baseObject, linkPrefix) {
     this.linesBuilt = true;
 } 
 
-LDR.SubPartBulder.prototype.drawAllIcons = function() {
+LDR.SubPartBuilder.prototype.drawAllIcons = function() {
     // Base icon:
     this.setFileLineVisibility(false);
     this.redPoints.visible = false;

@@ -17,23 +17,24 @@ LDR.PartsBuilder = function(loader, mainModelID, mainModelColor, onBuiltPart) {
     loader.substituteReplacementParts();
 
     function build(multiplier, partID, colorID) {
+	//console.log('Building ' + multiplier + " x '" + partID + "' in color " + colorID);
 	if(colorID == 16) {
 	    throw "Building with default color not allowed! Part ID: " + partID;
         }
 	let model = loader.getPartType(partID);
 
-        function handleStep(step) {
+        function handleStep(step, idx) {
             if(step.containsNonPartSubModels(loader)) {
 		let ldr = step.subModels[0];
 		build(multiplier*step.subModels.length, ldr.ID, ldr.colorID == 16 ? colorID : ldr.colorID);
                 return;
 	    }
-            for(let j = 0; j < step.subModels.length; j++) {
-                let dat = step.subModels[j];
+
+            step.subModels.forEach(dat => {
                 let datColorID = dat.colorID == 16 ? colorID : dat.colorID;
                 // Key consists of ID (without .dat) '_', and color ID
 		if(dat.REPLACEMENT_PLI === true) {
-		    continue; // Replaced part.
+		    return; // Replaced part.
 		}
 		let id = dat.REPLACEMENT_PLI ? dat.REPLACEMENT_PLI : dat.ID;
                 let key = id.endsWith('.dat') ? id.substring(0, id.length-4) : id;
@@ -46,7 +47,7 @@ LDR.PartsBuilder = function(loader, mainModelID, mainModelColor, onBuiltPart) {
                 }
                 // Add count:
                 pc.amount += multiplier;
-	    }
+	    });
         }
         model.steps.forEach(handleStep);
     }

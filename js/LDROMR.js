@@ -163,57 +163,44 @@ LDR.OMR.InlineUnofficialParts = function() {
  */
 LDR.OMR.StandardizeFileNames = function(setNumber) {
     let setNumberPrefix = setNumber + ' - ';
-    let lp = setNumberPrefix.length;
-    let title = (id,desc) => "Click here to ensure all file headers follow the standard <pre>0 FILE " + 
-      setNumberPrefix + id + "\n0 " + desc + "\n0 Name: " + setNumberPrefix + id + "</pre>";
+    let title = (i,d) => "Change file headers to follow the standard <pre>0 FILE " + i + "\n0 " + d + "\n0 Name: " + i + "</pre>";
+    
+    function extract(x) {
+	console.log(x + " -> ");
+	if(x.endsWith('.ldr') || x.endsWith('.LDR') || x.endsWith('.dat') || x.endsWith('.DAT') || x.endsWith('.mpd') || x.endsWith('.MPD')) {
+	    x = x.substring(0, x.length-4);
+	}
+	x = x.replace(/^[\d\s\-]+\-\s+/g, '');
+	console.log(x);
+	return x;
+    }
 
     let checkPartType = function(pt) {
         if(!pt.isPart()) { // Not a part: Check that all 3 lines are well-formed:
-            if(!pt.name.toLowerCase().endsWith('.ldr')) {
-                return title(pt.name + '.ldr', pt.name);
-            }
-            if(!pt.name.startsWith(setNumberPrefix)) {
-                return title(pt.name, pt.name.substring(0, pt.name.length-4));
-            }
-            let desc = pt.name.substring(lp, pt.name.length-4);
-            if(pt.modelDescription !== desc) {
-		return title(pt.name, desc);
+	    let d = extract(pt.name);
+	    let i = setNumberPrefix + d + '.ldr';
+            if(pt.name !== i || pt.modelDescription !== d) {
+		return title(i, d);
 	    }
 	    return false;
         }
-        else if(!pt.inlined) { // Check a part for inconsistencies:
-            if(!pt.name.toLowerCase().endsWith('.dat')) {
-                return title(pt.name + '.dat', pt.modelDescription);
-            }
-            if(pt.ldraw_org === 'Unofficial_Part') {
-                if(!pt.name.startsWith(setNumberPrefix)) {
-                    return title(setNumberPrefix + pt.name, pt.modelDescription);
-                }
+        else if(!pt.inlined && pt.ldraw_org && pt.ldraw_org.startsWith('Unofficial_')) { // Check a part for inconsistencies:
+            if(!pt.name.startsWith(setNumberPrefix)) {
+		let i = setNumberPrefix + extract(pt.name) + '.dat';
+                return title(i, pt.modelDescription);
             }
         }
         return false;
     }
 
     let handlePartType = function(pt) {
-        if(!pt.isPart()) { // Not a part: Ensure all 3 lines are well-formed
-            if(!pt.name.toLowerCase().endsWith('.ldr')) {
-                pt.name += '.ldr';
-            }
-            if(!pt.name.startsWith(setNumberPrefix)) {
-                pt.name = setNumberPrefix + pt.name;
-            }
-            let desc = pt.name.substring(lp, pt.name.length-4);
-            pt.modelDescription = desc;
+        if(!pt.isPart()) {
+	    let d = extract(pt.name);
+	    pt.modelDescription = d;
+	    pt.name = setNumberPrefix + d + '.ldr';
         }
-        else if(!pt.inlined) { // Handle a part:
-            if(!pt.name.toLowerCase().endsWith('.dat')) {
-                pt.name += '.dat';
-            }
-            if(pt.ldraw_org === 'Unofficial_Part') {
-                if(!pt.name.startsWith(setNumberPrefix)) {
-                    pt.name = setNumberPrefix + pt.name;
-                }
-            }
+        else if(!pt.inlined && pt.ldraw_org && pt.ldraw_org.startsWith('Unofficial_')) {
+            pt.name = setNumberPrefix + extract(pt.name) + '.dat';
         }
     }
 
