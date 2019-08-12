@@ -151,27 +151,23 @@ LDR.Colors.buildTriangleMaterial = function(colorManager, color) {
     return ret;
 }
 
-LDR.Colors.texturesLoaded = false;
 LDR.Colors.loadTextures = function() {
-    if(LDR.Colors.texturesLoaded) {
+    if(LDR.Colors.textures) {
         return;
     }
+    var textureLoader = new THREE.TextureLoader();
+
     // env map
     var path = "textures/cube/";
-    var format = '.jpg';
-    var urls = [
-                path + 'px' + format, path + 'nx' + format,
-                path + 'py' + format, path + 'ny' + format,
-                path + 'pz' + format, path + 'nz' + format
-                ]; // Scene around
-    var reflectionCube = new THREE.CubeTextureLoader().load( urls );
+    var sides = ['px', 'nx', 'py', 'ny', 'pz', 'nz'];
     
     // textures
-    var textureLoader = new THREE.TextureLoader();
-    var normalMap = textureLoader.load( "textures/metal/normal.jpg" ); // blue/purple/red map of the mask - colors show dents.
-    var aoMap = textureLoader.load( "textures/metal/ao.jpg" ); // grayscale looking like a print of the mask
-    var displacementMap = textureLoader.load( "textures/metal/displacement.jpg" ); // grayscale looks like a negative print.
-    LDR.Colors.texturesLoaded = true;
+    LDR.Colors.textures = {
+        reflectionCube: new THREE.CubeTextureLoader().load(sides.map(x => path + x + '.jpg')),
+        normalMap: textureLoader.load("textures/metal/normal.jpg"), // blue/purple/red map of the mask - colors show dents.
+        aoMap: textureLoader.load("textures/metal/ao.jpg"), // grayscale looking like a print of the mask
+        displacementMap: textureLoader.load("textures/metal/displacement.jpg"), // grayscale looks like a negative print.
+    };
 }
 
 LDR.Colors.buildStandardMaterial = function(colorID) {
@@ -186,18 +182,18 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
             roughness: 0.1, // Smooth ABS
             metalness: 0,
             
-            /*normalMap: normalMap,
+            /*normalMap: LDR.Colors.textures.normalMap,
               normalScale: new THREE.Vector2(1, -1),*/
             
-            /*aoMap: aoMap,
-              aoMapIntensity: 1,*/
+            /*aoMap: LDR.Colors.textures.aoMap,
+              aoMapIntensity: 1.0,*/
             
-            /*displacementMap: displacementMap,
+            /*displacementMap: LDR.Colors.textures.displacementMap,
               displacementScale: 2.436143,
               displacementBias: -0.428408,*/
             
-            //envMap: reflectionCube,
-            //envMapIntensity: 0.2
+            envMap: LDR.Colors.textures.reflectionCube,
+            envMapIntensity: 0.8
         };
 
         if(color.material) { // Special materials:

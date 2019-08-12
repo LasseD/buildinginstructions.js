@@ -1417,6 +1417,7 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
                 let material = LDR.Colors.buildStandardMaterial(shownColor);
                 let g = this.geometry.triangleGeometry[tc];
                 let mesh = new THREE.Mesh(g.clone(), material);
+                mesh.castShadow = true;
                 mesh.geometry.applyMatrix(m4);
 
                 if(LDR.Colors.isTrans(shownColor)) {

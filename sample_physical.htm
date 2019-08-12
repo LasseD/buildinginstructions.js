@@ -20,9 +20,9 @@
     <script>
       var startTime = new Date();
       // The model to be rendered:
-      var modelTypeUrl = 'models/fail1.mpd';
+      //var modelTypeUrl = 'models/fail1.mpd';
       //var modelTypeUrl = 'models/pyramid5.ldr';
-      //var modelTypeUrl = '85970.dat';
+      var modelTypeUrl = '85970.dat';
 
       // Set up camera:
       var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
@@ -39,37 +39,57 @@
       var scene = new THREE.Scene();
       scene.background = new THREE.Color(0xFFFFFF);
 
+      // Floor:
+      var floorGeometry = new THREE.PlaneBufferGeometry(200, 200, 32, 32);
+      var floorMaterial = new THREE.MeshStandardMaterial({color: 0xEEEEEE});
+      var floor = new THREE.Mesh(floorGeometry, floorMaterial);
+      floor.rotation.x = -Math.PI/2;
+      floor.receiveShadow = true;
+      scene.add(floor);
+
       var baseObject = new THREE.Group(), opaqueObject = new THREE.Group(), transObject = new THREE.Group();
       baseObject.add(opaqueObject); // Draw non-trans before trans.
       baseObject.add(transObject);
       scene.add(baseObject);
       var mc = new LDR.MeshCollector(opaqueObject, transObject);
 
+      // lights
+      let ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.1);
+      //scene.add(ambientLight);
+
+      function createPointLight(color, intensity, x, y, z) {
+        var light = new THREE.PointLight(color, intensity);
+        light.position.set(x*1000, y*1000, z*1000);
+        light.castShadow = true;
+
+      light.shadow.mapSize.width = 512;  // default
+      light.shadow.mapSize.height = 512; // default
+      light.shadow.camera.near = 0.5;       // default
+      light.shadow.camera.far = 500      // default
+
+        scene.add(light);
+
+        var helper = new THREE.CameraHelper(light.shadow.camera);
+        scene.add( helper );
+
+        return light;
+      }
+
+      createPointLight(0xF6F3FF, 0.8, 10, 8, 10);
+      //createPointLight(0xD6D3DF, 0.7, -10, 7, 10);
+      //createPointLight(0x00FF00, 0.9, 0, 0, 0);
+      //createPointLight(0x0000FF, 0.5, 0, 0, 0);
+
       // Set up renderer:
       var renderer = new THREE.WebGLRenderer({antialias: true});
       renderer.setPixelRatio(window.devicePixelRatio);
       renderer.gammaInput = true;
       renderer.gammaOutput = true;
+      renderer.shadowMap.enabled = true;
       function render() {
         renderer.render(scene, camera);
       }
       document.body.appendChild(renderer.domElement);
-
-      // lights
-      let ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.1);
-      scene.add(ambientLight);
-
-      pointLight1 = new THREE.PointLight(0xFFFFDD, 0.5);
-      pointLight1.position.z = 25000;
-      scene.add( pointLight1 );
-
-      var pointLight2 = new THREE.PointLight(0xFFDDFF, 1);
-      camera.add( pointLight2 );
-
-      var pointLight3 = new THREE.PointLight(0xDDDDFF, 0.5);
-      pointLight3.position.x = -100000;
-      pointLight3.position.z = 100000;
-      scene.add( pointLight3 );
 
       function onWindowResize(){
         camera.left = -window.innerWidth;
@@ -98,13 +118,14 @@
         inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
 
         // Generate the mesh:
-        mainModel.generateThreePart(ldrLoader, 1, origo, inv, true, false, mc);
+        mainModel.generateThreePart(ldrLoader, 15, origo, inv, true, false, mc);
 
         // Find center of drawn model:
         var b = mc.boundingBox;
         var elementCenter = new THREE.Vector3();
         b.getCenter(elementCenter);
-        //baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
+        baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
+        floor.position.y = b.min.y - elementCenter.y;
         //baseObject.add(new THREE.Box3Helper(b, 0x0000FF)); // Uncomment if you want to see the bounding box
         mc.updateMeshVisibility();
 
@@ -116,7 +137,7 @@
       let storage;
       var ldrOptions = new LDR.Options(); // Determine how to show lines, studs, and logos. Change options using sample_instruction.htm
       ldrOptions.lineContrast = 2;
-      ldrOptions.studLogo = 0;//4;
+      ldrOptions.studLogo = 4;
 
       //let onStorageReady = function() {
         ldrLoader = new THREE.LDRLoader(onLoad, storage, {physicalRenderingAge:20});
