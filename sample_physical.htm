@@ -1,151 +1,52 @@
 <!DOCTYPE html>
 <html>
  <head>
-    <meta charset=utf-8>
-    <title>Sample Render</title>
-    <meta name="viewport" content="width=device-width" />
+  <title>Sample Rendering with Physical Properties</title>
+  <meta name="viewport" content="width=device-width" />
  </head>
  <body>
-    <script src="js/three.min.js"></script>
-    <script src="js/OrbitControls.js"></script>
-    <script src="js/colors.js"></script>
-    <script src="js/ClientStorage.js"></script>
-    <script src="js/LDROptions.js"></script>
-    <script src="js/LDRShaders.js"></script>
-    <script src="js/LDRColorMaterials.js"></script>
-    <script src="js/LDRGeometries.js"></script>
-    <script src="js/LDRLoader.js"></script>
-    <script src="js/LDRGenerator.js"></script>
-    <script src="js/LDRStuds.js"></script>
-    <script>
-      var startTime = new Date();
-      // The model to be rendered:
-      //var modelTypeUrl = 'models/fail1.mpd';
-      //var modelTypeUrl = 'models/pyramid5.ldr';
-      var modelTypeUrl = '85970.dat';
+  <script src="js/three.min.js"></script>
+  <script src="js/OrbitControls.js"></script>
+  <script src="js/colors.js"></script>
+  <script src="js/Scene.js"></script>    
+  <script src="js/ClientStorage.js"></script>
+  <script src="js/LDROptions.js"></script>
+  <script src="js/LDRShaders.js"></script>
+  <script src="js/LDRColorMaterials.js"></script>
+  <script src="js/LDRGeometries.js"></script>
+  <script src="js/LDRLoader.js"></script>
+  <script src="js/LDRGenerator.js"></script>
+  <script src="js/LDRStuds.js"></script>
+  <script>
+      let startTime = new Date();
 
-      // Set up camera:
-      var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
-      camera.position.set(10000, 7000, 10000);
-      camera.lookAt(new THREE.Vector3());
-      
-      /*
-      var aspect = window.innerWidth / window.innerHeight;
-      let height = 100;
-      camera = new THREE.OrthographicCamera( - height * aspect, height * aspect, height, - height, 1, 10000 );
-      camera.position.z = 1500;//*/
+      let modelToBeRendered = 'models/fail1.mpd';
+      //let modelToBeRendered = 'models/pyramid5.ldr';
 
-      // Set up scene:
-      var scene = new THREE.Scene();
-      scene.background = new THREE.Color(0xFFFFFF);
+      let scene = new ENV.Scene(window.innerWidth, window.innerHeight);
+      document.body.appendChild(scene.renderer.domElement);
 
-      // Floor:
-      var floorGeometry = new THREE.PlaneBufferGeometry(200, 200, 32, 32);
-      var floorMaterial = new THREE.MeshStandardMaterial({color: 0xEEEEEE});
-      var floor = new THREE.Mesh(floorGeometry, floorMaterial);
-      floor.rotation.x = -Math.PI/2;
-      floor.receiveShadow = true;
-      scene.add(floor);
-
-      var baseObject = new THREE.Group(), opaqueObject = new THREE.Group(), transObject = new THREE.Group();
-      baseObject.add(opaqueObject); // Draw non-trans before trans.
-      baseObject.add(transObject);
-      scene.add(baseObject);
-      var mc = new LDR.MeshCollector(opaqueObject, transObject);
-
-      // lights
-      let ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.1);
-      //scene.add(ambientLight);
-
-      function createPointLight(color, intensity, x, y, z) {
-        var light = new THREE.PointLight(color, intensity);
-        light.position.set(x*1000, y*1000, z*1000);
-        light.castShadow = true;
-
-      light.shadow.mapSize.width = 512;  // default
-      light.shadow.mapSize.height = 512; // default
-      light.shadow.camera.near = 0.5;       // default
-      light.shadow.camera.far = 500      // default
-
-        scene.add(light);
-
-        var helper = new THREE.CameraHelper(light.shadow.camera);
-        scene.add( helper );
-
-        return light;
-      }
-
-      createPointLight(0xF6F3FF, 0.8, 10, 8, 10);
-      //createPointLight(0xD6D3DF, 0.7, -10, 7, 10);
-      //createPointLight(0x00FF00, 0.9, 0, 0, 0);
-      //createPointLight(0x0000FF, 0.5, 0, 0, 0);
-
-      // Set up renderer:
-      var renderer = new THREE.WebGLRenderer({antialias: true});
-      renderer.setPixelRatio(window.devicePixelRatio);
-      renderer.gammaInput = true;
-      renderer.gammaOutput = true;
-      renderer.shadowMap.enabled = true;
-      function render() {
-        renderer.render(scene, camera);
-      }
-      document.body.appendChild(renderer.domElement);
-
-      function onWindowResize(){
-        camera.left = -window.innerWidth;
-        camera.right = window.innerWidth;
-        camera.top = window.innerHeight;
-        camera.bottom = -window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        render();
-      }
-
-      // React to user input:
-      var controls = new THREE.OrbitControls(camera, renderer.domElement);
-      controls.addEventListener('change', render);
+      let onWindowResize = () => scene.onChange(window.innerWidth, window.innerHeight);
       window.addEventListener('resize', onWindowResize, false);
 
-      // Three.js loader for LDraw models:
-      var ldrLoader;
+      let ldrLoader; // Three.js loader for LDraw models
+      let onLoad = function() {
+        let inv = new THREE.Matrix3(); inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
+        ldrLoader.getMainModel().generateThreePart(ldrLoader, 36, new THREE.Vector3(), inv, true, false, scene.mc);
 
-      var onLoad = function() {
-        var mainModel = ldrLoader.getMainModel(); // Main model from the LDraw file (first model encountered)
+        scene.buildStandardScene();
+        onWindowResize(); // Render
 
-        // Place model in scene:
-        var origo = new THREE.Vector3();
-        var inv = new THREE.Matrix3(); 
-        inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
-
-        // Generate the mesh:
-        mainModel.generateThreePart(ldrLoader, 15, origo, inv, true, false, mc);
-
-        // Find center of drawn model:
-        var b = mc.boundingBox;
-        var elementCenter = new THREE.Vector3();
-        b.getCenter(elementCenter);
-        baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
-        floor.position.y = b.min.y - elementCenter.y;
-        //baseObject.add(new THREE.Box3Helper(b, 0x0000FF)); // Uncomment if you want to see the bounding box
-        mc.updateMeshVisibility();
-
-	camera.zoom = window.innerWidth/b.min.distanceTo(b.max);
-        onWindowResize();
         console.log("Model rendered in " + (new Date()-startTime) + "ms.");
       }
 
-      let storage;
-      var ldrOptions = new LDR.Options(); // Determine how to show lines, studs, and logos. Change options using sample_instruction.htm
-      ldrOptions.lineContrast = 2;
-      ldrOptions.studLogo = 4;
+      let ldrOptions = new LDR.Options(); ldrOptions.lineContrast = 2; // 2 for no lines.
+      let logo = 0; // 0 for quick draw. 4 for special logo.
 
-      //let onStorageReady = function() {
-        ldrLoader = new THREE.LDRLoader(onLoad, storage, {physicalRenderingAge:20});
-        LDR.Studs.setStuds(ldrLoader, ldrOptions.studHighContrast, 
-                           ldrOptions.studLogo, () => ldrLoader.load(modelTypeUrl));
-      //}
+      ldrLoader = new THREE.LDRLoader(onLoad, false, {physicalRenderingAge:20});
+      LDR.Studs.setStuds(ldrLoader, 0, logo, () => ldrLoader.load(modelToBeRendered));
 
-      //storage = new LDR.STORAGE(onStorageReady);
- </script>
+      new THREE.OrbitControls(scene.camera, scene.renderer.domElement).addEventListener('change', () => scene.render());
+  </script>
  </body>
 </html>
