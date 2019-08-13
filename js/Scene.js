@@ -41,7 +41,7 @@ ENV.Scene.prototype.onChange = function(eleW, eleH) {
     this.render();
 }
 
-ENV.Scene.prototype.createPointLight = function(size, color, intensity, x, y, z) {
+ENV.Scene.prototype.addPointLight = function(size, color, intensity, x, y, z) {
     let dist = Math.sqrt(x*x+y*y+z*z);
     let diam = Math.sqrt(size.w*size.w + size.l*size.l);
     console.log('Creating light at ' + x + ', ' + y + ', ' + z + ', dist: ' + dist + ', diameter of subject: ' + diam);
@@ -50,16 +50,27 @@ ENV.Scene.prototype.createPointLight = function(size, color, intensity, x, y, z)
     light.position.set(x, y, z);
     light.castShadow = true;
 
-    light.shadow.mapSize.width = Math.floor(diam); // Adjust according to size!
-    light.shadow.mapSize.height = Math.floor(diam);
+    light.shadow.mapSize.width = Math.floor(2*diam); // Adjust according to size!
+    light.shadow.mapSize.height = Math.floor(2*diam);
     light.shadow.camera.near = 0.5;
     light.shadow.camera.far = 2*dist;
 
     this.scene.add(light);
     this.pointLights.push(light);
+}
 
-    //this.scene.add(new THREE.CameraHelper(light.shadow.camera));    
-    //console.dir(light);
+ENV.Scene.prototype.clearPointLights = function() {
+    this.pointLights.forEach(light => self.scene.remove(light));
+    this.pointLights = [];
+}
+
+ENV.Scene.prototype.setAmbientLight = function(color, intensity) {
+    let light = new THREE.AmbientLight(color, intensity);
+    if(this.ambientLight) {
+        this.scene.remove(this.ambientLight);
+    }
+    this.ambientLight = light;
+    this.scene.add(light);
 }
 
 ENV.Scene.prototype.buildStandardScene = function() {
@@ -69,37 +80,41 @@ ENV.Scene.prototype.buildStandardScene = function() {
     console.dir(size);
 
     // Set up camera:
-    this.camera.position.set(size.w, size.h, size.l);
+    let cameraDist = 1.5*Math.max(size.w, size.l, size.h);
+    this.camera.position.set(cameraDist, 0.55*cameraDist, cameraDist);
     this.camera.lookAt(new THREE.Vector3());
     
     // Scene:
-    this.scene.background = new THREE.Color(0xFFFFFF);
-
-    // Floor:
-    if(this.floor) {
-        this.scene.remove(this.floor);
-    }
-    let floorSize = {w:size.w*5, l:size.l*5};
-    var floorGeometry = new THREE.PlaneBufferGeometry(floorSize.w, floorSize.l);
-    var floorMaterial = new THREE.MeshStandardMaterial({
-            color: 0xFEFEFE,
-        });
-    this.floor = new THREE.Mesh(floorGeometry, floorMaterial);
-    this.floor.rotation.x = -Math.PI/2;
-    this.floor.receiveShadow = true;
-    this.scene.add(this.floor);
-    //this.floor.position.y = b.min.y - elementCenter.y;
+    this.scene.background = new THREE.Color(0x303030);
 
     // Subject:
     var elementCenter = new THREE.Vector3();
     b.getCenter(elementCenter);
     this.baseObject.position.set(-elementCenter.x, -b.min.y, -elementCenter.z);
-    this.baseObject.add(new THREE.Box3Helper(b, 0xFF00FF));
+    //this.baseObject.add(new THREE.Box3Helper(b, 0xFF00FF));
 
-    // Lights:
-    this.pointLights.forEach(light => self.scene.remove(light));
-    this.createPointLight(size, 0xF6F3FF, 0.9, size.w, size.h, size.l);
+    // Floor:
+    if(this.floor) {
+        this.scene.remove(this.floor);
+    }
+    let floorSize = 15 * Math.max(size.w, size.l);
+    var floorGeometry = new THREE.PlaneBufferGeometry(floorSize, floorSize);
+    var floorMaterial = new THREE.MeshStandardMaterial({
+            color: 0xFEFEFE,
+            metalness: 0.0,
+            roughness: 0.9,
+        });
+    this.floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    this.floor.rotation.x = -Math.PI/2;
+    this.floor.receiveShadow = true;
+    this.scene.add(this.floor);
 
-    //let ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.1);
-    //scene.add(ambientLight);
+    // Point lights:
+    this.clearPointLights();
+    this.addPointLight(size, 0xF6E3FF, 0.7, 0.8*size.w, 4*size.h, 1.7*size.l);
+    this.addPointLight(size, 0xE6F3FF, 0.7, 0.8*size.w, 5*size.h, -1.7*size.l);
+    this.addPointLight(size, 0xE6F3FF, 0.4, -1.2*size.w, 4*size.h, 0.3*size.l);
+    
+    // Ambient light:
+    this.setAmbientLight(0xFFFFFF, 0.2);
 }
