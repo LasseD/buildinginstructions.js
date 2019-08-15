@@ -188,8 +188,9 @@ LDR.SVG.makeTriangle = function(sideX, pointX) {
 
 LDR.SVG.makeLine = function(x1, y1, x2, y2, forceStroke) {
     let ret = document.createElementNS(LDR.SVG.NS, 'line');
-    if(forceStroke)
+    if(forceStroke) {
 	ret.setAttribute('stroke', 'black');
+    }
     ret.setAttribute('x1', x1);
     ret.setAttribute('y1', y1);
     ret.setAttribute('x2', x2);
@@ -207,7 +208,7 @@ LDR.SVG.makePlus = function(parent, x, y, r) {
     parent.append(LDR.SVG.makeLine(x-r, y, x+r, y));
 }
 
-LDR.SVG.makeRect = function(x, y, w, h, fill) {
+LDR.SVG.makeRect = function(x, y, w, h, fill, color) {
     let ret = document.createElementNS(LDR.SVG.NS, 'rect');
     ret.setAttribute('x', x);
     ret.setAttribute('y', y);
@@ -215,6 +216,9 @@ LDR.SVG.makeRect = function(x, y, w, h, fill) {
     ret.setAttribute('height', h);
     if(!fill) {
         ret.setAttribute('fill', 'none');
+    }
+    if(color) {
+	ret.setAttribute('stroke', color);
     }
     return ret;
 }

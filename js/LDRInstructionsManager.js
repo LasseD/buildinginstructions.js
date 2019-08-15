@@ -207,7 +207,12 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
         self.storage.retrieveInstructionsFromStorage(self.ldrLoader, onInstructionsLoaded);
     }
 
-    document.getElementById("pli").addEventListener('click', e => self.onPLIClick(e));
+    // Set up PLI interactions:
+    let pli = document.getElementById("pli");
+    pli.addEventListener('click', e => self.onPLIClick(e));
+    pli.addEventListener('mousemove', e => self.onPLIMove(e));
+    pli.addEventListener('mouseover', e => self.onPLIMove(e));
+    pli.addEventListener('mouseout', () => self.onPLIMove(false));
 
     this.setUpOptions();
     this.onWindowResize();
@@ -652,7 +657,6 @@ LDR.InstructionsManager.prototype.clickDone = function() {
 LDR.InstructionsManager.prototype.onPLIClick = function(e) {
     let x = e.layerX || e.clientX;
     let y = e.layerY || e.clientY;
-    //console.warn("Click " + x +","+y); console.dir(this.pliBuilder); console.dir(this);
     if(!this.pliBuilder || !this.pliBuilder.clickMap) {
         return;
     }
@@ -679,7 +683,6 @@ LDR.InstructionsManager.prototype.onPLIClick = function(e) {
         });
 
     if(this.canEdit && ldrOptions.showEditor) {
-        //console.log('Clicked icon:'); console.dir(icon);
         icon.part.original.ghost = !icon.part.original.ghost;
         this.stepHandler.updateMeshCollectors();
         this.updateUIComponents(true);
@@ -697,6 +700,57 @@ LDR.InstructionsManager.prototype.onPLIClick = function(e) {
         let size = b.min.distanceTo(b.max) * 0.6;
         this.pliPreviewer.subjectSize = size;
         this.pliPreviewer.onResize();
+    }
+}
+
+LDR.InstructionsManager.prototype.onPLIMove = function(e) {
+    if(!(this.canEdit && ldrOptions.showEditor && 
+	 this.pliBuilder && this.pliBuilder.clickMap)) {
+        return; // Not applicable.
+    }
+
+    let self = this;
+    function unset() {
+	if(self.pliBuilder.hover) {
+	    self.pliBuilder.hover = null;
+	    self.stepHandler.updateMeshCollectors();
+	    self.updateUIComponents(true);
+	}
+    }
+
+    if(!e) {
+	unset();
+	return;
+    }
+
+    let x = e.layerX || e.clientX;
+    let y = e.layerY || e.clientY;
+
+    // Find highlighted icon:
+    let hits = this.pliBuilder.clickMap.filter(icon => x >= icon.x && y >= icon.y && x <= icon.x+icon.DX && y <= icon.y+icon.DY);
+    if(hits.length === 0) {
+	unset();
+        return; // no hits.
+    }
+    let distSq = (x1,y1) => (x1-x)*(x1-x) + (y1-y)*(y1-y);
+    let icon, bestDist;
+    hits.forEach(candidate => {
+            if(!icon) {
+                icon = candidate;
+            }
+            else {
+                let d = distSq(icon.x + candidate.DX*0.5, icon.y + candidate.DY*0.5);
+                if(d < bestDist) {
+                    bestDist = d;
+                    icon = candidate;
+                }
+            }
+        });
+
+    if(this.pliBuilder.hover !== icon.part.original) {
+	this.pliBuilder.hover = icon.part.original;
+	this.stepHandler.updateMeshCollectors();
+	this.updateUIComponents(true);
     }
 }
 

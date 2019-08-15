@@ -2,14 +2,16 @@
 
 /**
    Operations:
-   - Open/Close editor using button shown in top bar
-   - modify step rotation: ABS,REL, x, y, z
+   - Open/Close editor using button shown in top bar (Icon shows pen and paper)
+   - Toggle highlight of hovered part
+   - Toggle highlights of all parts
+   - Modify step rotation: ABS,REL, x, y, z
    - Color highlighted parts
-   - add step
+   - Add step
    - Remove highlighted parts / remove empty step / merge step left
    - Move parts to previous/next step, skip sub models
    - Group parts into sub model
-   - inline parts/step to all instances of sub models above
+   - Inline parts/step to all instances of sub models above
    - Move parts to sub model in previous/next step
    - Split sub models in step to more steps when in placement step
    - Join with sub models in step to the right
@@ -59,6 +61,7 @@ LDR.StepEditor = function(loader, stepHandler, reset, onChange, modelID) {
 	    if(!icon) {
 		ret.innerHTML = desc;
 	    }
+	    if(!key)console.log('FAIL ' + desc);
 	    ret.setAttribute('title', desc + ' (Press ' + key + ')');
         }
         return ret;
@@ -68,11 +71,51 @@ LDR.StepEditor = function(loader, stepHandler, reset, onChange, modelID) {
 LDR.StepEditor.prototype.handleKeyDown = function(e) {
     let k = e.keyCode;
     switch(k) {
+    case 8: // 'BACK SPACE'
+    case 46: // 'DELETE'
+	this.remove();
+	break;
+    case 66: // 'B'
+	this.movePrev(true);
+	break;
     case 67: // 'C'
 	this.toggleRot();
 	break;
+    case 70: // 'F'
+	this.moveToNewSubModel();
+	break;
+    case 71: // 'G'
+	this.moveUp(false);
+	break;
+    case 72: // 'H'
+	this.moveUp(true);
+	break;
+    case 74: // 'J'
+	this.moveDown(false);
+	break;
+    case 75: // 'K'
+	this.moveDown(true);
+	break;
+    case 76: // 'L'
+	this.split();
+	break;
+    case 77: // 'M'
+	this.moveNext(false);
+	break;
+    case 78: // 'N'
+	this.moveNext(true);
+	break;
     case 81: // 'Q'
 	this.save();
+	break;
+    case 82: // 'R'
+	this.toggleHighlightAll();
+	break;
+    case 84: // 'T'
+	this.join();
+	break;
+    case 86: // 'V'
+	this.movePrev(false);
 	break;
     case 88: // 'X'
 	this['X' + (e.shiftKey ? '-' : '+')]();
@@ -83,9 +126,8 @@ LDR.StepEditor.prototype.handleKeyDown = function(e) {
     case 90: // 'Z'
 	this['Z' + (e.shiftKey ? '-' : '+')]();
 	break;
-	// TODO: ALL OTHER BUTTONS + NAVIGATE PLI
     default:
-	console.log('Unknown ' + k);
+	console.log('Key not bound: ' + k);
 	break;
     }
 }
@@ -309,46 +351,52 @@ LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
     let colorButton = colorPicker.createButton();
     ele.append(colorButton);
 
-    // Controls:
-    this.makeEle(ele, 'button', 'pli_button',
-                 () => update(info => self.stepHandler.movePrev(info, false)),
-                 'Move to previous step (skipping sub models) or move full step if nothing is selected', self.makeMovePrevIcon());
-    this.makeEle(ele, 'button', 'pli_button',
-                 () => update(info => self.stepHandler.movePrev(info, true)),
-                 'Move to new previous step', self.makeAddIcon(false));
-    let removeButton = this.makeEle(ele, 'button', 'pli_button',
-                                    () => update(info => self.stepHandler.remove(info)),
-                                    'Delete', self.makeRemoveIcon());
-    this.makeEle(ele, 'button', 'pli_button',
-                 () => update(info => self.stepHandler.moveNext(info, true)),
-                 'Move to new next step', self.makeAddIcon(true));
-    this.makeEle(ele, 'button', 'pli_button',
-                 () => update(info => self.stepHandler.moveNext(info, false)),
-                 'Move to next step (skipping sub models) or move full step if nothing is selected', self.makeMoveNextIcon());
-    let moveToNewSubModelButton = this.makeEle(ele, 'button', 'pli_button',
-                                               () => update(info => self.stepHandler.moveToNewSubModel(info, self.generateNextID())),
-                                               'Move down into a new sub model', self.makeMoveToNewSubModelIcon());
-    let moveUpLeftButton = this.makeEle(ele, 'button', 'pli_button',
-                                        () => update(info => self.stepHandler.moveUp(info, false)),
-                                        'Move up to previous step', self.makeMoveUpSideIcon(false));
-    let moveUpRightButton = this.makeEle(ele, 'button', 'pli_button',
-                                         () => update(info => self.stepHandler.moveUp(info, true)),
-                                         'Move up to next step', self.makeMoveUpSideIcon(true));
-    let dissolveSubModelButton = this.makeEle(ele, 'button', 'pli_button',
-                                              () => update(info => self.stepHandler.moveUp(info, true)),
-                                              'Move up and remove this sub model', self.makeDissolveSubModelIcon());
-    let moveDownLeftButton = this.makeEle(ele, 'button', 'pli_button',
-                                          () => update(info => self.stepHandler.moveDown(info, false)),
-                                          'Move to the sub model in previous step', self.makeMoveDownSideIcon(false));
-    let moveDownRightButton = this.makeEle(ele, 'button', 'pli_button',
-                                           () => update(info => self.stepHandler.moveDown(info, true)),
-                                           'Move to the sub model in next step', self.makeMoveDownSideIcon(true));
-    let splitButton = this.makeEle(ele, 'button', 'pli_button',
-                                   () => update(info => self.stepHandler.split(info)),
-                                   'Split the sub models into separate steps', self.makeSplitIcon());
-    let joinButton = this.makeEle(ele, 'button', 'pli_button',
-                                  () => update(info => self.stepHandler.joinWithNext(info)),
-                                   'Join with the sub model from the next step', self.makeJoinIcon());
+    // Left/right/remove controls:
+    this.movePrev = x => update(info => self.stepHandler.movePrev(info, x));
+    this.makeEle(ele, 'button', 'pli_button', () => self.movePrev(false),
+                 'Move to previous step (skipping sub models) or move full step if nothing is selected', self.makeMovePrevIcon(), 'V');
+    this.makeEle(ele, 'button', 'pli_button', () => self.movePrev(true),
+                 'Move to new previous step', self.makeAddIcon(false), 'B');
+    this.remove = () => update(info => self.stepHandler.remove(info));
+    let removeButton = this.makeEle(ele, 'button', 'pli_button', () => self.remove(),
+                                    'Remove parts or step', self.makeRemoveIcon(), 'DELETE');
+    this.moveNext = x => update(info => self.stepHandler.moveNext(info, x));
+    this.makeEle(ele, 'button', 'pli_button', () => self.moveNext(true),
+                 'Move to new next step', self.makeAddIcon(true), 'N');
+    this.makeEle(ele, 'button', 'pli_button', () => self.moveNext(false),
+                 'Move to next step (skipping sub models) or move full step if nothing is selected', self.makeMoveNextIcon(), 'M');
+
+    // Sub model controls:
+    this.moveToNewSubModel = () => update(info => self.stepHandler.moveToNewSubModel(info, self.generateNextID()));
+    let moveToNewSubModelButton = this.makeEle(ele, 'button', 'pli_button', () => self.moveToNewSubModel(),
+					       'Move down into a new sub model', self.makeMoveToNewSubModelIcon(), 'F');
+
+    this.moveUp = right => update(info => self.stepHandler.moveUp(info, right));
+    let moveUpLeftButton = this.makeEle(ele, 'button', 'pli_button', () => self.moveUp(false),
+                                        'Move up to previous step', self.makeMoveUpSideIcon(false), 'G');
+    let moveUpRightButton = this.makeEle(ele, 'button', 'pli_button', () => self.moveUp(true),
+                                         'Move up to next step', self.makeMoveUpSideIcon(true), 'H');
+    let dissolveSubModelButton = this.makeEle(ele, 'button', 'pli_button', () => self.moveUp(true),
+					      'Move up and remove this sub model', self.makeDissolveSubModelIcon(), 'H');
+
+    this.moveDown = right => update(info => self.stepHandler.moveDown(info, right));
+    let moveDownLeftButton = this.makeEle(ele, 'button', 'pli_button', () => self.moveDown(false),
+                                          'Move to the sub model in previous step', self.makeMoveDownSideIcon(false), 'J');
+    let moveDownRightButton = this.makeEle(ele, 'button', 'pli_button', () =>self.moveDown(true),
+                                           'Move to the sub model in next step', self.makeMoveDownSideIcon(true), 'K');
+
+    this.split = () => update(info => self.stepHandler.split(info));
+    let splitButton = this.makeEle(ele, 'button', 'pli_button', () => self.split(),
+                                   'Split the sub models into separate steps', self.makeSplitIcon(), 'L');
+    this.join = () => update(info => self.stepHandler.joinWithNext(info));
+    let joinButton = this.makeEle(ele, 'button', 'pli_button', () => self.join(),
+                                  'Join with the sub model from the next step', self.makeJoinIcon(), 'T');
+
+    this.toggleHighlightAll = () => update(info => self.stepHandler.toggleHighlightAll(info));
+    let toggleHightlightAllButton = this.makeEle(ele, 'button', 'pli_button', () => self.toggleHighlightAll(),
+						 'Highlight all/none', self.makeToggleAllIcon(), 'R');
+
+    // TODO Highlight and highlight all
 
     function showAndHideButtons() {
         let anyHighlighted = self.step.subModels.some(pd => pd.original.ghost);
@@ -365,7 +413,9 @@ LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
             self.part.steps[self.stepIndex-1].containsNonPartSubModels(self.loader) &&
             self.part.steps[self.stepIndex-1].subModels.length === 1;
         let atPlacementStep = self.subStepHandler && self.subStepHandler.isAtPlacementStep();
-        let isThisAndNextWithSameSubModels = isNextASubModel && !empty && self.step.containsNonPartSubModels(self.loader) && 
+	let anyPartSubModels = self.step.containsPartSubModels(self.loader);
+	let anyNonPartSubModels = self.step.containsNonPartSubModels(self.loader);
+        let isThisAndNextWithSameSubModels = isNextASubModel && !empty && anyNonPartSubModels && 
             self.step.subModels[0].ID === self.part.steps[self.stepIndex+1].subModels[0].ID;
 
         let display = show => show ? 'inline' : 'none';
@@ -373,13 +423,14 @@ LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
         colorButton.style.display = display(anyHighlighted);
         removeButton.style.display = display(!(last && (!anyHighlighted || allHighlighted) && isMainModel));
         moveToNewSubModelButton.style.display = display(!empty);
-        moveUpLeftButton.style.display = display(!isMainModel && isAtFirstStepInSubModel && !isAtLastStepInSubModel);
-        moveUpRightButton.style.display = display(!isMainModel && isAtLastStepInSubModel && !isAtFirstStepInSubModel);
+        moveUpLeftButton.style.display = display(!isMainModel && isAtFirstStepInSubModel);
+        moveUpRightButton.style.display = display(!isMainModel && isAtLastStepInSubModel);
         dissolveSubModelButton.style.display = display(!isMainModel && isAtLastStepInSubModel && isAtFirstStepInSubModel);
         moveDownLeftButton.style.display = display(isPrevASubModel);
         moveDownRightButton.style.display = display(isNextASubModel);
         splitButton.style.display = display(atPlacementStep && self.step.subModels.length > 1);
         joinButton.style.display = display(isThisAndNextWithSameSubModels);
+	toggleHightlightAllButton.style.display = display(anyPartSubModels);
     }
     this.onStepSelectedListeners.push(showAndHideButtons);
 }
@@ -518,6 +569,16 @@ LDR.StepEditor.prototype.makeJoinIcon = function() {
     return svg;
 }
 
+LDR.StepEditor.prototype.makeToggleAllIcon = function() {
+    let svg = document.createElementNS(LDR.SVG.NS, 'svg');
+    svg.setAttribute('viewBox', '-20 -20 40 40');
+    svg.appendChild(LDR.SVG.makeRect(-20, 3, 17, 17, false, '#5DD'));
+    svg.appendChild(LDR.SVG.makeRect(-20, -20, 17, 17, false, '#5DD'));
+    svg.appendChild(LDR.SVG.makeRect(3, 3, 17, 17, false, '#5DD'));
+    svg.appendChild(LDR.SVG.makeRect(3, -20, 17, 17, false, '#5DD'));
+    return svg;
+}
+
 //
 // Editor operations on StepHandler:
 //
@@ -536,6 +597,19 @@ LDR.StepHandler.prototype.colorGhosted = function(colorID) {
 
     this.rebuild();
     this.moveSteps(stepIndex, () => {});
+}
+
+LDR.StepHandler.prototype.toggleHighlightAll = function(info) {
+    if(!info.step.containsPartSubModels(this.loader)) {
+	return; // No parts to highlight.
+    }
+
+    if(info.originalSubModels.some(sm => !sm.ghost)) {
+	info.originalSubModels.forEach(sm => sm.ghost = true);
+    }
+    else {
+	info.originalSubModels.forEach(sm => sm.ghost = false);
+    }
 }
 
 LDR.StepHandler.prototype.remove = function(info) {
@@ -723,7 +797,7 @@ LDR.StepHandler.prototype.moveUp = function(info, right) {
 
     let part = info.part;
     let ghosts = info.originalSubModels.filter(pd => pd.ghost);
-    let moveFullStep = ghosts.length === 0;
+    let moveFullStep = ghosts.length === 0 || (ghosts.length === info.originalSubModels.length && part.steps.length === 1);
     if(moveFullStep) {
         ghosts = info.originalSubModels;
     }
@@ -911,23 +985,6 @@ LDR.StepHandler.prototype.countStepsInsideOfPreviousStep = function() {
     }
     let prevStep = sh.steps[sh.current-1];
     return prevStep.stepHandler ? prevStep.stepHandler.totalNumberOfSteps+1 : 1;
-}
-
-THREE.LDRPartType.prototype.purgePart = function(loader, ID) {
-    if(this.isPart()) {
-        return;
-    }
-    function handleStep(step) {
-        step.subModels = step.subModels.filter(sm => sm.ID !== ID);
-        if(step.subModels.length === 0) {
-            step.RM = true;
-        }
-        else {
-            step.subModels.forEach(sm => loader.getPartType(sm.ID).purgePart(loader, ID));
-        }
-    }
-    this.steps.forEach(handleStep);
-    this.steps = this.steps.filter(step => !step.RM);
 }
 
 THREE.LDRPartDescription.prototype.cloneNoPR = function() {

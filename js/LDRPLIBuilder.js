@@ -10,6 +10,7 @@ LDR.PLIBuilder = function(loader, canEdit, mainModelID, pliElement, pliRenderEle
     this.fillHeight = false;
     this.groupParts = true;
     this.clickMap;
+    this.hover = null;
 
     // Register for options changes:
     let self = this;
@@ -264,15 +265,30 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
         if(ldrOptions.showEditor) {
             context.strokeStyle = "#5DD";
             context.lineWidth = '4';
+	    let hoveredIcon = null;
             self.clickMap.forEach(icon => {
-                    if(icon.part.original.ghost) {
-                        let x = parseInt((icon.x)*DPR);
-                        let y = parseInt((icon.y)*DPR);
-                        let w = parseInt((icon.DX)*DPR);
-                        let h = parseInt((icon.DY)*DPR);
-                        context.strokeRect(x, y, w, h);
-                    }
+                if(icon.part.original.ghost) {
+                    let x = parseInt((icon.x)*DPR);
+                    let y = parseInt((icon.y)*DPR);
+                    let w = parseInt((icon.DX)*DPR);
+                    let h = parseInt((icon.DY)*DPR);
+                    context.strokeRect(x, y, w, h);
+                }
+		if(self.hover === icon.part.original) {
+		    hoveredIcon = icon;
+		}
+            });
+	    if(hoveredIcon) {
+		context.strokeStyle = "#000";
+		context.lineWidth = '1';
+		self.clickMap.forEach(icon => {
+                    let x = parseInt((hoveredIcon.x-2)*DPR);
+                    let y = parseInt((hoveredIcon.y-2)*DPR);
+                    let w = parseInt((hoveredIcon.DX+4)*DPR);
+                    let h = parseInt((hoveredIcon.DY+4)*DPR);
+                    context.strokeRect(x, y, w, h);
                 });
+	    }
         }
     }
     setTimeout(delay, 10); // Ensure not blocking
