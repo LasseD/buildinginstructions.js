@@ -1392,6 +1392,23 @@ THREE.LDRPartType.prototype.unpack = function(obj) {
     this.inlined = 'IDB';
 }
 
+THREE.LDRPartType.prototype.purgePart = function(loader, ID) {
+    if(this.isPart()) {
+        return;
+    }
+    function handleStep(step) {
+        step.subModels = step.subModels.filter(sm => sm.ID !== ID);
+        if(step.subModels.length === 0) {
+            step.RM = true;
+        }
+        else {
+            step.subModels.forEach(sm => loader.getPartType(sm.ID).purgePart(loader, ID));
+        }
+    }
+    this.steps.forEach(handleStep);
+    this.steps = this.steps.filter(step => !step.RM);
+}
+
 /*
   Clean up all steps.
   This can cause additional steps (such as when a step contains both parts and sub models.
@@ -1408,6 +1425,10 @@ THREE.LDRPartType.prototype.cleanUp = function(loader) {
     else {
 	let newSteps = [];
 	this.steps.forEach(step => step.cleanUp(loader, newSteps));
+	if(newSteps.length === 0) { // Empty!
+	    loader.getMainModel().purgePart(loader, this.ID);
+	    return;
+	}
 	this.steps = newSteps;
     }
 

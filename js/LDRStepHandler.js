@@ -36,6 +36,10 @@ LDR.StepHandler.prototype.rebuild = function() {
 
     this.current = -1; // Índex of currently-shown step (call nextStep() to initialize)
     this.length = this.part.steps.length;
+    if(this.length === 0) {
+	console.dir(this);
+	throw "Empty step handler!";
+    }
 
     let partDesc = this.partDescs[0];
     this.steps = []; // Propagate current color from partDescs onto the steps.
