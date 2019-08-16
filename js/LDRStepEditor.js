@@ -76,11 +76,17 @@ LDR.StepEditor.prototype.handleKeyDown = function(e) {
     case 46: // 'DELETE'
 	this.remove();
 	break;
+    case 65: // 'A'
+	this.movePLILeft();
+	break;
     case 66: // 'B'
 	this.movePrev(true);
 	break;
     case 67: // 'C'
 	this.toggleRot();
+	break;
+    case 68: // 'D'
+	this.movePLIRight();
 	break;
     case 69: // 'E'
 	this.toggleHovered();
@@ -115,11 +121,17 @@ LDR.StepEditor.prototype.handleKeyDown = function(e) {
     case 82: // 'R'
 	this.toggleAll();
 	break;
+    case 83: // 'S'
+	this.movePLIDown();
+	break;
     case 84: // 'T'
 	this.join();
 	break;
     case 86: // 'V'
 	this.movePrev(false);
+	break;
+    case 87: // 'W'
+	this.movePLIUp();
 	break;
     case 88: // 'X'
 	this['X' + (e.shiftKey ? '-' : '+')]();
@@ -131,7 +143,7 @@ LDR.StepEditor.prototype.handleKeyDown = function(e) {
 	this['Z' + (e.shiftKey ? '-' : '+')]();
 	break;
     default:
-	console.log('Key not bound: ' + k);
+	//console.log('Key not bound to an editor function: ' + k);
 	break;
     }
 }
@@ -356,6 +368,12 @@ LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
     let colorPicker = new LDR.ColorPicker(c => update(() => self.stepHandler.colorGhosted(c)));
     let colorButton = colorPicker.createButton();
     ele.append(colorButton);
+
+    // PLI Navigation:
+    this.movePLIUp = () => update(() => self.pliBuilder.moveClickMapUp());
+    this.movePLIDown = () => update(() => self.pliBuilder.moveClickMapDown());
+    this.movePLIRight = () => update(() => self.pliBuilder.moveClickMapRight());
+    this.movePLILeft = () => update(() => self.pliBuilder.moveClickMapLeft());
 
     // Left/right/remove controls:
     this.movePrev = x => update(info => self.stepHandler.movePrev(info, x));
@@ -1083,4 +1101,199 @@ LDR.MeshCollector.prototype.removeAllMeshes = function() {
     this.triangleMeshes.filter(obj => !obj.opaque).forEach(obj => self.transObject.remove(obj.mesh));
 
     this.triangleMeshes.forEach(obj => obj.part && obj.part.hoverBox && self.opaqueObject.remove(obj.part.hoverBox));
+}
+
+LDR.PLIBuilder.prototype.getClickMapHover = function() {
+    //this.clickMap.forEach(icon => console.log(icon.part.original.hover));
+    return this.clickMap.find(icon => icon.part.original && icon.part.original.hover);
+}
+
+LDR.PLIBuilder.prototype.moveClickMapRight = function() {
+    if(this.clickMap.length === 0) {
+	return; // Nothing to move in.
+    }
+    let hovered = this.getClickMapHover();
+
+    let ret;
+    if(hovered) {
+	let x0 = hovered.x;
+	let y0 = hovered.y;
+	let x1 = hovered.x + hovered.DX;
+	let y1 = hovered.y + hovered.DY;
+
+	this.clickMap.forEach(icon => {
+	    if(icon.part.original.hover) {
+		return; // Old icon.
+	    }
+	    let x2 = icon.x;
+	    let x3 = icon.x + icon.DX;
+	    let y2 = icon.y;
+	    let y3 = icon.y + icon.DY;
+
+	    if(x2 < x1 || (ret && ret.x+ret.DX < x3)) {
+		return; // Have to move right.
+	    }
+	    if(y0 <= y2 && y1 >= y2 ||
+	       y2 <= y0 && y3 >= y0 ||
+	       y2 <= y1 && y3 >= y1) {
+		ret = icon;
+	    }
+	});
+	hovered.part.original.hover = false;
+    }
+    else {
+	ret = this.clickMap[0];
+	for(let i = 1; i < this.clickMap.length; i++) {
+	    let icon = this.clickMap[i];
+	    if(icon.x < ret.x || icon.x === ret.x && icon.y > ret.y) {
+		ret = icon;
+	    }
+	}
+    }
+
+    if(ret) {
+	ret.part.original.hover = true;
+    }
+}
+
+LDR.PLIBuilder.prototype.moveClickMapLeft = function() {
+    if(this.clickMap.length === 0) {
+	return; // Nothing to move in.
+    }
+    let hovered = this.getClickMapHover();
+
+    let ret;
+    if(hovered) {
+	let x0 = hovered.x;
+	let y0 = hovered.y;
+	let x1 = hovered.x + hovered.DX;
+	let y1 = hovered.y + hovered.DY;
+
+	this.clickMap.forEach(icon => {
+	    if(icon.part.original.hover) {
+		return; // Old icon.
+	    }
+	    let x2 = icon.x;
+	    let x3 = icon.x + icon.DX;
+	    let y2 = icon.y;
+	    let y3 = icon.y + icon.DY;
+
+	    if(x3 > x0 || (ret && ret.x+ret.DX > x3)) {
+		return; // Have to move left.
+	    }
+	    if(y0 <= y2 && y1 >= y2 ||
+	       y2 <= y0 && y3 >= y0 ||
+	       y2 <= y1 && y3 >= y1) {
+		ret = icon;
+	    }
+	});
+	hovered.part.original.hover = false;
+    }
+    else {
+	ret = this.clickMap[0];
+	for(let i = 1; i < this.clickMap.length; i++) {
+	    let icon = this.clickMap[i];
+	    if(icon.x > ret.x || icon.x === ret.x && icon.y > ret.y) {
+		ret = icon;
+	    }
+	}
+    }
+
+    if(ret) {
+	ret.part.original.hover = true;
+    }
+}
+
+LDR.PLIBuilder.prototype.moveClickMapDown = function() {
+    if(this.clickMap.length === 0) {
+	return; // Nothing to move in.
+    }
+    let hovered = this.getClickMapHover();
+
+    let ret;
+    if(hovered) {
+	let x0 = hovered.x;
+	let y0 = hovered.y;
+	let x1 = hovered.x + hovered.DX;
+	let y1 = hovered.y + hovered.DY;
+
+	this.clickMap.forEach(icon => {
+	    if(icon.part.original.hover) {
+		return; // Old icon.
+	    }
+	    let y2 = icon.y;
+	    let y3 = icon.y + icon.DY;
+	    if(y2 < y0 || (ret && ret.y < y2)) {
+		return; // Have to move down.
+	    }
+	    let x2 = icon.x;
+	    let x3 = icon.x + icon.DX;
+	    if(x0 <= x2 && x1 >= x2 ||
+	       x2 <= x0 && x3 >= x0 ||
+	       x2 <= x1 && x3 >= x1) {
+		ret = icon;
+	    }
+	});
+	hovered.part.original.hover = false;
+    }
+    else {
+	ret = this.clickMap[0];
+	for(let i = 1; i < this.clickMap.length; i++) {
+	    let icon = this.clickMap[i];
+	    if(icon.y < ret.y || icon.y === ret.y && icon.x < ret.x) {
+		ret = icon;
+	    }
+	}
+    }
+
+    if(ret) {
+	ret.part.original.hover = true;
+    }
+}
+
+LDR.PLIBuilder.prototype.moveClickMapUp = function() {
+    if(this.clickMap.length === 0) {
+	return; // Nothing to move in.
+    }
+    let hovered = this.getClickMapHover();
+
+    let ret;
+    if(hovered) {
+	let x0 = hovered.x;
+	let y0 = hovered.y;
+	let x1 = hovered.x + hovered.DX;
+	let y1 = hovered.y + hovered.DY;
+
+	this.clickMap.forEach(icon => {
+	    if(icon.part.original.hover) {
+		return; // Old icon.
+	    }
+	    let y2 = icon.y;
+	    let y3 = icon.y + icon.DY;
+	    if(y2 > y0 || (ret && ret.y > y2)) {
+		return; // Have to move up.
+	    }
+	    let x2 = icon.x;
+	    let x3 = icon.x + icon.DX;
+	    if(x0 <= x2 && x1 >= x2 ||
+	       x2 <= x0 && x3 >= x0 ||
+	       x2 <= x1 && x3 >= x1) {
+		ret = icon;
+	    }
+	});
+	hovered.part.original.hover = false;
+    }
+    else {
+	ret = this.clickMap[0];
+	for(let i = 1; i < this.clickMap.length; i++) {
+	    let icon = this.clickMap[i];
+	    if(icon.y > ret.y || icon.y === ret.y && icon.x > ret.x) {
+		ret = icon;
+	    }
+	}
+    }
+
+    if(ret) {
+	ret.part.original.hover = true;
+    }
 }
