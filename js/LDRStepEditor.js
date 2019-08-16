@@ -3,12 +3,12 @@
 /**
    Operations:
    - Open/Close editor using button shown in top bar (Icon shows pen and paper)
-   - Toggle highlight of hovered part
-   - Toggle highlights of all parts
+   - Toggle ghosting of hovered part
+   - Toggle ghosting of all parts
    - Modify step rotation: ABS,REL, x, y, z
-   - Color highlighted parts
+   - Color ghosted parts
    - Add step
-   - Remove highlighted parts / remove empty step / merge step left
+   - Remove ghosted parts / remove empty step / merge step left
    - Move parts to previous/next step, skip sub models
    - Group parts into sub model
    - Inline parts/step to all instances of sub models above
@@ -17,9 +17,10 @@
    - Join with sub models in step to the right
    - save
  */
-LDR.StepEditor = function(loader, stepHandler, reset, onChange, modelID) {
+LDR.StepEditor = function(loader, stepHandler, pliBuilder, reset, onChange, modelID) {
     this.loader = loader;
     this.stepHandler = stepHandler;
+    this.pliBuilder = pliBuilder;
     this.reset = reset;
     this.onChange = onChange;
     this.modelID = modelID;
@@ -81,6 +82,9 @@ LDR.StepEditor.prototype.handleKeyDown = function(e) {
     case 67: // 'C'
 	this.toggleRot();
 	break;
+    case 69: // 'E'
+	this.toggleHovered();
+	break;
     case 70: // 'F'
 	this.moveToNewSubModel();
 	break;
@@ -109,7 +113,7 @@ LDR.StepEditor.prototype.handleKeyDown = function(e) {
 	this.save();
 	break;
     case 82: // 'R'
-	this.toggleHighlightAll();
+	this.toggleAll();
 	break;
     case 84: // 'T'
 	this.join();
@@ -179,13 +183,14 @@ LDR.StepEditor.prototype.save = function() {
 }
 
 LDR.StepEditor.prototype.createGuiComponents = function(parentEle) {
+    let self = this;
+    let saveParentEle = this.makeEle(parentEle, 'span', 'editor_control');
+    this.saveEle = this.makeEle(saveParentEle, 'button', 'save_button',
+				() => self.save(), 'SAVE', false, 'Q');
+
     this.createRotationGuiComponents(parentEle);
     this.createPartGuiComponents(parentEle);
 
-    let self = this;
-    let saveParentEle = this.makeEle(parentEle, 'span', 'editor_save');
-    this.saveEle = this.makeEle(saveParentEle, 'button', 'save_button',
-				() => self.save(), 'SAVE', false, 'Q');
     this.updateCurrentStep();
 }
 
@@ -335,15 +340,16 @@ LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
             let info = {part:part, current:current, stepInfo:stepInfo, step:step,
                         stepIndex:stepIndex, originalStep:originalStep,
                         originalSubModels:originalSubModels};
-            actualChange(info);
-            self.stepHandler.rebuild();
-            self.stepHandler.moveSteps(info.stepIndex, () => {});
+            let didModelChange = actualChange(info);
+	    if(didModelChange) {
+		self.stepHandler.rebuild();
+		self.stepHandler.moveSteps(info.stepIndex, () => {});
+	    }
+	    self.onChange();
+	    if(didModelChange) {
+		self.makeSaveElementGreen();
+	    }
         }
-        else {
-            console.warn('Not at a valid step!');
-        }
-	self.onChange();
-	self.makeSaveElementGreen();
     }
 
     // Color:
@@ -392,15 +398,21 @@ LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
     let joinButton = this.makeEle(ele, 'button', 'pli_button', () => self.join(),
                                   'Join with the sub model from the next step', self.makeJoinIcon(), 'T');
 
-    this.toggleHighlightAll = () => update(info => self.stepHandler.toggleHighlightAll(info));
-    let toggleHightlightAllButton = this.makeEle(ele, 'button', 'pli_button', () => self.toggleHighlightAll(),
-						 'Highlight all/none', self.makeToggleAllIcon(), 'R');
 
-    // TODO Highlight and highlight all
+    this.toggleHovered = () => update(info => self.stepHandler.toggleHovered(info));
+    let toggleHoveredButton = this.makeEle(ele, 'button', 'pli_button', () => self.toggleHovered(),
+					   'Toggle highlight.', self.makeToggleHoveredIcon(), 'E and use WADS to move between parts');
+
+
+    this.toggleAll = () => update(info => self.stepHandler.toggleAll(info));
+    let toggleAllButton = this.makeEle(ele, 'button', 'pli_button', () => self.toggleAll(),
+				       'Highlight all/none', self.makeToggleAllIcon(), 'R and use WADS to move between parts');
 
     function showAndHideButtons() {
-        let anyHighlighted = self.step.subModels.some(pd => pd.original.ghost);
-        let allHighlighted = !self.step.subModels.some(pd => !pd.original.ghost);
+        let anyHovered = self.step.subModels.some(pd => pd.original.hover);
+        let anyGhosted = self.step.subModels.some(pd => pd.original.ghost);
+        let allGhosted = !self.step.subModels.some(pd => !pd.original.ghost);
+
         let last = self.part.steps.length === 1;
         let empty = self.step.subModels.length === 0;
         let isMainModel = self.part.ID === self.loader.mainModel;
@@ -420,8 +432,8 @@ LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
 
         let display = show => show ? 'inline' : 'none';
 
-        colorButton.style.display = display(anyHighlighted);
-        removeButton.style.display = display(!(last && (!anyHighlighted || allHighlighted) && isMainModel));
+        colorButton.style.display = display(anyGhosted);
+        removeButton.style.display = display(!(last && (!anyGhosted || allGhosted) && isMainModel));
         moveToNewSubModelButton.style.display = display(!empty);
         moveUpLeftButton.style.display = display(!isMainModel && isAtFirstStepInSubModel);
         moveUpRightButton.style.display = display(!isMainModel && isAtLastStepInSubModel);
@@ -430,7 +442,8 @@ LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
         moveDownRightButton.style.display = display(isNextASubModel);
         splitButton.style.display = display(atPlacementStep && self.step.subModels.length > 1);
         joinButton.style.display = display(isThisAndNextWithSameSubModels);
-	toggleHightlightAllButton.style.display = display(anyPartSubModels);
+	toggleHoveredButton.style.display = display(anyHovered);
+	toggleAllButton.style.display = display(anyPartSubModels);
     }
     this.onStepSelectedListeners.push(showAndHideButtons);
 }
@@ -569,11 +582,23 @@ LDR.StepEditor.prototype.makeJoinIcon = function() {
     return svg;
 }
 
+LDR.StepEditor.prototype.makeToggleHoveredIcon = function() {
+    let svg = document.createElementNS(LDR.SVG.NS, 'svg');
+    svg.setAttribute('viewBox', '-20 -20 40 40');
+    let r;
+    svg.appendChild(r = LDR.SVG.makeRect(-20, -20, 17, 17, false, '#000'));
+    r.setAttribute('stroke-dasharray', "5,5");
+    svg.appendChild(LDR.SVG.makeRect(-20, 3, 17, 17, false, '#5DD'));
+    svg.appendChild(LDR.SVG.makeRect(3, 3, 17, 17, false, '#5DD'));
+    svg.appendChild(LDR.SVG.makeRect(3, -20, 17, 17, false, '#5DD'));
+    return svg;
+}
+
 LDR.StepEditor.prototype.makeToggleAllIcon = function() {
     let svg = document.createElementNS(LDR.SVG.NS, 'svg');
     svg.setAttribute('viewBox', '-20 -20 40 40');
-    svg.appendChild(LDR.SVG.makeRect(-20, 3, 17, 17, false, '#5DD'));
     svg.appendChild(LDR.SVG.makeRect(-20, -20, 17, 17, false, '#5DD'));
+    svg.appendChild(LDR.SVG.makeRect(-20, 3, 17, 17, false, '#5DD'));
     svg.appendChild(LDR.SVG.makeRect(3, 3, 17, 17, false, '#5DD'));
     svg.appendChild(LDR.SVG.makeRect(3, -20, 17, 17, false, '#5DD'));
     return svg;
@@ -588,7 +613,7 @@ LDR.StepHandler.prototype.colorGhosted = function(colorID) {
     let step = stepInfo.step;
     if(!step) {
         console.warn('Not at a step where parts can be colored.');
-        return;
+        return false;
     }
 
     // Remove ghosted parts from both step and mc:
@@ -597,11 +622,12 @@ LDR.StepHandler.prototype.colorGhosted = function(colorID) {
 
     this.rebuild();
     this.moveSteps(stepIndex, () => {});
+    return true;
 }
 
-LDR.StepHandler.prototype.toggleHighlightAll = function(info) {
+LDR.StepHandler.prototype.toggleAll = function(info) {
     if(!info.step.containsPartSubModels(this.loader)) {
-	return; // No parts to highlight.
+	return false; // No parts to highlight.
     }
 
     if(info.originalSubModels.some(sm => !sm.ghost)) {
@@ -610,13 +636,20 @@ LDR.StepHandler.prototype.toggleHighlightAll = function(info) {
     else {
 	info.originalSubModels.forEach(sm => sm.ghost = false);
     }
+    return false;
+}
+
+LDR.StepHandler.prototype.toggleHovered = function(info) {
+    info.originalSubModels.forEach(sm => {if(sm.hover){sm.ghost=!sm.ghost;}});
+
+    return false;
 }
 
 LDR.StepHandler.prototype.remove = function(info) {
     if(info.part.ID === this.loader.mainModel && info.step.length === 1 && 
        (!info.originalSubModels.some(sm => sm.ghost) || 
         !info.originalSubModels.some(sm => !sm.ghost))) {
-        return; // Can't remove last content of file.
+        return false; // Can't remove last content of file.
     }
 
     let part = info.part;
@@ -643,6 +676,7 @@ LDR.StepHandler.prototype.remove = function(info) {
         part.steps = part.steps.slice(1);
         info.stepIndex -= this.countUsages(part.ID);
     }
+    return true;
 }
 
 LDR.StepHandler.prototype.moveNext = function(info, alwaysToNew) {
@@ -694,6 +728,7 @@ LDR.StepHandler.prototype.moveNext = function(info, alwaysToNew) {
         nextStep.fileLines.push(...info.originalStep.fileLines.filter(line => (line.line1 ? line.desc.ghost : false)));
         info.originalStep.fileLines = info.originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
     }
+    return true;
 }
 
 LDR.StepHandler.prototype.movePrev = function(info, alwaysToNew) {
@@ -743,11 +778,12 @@ LDR.StepHandler.prototype.movePrev = function(info, alwaysToNew) {
         prevStep.fileLines.push(...info.originalStep.fileLines.filter(line => (line.line1 ? line.desc.ghost : false)));
         info.originalStep.fileLines = info.originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
     }
+    return true;
 }
 
 LDR.StepHandler.prototype.moveToNewSubModel = function(info, newID) {
     if(info.originalSubModels.length === 0) {
-        return; // Can't move empty step into new sub model.
+        return false; // Can't move empty step into new sub model.
     }
 
     // Create new part type:
@@ -788,11 +824,12 @@ LDR.StepHandler.prototype.moveToNewSubModel = function(info, newID) {
         newPT.steps = [ part.steps[current] ];
         part.steps[current] = dropStep;
     }
+    return true;
 }
 
 LDR.StepHandler.prototype.moveUp = function(info, right) {
     if(info.part.ID === this.loader.mainModel) {
-        return; // Can't move main model up!
+        return false; // Can't move main model up!
     }
 
     let part = info.part;
@@ -849,17 +886,18 @@ LDR.StepHandler.prototype.moveUp = function(info, right) {
         info.originalStep.fileLines = info.originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
         info.stepIndex += this.countUsages(part.ID);
     }
+    return true;
 }
 
 LDR.StepHandler.prototype.moveDown = function(info, right) {
     if(right && info.current === info.part.steps.length-1 ||
        !right && info.current === 0) {
-        return; // No sub model to move down into!
+        return false; // No sub model to move down into!
     }
     let adjacentStep = info.part.steps[right ? (info.current+1) : (info.current-1)];
     if(adjacentStep.subModels.length !== 1 ||
        !adjacentStep.containsNonPartSubModels(this.loader)) {
-        return; // There has to be a single non-part sub model that this can be moved into.
+        return false; // There has to be a single non-part sub model that this can be moved into.
     }
     let adjacentPD = adjacentStep.subModels[0];    
 
@@ -877,38 +915,39 @@ LDR.StepHandler.prototype.moveDown = function(info, right) {
     // Add new step before or after this step:
     let newStep = new THREE.LDRStep();
     ghosts.forEach(ghost => {
-            let g = ghost.cloneNoPR(); // No position or rotation - set below:
+        let g = ghost.cloneNoPR(); // No position or rotation - set below:
                 
-            g.position = new THREE.Vector3();
-            g.position.copy(ghost.position);
-            g.position.sub(adjacentPD.position);
-            g.position.applyMatrix3(inv);
-            
-            g.rotation = new THREE.Matrix3();
-            g.rotation.multiplyMatrices(inv, ghost.rotation);
-            g.ghost = ghost.ghost;
-            
-            newStep.subModels.push(g);
-            newStep.fileLines.push(new LDR.Line1(g));
-        });
+        g.position = new THREE.Vector3();
+        g.position.copy(ghost.position);
+        g.position.sub(adjacentPD.position);
+        g.position.applyMatrix3(inv);
+        
+        g.rotation = new THREE.Matrix3();
+        g.rotation.multiplyMatrices(inv, ghost.rotation);
+        
+        newStep.subModels.push(g);
+        newStep.fileLines.push(new LDR.Line1(g));
+    });
     adjacentPT.steps.splice(right ? 0 : adjacentPT.steps.length, 0, newStep); // Add step.
     info.stepIndex += this.countUsages(adjacentPT.ID);
 
     // Update or remove old step:
     if(moveFullStep) { // Remove the step from the sub model:
         info.part.steps.splice(info.current, 1);
-        info.stepIndex -= this.countUsages(info.part.ID);
+        info.stepIndex -= 1+this.countUsages(info.part.ID);
     }
     else { // Update the step:
         info.originalStep.subModels = info.originalStep.subModels.filter(pd => !pd.ghost);
         info.originalStep.fileLines = info.originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
+	info.stepIndex+=1; // Move to new step.
     }
+    return true;
 }
 
 LDR.StepHandler.prototype.split = function(info) {
     if(!info.step.containsNonPartSubModels(this.loader) ||
        info.originalSubModels.length < 2) {
-        return; // Not with non-part sub models or not more than 1 sub model..
+        return false; // Not with non-part sub models or not more than 1 sub model..
     }
 
     for(let i = 1; i < info.originalSubModels.length; i++) {
@@ -923,6 +962,7 @@ LDR.StepHandler.prototype.split = function(info) {
     info.originalStep.fileLines = [new LDR.Line1(pd0)];
 
     info.stepIndex += (info.originalSubModels.length-1)*this.countUsages(info.part.ID);
+    return true;
 }
 
 /**
@@ -934,12 +974,12 @@ LDR.StepHandler.prototype.split = function(info) {
 LDR.StepHandler.prototype.joinWithNext = function(info) {
     if(!info.step.containsNonPartSubModels(this.loader) ||
        info.current === info.part.steps.length-1) {
-        return; // No next step, or not with non-part sub models.
+        return false; // No next step, or not with non-part sub models.
     }
     let nextStep = info.part.steps[info.current+1];
     if(!nextStep.containsNonPartSubModels(this.loader) ||
        info.originalSubModels[0].ID !== nextStep.subModels[0].ID) {
-        return; // Next step not with non-part sub models, or sub models do not match.
+        return false; // Next step not with non-part sub models, or sub models do not match.
     }
 
     info.originalSubModels.push(...nextStep.subModels);
@@ -947,6 +987,7 @@ LDR.StepHandler.prototype.joinWithNext = function(info) {
     info.part.steps.splice(info.current+1, 1); // Remove the next step.
 
     info.stepIndex -= this.countUsages(info.part.ID);
+    return true;
 }
 
 /**
@@ -988,9 +1029,58 @@ LDR.StepHandler.prototype.countStepsInsideOfPreviousStep = function() {
 }
 
 THREE.LDRPartDescription.prototype.cloneNoPR = function() {
+    if(this.original) {
+	throw "Cloning non-original PD in cloneNoPR!";
+    }
     let ret = new THREE.LDRPartDescription(this.colorID, null, null, this.ID, 
 					   this.cull, this.invertCCW);
     ret.REPLACEMENT_PLI = this.REPLACEMENT_PLI;
-    ret.ghost = this.ghost;
+    ret.ghost = this.ghost || false;
+
     return ret;
+}
+
+LDR.MeshCollector.prototype.addHoverBox = function(mesh, part) {
+    if(!(part)) {
+	return;
+    }
+    let h = part.hoverBox = new THREE.BoxHelper(mesh, 0x55DDDD);
+    h.visible = false;
+    this.opaqueObject.add(h);
+}
+
+LDR.MeshCollector.prototype.addOpaque = function(mesh, part) {
+    this.addHoverBox(mesh, part);
+    this.triangleMeshes.push({mesh:mesh, part:part, opaque:true});
+    this.opaqueObject.add(mesh);
+}
+
+LDR.MeshCollector.prototype.addTrans = function(mesh, part) {
+    this.addHoverBox(mesh, part);
+    this.triangleMeshes.push({mesh:mesh, part:part, opaque:false});
+    this.transObject.add(mesh);
+}
+
+LDR.MeshCollector.prototype.updateMeshVisibility = function() {
+    let v = this.visible;
+    this.lineMeshes.forEach(obj => obj.mesh.visible = v);
+
+    let old = this.old;
+    this.triangleMeshes.forEach(obj => {
+	if(obj.part && obj.part.hoverBox) {
+            obj.part.hoverBox.visible = v && !old && ldrOptions.showEditor && (obj.part && obj.part.original && obj.part.original.ghost) ? true : false;
+	}
+	obj.mesh.visible = v && !(obj.part && obj.part.original && obj.part.original.hover);
+    });
+}
+
+LDR.MeshCollector.prototype.removeAllMeshes = function() {
+    var self = this;
+    this.lineMeshes.forEach(obj => self.opaqueObject.remove(obj.mesh));
+
+    this.triangleMeshes.filter(obj => obj.opaque).forEach(obj => self.opaqueObject.remove(obj.mesh));
+
+    this.triangleMeshes.filter(obj => !obj.opaque).forEach(obj => self.transObject.remove(obj.mesh));
+
+    this.triangleMeshes.forEach(obj => obj.part && obj.part.hoverBox && self.opaqueObject.remove(obj.part.hoverBox));
 }

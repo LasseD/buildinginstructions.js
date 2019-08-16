@@ -712,7 +712,8 @@ THREE.LDRPartDescription = function(colorID, position, rotation, ID, cull, inver
 
 THREE.LDRPartDescription.prototype.cloneColored = function(colorID) {
     if(this.original) {
-	throw "Cloning non-original PD!";
+	console.dir(this);
+	throw "Cloning non-original PD to color " + colorID;
     }
     let c = this.colorID;
     if(this.colorID === 16) {
@@ -1703,7 +1704,6 @@ LDR.MeshCollector = function(opaqueObject, transObject) {
     this.boundingBox;
     this.isMeshCollector = true;
     this.idx = LDR.MeshCollectorIdx++;
-    //console.warn('Creating MC ' + this.idx);
 }
 
 LDR.MeshCollector.prototype.addLines = function(mesh, part, conditional) {
@@ -1734,13 +1734,8 @@ LDR.MeshCollector.prototype.removeAllMeshes = function() {
  */
 LDR.MeshCollector.prototype.updateMeshVisibility = function() {
     let v = this.visible;
-    for(let i = 0; i < this.lineMeshes.length; i++) {
-	this.lineMeshes[i].mesh.visible = v;
-    }
-    for(let i = 0; i < this.triangleMeshes.length; i++) {
-        let obj = this.triangleMeshes[i];
-        obj.mesh.visible = v && (this.old || !(ldrOptions.showEditor && obj.part && obj.part.original && obj.part.original.ghost)); // Do not show faces for ghosted parts.
-    }
+    this.lineMeshes.forEach(obj => obj.mesh.visible = v);
+    this.triangleMeshes.forEach(obj => obj.mesh.visible = v);
 }
 
 LDR.MeshCollector.prototype.expandBoundingBox = function(boundingBox, m) {

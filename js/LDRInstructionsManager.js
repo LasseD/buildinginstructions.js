@@ -69,6 +69,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
     this.pliPreviewer = new LDR.PliPreviewer(modelID);
 
     this.showPLI = false;
+    this.hovered = false;
     
     // Variables for realignModel:
     this.oldMultiplier = 1;
@@ -177,10 +178,15 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
                         }
                     });
             }
+	    function onEditDone() {
+		self.ignoreViewPortUpdate = true;
+		self.handleStepsWalked();
+		self.ignoreViewPortUpdate = false;
+	    }
 	    
             self.stepEditor = new LDR.StepEditor(self.ldrLoader, self.stepHandler,
-                                                 removeGeometries, () => self.handleStepsWalked(),
-                                                 self.modelID);
+						 self.pliBuilder, removeGeometries,
+						 onEditDone, self.modelID);
             self.stepEditor.createGuiComponents(document.getElementById('editor'));
             if(ldrOptions.showEditor === 1) {
                 $("#editor").show();
@@ -359,6 +365,9 @@ LDR.InstructionsManager.prototype.updatePLI = function(force) {
 }
 
 LDR.InstructionsManager.prototype.updateViewPort = function() {
+    if(this.ignoreViewPortUpdate) {
+	return;
+    }
     this.camera.position.set(10000, 7000, 10000);
 
     let dx = 0;
@@ -507,6 +516,7 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
     }
     let animationTimeMS = animationTimePositionMS+animationTimeRotationMS;
     let lastPosition = oldPosition;
+
     function animate() {
         animationID = requestAnimationFrame(animate);
         
@@ -605,8 +615,8 @@ LDR.InstructionsManager.prototype.handleStepsWalked = function() {
     this.currentStep = this.stepHandler.getCurrentStepIndex();
     this.ensureSwipeForwardWorks();
     this.realignModel(0);
+    this.onPLIMove(true);
     this.updateUIComponents(false);
-    this.render();
 };
 
 LDR.InstructionsManager.prototype.goToStep = function(step) {
@@ -710,21 +720,37 @@ LDR.InstructionsManager.prototype.onPLIMove = function(e) {
     }
 
     let self = this;
+
+    function update() {
+	self.stepHandler && self.stepHandler.updateMeshCollectors();
+	self.updatePLI(true);
+	self.stepEditor && self.stepEditor.updateCurrentStep();
+	self.render();
+    }
+
     function unset() {
-	if(self.pliBuilder.hover) {
-	    self.pliBuilder.hover = null;
-	    self.stepHandler.updateMeshCollectors();
-	    self.updateUIComponents(true);
+	if(self.hovered) {
+	    self.hovered.hover = false;
+	    self.hovered = false;
 	}
+	update();
     }
 
     if(!e) {
+	this.lastPLIMoveX = this.lastPLIMoveY = -1e6;
 	unset();
 	return;
     }
 
-    let x = e.layerX || e.clientX;
-    let y = e.layerY || e.clientY;
+    let x, y;
+    if(e === true) {
+	x = this.lastPLIMoveX;
+	y = this.lastPLIMoveY;
+    }
+    else {
+	x = this.lastPLIMoveX = e.layerX || e.clientX;
+	y = this.lastPLIMoveY = e.layerY || e.clientY;	
+    }
 
     // Find highlighted icon:
     let hits = this.pliBuilder.clickMap.filter(icon => x >= icon.x && y >= icon.y && x <= icon.x+icon.DX && y <= icon.y+icon.DY);
@@ -747,10 +773,11 @@ LDR.InstructionsManager.prototype.onPLIMove = function(e) {
             }
         });
 
-    if(this.pliBuilder.hover !== icon.part.original) {
-	this.pliBuilder.hover = icon.part.original;
-	this.stepHandler.updateMeshCollectors();
-	this.updateUIComponents(true);
+    if(icon.part.original !== self.hovered || e === true) {
+	self.hovered.hover = false; // Unhover old part.
+	self.hovered = icon.part.original;
+	self.hovered.hover = true; // Hover new part.
+	update();
     }
 }
 
