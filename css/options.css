@@ -91,10 +91,9 @@
 #options .lego_1 {
   font: italic 16px arial narrow;
   fill: black;
-  stroke: #FFF;
-  stroke-width: 1;
+  stroke: #000;
 }
-#options .lego_2 {
+/*#options .lego_2 {
   font: italic 16px arial narrow;
   fill: none;
   stroke: #000;
@@ -118,4 +117,4 @@
   fill: none;
   stroke: #000;
   stroke-width: 0.34;
-}
+}*/

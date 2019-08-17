@@ -20,9 +20,9 @@
   <script>
       let startTime = new Date();
 
-      //let modelToBeRendered = 'models/fail1.mpd';
+      let modelToBeRendered = 'models/fail1.mpd';
       //let modelToBeRendered = 'models/pyramid5.ldr';
-      let modelToBeRendered = '85970.dat';
+      //let modelToBeRendered = '85970.dat';
 
       let scene = new ENV.Scene(window.innerWidth, window.innerHeight);
       document.body.appendChild(scene.renderer.domElement);
@@ -43,7 +43,7 @@
       }
 
       let ldrOptions = new LDR.Options(); ldrOptions.lineContrast = 2; // 2 for no lines.
-      let logo = 0; // 0 for quick draw. 4 for special logo.
+      let logo = 4; // 0 for quick draw. 4 for special logo.
 
       ldrLoader = new THREE.LDRLoader(onLoad, false, {physicalRenderingAge:20});
       LDR.Studs.setStuds(ldrLoader, 0, logo, () => ldrLoader.load(modelToBeRendered));

@@ -138,14 +138,12 @@ body {
 /*
   Editor:
  */
-.editor_control {
-  display: inline-block;
-  padding-top: 0.4em;
+#editor {
   margin-left: 0.5em;
-  text-align: center;
+  padding-top: 0.3em;
 }
-.editor_save {
-  display: block;
+.editor_control {
+  display: inline;
   text-align: center;
 }
 .editor_radio_button {
@@ -171,20 +169,21 @@ body {
 .editor_button, .pli_button {
   border: none;
   margin: 0;
-  padding: 0 0.5vw;
+  padding: 0 1.1vw;
   background-color: #DDD;
   cursor: pointer;
 }
 .save_button {
-  border: none;
-  margin: 0;
+  margin-right: 1vw;
+  margin-top: 0em;
   background-color: #444;
   border: 0.3vw solid #222;
-  font-size: 3VW;
+  font-size: 2.5VW;
   color: white;
   font-weight: bold;
   cursor: pointer;
-  margin-bottom: 0.5em;
+  position: relative;
+  top: -0.2em;
 }
 .editor_radio_label svg {
   width: 9vw;

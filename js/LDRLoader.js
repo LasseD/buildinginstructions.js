@@ -714,7 +714,8 @@ THREE.LDRPartDescription = function(colorID, position, rotation, ID, cull, inver
 
 THREE.LDRPartDescription.prototype.cloneColored = function(colorID) {
     if(this.original) {
-	throw "Cloning non-original PD!";
+	console.dir(this);
+	throw "Cloning non-original PD to color " + colorID;
     }
     let c = this.colorID;
     if(this.colorID === 16) {
@@ -1391,6 +1392,23 @@ THREE.LDRPartType.prototype.unpack = function(obj) {
     this.inlined = 'IDB';
 }
 
+THREE.LDRPartType.prototype.purgePart = function(loader, ID) {
+    if(this.isPart()) {
+        return;
+    }
+    function handleStep(step) {
+        step.subModels = step.subModels.filter(sm => sm.ID !== ID);
+        if(step.subModels.length === 0) {
+            step.RM = true;
+        }
+        else {
+            step.subModels.forEach(sm => loader.getPartType(sm.ID).purgePart(loader, ID));
+        }
+    }
+    this.steps.forEach(handleStep);
+    this.steps = this.steps.filter(step => !step.RM);
+}
+
 /*
   Clean up all steps.
   This can cause additional steps (such as when a step contains both parts and sub models.
@@ -1407,6 +1425,10 @@ THREE.LDRPartType.prototype.cleanUp = function(loader) {
     else {
 	let newSteps = [];
 	this.steps.forEach(step => step.cleanUp(loader, newSteps));
+	if(newSteps.length === 0) { // Empty!
+	    loader.getMainModel().purgePart(loader, this.ID);
+	    return;
+	}
 	this.steps = newSteps;
     }
 
@@ -1708,7 +1730,6 @@ LDR.MeshCollector = function(opaqueObject, transObject) {
     this.boundingBox;
     this.isMeshCollector = true;
     this.idx = LDR.MeshCollectorIdx++;
-    //console.warn('Creating MC ' + this.idx);
 }
 
 LDR.MeshCollector.prototype.addLines = function(mesh, part, conditional) {
@@ -1742,13 +1763,11 @@ LDR.MeshCollector.prototype.removeAllMeshes = function() {
 LDR.MeshCollector.prototype.updateMeshVisibility = function() {
     let v = this.visible;
     let lineV = v && ldrOptions.lineContrast !== 2;
-    for(let i = 0; i < this.lineMeshes.length; i++) {
-	this.lineMeshes[i].mesh.visible = lineV;
-    }
-    for(let i = 0; i < this.triangleMeshes.length; i++) {
-        let obj = this.triangleMeshes[i];
-        obj.mesh.visible = v && (this.old || !(ldrOptions.showEditor && obj.part && obj.part.original && obj.part.original.ghost)); // Do not show faces for ghosted parts.
-    }
+
+    this.lineMeshes.forEach(obj => obj.mesh.visible = lineV);
+
+    let old = this.old;
+    this.triangleMeshes.forEach(obj => obj.mesh.visible = v && (old || !(ldrOptions.showEditor && obj.part && obj.part.original && obj.part.original.ghost))); // Do not show faces for ghosted parts.
 }
 
 LDR.MeshCollector.prototype.expandBoundingBox = function(boundingBox, m) {

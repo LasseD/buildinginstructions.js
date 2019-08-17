@@ -197,7 +197,7 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
     const scaleDown = 0.98; // To make icons not fill out the complete allocated cells.
     let self = this;
     let delay = function() {
-	context.clearRect(0, 0, self.pliElement.width, self.pliElement.height);
+	context.clearRect(0, 0, context.width, context.height);
         context.translate(6, 6);
 	// Draw icon:
 	for(let i = 0; i < self.clickMap.length; i++) {
@@ -264,16 +264,31 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
         if(ldrOptions.showEditor) {
             context.strokeStyle = "#5DD";
             context.lineWidth = '4';
+	    let hoveredIcon = null;
             self.clickMap.forEach(icon => {
-                    if(icon.part.original.ghost) {
-                        let x = parseInt((icon.x)*DPR);
-                        let y = parseInt((icon.y)*DPR);
-                        let w = parseInt((icon.DX)*DPR);
-                        let h = parseInt((icon.DY)*DPR);
-                        context.strokeRect(x, y, w, h);
-                    }
+                if(icon.part.original.ghost) {
+                    let x = parseInt((icon.x)*DPR);
+                    let y = parseInt((icon.y)*DPR);
+                    let w = parseInt((icon.DX)*DPR);
+                    let h = parseInt((icon.DY)*DPR);
+                    context.strokeRect(x, y, w, h);
+                }
+		if(icon.part.original.hover) {
+		    hoveredIcon = icon;
+		}
+            });
+	    if(hoveredIcon) {
+		context.strokeStyle = "#000";
+		context.setLineDash([10, 10]);
+		self.clickMap.forEach(icon => {
+                    let x = parseInt((hoveredIcon.x)*DPR);
+                    let y = parseInt((hoveredIcon.y)*DPR);
+                    let w = parseInt((hoveredIcon.DX)*DPR);
+                    let h = parseInt((hoveredIcon.DY)*DPR);
+                    context.strokeRect(x, y, w, h);
                 });
+	    }
         }
     }
-    setTimeout(delay, 10); // Ensure not blocking
+    delay(); //setTimeout(delay, 10); // Ensure not blocking
 }

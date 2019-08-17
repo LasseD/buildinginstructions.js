@@ -487,8 +487,9 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                 let ns = indices.map(i => 3*i).map(idx => new THREE.Vector3(normals[idx], normals[1+idx], normals[2+idx]));
 
                 // Check if normals all point the same direction:
-                if(Math.abs(ns[0].lengthSq() * ns.length - ns.reduce((a, b) => new THREE.Vector3(a.x+b.x, a.y+b.y, a.z+b.z)).lengthSq()) < 1e-5) {
-                    console.log('Normals are all the same!');
+                let nSum = ns.reduce((a, b) => new THREE.Vector3(a.x+b.x, a.y+b.y, a.z+b.z), new THREE.Vector3());
+                if(Math.abs(nSum.lengthSq() - ns.reduce((a, b) => new THREE.Vector3(a.x+b.x, a.y+b.y, a.z+b.z)).lengthSq(), 0) < 1e-5) {
+                    //console.log('Normals are all the same!');
                     // Just project onto one of the planes:
                     vs.forEach((v, idx) => setUV(indices[idx], (v.x-b.min.x)/size.x, (v.z-b.min.z)/size.z));
                     return;
@@ -496,28 +497,17 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
 
                 // Check if coordinates are degenerate in any axis:
                 if(!ns.map(v => v.x).some((x, idx, a) => x - a[idx === a.length-1 ? 0 : idx+1] > 1e-5)) { // y/z projection:
-
-                    if(!ns.map(v => v.y).some((y, idx, a) => y - a[idx === a.length-1 ? 0 : idx+1] > 1e-5)) { // x/z projection:
-                        console.log('ERROR! Normals:');
-                        console.dir(ns);
-                        console.log('Vertices:');
-                        console.dir(vs);
-                    }
-
-                    console.log('dx=0. for normals!');
-
+                    //console.log('dx=0. for normals!');
                     ns.forEach((v, idx) => setUV(indices[idx], Math.atan2(v.y, v.z)/(Math.PI*2), (vs[idx].x-b.min.x)/size.x));
                     return;
                 }
                 if(!ns.map(v => v.y).some((y, idx, a) => y - a[idx === a.length-1 ? 0 : idx+1] > 1e-5)) { // x/z projection:
-                    console.log('dy=0. for normals!');
-
+                    //console.log('dy=0. for normals!');
                     ns.forEach((v, idx) => setUV(indices[idx], Math.atan2(v.x, v.z)/(Math.PI*2), (vs[idx].y-b.min.y)/size.y));
                     return;
                 }
                 if(!ns.map(v => v.z).some((z, idx, a) => z - a[idx === a.length-1 ? 0 : idx+1] > 1e-5)) { // x/y projection:
-                    console.log('dz=0. for normals!');
-
+                    //console.log('dz=0. for normals!');
                     ns.forEach((v, idx) => setUV(indices[idx], Math.atan2(v.x, v.y)/(Math.PI*2), (vs[idx].z-b.min.z)/size.z));
                     return;
                 }
@@ -525,7 +515,7 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                 ns.forEach(n => {
                         var latitude = Math.atan2(n.x, n.z) / (2*Math.PI) + 0.5; // atan2 => [-PI;PI], so atan2/(2PI) => [-.5;.5]
                         var longitude = Math.acos(n.y) / Math.PI; // acos => [0;PI]
-                        console.log(n.x + ', ' + n.y + ', ' + n.z + ' => ' + latitude + ', ' + longitude);
+                        //console.log(n.x + ', ' + n.y + ', ' + n.z + ' => ' + latitude + ', ' + longitude);
                         setUV(indices[idx], latitude, longitude);
                     });
             }
@@ -542,7 +532,7 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
             if(self.quads2.hasOwnProperty(c)) {
                 self.quads2[c].forEach(q => setUVs([q.p1, q.p2, q.p3, q.p4]));
             }
-            console.dir(uvs);
+            //console.dir(uvs);
 
             g.addAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
             g.attributes.uv2 = g.attributes.uv;

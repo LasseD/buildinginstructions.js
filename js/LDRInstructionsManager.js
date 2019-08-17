@@ -69,6 +69,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
     this.pliPreviewer = new LDR.PliPreviewer(modelID);
 
     this.showPLI = false;
+    this.hovered = false;
     
     // Variables for realignModel:
     this.oldMultiplier = 1;
@@ -177,10 +178,15 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
                         }
                     });
             }
+	    function onEditDone() {
+		self.ignoreViewPortUpdate = true;
+		self.handleStepsWalked();
+		self.ignoreViewPortUpdate = false;
+	    }
 	    
             self.stepEditor = new LDR.StepEditor(self.ldrLoader, self.stepHandler,
-                                                 removeGeometries, () => self.handleStepsWalked(),
-                                                 self.modelID);
+						 self.pliBuilder, removeGeometries,
+						 onEditDone, self.modelID);
             self.stepEditor.createGuiComponents(document.getElementById('editor'));
             if(ldrOptions.showEditor === 1) {
                 $("#editor").show();
@@ -207,7 +213,12 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
         self.storage.retrieveInstructionsFromStorage(self.ldrLoader, onInstructionsLoaded);
     }
 
-    document.getElementById("pli").addEventListener('click', e => self.onPLIClick(e));
+    // Set up PLI interactions:
+    let pli = document.getElementById("pli");
+    pli.addEventListener('click', e => self.onPLIClick(e));
+    pli.addEventListener('mousemove', e => self.onPLIMove(e));
+    pli.addEventListener('mouseover', e => self.onPLIMove(e));
+    pli.addEventListener('mouseout', () => self.onPLIMove(false));
 
     this.setUpOptions();
     this.onWindowResize();
@@ -354,6 +365,9 @@ LDR.InstructionsManager.prototype.updatePLI = function(force) {
 }
 
 LDR.InstructionsManager.prototype.updateViewPort = function() {
+    if(this.ignoreViewPortUpdate) {
+	return;
+    }
     this.camera.position.set(10000, 7000, 10000);
 
     let dx = 0;
@@ -502,6 +516,7 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
     }
     let animationTimeMS = animationTimePositionMS+animationTimeRotationMS;
     let lastPosition = oldPosition;
+
     function animate() {
         animationID = requestAnimationFrame(animate);
         
@@ -600,8 +615,8 @@ LDR.InstructionsManager.prototype.handleStepsWalked = function() {
     this.currentStep = this.stepHandler.getCurrentStepIndex();
     this.ensureSwipeForwardWorks();
     this.realignModel(0);
+    this.onPLIMove(true);
     this.updateUIComponents(false);
-    this.render();
 };
 
 LDR.InstructionsManager.prototype.goToStep = function(step) {
@@ -652,7 +667,6 @@ LDR.InstructionsManager.prototype.clickDone = function() {
 LDR.InstructionsManager.prototype.onPLIClick = function(e) {
     let x = e.layerX || e.clientX;
     let y = e.layerY || e.clientY;
-    //console.warn("Click " + x +","+y); console.dir(this.pliBuilder); console.dir(this);
     if(!this.pliBuilder || !this.pliBuilder.clickMap) {
         return;
     }
@@ -679,7 +693,6 @@ LDR.InstructionsManager.prototype.onPLIClick = function(e) {
         });
 
     if(this.canEdit && ldrOptions.showEditor) {
-        //console.log('Clicked icon:'); console.dir(icon);
         icon.part.original.ghost = !icon.part.original.ghost;
         this.stepHandler.updateMeshCollectors();
         this.updateUIComponents(true);
@@ -697,6 +710,74 @@ LDR.InstructionsManager.prototype.onPLIClick = function(e) {
         let size = b.min.distanceTo(b.max) * 0.6;
         this.pliPreviewer.subjectSize = size;
         this.pliPreviewer.onResize();
+    }
+}
+
+LDR.InstructionsManager.prototype.onPLIMove = function(e) {
+    if(!(this.canEdit && ldrOptions.showEditor && 
+	 this.pliBuilder && this.pliBuilder.clickMap)) {
+        return; // Not applicable.
+    }
+
+    let self = this;
+
+    function update() {
+	self.stepHandler && self.stepHandler.updateMeshCollectors();
+	self.updatePLI(true);
+	self.stepEditor && self.stepEditor.updateCurrentStep();
+	self.render();
+    }
+
+    function unset() {
+	if(self.hovered) {
+	    self.hovered.hover = false;
+	    self.hovered = false;
+	}
+	update();
+    }
+
+    if(!e) {
+	this.lastPLIMoveX = this.lastPLIMoveY = -1e6;
+	unset();
+	return;
+    }
+
+    let x, y;
+    if(e === true) {
+	x = this.lastPLIMoveX;
+	y = this.lastPLIMoveY;
+    }
+    else {
+	x = this.lastPLIMoveX = e.layerX || e.clientX;
+	y = this.lastPLIMoveY = e.layerY || e.clientY;	
+    }
+
+    // Find highlighted icon:
+    let hits = this.pliBuilder.clickMap.filter(icon => x >= icon.x && y >= icon.y && x <= icon.x+icon.DX && y <= icon.y+icon.DY);
+    if(hits.length === 0) {
+	unset();
+        return; // no hits.
+    }
+    let distSq = (x1,y1) => (x1-x)*(x1-x) + (y1-y)*(y1-y);
+    let icon, bestDist;
+    hits.forEach(candidate => {
+            if(!icon) {
+                icon = candidate;
+            }
+            else {
+                let d = distSq(icon.x + candidate.DX*0.5, icon.y + candidate.DY*0.5);
+                if(d < bestDist) {
+                    bestDist = d;
+                    icon = candidate;
+                }
+            }
+        });
+
+    if(icon.part.original !== self.hovered || e === true) {
+	self.hovered.hover = false; // Unhover old part.
+	self.hovered = icon.part.original;
+	self.hovered.hover = true; // Hover new part.
+	update();
     }
 }
 

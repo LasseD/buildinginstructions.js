@@ -731,24 +731,23 @@ LDR.Options.prototype.appendStudLogoOptions = function(optionsBlock) {
     let buttons = this.createButtons(group, 2, this.studLogo > 0 ? 1 : 0, onChange);
 
     /* 
-       Option 0: Off
+       Option 0: Off. Options 1-5 are versions of logos on stud.
     */
-    {
+    for(let i = 0; i < 2; i++) {
 	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
-	svg.setAttribute('viewBox', '-100 -50 200 100');
+	svg.setAttribute('viewBox', '-100 -35 200 60');
 	svg.setAttribute('class', 'ui_toggles');
-	svg.appendChild(LDR.SVG.makeOffIcon(0, 0, 100));
-	buttons[0].appendChild(svg);
-    }
-    for(let i = 1; i < 2; i++) {
-	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
-	svg.setAttribute('viewBox', '-25 -18 50 25');
-	svg.setAttribute('class', 'ui_toggles');
-        let lego = document.createElementNS(LDR.SVG.NS, 'text');
-        lego.innerHTML = 'LEGO';
-        lego.setAttribute('class', 'lego_' + i);
-        lego.setAttribute('text-anchor', 'middle');
-        svg.append(lego);
+
+        svg.append(LDR.SVG.makeCircle(0, -5, 23, true));
+
+        if(i > 0) {
+          let lego = document.createElementNS(LDR.SVG.NS, 'text');
+          lego.innerHTML = 'LEGO';
+          lego.setAttribute('class', 'lego_' + i);
+          lego.setAttribute('text-anchor', 'middle');
+          svg.append(lego);
+        }
+
 	buttons[i].appendChild(svg);
     }
 }
