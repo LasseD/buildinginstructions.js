@@ -28,6 +28,8 @@ ENV.Scene = function(eleW, eleH) {
     this.baseObject.add(transObject);
     this.scene.add(this.baseObject);
     this.mc = new LDR.MeshCollector(opaqueObject, transObject);
+
+    LDR.Colors.loadTextures();
 }
 
 ENV.Scene.prototype.render = function() {
@@ -44,7 +46,7 @@ ENV.Scene.prototype.onChange = function(eleW, eleH) {
 ENV.Scene.prototype.addPointLight = function(size, color, intensity, x, y, z) {
     let dist = Math.sqrt(x*x+y*y+z*z);
     let diam = Math.sqrt(size.w*size.w + size.l*size.l);
-    console.log('Creating light at ' + x + ', ' + y + ', ' + z + ', dist: ' + dist + ', diameter of subject: ' + diam);
+    //console.log('Creating light at ' + x + ', ' + y + ', ' + z + ', dist: ' + dist + ', diameter of subject: ' + diam);
 
     let light = new THREE.PointLight(color, intensity, 2*dist);
     light.position.set(x, y, z);
@@ -77,7 +79,6 @@ ENV.Scene.prototype.buildStandardScene = function() {
     let self = this;
     let b = this.mc.boundingBox; // To build scene around.
     let size = {w:b.max.x-b.min.x, l:b.max.z-b.min.z, h:b.max.y-b.min.y};
-    console.dir(size);
 
     // Set up camera:
     let cameraDist = 1.5*Math.max(size.w, size.l, size.h);

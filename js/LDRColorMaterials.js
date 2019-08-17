@@ -156,44 +156,49 @@ LDR.Colors.loadTextures = function() {
         return;
     }
     var textureLoader = new THREE.TextureLoader();
+    textureLoader.setPath('textures/');
 
     // env map
-    var path = "textures/cube/";
     var sides = ['px', 'nx', 'py', 'ny', 'pz', 'nz'];
     
     // textures
+    let normalMap = textureLoader.load("metal/normal.jpg"); // blue/purple/red map of the mask - colors show dents.
+    normalMap.wrapS = normalMap.wrapT = THREE.MirroredRepeatWrapping;
+    normalMap.repeat.set(0.2, 0.2);
+    normalMap.offset.set(0.5, 0.5);
+
     LDR.Colors.textures = {
-        reflectionCube: new THREE.CubeTextureLoader().load(sides.map(x => path + x + '.jpg')),
-        normalMap: textureLoader.load("textures/metal/normal.jpg"), // blue/purple/red map of the mask - colors show dents.
-        aoMap: textureLoader.load("textures/metal/ao.jpg"), // grayscale looking like a print of the mask
-        displacementMap: textureLoader.load("textures/metal/displacement.jpg"), // grayscale looks like a negative print.
+        reflectionCube: new THREE.CubeTextureLoader().load(sides.map(x => 'textures/cube/' + x + '.jpg')),
+        normalMap: normalMap,
+        aoMap: textureLoader.load("metal/ao.jpg"), // grayscale looking like a print of the mask
+        displacementMap: textureLoader.load("metal/displacement.jpg"), // grayscale looks like a negative print.
     };
 }
 
 LDR.Colors.buildStandardMaterial = function(colorID) {
     let color = LDR.Colors[colorID < 0 ? (-colorID-1) : colorID]; // Assume non-negative color.
     if(!color.m) {
-        LDR.Colors.loadTextures();
-
         let params = {
             color: colorID < 0 ? (color.edge ? color.edge : 0x333333) : color.value,
             name: 'Standard material for color ' + color.name + ' (' + colorID + ')',
             
             roughness: 0.1, // Smooth ABS
-            metalness: 0,
+            metalness: 0.0,
             
-            /*normalMap: LDR.Colors.textures.normalMap,
-              normalScale: new THREE.Vector2(1, -1),*/
+            //bumpMap: LDR.Colors.textures.normalMap,
+            //bumpScale: 1,
+            normalMap: LDR.Colors.textures.normalMap,
+            normalScale: new THREE.Vector2(1, -1),//*/
             
             /*aoMap: LDR.Colors.textures.aoMap,
-              aoMapIntensity: 1.0,*/
+            aoMapIntensity: 1.0,//*/
             
             /*displacementMap: LDR.Colors.textures.displacementMap,
-              displacementScale: 2.436143,
-              displacementBias: -0.428408,*/
+            displacementScale: 2.436143,
+              displacementBias: -0.428408,//*/
             
             envMap: LDR.Colors.textures.reflectionCube,
-            envMapIntensity: 0.8
+            envMapIntensity: 0.9
         };
 
         if(color.material) { // Special materials:
@@ -204,7 +209,6 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
             }
             else if(color.material === 'RUBBER') {
                 console.log('RUBBER ' + colorID + ' -> ' + color.value);
-                params.metalness = 0.0;
                 params.roughness = 0.9;
             }
             else if(color.material === 'METAL') {

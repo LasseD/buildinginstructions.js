@@ -20,8 +20,9 @@
   <script>
       let startTime = new Date();
 
-      let modelToBeRendered = 'models/fail1.mpd';
+      //let modelToBeRendered = 'models/fail1.mpd';
       //let modelToBeRendered = 'models/pyramid5.ldr';
+      let modelToBeRendered = '85970.dat';
 
       let scene = new ENV.Scene(window.innerWidth, window.innerHeight);
       document.body.appendChild(scene.renderer.domElement);
@@ -32,7 +33,8 @@
       let ldrLoader; // Three.js loader for LDraw models
       let onLoad = function() {
         let inv = new THREE.Matrix3(); inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
-        ldrLoader.getMainModel().generateThreePart(ldrLoader, 36, new THREE.Vector3(), inv, true, false, scene.mc);
+        ldrLoader.getMainModel().generateThreePart(ldrLoader, 4, new THREE.Vector3(), inv, true, false, scene.mc);
+        scene.mc.updateMeshVisibility();
 
         scene.buildStandardScene();
         onWindowResize(); // Render
