@@ -88,6 +88,7 @@ LDR.StepEditor.prototype.handleKeyDown = function(e) {
     case 68: // 'D'
 	this.movePLIRight();
 	break;
+    case 38: // 'UP'
     case 69: // 'E'
 	this.toggleHovered();
 	break;
@@ -419,7 +420,7 @@ LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
 
     this.toggleHovered = () => update(info => self.stepHandler.toggleHovered(info));
     let toggleHoveredButton = this.makeEle(ele, 'button', 'pli_button', () => self.toggleHovered(),
-					   'Toggle highlight.', self.makeToggleHoveredIcon(), 'E and use WADS to move between parts');
+					   'Toggle highlight.', self.makeToggleHoveredIcon(), 'E or UP arrow, and use WADS to move between parts');
 
 
     this.toggleAll = () => update(info => self.stepHandler.toggleAll(info));

@@ -50,7 +50,7 @@ LDR.PLIBuilder.prototype.getPartType = function(id) {
 	let b = pt.pliMC.boundingBox;
 	b.getCenter(elementCenter);
 	pt.mesh.position.sub(elementCenter);
-        //b.translate(elementCenter.negate()); // TODO: RM
+
 	let [width,height,linesBelow,linesAbove] = this.measurer.measureConvexHull(b, pt.mesh.matrixWorld);
 	pt.dx = width;
 	pt.dy = height;
@@ -75,14 +75,11 @@ LDR.PLIBuilder.prototype.updateCamera = function(w, h) {
     pt.pliMC.draw(false);
 
     this.scene.add(pt.mesh);
-    //var helper = new THREE.Box3Helper(pt.pliMC.boundingBox, 0xFF0000);
-    //this.scene.add(helper);
 
     this.renderer.setSize(w+1, h+1); // +1 to ensure edges are in frame in case of rounding down.
     this.updateCamera(pt.dx, pt.dy);
     this.renderer.render(this.scene, this.camera);
     this.scene.remove(pt.mesh);
-    //this.scene.remove(helper);
 }
 
 LDR.PLIBuilder.prototype.createClickMap = function(step) {
@@ -90,10 +87,10 @@ LDR.PLIBuilder.prototype.createClickMap = function(step) {
     this.clickMap = [];
     for(let i = 0; i < step.subModels.length; i++) {
 	let dat = step.subModels[i];
-	if(dat.REPLACEMENT_PLI === true) {
+	if(this.groupParts && dat.REPLACEMENT_PLI === true) {
 	    continue; // Do not show replaced part.
 	}
-	let partID = dat.REPLACEMENT_PLI ? dat.REPLACEMENT_PLI : dat.ID;
+	let partID = (this.groupParts && dat.REPLACEMENT_PLI) ? dat.REPLACEMENT_PLI : dat.ID;
 	let partType = this.loader.getPartType(partID);
         if(!partType.isPart()) {
             continue; // Do not show sub models.
@@ -210,17 +207,6 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
 	    context.drawImage(self.renderer.domElement, x, y);
 
             // Code below is to highlight PLI boundary lines:
-            /*let W = icon.DX*DPR, H = icon.DY*DPR;
-            context.lineWidth = "3";
-            let highlight = function(line) {
-                line.scaleY(DPR);
-                context.moveTo(x, y + line.eval(0));
-                context.lineTo(x+W, y + line.eval(W));
-            }
-            context.strokeStyle = "blue";
-            icon.LINES_ABOVE.forEach(highlight);
-            icon.LINES_BELOW.forEach(highlight);
-            context.stroke();*/
 	}
 	// Draw multipliers:
 	context.fillStyle = "#000";
@@ -233,7 +219,6 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
                 let y = (icon.y + icon.MULT_Y) * DPR;
                 let w = icon.MULT_DX * DPR;
                 let h = textHeight * DPR;
-                //context.beginPath(); context.rect(x, y, w, h); context.stroke();
                 context.fillText(icon.mult + "x", x, y + h*0.9); // *0.9 to move a bit up from lower line.
             }
             self.clickMap.forEach(drawMultiplier);
