@@ -1,6 +1,5 @@
 0 Name: test.ldr
 0 Author: Lasse Deleuran [Lasse Deleuran]
-0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
 1 34 0 0 0 1 0 0 0 1 0 0 0 1 4-4edge.dat
 1 35 10 0 0 1 0 0 0 1 0 0 0 1 4-4cyli.dat
 1 36 -10 0 0 1 0 0 0 1 0 0 0 1 4-4disc.dat

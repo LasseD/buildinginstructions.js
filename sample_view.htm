@@ -20,9 +20,9 @@
     <script>
       var startTime = new Date();
       // The model to be rendered:
-      //var modelTypeUrl = 'models/fail1.mpd';
-      var modelTypeUrl = 'models/twostack.ldr';
-      //var modelTypeUrl = '3024.dat';
+      var modelTypeUrl = 'models/fail1.mpd';
+      //var modelTypeUrl = 'models/twostack.ldr';
+      //var modelTypeUrl = 'test.dat';
       //var modelTypeUrl = 'models/vette.mpd';
 
       // Set up camera:
@@ -75,7 +75,7 @@
         inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
 
         // Generate the mesh:
-        mainModel.generateThreePart(ldrLoader, 0, origo, inv, true, false, mc);
+        mainModel.generateThreePart(ldrLoader, 4, origo, inv, true, false, mc);
 
         // Find center of drawn model:
         var b = mc.boundingBox;
@@ -92,13 +92,13 @@
       let storage;
       var ldrOptions = new LDR.Options(); // Determine how to show lines, studs, and logos. Change options using sample_instruction.htm
 
-      let onStorageReady = function() {
+      //let onStorageReady = function() {
         ldrLoader = new THREE.LDRLoader(onLoad, storage);
         LDR.Studs.setStuds(ldrLoader, ldrOptions.studHighContrast, 
                            ldrOptions.studLogo, () => ldrLoader.load(modelTypeUrl));
-      }
+      //}
 
-      storage = new LDR.STORAGE(onStorageReady);
+      //storage = new LDR.STORAGE(onStorageReady);
  </script>
  </body>
 </html>

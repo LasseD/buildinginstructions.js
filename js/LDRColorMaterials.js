@@ -151,6 +151,54 @@ LDR.Colors.buildTriangleMaterial = function(colorManager, color) {
     return ret;
 }
 
+LDR.Colors.absTextures = {};
+LDR.Colors.createAbsTexture = function(size) {
+    if(LDR.Colors.absTextures.hasOwnProperty(size)) {
+        return LDR.Colors.absTextures[size];
+    }
+
+    let canvas = document.createElement("canvas");
+    canvas.width = canvas.height = size;
+    let ctx = canvas.getContext("2d");              
+
+    ctx.fillStyle = '#808080';
+    ctx.fillRect(0, 0, size, size);
+
+    ctx.filter = 'blur(' + Math.round(size/10) + 'px)';
+
+    ctx.fillStyle = '#7F8281';
+    ctx.fillRect(size/10, size/10, size-size/10, size-size/10);
+
+    var texture = new THREE.Texture(canvas);
+    texture.needsUpdate = true;
+    document.body.appendChild(canvas);
+    return LDR.Colors.absTextures[size] = texture;
+}
+
+LDR.Colors.metalTextures = {};
+LDR.Colors.createMetalTexture = function(size) {
+    if(LDR.Colors.metalTextures.hasOwnProperty(size)) {
+        return LDR.Colors.metalTextures[size];
+    }
+
+    let canvas = document.createElement("canvas");
+    canvas.width = canvas.height = size;
+    let ctx = canvas.getContext("2d");              
+
+    ctx.fillStyle = '#808080';
+    ctx.fillRect(0, 0, size, size);
+
+    ctx.filter = 'blur(' + Math.round(size/10) + 'px)';
+
+    ctx.fillStyle = '#7D8284';
+    ctx.fillRect(size/10, size/10, size-size/10, size-size/10);
+
+    var texture = new THREE.Texture(canvas);
+    texture.needsUpdate = true;
+    document.body.appendChild(canvas);
+    return LDR.Colors.metalTextures[size] = texture;
+}
+
 LDR.Colors.loadTextures = function() {
     if(LDR.Colors.textures) {
         return;
@@ -166,6 +214,7 @@ LDR.Colors.loadTextures = function() {
     normalMap.wrapS = normalMap.wrapT = THREE.MirroredRepeatWrapping;
     normalMap.repeat.set(0.2, 0.2);
     normalMap.offset.set(0.5, 0.5);
+    //normalMap.rotation = 1; // Does not work
 
     LDR.Colors.textures = {
         reflectionCube: new THREE.CubeTextureLoader().load(sides.map(x => 'textures/cube/' + x + '.jpg')),
@@ -187,9 +236,7 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
             
             //bumpMap: LDR.Colors.textures.normalMap,
             //bumpScale: 1,
-            normalMap: LDR.Colors.textures.normalMap,
-            normalScale: new THREE.Vector2(1, -1),//*/
-            
+
             /*aoMap: LDR.Colors.textures.aoMap,
             aoMapIntensity: 1.0,//*/
             
@@ -198,7 +245,7 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
               displacementBias: -0.428408,//*/
             
             envMap: LDR.Colors.textures.reflectionCube,
-            envMapIntensity: 0.9
+            envMapIntensity: 1.0
         };
 
         if(color.material) { // Special materials:
@@ -206,6 +253,8 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
                 console.log('CHROME ' + colorID + ' -> ' + color.value);
                 params.metalness = 1.0;
                 params.roughness = 0.05;
+                params.normalMap = LDR.Colors.createMetalTexture(8);
+                params.normalScale = new THREE.Vector2(1, -1);
             }
             else if(color.material === 'RUBBER') {
                 console.log('RUBBER ' + colorID + ' -> ' + color.value);
@@ -215,6 +264,8 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
                 console.log('METAL ' + colorID + ' -> ' + color.value);
                 params.metalness = 1.0;
                 params.roughness = 0.2;
+                params.normalMap = LDR.Colors.createMetalTexture(8);
+                params.normalScale = new THREE.Vector2(1, -1);
             }
             else if(color.material === 'PEARLESCENT') {
                 console.log('PEARL ' + colorID + ' -> ' + color.value);
@@ -225,6 +276,13 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
                 // TODO: Stuff like 'MATERIAL GLITTER FRACTION 0.17 VFRACTION 0.2 SIZE 1' or
                 // 'MATERIAL SPECKLE FRACTION 0.4 MINSIZE 1 MAXSIZE 3'
             }
+        }
+        else {
+            params.normalMap = LDR.Colors.createAbsTexture(8);
+            params.normalScale = new THREE.Vector2(0.1, -0.1);
+
+            //params.normalMap = LDR.Colors.textures.normalMap;
+            //params.normalScale = new THREE.Vector2(1, -1);
         }
 
         let m = new THREE.MeshStandardMaterial(params);

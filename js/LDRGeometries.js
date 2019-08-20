@@ -317,6 +317,9 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
     this.buildGeometriesAndColorsForLines();
     var self = this;
     let vertices = this.vertices;
+    let vLen = vertices.length;
+    const VLEN = vLen;
+    let key = (a,b) => (a < b) ? (a*VLEN + b) : (b*VLEN + a);
 
     // Find bounds:
     let b = new THREE.Box3(); 
@@ -324,35 +327,32 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
     let size = new THREE.Vector3();
     b.getSize(size);
 
-    // Mark vertices shared by lines:
-    vertices.forEach(v => v.mark = 0);
-    let idx = 0;
-    function handleVertex(v) {
-        if(v.mark !== 0) {
-            v.mark = -1;
-            return; // Special case: Joins more than one conditional line.
-        }
-        v.mark = idx;
-    }
+    // Mark lines shared by lines and conditional lines:
+    let edges = []; // 0/1 => soft, 2 => hard
     for(let c in this.conditionalLines) {
 	if(this.conditionalLines.hasOwnProperty(c)) {
             let lines = this.conditionalLines[c];
-            lines.forEach(line => {
-                    idx++;
-                    handleVertex(vertices[line.p1]);
-                    handleVertex(vertices[line.p2]);
-                });
+            lines.forEach(line => edges[key(line.p1, line.p2)] = true);
         }
     }
-
+    for(let c in this.lines) {
+	if(this.lines.hasOwnProperty(c)) {
+            let lines = this.lines[c];
+            lines.forEach(line => vertices[line.p1].hard = vertices[line.p2].hard = true);
+            lines.forEach(line => edges[key(line.p1, line.p2)] = false); // This fixes duplicate soft and hard edges.
+        }
+    }
+    //console.log('EDGES of the ' + vLen + ' vertices:');
+    //console.dir(edges);
+    
     // Now handle triangle colors and vertices:
     let allTriangleColors = [];
-    let seen = {};
+    let seenColors = {};
     function getColorsFrom(p) {
         for(let c in p) {
-            if(!seen.hasOwnProperty(c) && p.hasOwnProperty(c)) {
+            if(!seenColors.hasOwnProperty(c) && p.hasOwnProperty(c)) {
                 allTriangleColors.push(c);
-                seen[c] = true;
+                seenColors[c] = true;
             }
         }
     }
@@ -365,40 +365,49 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
 
     function renew(i) {
         let v = vertices[i];
+        //console.log('Renewing ' + i + ': ' + v.x + ', ' + v.y + ', ' + v.z);
         vertices.push({x:v.x, y:v.y, z:v.z}); // No mark as it is new and will not be visited again.
-        return vertices.length-1;
+        vLen++;
+        return vLen-1;
     }
+
     function updateTriangleIndices(t) {
-        let v1 = vertices[t.p1], v2 = vertices[t.p2], v3 = vertices[t.p3];
-        let m1 = v1.mark, m2 = v2.mark, m3 = v3.mark;
-
-        if(!(m1 === -1 || (m1 !== 0 && (m1 === m2 || m1 === m3)))) {
+        let p1 = t.p1, p2 = t.p2, p3 = t.p3;
+        let h1 = vertices[p1].hard, h2 = vertices[p2].hard, h3 = vertices[p3].hard;
+        let k12 = edges[key(p1, p2)], k23 = edges[key(p2, p3)], k31 = edges[key(p3, p1)];
+        //console.log('Checking triangle ' + p1 + ', ' + p2 + ', ' + p3 + ': ' + k12 + ', ' + k23 + ', ' + k31);
+        
+        if(h1 && !k12 && !k31) {
             t.p1 = renew(t.p1);
         }
-        if(!(m2 === -1 || (m2 !== 0 && (m2 === m1 || m2 === m3)))) {
+        if(h2 && !k12 && !k23) {
             t.p2 = renew(t.p2);
         }
-        if(!(m3 === -1 || (m3 !== 0 && (m3 === m1 || m3 === m2)))) {
+        if(h3 && !k23 && !k31) {
             t.p3 = renew(t.p3);
         }
     }
-    function updateQuadIndices(t) {
-        let v1 = vertices[t.p1], v2 = vertices[t.p2], v3 = vertices[t.p3], v4 = vertices[t.p4];
-        let m1 = v1.mark, m2 = v2.mark, m3 = v3.mark, m4 = v4.mark;
 
-        if(!(m1 === -1 || (m1 !== 0 && (m1 === m2 || m1 === m4)))) {
+    function updateQuadIndices(t) {
+        let p1 = t.p1, p2 = t.p2, p3 = t.p3, p4 = t.p4;
+        let h1 = vertices[p1].hard, h2 = vertices[p2].hard, h3 = vertices[p3].hard, h4 = vertices[p4].hard;
+        let k12 = edges[key(p1, p2)], k23 = edges[key(p2, p3)], k34 = edges[key(p3, p4)], k41 = edges[key(p4, p1)];
+        //console.log('Checking quad ' + p1 + ', ' + p2 + ', ' + p3 + ', ' + p4);
+        
+        if(h1 && !k12 && !k41) {
             t.p1 = renew(t.p1);
         }
-        if(!(m2 === -1 || (m2 !== 0 && (m2 === m1 || m2 === m3)))) {
+        if(h2 && !k12 && !k23) {
             t.p2 = renew(t.p2);
         }
-        if(!(m3 === -1 || (m3 !== 0 && (m3 === m4 || m3 === m2)))) {
+        if(h3 && !k23 && !k34) {
             t.p3 = renew(t.p3);
         }
-        if(!(m4 === -1 || (m4 !== 0 && (m4 === m1 || m4 === m3)))) {
+        if(h4 && !k41 && !k34) {
             t.p4 = renew(t.p4);
         }
     }
+
     allTriangleColors.forEach(c => {
             if(self.triangles.hasOwnProperty(c)) {
                 self.triangles[c].forEach(updateTriangleIndices);
@@ -454,70 +463,129 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
             // Compute UV's using normals and project from bounding box 'b' of size 'size' onto [0;1]:
             let normals = g.getAttribute('normal').array;
             let uvs = [];
-            for(let i = 0; i < vertices.length; i++) {
+            for(let i = 0; i < vLen; i++) {
                 uvs.push(0, 0);
             }
-            function setUV(idx, u, v) {
-                idx*=2;
-                uvs[idx] = u;
-                uvs[idx+1] = v;
-            }
+            let dx = v => (v.x-b.min.x)/size.x;
+            let dy = v => (v.y-b.min.y)/size.y;
+            let dz = v => (v.z-b.min.z)/size.z;
 
             function setUVs(indices) {
+                const len = indices.length;
+
+                function setUV(vs, fu, fv) {
+                    let ret = vs.map((v,i) => {return {u:fu(v, i), v:fv(v, i)};});
+                    
+                    let prevprev = ret[ret.length-2];
+                    let prev = ret[ret.length-1];
+                    for(let i = 0; i < ret.length; i++) {
+                        let uv = ret[i];
+                        if(Math.abs(prev.u-uv.u) < 1e-5 && Math.abs(prev.v-uv.v) < 1e-5 ||
+                           Math.abs(prevprev.u-uv.u) < 1e-5 && Math.abs(prevprev.v-uv.v) < 1e-5) {
+                            console.log(' Underlying data points:');
+                            console.dir(vs);
+                            console.dir('Outputting:');
+                            console.dir(ret);
+                            console.warn("Degenerate UV! " + uv.u + ', ' + uv.v);//*/
+                            return false;
+                        }
+                        prevprev = prev;
+                        prev = uv;
+                    }
+                    
+                    // Output:
+                    ret.forEach((uv, i) => {
+                            let idx = 2*indices[i];
+                            uvs[idx] = uv.u;
+                            uvs[idx+1] = uv.v;
+                        });
+                    return true;
+                }
+
+                let maxDiff = xs => xs.map((x,idx,a) => Math.abs(x - a[idx === 0 ? len-1 : idx-1])).reduce((a,b) => a > b ? a : b, 0);
+
                 let vs = indices.map(i => vertices[i]);
 
                 // First check if this is a simple rectilinear face:
-                if(!vs.map(v => v.x).some((x, idx, a) => x - a[idx === a.length-1 ? 0 : idx+1] > 1e-5)) { // y/z projection:
-                    //console.log('dx=0. Project y/z');
-                    vs.forEach((v, idx) => setUV(indices[idx], (v.y-b.min.y)/size.y, (v.z-b.min.z)/size.z));
+                let DX = maxDiff(vs.map(v => v.x));
+                if(DX < 1e-5) { // y/z projection:
+                    //console.log('DX');
+                    setUV(vs, dy, dz); // Ignore false returns as that indicates highly-degenerate polygons.
                     return;
                 }
-                if(!vs.map(v => v.y).some((y, idx, a) => y - a[idx === a.length-1 ? 0 : idx+1] > 1e-5)) { // x/z projection:
-                    //console.log('dy=0. Project x/z');
-                    vs.forEach((v, idx) => setUV(indices[idx], (v.x-b.min.x)/size.x, (v.z-b.min.z)/size.z));
+                let DY = maxDiff(vs.map(v => v.y));
+                if(DY < 1e-5) {
+                    //console.log('DY');
+                    setUV(vs, dx, dz); // Ignore false returns as that indicates highly-degenerate polygons.
                     return;
                 }
-                if(!vs.map(v => v.z).some((z, idx, a) => z - a[idx === a.length-1 ? 0 : idx+1] > 1e-5)) { // x/y projection:
-                    //console.log('dx=0. Project x/y');
-                    vs.forEach((v, idx) => setUV(indices[idx], (v.x-b.min.x)/size.x, (v.y-b.min.y)/size.y));
+                let DZ = maxDiff(vs.map(v => v.z));
+                if(DZ < 1e-5) {
+                    //console.log('DZ');
+                    setUV(vs, dx, dy); // Ignore false returns as that indicates highly-degenerate polygons.
                     return;
                 }
 
                 // Face is not rectilinear! Project onto cylinders or globe using normals:
                 let ns = indices.map(i => 3*i).map(idx => new THREE.Vector3(normals[idx], normals[1+idx], normals[2+idx]));
 
-                // Check if normals all point the same direction:
-                let nSum = ns.reduce((a, b) => new THREE.Vector3(a.x+b.x, a.y+b.y, a.z+b.z), new THREE.Vector3());
-                if(Math.abs(nSum.lengthSq() - ns.reduce((a, b) => new THREE.Vector3(a.x+b.x, a.y+b.y, a.z+b.z)).lengthSq(), 0) < 1e-5) {
-                    //console.log('Normals are all the same!');
-                    // Just project onto one of the planes:
-                    vs.forEach((v, idx) => setUV(indices[idx], (v.x-b.min.x)/size.x, (v.z-b.min.z)/size.z));
+                // Check if at least 3 normals point the same direction:
+                let equalVector3 = (a, b) => Math.abs(a.x-b.x) < 1e-5 && Math.abs(a.y-b.y) < 1e-5 && Math.abs(a.z-b.z) < 1e-5;
+                function atLeast3EqualNormals() {
+                    let a = [...ns]; // Shallow copy.
+                    a.sort(LDR.vertexSorter);
+                    if(equalVector3(a[0], a[a.length-1])) {
+                        return true; // All equal!
+                    }
+                    if(a.length !== 4) {
+                        return false;
+                    }
+                    return equalVector3(a[0], a[2]) || equalVector3(a[1], a[3]);
+                }
+                if(atLeast3EqualNormals()) { // Just project onto the plane where the normals point the most:
+                    //console.log('At least 3 normals are the same!');
+                    let nSum = ns.reduce((a, b) => new THREE.Vector3(a.x+b.x, a.y+b.y, a.z+b.z), new THREE.Vector3());
+                    let nx = nSum.x*nSum.x, ny = nSum.y*nSum.y, nz = nSum.z*nSum.z;
+                    if(nx > ny && nx > nz) {
+                        setUV(vs, dy, dz);
+                    }
+                    else if(ny > nx && ny > nz) {
+                        setUV(vs, dx, dz);
+                    }
+                    else {
+                        setUV(vs, dx, dy);
+                    }
                     return;
                 }
 
                 // Check if coordinates are degenerate in any axis:
-                if(!ns.map(v => v.x).some((x, idx, a) => x - a[idx === a.length-1 ? 0 : idx+1] > 1e-5)) { // y/z projection:
-                    //console.log('dx=0. for normals!');
-                    ns.forEach((v, idx) => setUV(indices[idx], Math.atan2(v.y, v.z)/(Math.PI*2), (vs[idx].x-b.min.x)/size.x));
-                    return;
+                if(maxDiff(ns.map(v => v.x)) < 1e-5) {
+                    //console.log('dx=0 for NORMALS!');
+                    if(setUV(ns, v => Math.atan2(v.y, v.z)/(Math.PI*2), (v,i) => dx(vs[i]))) {
+                        return;
+                    }
                 }
-                if(!ns.map(v => v.y).some((y, idx, a) => y - a[idx === a.length-1 ? 0 : idx+1] > 1e-5)) { // x/z projection:
-                    //console.log('dy=0. for normals!');
-                    ns.forEach((v, idx) => setUV(indices[idx], Math.atan2(v.x, v.z)/(Math.PI*2), (vs[idx].y-b.min.y)/size.y));
-                    return;
+                else if(maxDiff(ns.map(v => v.y)) < 1e-5) {
+                    //console.log('dy=0 for NORMALS!');
+                    if(setUV(ns, v => Math.atan2(v.x, v.z)/(Math.PI*2), (v,i) => dy(vs[i]))) {
+                        return;
+                    }
                 }
-                if(!ns.map(v => v.z).some((z, idx, a) => z - a[idx === a.length-1 ? 0 : idx+1] > 1e-5)) { // x/y projection:
-                    //console.log('dz=0. for normals!');
-                    ns.forEach((v, idx) => setUV(indices[idx], Math.atan2(v.x, v.y)/(Math.PI*2), (vs[idx].z-b.min.z)/size.z));
-                    return;
+                else if(maxDiff(ns.map(v => v.z)) < 1e-5) {
+                    //console.log('dz=0 for NORMALS!');
+                    if(setUV(ns, v => Math.atan2(v.x, v.y)/(Math.PI*2), (v,i) => dz(vs[i]))) {
+                        return;
+                    }
                 }
                 
-                ns.forEach(n => {
-                        var latitude = Math.atan2(n.x, n.z) / (2*Math.PI) + 0.5; // atan2 => [-PI;PI], so atan2/(2PI) => [-.5;.5]
-                        var longitude = Math.acos(n.y) / Math.PI; // acos => [0;PI]
-                        //console.log(n.x + ', ' + n.y + ', ' + n.z + ' => ' + latitude + ', ' + longitude);
-                        setUV(indices[idx], latitude, longitude);
-                    });
+                /*console.log('Lat/Lon projection. vertices:');
+                console.dir(vs);
+                console.log('normals:');
+                console.dir(ns);//*/
+
+                if(!setUV(ns, v => Math.atan2(v.x, v.z)/(2*Math.PI) + 0.5, v => Math.acos(v.y)/Math.PI)) {
+                    setUV(vs, (v, i) => [0,0,1,1][i], (v, i) => [0,1,1,0][i]);
+                }
             }
 
             if(self.triangles.hasOwnProperty(c)) {
@@ -532,7 +600,6 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
             if(self.quads2.hasOwnProperty(c)) {
                 self.quads2[c].forEach(q => setUVs([q.p1, q.p2, q.p3, q.p4]));
             }
-            //console.dir(uvs);
 
             g.addAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
             g.attributes.uv2 = g.attributes.uv;
