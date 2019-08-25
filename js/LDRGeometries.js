@@ -478,14 +478,18 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                     
                     let prevprev = ret[ret.length-2];
                     let prev = ret[ret.length-1];
+                    let turn = uv => (prev.u-prevprev.u)*(uv.v-prevprev.v) -
+                                     (prev.v-prevprev.v)*(uv.u-prevprev.u);
                     for(let i = 0; i < ret.length; i++) {
                         let uv = ret[i];
                         if(Math.abs(prev.u-uv.u) < 1e-5 && Math.abs(prev.v-uv.v) < 1e-5 ||
-                           Math.abs(prevprev.u-uv.u) < 1e-5 && Math.abs(prevprev.v-uv.v) < 1e-5) {
-                            console.log(' Underlying data points:');
+                           Math.abs(prevprev.u-uv.u) < 1e-5 && Math.abs(prevprev.v-uv.v) < 1e-5 ||
+                           Math.abs(turn(uv)) < 1e-7) {
+                            /*console.log(' Underlying data points:');
                             console.dir(vs);
                             console.dir('Outputting:');
                             console.dir(ret);
+                            console.dir('Turn: ' + turn(uv));
                             console.warn("Degenerate UV! " + uv.u + ', ' + uv.v);//*/
                             return false;
                         }
@@ -503,7 +507,6 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                 }
 
                 let maxDiff = xs => xs.map((x,idx,a) => Math.abs(x - a[idx === 0 ? len-1 : idx-1])).reduce((a,b) => a > b ? a : b, 0);
-
                 let vs = indices.map(i => vertices[i]);
 
                 // First check if this is a simple rectilinear face:
@@ -516,7 +519,7 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                 let DY = maxDiff(vs.map(v => v.y));
                 if(DY < 1e-5) {
                     //console.log('DY');
-                    setUV(vs, dx, dz); // Ignore false returns as that indicates highly-degenerate polygons.
+                    setUV(vs, dz, dx); // Ignore false returns as that indicates highly-degenerate polygons.
                     return;
                 }
                 let DZ = maxDiff(vs.map(v => v.z));
@@ -559,21 +562,22 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                 }
 
                 // Check if coordinates are degenerate in any axis:
+                const PI2 = 1/(2.1*Math.PI);
                 if(maxDiff(ns.map(v => v.x)) < 1e-5) {
                     //console.log('dx=0 for NORMALS!');
-                    if(setUV(ns, v => Math.atan2(v.y, v.z)/(Math.PI*2), (v,i) => dx(vs[i]))) {
+                    if(setUV(ns, v => 0.5+Math.atan2(v.y, v.z)*PI2, (v,i) => dx(vs[i]))) {
                         return;
                     }
                 }
                 else if(maxDiff(ns.map(v => v.y)) < 1e-5) {
                     //console.log('dy=0 for NORMALS!');
-                    if(setUV(ns, v => Math.atan2(v.x, v.z)/(Math.PI*2), (v,i) => dy(vs[i]))) {
+                    if(setUV(ns, v => 0.5+Math.atan2(v.x, v.z)*PI2, (v,i) => dy(vs[i]))) {
                         return;
                     }
                 }
                 else if(maxDiff(ns.map(v => v.z)) < 1e-5) {
                     //console.log('dz=0 for NORMALS!');
-                    if(setUV(ns, v => Math.atan2(v.x, v.y)/(Math.PI*2), (v,i) => dz(vs[i]))) {
+                    if(setUV(ns, v => 0.5+Math.atan2(v.x, v.y)*PI2, (v,i) => dz(vs[i]))) {
                         return;
                     }
                 }
@@ -583,8 +587,8 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                 console.log('normals:');
                 console.dir(ns);//*/
 
-                if(!setUV(ns, v => Math.atan2(v.x, v.z)/(2*Math.PI) + 0.5, v => Math.acos(v.y)/Math.PI)) {
-                    setUV(vs, (v, i) => [0,0,1,1][i], (v, i) => [0,1,1,0][i]);
+                if(!setUV(ns, v => 0.5 + Math.atan2(v.z, v.x)*PI2, v => 0.5 + Math.asin(v.y)*PI2)) {
+                    setUV(vs, dx, dz);
                 }
             }
 
@@ -601,8 +605,13 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                 self.quads2[c].forEach(q => setUVs([q.p1, q.p2, q.p3, q.p4]));
             }
 
+            /*console.log('All done! vertices, indices, uvs');
+            console.dir(vertices);
+            console.dir(self);
+            console.dir(uvs);//*/
+
             g.addAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-            g.attributes.uv2 = g.attributes.uv;
+            //g.attributes.uv2 = g.attributes.uv; // Used by aoMap
 
             self.triangleGeometry[c] = g;
         });

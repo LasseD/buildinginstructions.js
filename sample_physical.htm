@@ -8,35 +8,37 @@
   <script src="js/three.min.js"></script>
   <script src="js/OrbitControls.js"></script>
   <script src="js/colors.js"></script>
+  <!--<script src="js/RectAreaLightUniformsLib.js"></script>-->
   <script src="js/Scene.js"></script>    
   <script src="js/ClientStorage.js"></script>
   <script src="js/LDROptions.js"></script>
   <script src="js/LDRShaders.js"></script>
   <script src="js/LDRColorMaterials.js"></script>
   <script src="js/LDRGeometries.js"></script>
-  <script src="js/LDRLoader.js"></script>
   <script src="js/LDRGenerator.js"></script>
+  <script src="js/LDRLoader.js"></script>
   <script src="js/LDRStuds.js"></script>
   <script>
       let startTime = new Date();
 
-      let modelToBeRendered = 'models/fail1.mpd';
+      //let modelToBeRendered = 'models/fail1.mpd';
       //let modelToBeRendered = 'models/pyramid5.ldr';
       //let modelToBeRendered = 's/85970s01.dat';
       //let modelToBeRendered = '6091.dat';
       //let modelToBeRendered = '85080.dat';
-      //let modelToBeRendered = 'test.dat';
+      let modelToBeRendered = '3001.dat';
+      //let modelToBeRendered = 'models/chrome.ldr';
 
-      let scene = new ENV.Scene(window.innerWidth, window.innerHeight);
+      let scene = new ENV.Scene();
       document.body.appendChild(scene.renderer.domElement);
 
-      let onWindowResize = () => scene.onChange(window.innerWidth, window.innerHeight);
+      let onWindowResize = () => scene.onChange(window.innerWidth-256, window.innerHeight-256);
       window.addEventListener('resize', onWindowResize, false);
 
       let ldrLoader; // Three.js loader for LDraw models
       let onLoad = function() {
         let inv = new THREE.Matrix3(); inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
-        ldrLoader.getMainModel().generateThreePart(ldrLoader, 4, new THREE.Vector3(), inv, true, false, scene.mc);
+        ldrLoader.getMainModel().generateThreePart(ldrLoader, 134, new THREE.Vector3(), inv, true, false, scene.mc);
         scene.mc.updateMeshVisibility();
 
         scene.buildStandardScene();
@@ -45,11 +47,32 @@
         console.log("Scene rendered in " + (new Date()-startTime) + "ms.");
       }
 
-      let ldrOptions = new LDR.Options(); ldrOptions.lineContrast = 2; // 2 for no lines.
-      let logo = 4; // 0 for quick draw. 4 for special logo.
+      var ldrOptions = new LDR.Options();
+      let logo = ldrOptions.studs = 0; // 0 for quick draw. 4 for special logo.
 
-      ldrLoader = new THREE.LDRLoader(onLoad, false, {physicalRenderingAge:20});
-      LDR.Studs.setStuds(ldrLoader, 0, logo, () => ldrLoader.load(modelToBeRendered));
+      let storage;
+      LDR.Studs.makeGenerators('', 0, logo);
+      storage = {
+        retrievePartsFromStorage: (loader, toBeFetched, onDone) => {
+          let retrieved = [];
+          function attemptGeneratorFirst(id) {
+            let pt = LDR.Generator.make(id);
+            if(pt) {
+              loader.partTypes[id] = pt;
+              pt.steps.forEach(step => step.subModels.forEach(sm => attemptGeneratorFirst(sm.ID)));
+              retrieved.push(id);
+            }
+            else {
+              loader.load(id);
+            }
+          }
+          toBeFetched.forEach(attemptGeneratorFirst);
+          onDone(retrieved);
+        }
+      };
+
+      ldrLoader = new THREE.LDRLoader(onLoad, storage, {physicalRenderingAge:20});
+      ldrLoader.load(modelToBeRendered);
 
       new THREE.OrbitControls(scene.camera, scene.renderer.domElement).addEventListener('change', () => scene.render());
   </script>
