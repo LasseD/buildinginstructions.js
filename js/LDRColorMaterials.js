@@ -274,7 +274,7 @@ LDR.Colors.createAbsTexture = function(size) {
 
     var texture = new THREE.Texture(canvas);
     texture.needsUpdate = true;
-    document.body.appendChild(canvas);
+    //document.body.appendChild(canvas);
     return LDR.Colors.absTextures[size] = texture;
 }
 
@@ -288,7 +288,7 @@ LDR.Colors.createPearlTexture = function(size) {
 
     var texture = new THREE.Texture(canvas);
     texture.needsUpdate = true;
-    document.body.appendChild(canvas);
+    //document.body.appendChild(canvas);
     return LDR.Colors.pearlTextures[size] = texture;
 }
 
@@ -302,7 +302,7 @@ LDR.Colors.createRubberTexture = function(size) {
 
     var texture = new THREE.Texture(canvas);
     texture.needsUpdate = true;
-    document.body.appendChild(canvas);
+    //document.body.appendChild(canvas);
     return LDR.Colors.rubberTextures[size] = texture;
 }
 
@@ -316,7 +316,7 @@ LDR.Colors.createMetalTexture = function(size) {
 
     var texture = new THREE.Texture(canvas);
     texture.needsUpdate = true;
-    document.body.appendChild(canvas);
+    //document.body.appendChild(canvas);
     return LDR.Colors.metalTextures[size] = texture;
 }
 
@@ -330,7 +330,7 @@ LDR.Colors.createSpeckleTexture = function(size, fraction, minSize, maxSize) {
 
     var texture = new THREE.Texture(canvas);
     texture.needsUpdate = true;
-    document.body.appendChild(canvas);
+    //document.body.appendChild(canvas);
     return LDR.Colors.speckleTextures[size] = texture;
 }
 

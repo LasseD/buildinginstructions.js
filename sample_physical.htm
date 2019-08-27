@@ -21,7 +21,7 @@
   <script>
       let startTime = new Date();
 
-      //let model = 'models/corvette_full.mpd';
+      let model = 'models/corvette_full.mpd';
       //let model = '6091.dat'; // Has overlap of line and conditional line causing trouble for the normal calculation.
       //let model = '85080.dat'; // Has conditional lines partially overlapping with hard corners, also causing issues for normal calculation.
       //let model = '3001.dat';
@@ -32,14 +32,14 @@
       //let model = 'models/rubber.ldr';
       //let model = 'models/speckle.ldr';
       //let model = 'models/metal.ldr';
-      let model = 'models/glitter.ldr';
+      //let model = 'models/glitter.ldr';
       //let model = 'models/pearlescent.ldr';
       //let model = 'models/rubber.ldr';
 
       let scene = new ENV.Scene();
       document.body.appendChild(scene.renderer.domElement);
 
-      let onWindowResize = () => scene.onChange(window.innerWidth-256, window.innerHeight-256);
+      let onWindowResize = () => scene.onChange(window.innerWidth, window.innerHeight);
       window.addEventListener('resize', onWindowResize, false);
 
       let ldrLoader; // Three.js loader for LDraw models
