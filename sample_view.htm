@@ -20,8 +20,7 @@
     <script>
       var startTime = new Date();
       // The model to be rendered:
-      var modelTypeUrl = 'models/fail1.mpd';
-      //var modelTypeUrl = 'models/vette.mpd';
+      var model = 'models/corvette_full.mpd';
 
       // Set up camera:
       var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
@@ -73,7 +72,7 @@
         inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
 
         // Generate the mesh:
-        mainModel.generateThreePart(ldrLoader, 0, origo, inv, true, false, mc);
+        mainModel.generateThreePart(ldrLoader, 4, origo, inv, true, false, mc);
 
         // Find center of drawn model:
         var b = mc.boundingBox;
@@ -93,10 +92,11 @@
       let onStorageReady = function() {
         ldrLoader = new THREE.LDRLoader(onLoad, storage);
         LDR.Studs.setStuds(ldrLoader, ldrOptions.studHighContrast, 
-                           ldrOptions.studLogo, () => ldrLoader.load(modelTypeUrl));
+                           ldrOptions.studLogo, () => ldrLoader.load(model));
       }
 
-      storage = new LDR.STORAGE(onStorageReady);
+      //storage = new LDR.STORAGE(onStorageReady);
+      onStorageReady();
  </script>
  </body>
 </html>

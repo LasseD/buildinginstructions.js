@@ -19,9 +19,11 @@ LDR.Studs.all = [
     ];
 
 LDR.Studs.makeGenerators = function(force, highContrast, logoType) {
-    if(LDR.Generator) {
-	LDR.Studs.all.forEach(f => LDR.Generator.map[f(false,0,false).ID] = () => f(highContrast, logoType, force));
+    if(!LDR.Generator) {
+        console.warn('Generators not enabled - skipping stud generation.');
+        return;
     }
+    LDR.Studs.all.forEach(f => LDR.Generator.map[f(false,0,false).ID] = () => f(highContrast, logoType, force));
 }
 
 LDR.Studs.setStuds = function(loader, highContrast, logoType, onDone) {

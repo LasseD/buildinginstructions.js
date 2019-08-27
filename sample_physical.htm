@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>Sample Rendering with Physical Properties</title>
+  <meta name="viewport" content="width=device-width" />
+ </head>
+ <body>
+  <script src="js/three.min.js"></script>
+  <script src="js/OrbitControls.js"></script>
+  <script src="js/colors.js"></script>
+  <!--<script src="js/RectAreaLightUniformsLib.js"></script>-->
+  <script src="js/Scene.js"></script>    
+  <script src="js/ClientStorage.js"></script>
+  <script src="js/LDROptions.js"></script>
+  <script src="js/LDRShaders.js"></script>
+  <script src="js/LDRColorMaterials.js"></script>
+  <script src="js/LDRGeometries.js"></script>
+  <script src="js/LDRGenerator.js"></script>
+  <script src="js/LDRLoader.js"></script>
+  <script src="js/LDRStuds.js"></script>
+  <script>
+      let startTime = new Date();
+
+      let model = 'models/corvette_full.mpd';
+      //let model = '6091.dat'; // Has overlap of line and conditional line causing trouble for the normal calculation.
+      //let model = '85080.dat'; // Has conditional lines partially overlapping with hard corners, also causing issues for normal calculation.
+      //let model = '3001.dat';
+
+      // Materials:
+      //let model = 'models/luminance.ldr';
+      //let model = 'models/chrome.ldr';
+      //let model = 'models/rubber.ldr';
+      //let model = 'models/speckle.ldr';
+      //let model = 'models/metal.ldr';
+      //let model = 'models/glitter.ldr';
+      //let model = 'models/pearlescent.ldr';
+      //let model = 'models/rubber.ldr';
+
+      let scene = new ENV.Scene();
+      document.body.appendChild(scene.renderer.domElement);
+
+      let onWindowResize = () => scene.onChange(window.innerWidth, window.innerHeight);
+      window.addEventListener('resize', onWindowResize, false);
+
+      let ldrLoader; // Three.js loader for LDraw models
+      let onLoad = function() {
+        let inv = new THREE.Matrix3(); inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
+        ldrLoader.getMainModel().generateThreePart(ldrLoader, 134, new THREE.Vector3(), inv, true, false, scene.mc);
+        scene.mc.updateMeshVisibility();
+
+        scene.buildStandardScene();
+        onWindowResize(); // Render
+
+        console.log("Scene rendered in " + (new Date()-startTime) + "ms.");
+      }
+
+      var ldrOptions = new LDR.Options();
+      ldrOptions.lineContrast = 2; // No lines.
+      let logo = ldrOptions.studs = 0; // 0 for quick draw. 4 for special logo.
+
+      let storage;
+      LDR.Studs.makeGenerators('', 0, logo);
+      storage = {
+        retrievePartsFromStorage: (loader, toBeFetched, onDone) => {
+          let retrieved = [];
+          function attemptGeneratorFirst(id) {
+            let pt = LDR.Generator.make(id);
+            if(pt) {
+              loader.partTypes[id] = pt;
+              pt.steps.forEach(step => step.subModels.forEach(sm => attemptGeneratorFirst(sm.ID)));
+              retrieved.push(id);
+            }
+            else {
+              loader.load(id);
+            }
+          }
+          toBeFetched.forEach(attemptGeneratorFirst);
+          onDone(retrieved);
+        }
+      };
+
+      ldrLoader = new THREE.LDRLoader(onLoad, storage, {physicalRenderingAge:20});
+      ldrLoader.load(model);
+
+      new THREE.OrbitControls(scene.camera, scene.renderer.domElement).addEventListener('change', () => scene.render());
+  </script>
+ </body>
+</html>

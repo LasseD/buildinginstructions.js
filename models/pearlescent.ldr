@@ -1,0 +1,15 @@
+0 Name: pearlescent.ldr
+0 Author: Lasse Deleuran [Lasse Deleuran]
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+1 134 0 0 0 1 0 0 0 1 0 0 0 1 3001.dat
+1 135 -20 -24 -20 0 0 -1 0 1 0 1.000 0 0 3001.dat
+1 137 0 -48 -40 1 0 0 0 1 0 0 0 1 3001.dat
+1 142 20 -72 -20 0 0 1 0 1 0 -1 0 0 3001.dat
+
+1 148 0 -96 0 1 0 0 0 1 0 0 0 1 3001.dat
+1 178 -20 -120 -20 0 0 1 0 1 0 -1 0 0 3001.dat
+1 179 0 -144 -40 1 0 0 0 1 0 0 0 1 3001.dat
+1 183 20 -168 -20 0 0 1 0 1 0 -1 0 0 3001.dat
+
+1 189 0 -192 0 1 0 0 0 1 0 0 0 1 3001.dat
+1 297 -20 -216 -20 0 0 1 0 1 0 -1 0 0 3001.dat

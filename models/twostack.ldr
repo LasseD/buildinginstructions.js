@@ -1,0 +1,7 @@
+0 Name: twostack.ldr
+0 Author: Lasse Deleuran [Lasse Deleuran]  
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+1 0 0 0 0 1 0 0 0 1 0 0 0 1 3024.dat
+0 1 1 0 -24 0 1 0 0 0 1 0 0 0 1 3024.dat
+0 1 2 0 -48 0 1 0 0 0 1 0 0 0 1 3024.dat
+

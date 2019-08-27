@@ -5,7 +5,7 @@ LDR.Options = function() {
     
     // Default values for options (in case of first visit or no cookies:
     this.showOldColors = 0; // 0 = all colors. 1 = single color old
-    this.lineContrast = 1; // 0 = High contrast, 1 = LDraw
+    this.lineContrast = 1; // 0 = High contrast, 1 = LDraw, 2 = Off
     this.bgColor = 0xFFFFFF;
     this.pointColor = 0xFF0000;
     this.pointSize = 2;
@@ -35,8 +35,9 @@ LDR.Options = function() {
 }
 
 LDR.Options.prototype.readOptionsFromCookie = function() {
-    if(!document.cookie)
+    if(!document.cookie) {
 	return; // Can't read cookie.
+    }
     let cookieParts = decodeURIComponent(document.cookie).split(/\s*;\s*/);
     for(let i = 0; i < cookieParts.length; i++) {
 	let part = cookieParts[i];
@@ -211,17 +212,19 @@ LDR.Options.prototype.appendOldBrickColorOptions = function(optionsBlock) {
 }
 
 LDR.Options.prototype.appendContrastOptions = function(optionsBlock) {
-    let group = this.addOptionsGroup(optionsBlock, 2, "Contrast");
+    let group = this.addOptionsGroup(optionsBlock, 3, "Lines");
     let options = this;
     let onChange = function(idx) {
 	options.lineContrast = idx;
-        if(idx == 1)
+        if(idx == 1) {
           options.lineColor = 0x333333;
-        else
+        }
+        else {
           options.lineColor = 0;
+        }
 	options.onChange(false);
     };
-    let buttons = this.createButtons(group, 2, this.lineContrast, onChange);
+    let buttons = this.createButtons(group, 3, this.lineContrast, onChange);
     
     // Color functions:
     let red = function(){return '#C91A09';};
@@ -233,7 +236,7 @@ LDR.Options.prototype.appendContrastOptions = function(optionsBlock) {
     let brown = function(){return '#582A12';};
 
     /* 
-       Option 1: High contrast:
+       0: High contrast:
     */
     {
 	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
@@ -244,7 +247,7 @@ LDR.Options.prototype.appendContrastOptions = function(optionsBlock) {
 	this.createSvgBlock(LDR.Options.svgBlockWidth+2, 0, true, black, blackEdge1, svg);
     }
     /* 
-       Option 2: Standard LDraw lines:
+       1: Standard LDraw lines:
     */
     {
 	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
@@ -253,6 +256,17 @@ LDR.Options.prototype.appendContrastOptions = function(optionsBlock) {
 	this.createSvgBlock(-LDR.Options.svgBlockWidth-2, 0, true, red, redEdge2, svg);
 	this.createSvgBlock(0, 0, true, brown, blackEdge2, svg);
 	this.createSvgBlock(LDR.Options.svgBlockWidth+2, 0, true, black, blackEdge2, svg);
+    }
+    /* 
+       2: No lines:
+    */
+    {
+	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	svg.setAttribute('viewBox', '-100 -25 200 50');
+	buttons[2].appendChild(svg);
+	this.createSvgBlock(-LDR.Options.svgBlockWidth-2, 0, true, red, red, svg);
+	this.createSvgBlock(0, 0, true, brown, brown, svg);
+	this.createSvgBlock(LDR.Options.svgBlockWidth+2, 0, true, black, black, svg);
     }
 }
 

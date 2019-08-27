@@ -19,6 +19,7 @@
  *  - line: Line number in the loaded file where the error occured.
  *  - subModel: THREE.LDRPartType in which the error occured.
  * - saveFileLines: Set to 'true' if LDR.Line0, LDR.Line1, ... LDR.Line5-objects should be saved on part types.
+ * - physicalRenderingAge: Set to 0 for standard cell shaded rendering. Otherwise, this number indicates the age of physical materials to be rendered (older materials will appear yellowed for some colors)
  * - idToUrl(id) is used to translate an id into all potential file locations. Set this function to fit your own directory structure if needed. A normal LDraw directory has files both under /parts and /p and requires you to search for dat files. You can choose to combine the directories to reduce the need for searching, but this is not considered good practice.
  */
 THREE.LDRLoader = function(onLoad, storage, options) {
@@ -51,6 +52,7 @@ THREE.LDRLoader = function(onLoad, storage, options) {
     this.onError = this.options.onError || function(msgObj){ console.dir(msgObj); };
     this.loader = new THREE.FileLoader(this.options.manager || THREE.DefaultLoadingManager);
     this.saveFileLines = this.options.saveFileLines || false;
+    this.physicalRenderingAge = this.options.physicalRenderingAge || 0;
     this.mainModel;
 
     this.idToUrl = this.options.idToUrl || function(id) {
@@ -172,7 +174,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    continue; // Empty line, or 'undefined' due to '\r\n' split.
 	}
 
-	let parts = line.split(" ").filter(x => x !== ''); // Remove empty strings.
+	let parts = line.split(' ').filter(x => x !== ''); // Remove empty strings.
 	if(parts.length <= 1) {
 	    continue; // Empty/ empty comment line
         }
@@ -231,12 +233,12 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		self.mainModel = part.ID = fileName;
 	    }
 	    else if(part.steps.length === 0 && step.isEmpty() && self.mainModel === part.ID) {
-		console.log("Special case: Main model ID change from " + part.ID + " to " + fileName);
+		console.warn("Special case: Main model ID change from " + part.ID + " to " + fileName);
 		self.mainModel = part.ID = fileName;
 	    }
 	    else { // Close model and start new:
 		if(part.steps.length === 0 && step.isEmpty() && part.ID && !part.consistentFileAndName) {
-		    console.log("Special case: Empty '" + part.ID + "' does not match '" + fileName + "' - Create new shallow part!");		
+		    console.warn("Special case: Empty '" + part.ID + "' does not match '" + fileName + "' - Create new shallow part!");		
 		    // Create pseudo-model with just one of 'fileName' inside:
 		    let rotation = new THREE.Matrix3();
 		    rotation.set(1, 0, 0, 0, 1, 0, 0, 0, 1);
@@ -964,9 +966,6 @@ THREE.LDRStep.prototype.unpackFrom = function(arrayI, arrayF, idxI, idxF, subMod
 	packed -= invertCCW ? 2 : 0;
         let ID = subModelList[packed/4];
 
-	if(!ID) {
-	    subModelList.forEach((x,i) => console.log(i + ': ' + x));
-	}
         let position = new THREE.Vector3(arrayF[idxF++], arrayF[idxF++], arrayF[idxF++]);
         let rotation = new THREE.Matrix3();
         rotation.set(arrayF[idxF++], arrayF[idxF++], arrayF[idxF++], 
@@ -1525,7 +1524,12 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 	}
     }
 
-    this.geometry.buildGeometriesAndColors();
+    if(loader.physicalRenderingAge === 0) {
+        this.geometry.buildGeometriesAndColors();
+    }
+    else {
+        this.geometry.buildPhysicalGeometriesAndColors();
+    }
     
     let m4 = new THREE.Matrix4();
     let m3e = r.elements;
@@ -1551,15 +1555,37 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
     }
     
     if(this.geometry.triangleGeometry) {
-	let material = new LDR.Colors.buildTriangleMaterial(this.geometry.triangleColorManager, c, LDR.Colors.isTrans(c));
-	let mesh = new THREE.Mesh(this.geometry.triangleGeometry.clone(), material); // Using clone to ensure matrix in next line doesn't affect other usages of the geometry..
-	mesh.geometry.applyMatrix(m4);
-	//mesh.applyMatrix(m4); // Doesn't work for LDraw library as the matrix needs to be decomposable to position, quaternion and scale.
-	if(LDR.Colors.isTrans(c)) {
-	    mc.addTrans(mesh, pd);
+        if(loader.physicalRenderingAge === 0) {
+            let material = new LDR.Colors.buildTriangleMaterial(this.geometry.triangleColorManager, c, LDR.Colors.isTrans(c));
+            let mesh = new THREE.Mesh(this.geometry.triangleGeometry.clone(), material); // Using clone to ensure matrix in next line doesn't affect other usages of the geometry..
+            mesh.geometry.applyMatrix(m4);
+            //mesh.applyMatrix(m4); // Doesn't work for LDraw library as the matrix needs to be decomposable to position, quaternion and scale.
+            if(LDR.Colors.isTrans(c)) {
+                mc.addTrans(mesh, pd);
+            }
+            else {
+                mc.addOpaque(mesh, pd);
+            }            
         }
-	else {
-	    mc.addOpaque(mesh, pd);
+        else {
+            for(let tc in this.geometry.triangleGeometry) {
+                if(!this.geometry.triangleGeometry.hasOwnProperty(tc)) {
+                    continue;
+                }
+                let shownColor = tc === '16' ? c : tc;
+                let material = LDR.Colors.buildStandardMaterial(shownColor);
+                let g = this.geometry.triangleGeometry[tc];
+                let mesh = new THREE.Mesh(g.clone(), material);
+                mesh.castShadow = true;
+                mesh.geometry.applyMatrix(m4);
+
+                if(LDR.Colors.isTrans(shownColor)) {
+                    mc.addTrans(mesh, pd);
+                }
+                else {
+                    mc.addOpaque(mesh, pd);
+                }            
+            }
         }
     }
 
@@ -1712,11 +1738,13 @@ LDR.MeshCollector.prototype.addLines = function(mesh, part, conditional) {
 }
 
 LDR.MeshCollector.prototype.addOpaque = function(mesh, part) {
+    //scene.add(new THREE.VertexNormalsHelper( mesh, 5, 0x00ff00));
     this.triangleMeshes.push({mesh:mesh, part:part, opaque:true});
     this.opaqueObject.add(mesh);
 }
 
 LDR.MeshCollector.prototype.addTrans = function(mesh, part) {
+    //scene.add(new THREE.VertexNormalsHelper( mesh, 5, 0x0000ff));
     this.triangleMeshes.push({mesh:mesh, part:part, opaque:false});
     this.transObject.add(mesh);
 }
@@ -1734,8 +1762,12 @@ LDR.MeshCollector.prototype.removeAllMeshes = function() {
  */
 LDR.MeshCollector.prototype.updateMeshVisibility = function() {
     let v = this.visible;
-    this.lineMeshes.forEach(obj => obj.mesh.visible = v);
-    this.triangleMeshes.forEach(obj => obj.mesh.visible = v);
+    let lineV = v && ldrOptions.lineContrast !== 2;
+
+    this.lineMeshes.forEach(obj => obj.mesh.visible = lineV);
+
+    let old = this.old;
+    this.triangleMeshes.forEach(obj => obj.mesh.visible = v && (old || !(ldrOptions.showEditor && obj.part && obj.part.original && obj.part.original.ghost))); // Do not show faces for ghosted parts.
 }
 
 LDR.MeshCollector.prototype.expandBoundingBox = function(boundingBox, m) {
@@ -1765,29 +1797,29 @@ LDR.MeshCollector.prototype.setOldValue = function(old) {
 }
 
 LDR.MeshCollector.prototype.colorLinesLDraw = function() {
-    for(let i = 0; i < this.lineMeshes.length; i++) {
-	let m = this.lineMeshes[i].mesh.material;
-	let colors = m.colorManager.shaderColors;
-	if(colors.length === 1) {
-	    m.uniforms.color.value = colors[0];
-        }
-	else {
-	    m.uniforms.colors.value = colors;
-        }
-    }
+    this.lineMeshes.forEach(mesh => {
+            let m = mesh.mesh.material;
+            let colors = m.colorManager.shaderColors;
+            if(colors.length === 1) {
+                m.uniforms.color.value = colors[0];
+            }
+            else {
+                m.uniforms.colors.value = colors;
+            }
+        });
 }
 
 LDR.MeshCollector.prototype.colorLinesHighContrast = function() {
-    for(let i = 0; i < this.lineMeshes.length; i++) {
-	let m = this.lineMeshes[i].mesh.material;
-	let colors = m.colorManager.highContrastShaderColors;
-	if(colors.length === 1) {
-	    m.uniforms.color.value = colors[0];
-        }
-	else {
-	    m.uniforms.colors.value = colors;
-        }
-    }
+    this.lineMeshes.forEach(mesh => {
+            let m = mesh.mesh.material;
+            let colors = m.colorManager.highContrastShaderColors;
+            if(colors.length === 1) {
+                m.uniforms.color.value = colors[0];
+            }
+            else {
+                m.uniforms.colors.value = colors;
+            }
+        });
 }
 
 LDR.MeshCollector.prototype.updateState = function(old) {

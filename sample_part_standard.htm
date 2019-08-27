@@ -124,11 +124,9 @@
         }
       }
 
-      let storage;
-
       // The section below ensures studs are shown:
       LDR.Studs.makeGenerators('', 0, 1);
-      storage = {
+      let storage = {
         retrievePartsFromStorage: (loader, toBeFetched, onDone) => {
           let retrieved = [];
           function attemptGeneratorFirst(id) {
