@@ -298,7 +298,8 @@ LDR.Colors.loadTextures = function() {
     var sides = ['px', 'nx', 'py', 'ny', 'pz', 'nz'];
     
     // textures
-    /*let normalMap = textureLoader.load("metal/normal.jpg"); // blue/purple/red map of the mask - colors show dents.
+    /*
+    let normalMap = textureLoader.load("metal/normal.jpg"); // blue/purple/red map of the mask - colors show dents.
     normalMap.wrapS = normalMap.wrapT = THREE.MirroredRepeatWrapping;
     normalMap.repeat.set(0.2, 0.2);
     normalMap.offset.set(0.5, 0.5);//*/

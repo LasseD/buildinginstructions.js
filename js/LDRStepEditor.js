@@ -1089,7 +1089,7 @@ LDR.MeshCollector.prototype.updateMeshVisibility = function() {
 	if(obj.part && obj.part.hoverBox) {
             obj.part.hoverBox.visible = v && !old && ldrOptions.showEditor && (obj.part && obj.part.original && obj.part.original.ghost) ? true : false;
 	}
-	obj.mesh.visible = v && !(obj.part && obj.part.original && obj.part.original.hover);
+	obj.mesh.visible = v && (old || !(obj.part && obj.part.original && obj.part.original.hover));
     });
 }
 
@@ -1105,7 +1105,6 @@ LDR.MeshCollector.prototype.removeAllMeshes = function() {
 }
 
 LDR.PLIBuilder.prototype.getClickMapHover = function() {
-    //this.clickMap.forEach(icon => console.log(icon.part.original.hover));
     return this.clickMap.find(icon => icon.part.original && icon.part.original.hover);
 }
 
