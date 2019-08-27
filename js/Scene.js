@@ -57,7 +57,7 @@ ENV.Scene = function() {
         else if(e.keyCode === 27) { // ESC:
 	    self.resetLights();
         }
-    }    
+    }
     document.onkeydown = handleKeyDown;
 
     //RectAreaLightUniformsLib.init();
@@ -79,7 +79,7 @@ ENV.Scene.prototype.onChange = function(eleW, eleH) {
 ENV.Scene.prototype.addPointLight = function(size, color, intensity, angle, dist, y) {
     let diam = Math.sqrt(size.w*size.w + size.l*size.l);
 
-    let light = new THREE.PointLight(color, intensity, 2*dist);
+    let light = new THREE.PointLight(color, intensity, 2*(dist+y));
     light.origAngle = light.angle = angle;
     light.origDist = light.dist = dist;
     light.origY = light.y = y;
@@ -170,12 +170,12 @@ ENV.Scene.prototype.buildStandardScene = function() {
     this.camera.lookAt(new THREE.Vector3());
     
     // Scene:
-    this.scene.background = new THREE.Color(0x303030);
+    this.scene.background = new THREE.Color(0x3A3A3A);
 
     // Subject:
     var elementCenter = new THREE.Vector3();
     b.getCenter(elementCenter);
-    this.baseObject.position.set(-elementCenter.x, -b.min.y, -elementCenter.z);
+    this.baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
     //this.baseObject.add(new THREE.Box3Helper(b, 0xFF00FF));
 
     // Floor:
@@ -191,14 +191,15 @@ ENV.Scene.prototype.buildStandardScene = function() {
         });
     this.floor = new THREE.Mesh(floorGeometry, floorMaterial);
     this.floor.rotation.x = -Math.PI/2;
+    this.floor.position.y = b.min.y-elementCenter.y;
     this.floor.receiveShadow = true;
     this.scene.add(this.floor);
 
     // Lights:
     this.clearLights();
 
-    this.addPointLight(size, 0xF6E3FF, 0.73,  0.8, size.w*1.5, size.h*2.0);
-    this.addPointLight(size, 0xE6F3FF, 0.55, -0.1, size.w*0.7, size.h*2.6);
+    this.addPointLight(size, 0xF6E3FF, 0.73,  0.8, size.w*1.5, size.h*1.0);
+    this.addPointLight(size, 0xE6F3FF, 0.55, -0.1, size.w*0.7, size.h*1.6);
     this.reorientLights();
     
     this.setHemisphereLight(0xF4F4FB, 0x30302B, 0.25);

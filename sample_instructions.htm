@@ -99,10 +99,7 @@
     </div>
     <div id="options" /></div>
     <script>
-      var modelUrl = 'models/fail1.mpd';
-      //var modelUrl = 'models/test_studs.ldr';
-      //var modelUrl = 'models/vette.mpd';
-      //var modelUrl = 'models/test_assemblies.ldr';
+      var model = 'models/corvette_full.mpd';
 
       var baseURL = 'sample_instructions.htm?step='; // Change this line so it fits the page that renders instructions for you (probably not 'sample_instructions.htm')
       var manager;
@@ -110,7 +107,7 @@
 
       $(function() {
         var options = {canEdit:false, saveFileLines:true, buildAssemblies:true};
-        manager = new LDR.InstructionsManager(modelUrl, '?', null, ()=>{}, baseURL, 1, options);
+        manager = new LDR.InstructionsManager(model, '?', null, ()=>{}, baseURL, 1, options);
       });
     </script>
   </body>

@@ -151,12 +151,12 @@ LDR.Colors.buildTriangleMaterial = function(colorManager, color) {
     return ret;
 }
 
-LDR.Colors.createRandomCanvas = function(size, damage, waves, waveSize) {
+LDR.Colors.createRandomCanvas = function(size, damage, waves, waveSize, speckle) {
     let canvas = document.createElement("canvas");
     canvas.width = canvas.height = size;
     let ctx = canvas.getContext("2d");
 
-    ctx.fillStyle = 'rgb(0,0,0)';
+    ctx.fillStyle = 'rgba(0,0,0,0)';
     ctx.fillRect(0, 0, size, size);
 
     size--; // -2*1 pixel for outer edges, +1 for having right/down calculations available when writing back.
@@ -170,17 +170,19 @@ LDR.Colors.createRandomCanvas = function(size, damage, waves, waveSize) {
     for(let i = 0; i < 8; i++) {
         r.push(0.6+0.8*Math.random());
     }
-    //console.dir(r);
+
+    let pos = 0;
 
     // Apply waves:
-    let pos = 0;
-    for(let y = 0; y < size; y++) {
-        let Y = y;//Math.cos(r[0] + r[1]*rows*y/size);
-        for (let x = 0; x < size; x++) {
-            let X = x + x*Math.sin(x*5*r[0]/size);
-            let V = r[1]*X+r[2]*Y;
-            d[pos] += Math.round(Math.cos(Math.PI*waves*V/size)*waveSize);
-            pos++;
+    if(waveSize > 0) {
+        for(let y = 0; y < size; y++) {
+            let Y = y;//Math.cos(r[0] + r[1]*rows*y/size);
+            for (let x = 0; x < size; x++) {
+                let X = x + x*Math.sin(x*5*r[0]/size);
+                let V = r[1]*X+r[2]*Y;
+                d[pos] += Math.round(Math.cos(Math.PI*waves*V/size)*waveSize);
+                pos++;
+            }
         }
     }
 
@@ -215,7 +217,24 @@ LDR.Colors.createRandomCanvas = function(size, damage, waves, waveSize) {
         pos++;
     }
     
-    // Edges:
+    // Apply speckle:
+    if(speckle) {
+        ctx.fillStyle = 'rgb(0,0,0)';
+        const SPECKLE_MULT = 0.9;
+        let speckleSize = (speckle.minSize + speckle.maxSize)*SPECKLE_MULT*SPECKLE_MULT; // Magic number used since this can be stretched onto parts of arbitrary sizes.
+        let numSpeckles = Math.floor(size*size*speckle.fraction / speckleSize);
+        console.log('Applying ' + numSpeckles + ' speckles of average size ' + speckleSize);
+        for(let i = 0; i < numSpeckles; i++) {
+            ctx.rotate(1);
+            let x = size*Math.random();
+            let y = size*Math.random();
+            let diam = SPECKLE_MULT*(speckle.minSize + Math.random()*(speckle.maxSize-speckle.minSize));
+            ctx.fillRect(x, y, diam, diam);
+        }
+        ctx.rotate(-numSpeckles);
+    }
+
+    // Edges (and corners):
     let edgeDiff = 120, low = 128-edgeDiff, high = 128+edgeDiff, low2 = (128+low)/2, high2 = (128+high)/2;
     let cornerB = ',180)';
     ctx.fillStyle = 'rgb('+low+',128,255)';
@@ -255,7 +274,7 @@ LDR.Colors.createAbsTexture = function(size) {
 
     var texture = new THREE.Texture(canvas);
     texture.needsUpdate = true;
-    document.body.appendChild(canvas);
+    //document.body.appendChild(canvas);
     return LDR.Colors.absTextures[size] = texture;
 }
 
@@ -265,12 +284,26 @@ LDR.Colors.createPearlTexture = function(size) {
         return LDR.Colors.pearlTextures[size];
     }
 
-    let [canvas, ctx] = LDR.Colors.createRandomCanvas(size, 20, 4, 10);
+    let [canvas, ctx] = LDR.Colors.createRandomCanvas(size, 20, 4, 8);
 
     var texture = new THREE.Texture(canvas);
     texture.needsUpdate = true;
-    document.body.appendChild(canvas);
+    //document.body.appendChild(canvas);
     return LDR.Colors.pearlTextures[size] = texture;
+}
+
+LDR.Colors.rubberTextures = {};
+LDR.Colors.createRubberTexture = function(size) {
+    if(LDR.Colors.rubberTextures.hasOwnProperty(size)) {
+        return LDR.Colors.rubberTextures[size];
+    }
+
+    let [canvas, ctx] = LDR.Colors.createRandomCanvas(size, 2*size, 1, 1);
+
+    var texture = new THREE.Texture(canvas);
+    texture.needsUpdate = true;
+    //document.body.appendChild(canvas);
+    return LDR.Colors.rubberTextures[size] = texture;
 }
 
 LDR.Colors.metalTextures = {};
@@ -279,37 +312,41 @@ LDR.Colors.createMetalTexture = function(size) {
         return LDR.Colors.metalTextures[size];
     }
 
-    let [canvas, ctx] = LDR.Colors.createRandomCanvas(size, size*2, 1, 20);
+    let [canvas, ctx] = LDR.Colors.createRandomCanvas(size, size*2, 1, 12);
 
     var texture = new THREE.Texture(canvas);
     texture.needsUpdate = true;
-    document.body.appendChild(canvas);
+    //document.body.appendChild(canvas);
     return LDR.Colors.metalTextures[size] = texture;
+}
+
+LDR.Colors.speckleTextures = {};
+LDR.Colors.createSpeckleTexture = function(size, fraction, minSize, maxSize) {
+    if(LDR.Colors.speckleTextures.hasOwnProperty(size)) {
+        return LDR.Colors.speckleTextures[size];
+    }
+
+    let [canvas, ctx] = LDR.Colors.createRandomCanvas(size, 0, 2, 3, {fraction:fraction, minSize:minSize, maxSize:maxSize}); // Same as for ABS, but without damage.
+
+    var texture = new THREE.Texture(canvas);
+    texture.needsUpdate = true;
+    //document.body.appendChild(canvas);
+    return LDR.Colors.speckleTextures[size] = texture;
 }
 
 LDR.Colors.loadTextures = function() {
     if(LDR.Colors.textures) {
         return;
     }
+
     var textureLoader = new THREE.TextureLoader();
     textureLoader.setPath('textures/');
-
-    // env map
     var sides = ['px', 'nx', 'py', 'ny', 'pz', 'nz'];
     
     // textures
-    /*
-    let normalMap = textureLoader.load("metal/normal.jpg"); // blue/purple/red map of the mask - colors show dents.
-    normalMap.wrapS = normalMap.wrapT = THREE.MirroredRepeatWrapping;
-    normalMap.repeat.set(0.2, 0.2);
-    normalMap.offset.set(0.5, 0.5);//*/
-    //normalMap.rotation = 1; // Does not work
-
     LDR.Colors.textures = {
-        reflectionCube: new THREE.CubeTextureLoader().load(sides.map(x => 'textures/cube/' + x + '.jpg')),
-        //normalMap: normalMap,
-        //aoMap: textureLoader.load("metal/ao.jpg"), // grayscale looking like a print of the mask / red channel = how much ambient light affects material.
-        //displacementMap: textureLoader.load("metal/displacement.jpg"), // grayscale looks like a negative print.
+        reflectionCube: new THREE.CubeTextureLoader().load(sides.map(x => 'textures/cube/' + x + '.jpg')), // Environment map.
+        //aoMap: textureLoader.load("ao.jpg"), // Red channel => ambient light affecting the material.
     };
 }
 
@@ -324,48 +361,70 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
             metalness: 0.0,
             
             normalMapType: THREE.TangentSpaceNormalMap,
-            /*aoMap: LDR.Colors.textures.aoMap,
+
+            /*aoMap: TODO: Can this even be computed on the fly and be any good?
             aoMapIntensity: 1.0,//*/
             
             // Displacement map will not be used as it affects vertices of the mesh, not pixels,
-            
-            envMap: LDR.Colors.textures.reflectionCube, // TODO: Make own map!
-            envMapIntensity: 1.0
+
+            envMap: LDR.Colors.textures.reflectionCube,
+            envMapIntensity: 0.35
         };
 
         if(color.material) { // Special materials:
-            if(color.material === 'CHROME') {
-                console.log('CHROME ' + colorID + ' -> ' + color.value);
+            if(color.material === 'CHROME' || color.material === 'METAL') {
                 params.metalness = 1.0;
                 params.roughness = 0.25;
                 params.normalMap = LDR.Colors.createMetalTexture(64);
+                params.envMapIntensity = 1.0;
             }
             else if(color.material === 'RUBBER') {
-                console.log('RUBBER ' + colorID + ' -> ' + color.value);
                 params.roughness = 0.9;
-            }
-            else if(color.material === 'METAL') {
-                console.log('METAL ' + colorID + ' -> ' + color.value);
-                params.metalness = 1.0;
-                params.roughness = 0.3;
-                params.normalMap = LDR.Colors.createMetalTexture(64);
+                params.normalMap = LDR.Colors.createRubberTexture(64);
             }
             else if(color.material === 'PEARLESCENT') {
-                console.log('PEARL ' + colorID + ' -> ' + color.value);
                 params.normalMap = LDR.Colors.createPearlTexture(128);
                 params.roughness = 0.01; // Smooth
             }
+            else if(color.material.startsWith('MATERIAL ')) {
+                params.roughness = 0.0;
+                params.envMapIntensity = 1.0;
+
+                let m = color.material.substring('MATERIAL '.length);
+                if(m.startsWith('SPECKLE FRACTION ')) {
+                    m = m.substring('SPECKLE FRACTION '.length).split(' ');
+                    if(m.length === 5) {
+                        let fraction = parseFloat(m[0]);
+                        let minSize = parseInt(m[2]);
+                        let maxSize = parseInt(m[4]);
+                        params.normalMap = LDR.Colors.createSpeckleTexture(256, fraction, minSize, maxSize);
+                    }
+                    else {
+                        console.warn('Failed to parse speckle definition for color ' + colorID + ': ' + m.join('/'));
+                    }
+                }
+                else if(m.startsWith('GLITTER FRACTION ')) {
+                    m = m.substring('GLITTER FRACTION '.length).split(' ');
+                    if(m.length === 5) {
+                        let fraction = parseFloat(m[0]);
+                        //let vFraction = parseFloat(m[2]); // Volume fraction is ignored as the material only has an affect on the surface, not the interior.
+                        let size = parseInt(m[4]);
+                        params.normalMap = LDR.Colors.createSpeckleTexture(128, fraction, size, size);
+                    }
+                    else {
+                        console.warn('Failed to parse glitter definition for color ' + colorID + ': ' + m.join('/'));
+                    }
+                }
+                else {
+                    console.warn('Unknown material for color ' + colorID + ': ' + m);
+                }
+            }
             else {
-                console.log('COMPLICATED! ' + colorID + ' -> ' + color.value);
-                // TODO: Stuff like 'MATERIAL GLITTER FRACTION 0.17 VFRACTION 0.2 SIZE 1' or
-                // 'MATERIAL SPECKLE FRACTION 0.4 MINSIZE 1 MAXSIZE 3'
+                console.warn('Unknown material composition for color ' + colorID + ' -> ' + color.material);
             }
         }
         else {
             params.normalMap = LDR.Colors.createAbsTexture(128);
-
-            //params.normalMap = LDR.Colors.textures.normalMap;
-            //params.normalScale = new THREE.Vector2(1, -1);
         }
 
         let m = new THREE.MeshStandardMaterial(params);
@@ -374,9 +433,8 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
             m.opacity = color.alpha/255;
         }
         if(color.luminance > 0) {
-            console.log('EMISSIVE ' + colorID + ' -> ' + color.value);
-            m.emissive = color.value;
-            m.emissiveIntensity = color.luminance/15;
+            console.warn('Emissive materials not yet supported. Color: ' + colorID);
+            // TODO: Make emissive.
         }
         color.m = m;
     }
