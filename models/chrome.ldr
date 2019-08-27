@@ -1,0 +1,10 @@
+0 Name: chrome.ldr
+0 Author: Lasse Deleuran [Lasse Deleuran]
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+1 60    0    0   0 1 0 0 0 1 0 0 0 1 3001.dat
+1 61  -20  -24 -20 0 0 -1 0 1 0 1 0 0 3001.dat
+1 62    0  -48 -40 1 0 0 0 1 0 0 0 1 3001.dat
+1 63   20  -72 -20 0 0 1 0 1 0 -1 0 0 3001.dat
+1 64    0  -96   0 1 0 0 0 1 0 0 0 1 3001.dat
+1 334 -20 -120 -20 0 0 1 0 1 0 -1 0 0 3001.dat
+1 383   0 -148 -40 1 0 0 0 1 0 0 0 1 3001.dat

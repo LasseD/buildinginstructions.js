@@ -279,12 +279,33 @@ LDR.Colors.createMetalTexture = function(size) {
         return LDR.Colors.metalTextures[size];
     }
 
-    let [canvas, ctx] = LDR.Colors.createRandomCanvas(size, size*2, 1, 20);
+    let [canvas, ctx] = LDR.Colors.createRandomCanvas(size, size*2, 1, 15);
 
     var texture = new THREE.Texture(canvas);
     texture.needsUpdate = true;
     document.body.appendChild(canvas);
     return LDR.Colors.metalTextures[size] = texture;
+}
+
+LDR.Colors.speckleTextures = {};
+LDR.Colors.createSpeckleTexture = function(size, fraction, minSize, maxSize) {
+    if(LDR.Colors.speckleTextures.hasOwnProperty(size)) {
+        return LDR.Colors.speckleTextures[size];
+    }
+
+    let [canvas, ctx] = LDR.Colors.createRandomCanvas(size, 0, 2, 3); // Same as for ABS, but without damage.
+
+    // Apply speckle by 0'ing cells:
+    console.log('Applying speckle');
+    //ctx.fillStyle = 'rgb(0,0,0)';
+    //ctx.fillRect(0, 1, 1, size-1);
+
+    // TODO
+
+    var texture = new THREE.Texture(canvas);
+    texture.needsUpdate = true;
+    document.body.appendChild(canvas);
+    return LDR.Colors.speckleTextures[size] = texture;
 }
 
 LDR.Colors.loadTextures = function() {
@@ -298,17 +319,9 @@ LDR.Colors.loadTextures = function() {
     var sides = ['px', 'nx', 'py', 'ny', 'pz', 'nz'];
     
     // textures
-    /*let normalMap = textureLoader.load("metal/normal.jpg"); // blue/purple/red map of the mask - colors show dents.
-    normalMap.wrapS = normalMap.wrapT = THREE.MirroredRepeatWrapping;
-    normalMap.repeat.set(0.2, 0.2);
-    normalMap.offset.set(0.5, 0.5);//*/
-    //normalMap.rotation = 1; // Does not work
-
     LDR.Colors.textures = {
         reflectionCube: new THREE.CubeTextureLoader().load(sides.map(x => 'textures/cube/' + x + '.jpg')),
-        //normalMap: normalMap,
-        //aoMap: textureLoader.load("metal/ao.jpg"), // grayscale looking like a print of the mask / red channel = how much ambient light affects material.
-        //displacementMap: textureLoader.load("metal/displacement.jpg"), // grayscale looks like a negative print.
+        //aoMap: textureLoader.load("ao.jpg"), // grayscale looking like a print of the mask / red channel = how much ambient light affects material.
     };
 }
 
@@ -329,42 +342,59 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
             // Displacement map will not be used as it affects vertices of the mesh, not pixels,
             
             envMap: LDR.Colors.textures.reflectionCube, // TODO: Make own map!
-            envMapIntensity: 1.0
+            envMapIntensity: 0.35
         };
 
         if(color.material) { // Special materials:
-            if(color.material === 'CHROME') {
-                console.log('CHROME ' + colorID + ' -> ' + color.value);
+            if(color.material === 'CHROME' || color.material === 'METAL') {
                 params.metalness = 1.0;
                 params.roughness = 0.25;
+                params.envMapIntensity = 1.0;
                 params.normalMap = LDR.Colors.createMetalTexture(64);
             }
             else if(color.material === 'RUBBER') {
-                console.log('RUBBER ' + colorID + ' -> ' + color.value);
                 params.roughness = 0.9;
             }
-            else if(color.material === 'METAL') {
-                console.log('METAL ' + colorID + ' -> ' + color.value);
-                params.metalness = 1.0;
-                params.roughness = 0.3;
-                params.normalMap = LDR.Colors.createMetalTexture(64);
-            }
             else if(color.material === 'PEARLESCENT') {
-                console.log('PEARL ' + colorID + ' -> ' + color.value);
                 params.normalMap = LDR.Colors.createPearlTexture(128);
                 params.roughness = 0.01; // Smooth
             }
+            else if(color.material.startsWith('MATERIAL ')) {
+                let m = color.material.substring('MATERIAL '.length);
+                if(m.startsWith('SPECKLE FRACTION ')) {
+                    m = m.substring('SPECKLE FRACTION '.length).split(' ');
+                    if(m.length === 5) {
+                        let fraction = parseFloat(m[0]);
+                        let minSize = parseInt(m[2]);
+                        let maxSize = parseInt(m[4]);
+                        params.normalMap = LDR.Colors.createSpeckleTexture(128, fraction, minSize, maxSize);
+                    }
+                    else {
+                        console.warn('Failed to parse speckle definition for color ' + colorID + ': ' + m.join('/'));
+                    }
+                }
+                else if(m.startsWith('GLITTER FRACTION ')) {
+                    m = m.substring('GLITTER FRACTION '.length).split(' ');
+                    if(m.length === 5) {
+                        let fraction = parseFloat(m[0]);
+                        //let vFraction = parseFloat(m[2]); // Volume fraction is ignored as the material only has an affect on the surface, not the interior.
+                        let size = parseInt(m[4]);
+                        params.normalMap = LDR.Colors.createSpeckleTexture(128, fraction, size, size);
+                    }
+                    else {
+                        console.warn('Failed to parse glitter definition for color ' + colorID + ': ' + m.join('/'));
+                    }
+                }
+                else {
+                    console.warn('Unknown material for color ' + colorID + ': ' + m);
+                }
+            }
             else {
-                console.log('COMPLICATED! ' + colorID + ' -> ' + color.value);
-                // TODO: Stuff like 'MATERIAL GLITTER FRACTION 0.17 VFRACTION 0.2 SIZE 1' or
-                // 'MATERIAL SPECKLE FRACTION 0.4 MINSIZE 1 MAXSIZE 3'
+                console.warn('Unknown material composition for color ' + colorID + ' -> ' + color.material);
             }
         }
         else {
             params.normalMap = LDR.Colors.createAbsTexture(128);
-
-            //params.normalMap = LDR.Colors.textures.normalMap;
-            //params.normalScale = new THREE.Vector2(1, -1);
         }
 
         let m = new THREE.MeshStandardMaterial(params);
@@ -373,9 +403,8 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
             m.opacity = color.alpha/255;
         }
         if(color.luminance > 0) {
-            console.log('EMISSIVE ' + colorID + ' -> ' + color.value);
-            m.emissive = color.value;
-            m.emissiveIntensity = color.luminance/15;
+            console.warn('Emissive materials not yet supported. Color: ' + colorID);
+            // TODO: Make emissive.
         }
         color.m = m;
     }

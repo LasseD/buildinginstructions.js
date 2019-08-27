@@ -174,7 +174,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    continue; // Empty line, or 'undefined' due to '\r\n' split.
 	}
 
-	let parts = line.split(" ").filter(x => x !== ''); // Remove empty strings.
+	let parts = line.split(' ').filter(x => x !== ''); // Remove empty strings.
 	if(parts.length <= 1) {
 	    continue; // Empty/ empty comment line
         }
