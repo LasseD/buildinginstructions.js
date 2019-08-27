@@ -170,7 +170,7 @@ ENV.Scene.prototype.buildStandardScene = function() {
     this.camera.lookAt(new THREE.Vector3());
     
     // Scene:
-    this.scene.background = new THREE.Color(0x303030);
+    this.scene.background = new THREE.Color(0x3A3A3A);
 
     // Subject:
     var elementCenter = new THREE.Vector3();

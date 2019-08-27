@@ -21,14 +21,20 @@
   <script>
       let startTime = new Date();
 
-      //let modelToBeRendered = 'models/fail1.mpd';
-      //let modelToBeRendered = 'models/pyramid5.ldr';
-      //let modelToBeRendered = 's/85970s01.dat';
-      //let modelToBeRendered = '6091.dat';
-      //let modelToBeRendered = '85080.dat';
-      //let modelToBeRendered = '3001.dat';
-      //let modelToBeRendered = 'models/chrome.ldr';
-      let modelToBeRendered = 'models/speckle.ldr';
+      //let model = 'models/corvette_full.mpd';
+      //let model = '6091.dat'; // Has overlap of line and conditional line causing trouble for the normal calculation.
+      //let model = '85080.dat'; // Has conditional lines partially overlapping with hard corners, also causing issues for normal calculation.
+      //let model = '3001.dat';
+
+      // Materials:
+      //let model = 'models/luminance.ldr';
+      //let model = 'models/chrome.ldr';
+      //let model = 'models/rubber.ldr';
+      //let model = 'models/speckle.ldr';
+      //let model = 'models/metal.ldr';
+      let model = 'models/glitter.ldr';
+      //let model = 'models/pearlescent.ldr';
+      //let model = 'models/rubber.ldr';
 
       let scene = new ENV.Scene();
       document.body.appendChild(scene.renderer.domElement);
@@ -49,6 +55,7 @@
       }
 
       var ldrOptions = new LDR.Options();
+      ldrOptions.lineContrast = 2; // No lines.
       let logo = ldrOptions.studs = 0; // 0 for quick draw. 4 for special logo.
 
       let storage;
@@ -73,7 +80,7 @@
       };
 
       ldrLoader = new THREE.LDRLoader(onLoad, storage, {physicalRenderingAge:20});
-      ldrLoader.load(modelToBeRendered);
+      ldrLoader.load(model);
 
       new THREE.OrbitControls(scene.camera, scene.renderer.domElement).addEventListener('change', () => scene.render());
   </script>
