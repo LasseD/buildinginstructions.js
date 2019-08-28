@@ -2,7 +2,7 @@
 
 var ENV = {};
 
-ENV.FOV = 20; // Camera frustrum vertical field of view.
+ENV.FOV = 15; // Camera frustrum vertical field of view.
 
 ENV.Scene = function() {
     let self = this;
@@ -159,15 +159,23 @@ ENV.Scene.prototype.setHemisphereLight = function(sky, ground, intensity) {
     this.scene.add(light);
 }
 
+ENV.Scene.prototype.resetCamera = function() {
+    let b = this.mc.boundingBox; // To build scene around.
+    let size = {w:b.max.x-b.min.x, l:b.max.z-b.min.z, h:b.max.y-b.min.y};
+
+    let cameraDist = 1.8*Math.max(size.w, size.l, size.h);
+    this.camera.position.set(cameraDist, cameraDist, cameraDist);
+    this.camera.lookAt(new THREE.Vector3());
+
+}
+
 ENV.Scene.prototype.buildStandardScene = function() {
     let self = this;
     let b = this.mc.boundingBox; // To build scene around.
     let size = {w:b.max.x-b.min.x, l:b.max.z-b.min.z, h:b.max.y-b.min.y};
 
     // Set up camera:
-    let cameraDist = 1.8*Math.max(size.w, size.l, size.h);
-    this.camera.position.set(cameraDist, cameraDist, cameraDist);
-    this.camera.lookAt(new THREE.Vector3());
+    this.resetCamera();
     
     // Scene:
     this.scene.background = new THREE.Color(0x3A3A3A);
@@ -182,7 +190,7 @@ ENV.Scene.prototype.buildStandardScene = function() {
     if(this.floor) {
         this.scene.remove(this.floor);
     }
-    let floorSize = 15 * Math.max(size.w, size.l);
+    let floorSize = 50 * Math.max(size.w, size.l);
     var floorGeometry = new THREE.PlaneBufferGeometry(floorSize, floorSize);
     var floorMaterial = new THREE.MeshStandardMaterial({
             color: 0xFEFEFE,
