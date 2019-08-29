@@ -549,10 +549,11 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                     //console.log('At least 3 normals are the same!');
                     let nSum = ns.reduce((a, b) => new THREE.Vector3(a.x+b.x, a.y+b.y, a.z+b.z), new THREE.Vector3());
                     let nx = nSum.x*nSum.x, ny = nSum.y*nSum.y, nz = nSum.z*nSum.z;
-                    if(nx > ny && nx > nz) {
+
+                    if(nx >= ny && nx >= nz) {
                         setUV(vs, dy, dz);
                     }
-                    else if(ny > nx && ny > nz) {
+                    else if(ny >= nx && ny >= nz) {
                         setUV(vs, dx, dz);
                     }
                     else {
@@ -581,8 +582,8 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                         return;
                     }
                 }
-                
-                /*console.log('Lat/Lon projection. vertices:');
+                /*
+                console.log('Lat/Lon projection. vertices:');
                 console.dir(vs);
                 console.log('normals:');
                 console.dir(ns);//*/
