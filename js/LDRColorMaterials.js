@@ -272,6 +272,7 @@ LDR.Colors.createOpaqueAbsTexture = () => LDR.Colors.createRandomTexture(128, 50
 LDR.Colors.createPearlTexture = () => LDR.Colors.createRandomTexture(128, 20, 4, 8);
 LDR.Colors.createRubberTexture = () => LDR.Colors.createRandomTexture(64, 100, 1, 1);
 LDR.Colors.createMetalTexture = () => LDR.Colors.createRandomTexture(64, 100, 1, 12);
+LDR.Colors.speckleTs = [];
 LDR.Colors.createSpeckleTexture = (size, fraction, minSize, maxSize) => LDR.Colors.createRandomTexture(size, 0, 2, 3, {fraction:fraction, minSize:minSize, maxSize:maxSize}); // Same as for ABS, but without damage.
 
 LDR.Colors.loadTextures = function() {
@@ -340,7 +341,7 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
                     let fraction = parseFloat(m[0]);
                     let minSize = parseInt(m[2]);
                     let maxSize = parseInt(m[4]);
-                    params.normalMap = LDR.Colors.speckleT || (LDR.Colors.speckleT = LDR.Colors.createSpeckleTexture(256, fraction, minSize, maxSize));
+                    params.normalMap = LDR.Colors.speckleTs[colorID] || (LDR.Colors.speckleTs[colorID] = LDR.Colors.createSpeckleTexture(256, fraction, minSize, maxSize));
                 }
                 else {
                     console.warn('Failed to parse speckle definition for color ' + colorID + ': ' + m.join('/'));
@@ -352,7 +353,7 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
                     let fraction = parseFloat(m[0]);
                     //let vFraction = parseFloat(m[2]); // Volume fraction is ignored as the material only has an affect on the surface, not the interior.
                     let size = parseInt(m[4]);
-                    params.normalMap = LDR.Colors.glitterT || (LDR.Colors.glitterT = LDR.Colors.createSpeckleTexture(128, fraction, size, size));
+                    params.normalMap = LDR.Colors.speckleTs[colorID] || (LDR.Colors.speckleTs[colorID] = LDR.Colors.createSpeckleTexture(128, fraction, size, size));
                 }
                 else {
                     console.warn('Failed to parse glitter definition for color ' + colorID + ': ' + m.join('/'));

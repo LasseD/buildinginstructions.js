@@ -392,8 +392,12 @@ THREE.OrbitControls = function ( object, domElement ) {
 			}
 
 		};
-
 	}();
+        this.pan = pan;
+
+        this.raise = function(amount) {
+            
+        }
 
 	this.dollyIn = function( dollyScale ) {
 

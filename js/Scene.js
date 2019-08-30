@@ -2,16 +2,20 @@
 
 var ENV = {};
 
-ENV.FOV = 15; // Camera frustrum vertical field of view.
+ENV.DEFAULT_FOV = 30; // Camera frustrum vertical field of view.
 
 ENV.Scene = function() {
+    LDR.Colors.loadTextures(); // Load ASAP!
+
     let self = this;
+
+    this.controllers = [];
+    this.activeControllerIndex = 0;
+
     this.floor;
     this.hemisphereLight;
-    this.lights = [];
 
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(40, 16/9.0, 0.1, 100000);
 
     // Set up renderer:
     this.renderer = new THREE.WebGLRenderer({antialias: true});
@@ -21,6 +25,13 @@ ENV.Scene = function() {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Default is PCFShadowMap
 
+    // Set up camera:
+    this.camera = new THREE.PerspectiveCamera(ENV.DEFAULT_FOV, 16/9.0, 0.1, 100000);
+    let orbitControls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+    orbitControls.addEventListener('change', () => self.render());
+    orbitControls.handleKeys = false;
+    this.controllers.push(new ENV.CameraController(this, orbitControls));
+    
     // Rendering elements:
     this.baseObject = new THREE.Group();
     let opaqueObject = new THREE.Group();
@@ -36,33 +47,40 @@ ENV.Scene = function() {
 	    // Don't handle key events when ALT is pressed, as they browser-level overwrites!
 	    return;
         }
-        if(e.keyCode === 65) { // A:
-            self.rotateLights(.1);
+        //console.dir(e);
+        let c = self.controllers[self.activeControllerIndex];
+        if(e.keyCode === 37) { // Left:
+            c.deactivate();
+            self.activeControllerIndex--;
+            if(self.activeControllerIndex < 0) {
+                self.activeControllerIndex = self.controllers.length-1;
+            }
+            c = self.controllers[self.activeControllerIndex];
+            c.activate();
         }
-        else if (e.keyCode === 68) { // D:
-            self.rotateLights(-.1);
+        else if (e.keyCode === 39) { // Right:
+            c.deactivate();
+            self.activeControllerIndex++;
+            if(self.activeControllerIndex === self.controllers.length) {
+                self.activeControllerIndex = 0;
+            }
+            c = self.controllers[self.activeControllerIndex];
+            c.activate();
         }
-        else if (e.keyCode === 69) { // E:
-            self.distanceLights(.1);
+        else if(e.keyCode === 79) { // O
+            self.removePointLight();
         }
-        else if(e.keyCode === 81) { // Q:
-            self.distanceLights(-.1);
+        else if(e.keyCode === 80) { // P
+            self.addPointLight(0xFFFFFF, 1, 0, self.size.w+self.size.l, self.size.h);
         }
-        else if(e.keyCode === 83) { // S:
-            self.raiseLights(-.05);
+        else {
+            self.controllers[self.activeControllerIndex].handleKey(e.keyCode, e.shiftKey);
         }
-        else if(e.keyCode === 87) { // W:
-            self.raiseLights(.05);
-        }
-        else if(e.keyCode === 27) { // ESC:
-	    self.resetLights();
-        }
+        self.render();
     }
     document.onkeydown = handleKeyDown;
 
     //RectAreaLightUniformsLib.init();
-
-    LDR.Colors.loadTextures();
 }
 
 ENV.Scene.prototype.render = function() {
@@ -76,26 +94,24 @@ ENV.Scene.prototype.onChange = function(eleW, eleH) {
     this.render();
 }
 
-ENV.Scene.prototype.addPointLight = function(size, color, intensity, angle, dist, y) {
-    let diam = Math.sqrt(size.w*size.w + size.l*size.l);
+ENV.Scene.prototype.addPointLight = function(color, intensity, angle, dist, y) {
+    let diam = Math.sqrt(this.size.w*this.size.w + this.size.l*this.size.l);
 
     let light = new THREE.PointLight(color, intensity, 2*(dist+y));
-    light.origAngle = light.angle = angle;
-    light.origDist = light.dist = dist;
-    light.origY = light.y = y;
-
+    
     light.castShadow = true;
     light.shadow.mapSize.width = Math.floor(2.5*diam); // Adjust according to size!
     light.shadow.mapSize.height = Math.floor(2.5*diam);
     light.shadow.camera.near = 0.5;
     light.shadow.camera.far = 2*(dist+y);
 
-    this.scene.add(light);
-    this.lights.push(light);
+    let c = new ENV.PointLightController(this, light, angle, dist, y);
+    this.controllers.push(c);
 }
 
-ENV.Scene.prototype.addRectAreaLight = function(size, color, intensity, angle, dist, y) {
-    let light = new THREE.RectAreaLight(color, intensity, size, size);
+/*
+ENV.Scene.prototype.addRectAreaLight = function(color, intensity, angle, dist, y) {
+    let light = new THREE.RectAreaLight(color, intensity, this.size, this.size);
     light.origAngle = light.angle = angle;
     light.origDist = light.dist = dist;
     light.origY = light.y = y;
@@ -106,48 +122,22 @@ ENV.Scene.prototype.addRectAreaLight = function(size, color, intensity, angle, d
     console.dir(light);
 
     this.scene.add(light);
-    this.lights.push(light);
-}
+}*/
 
-ENV.Scene.prototype.clearLights = function() {
-    this.lights.forEach(light => self.scene.remove(light));
-    this.lights = [];
-}
+ENV.Scene.prototype.removePointLight = function() {
+    let c = this.controllers[this.activeControllerIndex];
+    if(!c.isPointLightController) {
+        console.warn('Not a point light!');
+        return;
+    }
 
-ENV.Scene.prototype.reorientLights = function() {
-    this.lights.forEach(light => {
-            light.position.set(Math.cos(light.angle)*light.dist, 
-                               light.y, 
-                               Math.sin(light.angle)*light.dist);
-            light.lookAt(0,0,0);
-        });
+    c.kill();
+
+    this.controllers = this.controllers.filter(cc => cc !== c);
+    if(this.activeControllerIndex === this.controllers.length) {
+            this.activeControllerIndex = this.controllers.length-1;
+    }
     this.render();
-    console.log('Lights at');
-    this.lights.forEach(l => console.log('angle=' + l.angle + ', dist=' + l.dist + ', y=' + l.y));
-}
-
-ENV.Scene.prototype.rotateLights = function(v) {
-    this.lights.forEach(light => light.angle += v);
-    this.reorientLights();
-}
-
-ENV.Scene.prototype.raiseLights = function(v) {
-    this.lights.forEach(light => light.y += light.origY*v);
-    this.reorientLights();
-}
-
-ENV.Scene.prototype.distanceLights = function(v) {
-    this.lights.forEach(light => light.dist += light.origDist*v);
-    this.reorientLights();
-}
-
-ENV.Scene.prototype.resetLights = function() {
-    this.lights.forEach(light => {
-            light.y = light.origY;
-            light.dist = light.origDist;
-            light.angle = light.origAngle;
-        });
-    this.reorientLights();
 }
 
 ENV.Scene.prototype.setHemisphereLight = function(sky, ground, intensity) {
@@ -160,19 +150,16 @@ ENV.Scene.prototype.setHemisphereLight = function(sky, ground, intensity) {
 }
 
 ENV.Scene.prototype.resetCamera = function() {
-    let b = this.mc.boundingBox; // To build scene around.
-    let size = {w:b.max.x-b.min.x, l:b.max.z-b.min.z, h:b.max.y-b.min.y};
-
-    let cameraDist = 1.8*Math.max(size.w, size.l, size.h);
-    this.camera.position.set(cameraDist, cameraDist, cameraDist);
-    this.camera.lookAt(new THREE.Vector3());
-
+    let cameraDist = 5*Math.max(this.size.w, this.size.l, this.size.h);
+    this.baseObject.position.y = -this.size.h/2;
+    this.camera.position.set(cameraDist, 0.7*cameraDist, cameraDist);
+    this.camera.lookAt(new THREE.Vector3(0, 0, 0));
 }
 
 ENV.Scene.prototype.buildStandardScene = function() {
     let self = this;
     let b = this.mc.boundingBox; // To build scene around.
-    let size = {w:b.max.x-b.min.x, l:b.max.z-b.min.z, h:b.max.y-b.min.y};
+    this.size = {w:b.max.x-b.min.x, l:b.max.z-b.min.z, h:b.max.y-b.min.y};
 
     // Set up camera:
     this.resetCamera();
@@ -190,7 +177,7 @@ ENV.Scene.prototype.buildStandardScene = function() {
     if(this.floor) {
         this.scene.remove(this.floor);
     }
-    let floorSize = 50 * Math.max(size.w, size.l);
+    let floorSize = 50 * Math.max(this.size.w, this.size.l);
     var floorGeometry = new THREE.PlaneBufferGeometry(floorSize, floorSize);
     var floorMaterial = new THREE.MeshStandardMaterial({
             color: 0xFEFEFE,
@@ -199,16 +186,126 @@ ENV.Scene.prototype.buildStandardScene = function() {
         });
     this.floor = new THREE.Mesh(floorGeometry, floorMaterial);
     this.floor.rotation.x = -Math.PI/2;
-    this.floor.position.y = b.min.y-elementCenter.y;
+    this.floor.position.y = b.min.y;//+elementCenter.y;
     this.floor.receiveShadow = true;
-    this.scene.add(this.floor);
+    this.baseObject.add(this.floor);
 
     // Lights:
-    this.clearLights();
 
-    this.addPointLight(size, 0xF6E3FF, 0.73,  0.8, size.w*1.5, size.h*1.0);
-    this.addPointLight(size, 0xE6F3FF, 0.55, -0.1, size.w*0.7, size.h*1.6);
-    this.reorientLights();
+    this.addPointLight(0xF6E3FF, 0.73,  0.8, this.size.w*1.5, this.size.h*1.0);
     
     this.setHemisphereLight(0xF4F4FB, 0x30302B, 0.45);
+}
+
+ENV.CameraController = function(scene, orbitControls) {
+    this.isCameraController = true;
+    
+    const PAN_SPEED = 20;
+
+    this.handleKey = (key,shift) => {
+        switch(key) {
+        case 65: // A
+        orbitControls.pan(-PAN_SPEED, 0);
+        orbitControls.update();
+        break;
+        case 68: // D
+        orbitControls.pan(PAN_SPEED, 0);
+        orbitControls.update();
+        break;
+        case 87: // W
+        scene.baseObject.position.y += scene.size.h * 0.1;
+        scene.render();
+        break;
+        case 83: // S
+        scene.baseObject.position.y -= scene.size.h * 0.1;
+        scene.render();
+        break;
+        case 81: // Q
+        orbitControls.dollyIn(1.1);
+        orbitControls.update();
+        break;
+        case 69: // E
+        orbitControls.dollyOut(1.1);
+        orbitControls.update();
+        break;
+        case 70: // F
+        scene.camera.fov += (shift ? 5 : -5);
+        scene.camera.updateProjectionMatrix();
+        scene.render();
+        break;
+        case 27: // ESC
+        scene.resetCamera();
+        break;
+        }
+    }
+
+    this.activate = () => {};
+    this.deactivate = () => {};
+}
+
+ENV.PointLightController = function(scene, light, angle, dist, y) {
+    let self = this;
+    this.isPointLightController = true;
+
+    const origAngle = angle;
+    const origDist = dist;
+    const origY = y;
+    let h = new THREE.PointLightHelper(light, 5, 0xFF0000);
+    h.visible = false;
+    scene.scene.add(light);
+    scene.scene.add(h);
+
+    this.kill = function() {
+        let self = this;
+        self.deactivate();
+        scene.scene.remove(h);
+        scene.scene.remove(light);
+    }
+
+    this.update = function() {
+        light.position.set(Math.cos(angle)*dist, 
+                           y, 
+                           Math.sin(angle)*dist);
+        light.lookAt(0,0,0);
+        scene.render();
+        h.update();
+        console.log('Light at angle=' + angle + ', dist=' + dist + ', y=' + y);
+    }
+    this.update();
+
+    this.reset = function() {
+        y = origY;
+        dist = origDist;
+        angle = origAngle;
+    }
+
+    this.handleKey = key => {
+        switch(key) {
+        case 65: // A
+        angle += 0.1;
+        break;
+        case 68: // D
+        angle -= 0.1;
+        break;
+        case 87: // W
+        y += origY*0.1;
+        break;
+        case 83: // S
+        y -= origY*0.1;
+        break;
+        case 81: // Q
+        dist += origDist*0.1;
+        break;
+        case 69: // E
+        dist -= origDist*0.1;
+        break;
+        case 27: // ESC
+        self.resetLight();
+        break;
+        }
+        self.update();
+    }
+
+    this.activate = () => h.visible = true;
+    this.deactivate = () => h.visible = false;
 }
