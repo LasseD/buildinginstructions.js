@@ -13,15 +13,19 @@
 0 !HISTORY YYYY-MM-DD [Username] second row with the same date if necessary. However authors should lean toward writing longer
 0 !HISTORY YYYY-MM-DD [Username] single !HISTORY lines(and not feel constrained to the historic 80-character limit on line length).
 
-1 0 0 0 0 1 0 0 0 1 0 0 0 1 6712 - Fireplace.ldr
+1 0 0.00001 0 0 1 0 0 0 1 0 0 0 1 6712 - Fireplace.ldr
 1 0 -140 -49 -32 0.5 0 -0.866 0 1 0 0.866 0 0.5 6712 - Horse.ldr
 1 0 -140.866 -129 -31.5 0.5 0 -0.866 0 1 0 0.866 0 0.5 6712 - Sheriff.ldr
-1 0 83 -99 64 1 0 0 0 1 0 0 0 1 6712 - Bandit.ldr
+1 0 83.00001 -99 64 1 0 0 0 1 0 0 0 1 6712 - Bandit.ldr
 1 6 81 3 76 1 0 0 0 1 0 0 0 1 stud.dat
 1 2 -51 8 86 1 0 0 0 1 0 0 0 1 stud.dat
 1 7 80 0 -14 0.707 0 0.707 0 1 0 -0.707 0 0.707 stud.dat
-1 7 80 100 -14 0.707 0 0.707 0 1 0 -0.707 0 0.707 6712 - 3023.dat
-1 7 80 200 -14 0.707 0 0.707 0 1 0 -0.707 0 0.707 3022.dat
+1 7 80.00001 100 -14 0.707 0 0.707 0 1 0 -0.707 0 0.707 6712 - 3023.dat
+1 7 80.00001 200 -14 0.707 0 0.707 0 1 0 -0.707 0 0.707 3022.dat
+1 7 80.00001 200 -14 0.707 0 0.707 0 1 0 -0.707 0 0.707 3022.dat
+1 7 80.00001 200 -14 0.707 0 0.707 0 1 0 -0.707 0 0.707 3022.dat
+1 7 80.00001 200 -14 0.707 0 0.707 0 1 0 -0.707 0 0.707 3022.dat
+1 7 80.00001 200 -14 0.707 0 0.707 0 1 0 -0.707 0 0.707 3022.dat
 
 0 FILE 6712 - Horse.ldr
 0 Inconsistent description

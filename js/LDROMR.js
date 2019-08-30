@@ -54,10 +54,13 @@ LDR.OMR.UpgradeToNewParts = function() {
 }
 
 /**
- Check if any part description is placed wuth precision higher than 3 decimals.
- Correct to at most 3 decimals.
+ Check if many part descriptions are placed with precision higher than 3 decimals.
+ Correct all to at most 3 decimals.
  */
 LDR.OMR.FixPlacements = function() {
+    const ACCEPTABLE_FRACTION = 0.3;
+    const MIN_TOTAL = 20;
+
     function convert(x) {
         x = x.toFixed(3);
         for(var i = 0; i < 3; i++) {
@@ -71,7 +74,18 @@ LDR.OMR.FixPlacements = function() {
     
     let check3 = p => p.x!==convert(p.x) || p.y!==convert(p.y) || p.z!==convert(p.z);
 
-    let checkers = {checkPartDescription:pd => check3(pd.position) ? "One or more parts are placed with precision higher than three decimals, such as '" + pd.ID + "' placed at (" + pd.position.x + ", " + pd.position.y + ", " + pd.position.z + "). This is often observed in models created in Bricklink Studio 2.0. Click here to align parts to have at most three decimals in their positions." : false};
+    let bad = 0
+    let total = 0;
+    function checkPD(p) {
+        total++;
+        if(check3(p)) {
+            ++bad;
+        }
+        return (total >= MIN_TOTAL) && (bad/total > ACCEPTABLE_FRACTION);
+    }
+
+    let checkers = {checkPartDescription:pd => 
+                    checkPD(pd.position) ? "Many parts are placed with precision higher than three decimals, such as '" + pd.ID + "' placed at (" + pd.position.x + ", " + pd.position.y + ", " + pd.position.z + "). This is often observed in models created in Bricklink Studio 2.0. Click here to align all parts to have at most three decimals in their positions." : false};
 
     let handlers = {handlePartDescription: function(pd) {
 	pd.position.set(convert(pd.position.x),
@@ -166,12 +180,10 @@ LDR.OMR.StandardizeFileNames = function(setNumber) {
     let title = (i,d) => "Change file headers to follow the standard <pre>0 FILE " + i + "\n0 " + d + "\n0 Name: " + i + "</pre>";
     
     function extract(x) {
-	console.log(x + " -> ");
 	if(x.endsWith('.ldr') || x.endsWith('.LDR') || x.endsWith('.dat') || x.endsWith('.DAT') || x.endsWith('.mpd') || x.endsWith('.MPD')) {
 	    x = x.substring(0, x.length-4);
 	}
 	x = x.replace(/^[\d\s\-]+\-\s+/g, '');
-	console.log(x);
 	return x;
     }
 
