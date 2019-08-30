@@ -6,6 +6,8 @@ LDR.EPS = 1e-5;
   Binary merge of the geometry streams.
  */
 LDR.mergeGeometries = function(geometries) {
+    //console.log('Merging ' + geometries.length + ' geometries:');
+    //console.dir(geometries);
     while(geometries.length > 1) { // Repeat rounds until only 1 left:
 	let nextGeometries = []; // Result of round.
 
@@ -322,7 +324,7 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
     if(this.geometriesBuilt) {
 	return;
     }
-    this.buildGeometriesAndColorsForLines();
+    //this.buildGeometriesAndColorsForLines();
     var self = this;
     let vertices = this.vertices;
     let vLen = vertices.length;
@@ -334,6 +336,8 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
     vertices.forEach(v => b.expandByPoint(v));
     let size = new THREE.Vector3();
     b.getSize(size);
+
+    //console.log('Vertices:'); vertices.forEach((v,i) => console.log(i + ': ' + v.x + ', ' + v.y + ', ' + v.z));
 
     // Mark lines shared by lines and conditional lines:
     let edges = []; // 0/1 => soft, 2 => hard
@@ -350,6 +354,8 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
             lines.forEach(line => edges[key(line.p1, line.p2)] = false); // This fixes duplicate soft and hard edges.
         }
     }
+    //console.log('EDGES of the ' + vLen + ' vertices:');
+    //console.dir(edges);
     
     // Now handle triangle colors and vertices:
     let allTriangleColors = [];
@@ -371,6 +377,7 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
 
     function renew(i) {
         let v = vertices[i];
+        //console.log('Renewing ' + i + ': ' + v.x + ', ' + v.y + ', ' + v.z);
         vertices.push({x:v.x, y:v.y, z:v.z}); // No mark as it is new and will not be visited again.
         vLen++;
         return vLen-1;
@@ -380,6 +387,7 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
         let p1 = t.p1, p2 = t.p2, p3 = t.p3;
         let h1 = vertices[p1].hard, h2 = vertices[p2].hard, h3 = vertices[p3].hard;
         let k12 = edges[key(p1, p2)], k23 = edges[key(p2, p3)], k31 = edges[key(p3, p1)];
+        //console.log('Checking triangle ' + p1 + ', ' + p2 + ', ' + p3 + ': ' + k12 + ', ' + k23 + ', ' + k31);
         
         if(h1 && !k12 && !k31) {
             t.p1 = renew(t.p1);
@@ -396,6 +404,7 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
         let p1 = t.p1, p2 = t.p2, p3 = t.p3, p4 = t.p4;
         let h1 = vertices[p1].hard, h2 = vertices[p2].hard, h3 = vertices[p3].hard, h4 = vertices[p4].hard;
         let k12 = edges[key(p1, p2)], k23 = edges[key(p2, p3)], k34 = edges[key(p3, p4)], k41 = edges[key(p4, p1)];
+        //console.log('Checking quad ' + p1 + (h1?'+':'') + ', ' + p2 + (h2?'+':'') + ', ' + p3 + (h3?'+':'') + ', ' + p4 + (h4?'+':'') + ': ' + k12 + ', ' + k23 + ', ' + k34 + ', ' + k41);
         
         if(h1 && !k12 && !k41) {
             t.p1 = renew(t.p1);
@@ -411,6 +420,9 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
         }
     }
 
+    //console.log('vertices before renewal:');
+    //vertices.forEach((v,i) => console.log(i + ': ' + v.x + ', ' + v.y + ', ' + v.z));
+
     allTriangleColors.forEach(c => {
             if(self.triangles.hasOwnProperty(c)) {
                 self.triangles[c].forEach(updateTriangleIndices);
@@ -425,6 +437,8 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                 self.quads2[c].forEach(updateQuadIndices);
             }
         });
+
+    //console.log('vertices:'); console.dir(vertices);
 
     let triangleVertices = [];
     vertices.forEach(v => triangleVertices.push(v.x, v.y, v.z));
@@ -513,26 +527,6 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                 let maxDiff = xs => xs.map((x,idx,a) => Math.abs(x - a[idx === 0 ? len-1 : idx-1])).reduce((a,b) => a > b ? a : b, 0);
                 let vs = indices.map(i => vertices[i]);
 
-                // First check if this is a simple rectilinear face:
-                let DX = maxDiff(vs.map(v => v.x));
-                if(DX < LDR.EPS) { // y/z projection:
-                    //console.log('DX');
-                    setUV(vs, dy, dz); // Ignore false returns as that indicates highly-degenerate polygons.
-                    return;
-                }
-                let DY = maxDiff(vs.map(v => v.y));
-                if(DY < LDR.EPS) {
-                    //console.log('DY');
-                    setUV(vs, dz, dx); // Ignore false returns as that indicates highly-degenerate polygons.
-                    return;
-                }
-                let DZ = maxDiff(vs.map(v => v.z));
-                if(DZ < LDR.EPS) {
-                    //console.log('DZ');
-                    setUV(vs, dx, dy); // Ignore false returns as that indicates highly-degenerate polygons.
-                    return;
-                }
-
                 // Face is not rectilinear! Project onto cylinders or globe using normals:
                 let ns = indices.map(i => 3*i).map(idx => new THREE.Vector3(normals[idx], normals[1+idx], normals[2+idx]));
 
@@ -550,6 +544,27 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                     return equalVector3(a[0], a[2]) || equalVector3(a[1], a[3]);
                 }
                 if(atLeast3EqualNormals()) { // Just project onto the plane where the normals point the most:
+
+                    // First check if this is a simple rectilinear face:
+                    let DX = maxDiff(vs.map(v => v.x));
+                    if(DX < LDR.EPS) { // y/z projection:
+                        //console.log('DX');
+                        setUV(vs, dy, dz); // Ignore false returns as that indicates highly-degenerate polygons.
+                        return;
+                    }
+                    let DY = maxDiff(vs.map(v => v.y));
+                    if(DY < LDR.EPS) {
+                        //console.log('DY');
+                        setUV(vs, dz, dx); // Ignore false returns as that indicates highly-degenerate polygons.
+                        return;
+                    }
+                    let DZ = maxDiff(vs.map(v => v.z));
+                    if(DZ < LDR.EPS) {
+                        //console.log('DZ');
+                        setUV(vs, dx, dy); // Ignore false returns as that indicates highly-degenerate polygons.
+                        return;
+                    }
+
                     //console.log('At least 3 normals are the same!');
                     let nSum = ns.reduce((a, b) => new THREE.Vector3(a.x+b.x, a.y+b.y, a.z+b.z), new THREE.Vector3());
                     let nx = nSum.x*nSum.x, ny = nSum.y*nSum.y, nz = nSum.z*nSum.z;
@@ -618,7 +633,7 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
             console.dir(uvs);//*/
 
             g.addAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-            //g.attributes.uv2 = g.attributes.uv; // Used by aoMap
+            //g.attributes.uv2 = g.attributes.uv; // Used by aoMap (not in use yet)
 
             self.triangleGeometry[c] = g;
         });
@@ -1119,6 +1134,7 @@ LDR.LDRGeometry.prototype.merge = function(other) {
 	let pThis = this.vertices[idxThis];
 	let pOther = other.vertices[idxOther];
 	if(LDR.vertexEqual(pThis, pOther)) {
+            //console.log('eq => ' + pThis.x + ', ' + pThis.y + ', ' + pThis.z);
 	    indexMapThis.push(mergedVertices.length);
 	    indexMapOther.push(mergedVertices.length);
 	    mergedVertices.push(pThis);
@@ -1126,11 +1142,13 @@ LDR.LDRGeometry.prototype.merge = function(other) {
 	    ++idxOther;
 	}
 	else if(LDR.vertexLessThan(pThis, pOther)) {
+            //console.log('< => ' + pThis.x + ', ' + pThis.y + ', ' + pThis.z);
 	    indexMapThis.push(mergedVertices.length);
 	    mergedVertices.push(pThis);
 	    ++idxThis;
 	}
 	else {
+            //console.log('> => ' + pOther.x + ', ' + pOther.y + ', ' + pOther.z);
 	    indexMapOther.push(mergedVertices.length);
 	    mergedVertices.push(pOther);
 	    ++idxOther;
@@ -1148,6 +1166,10 @@ LDR.LDRGeometry.prototype.merge = function(other) {
 	mergedVertices.push(pOther);
 	++idxOther;
     }
+    /*console.log('Merging ' + this.vertices.length + ' + ' + other.vertices.length + ' -> ' + mergedVertices.length);
+    console.dir(this.vertices);
+    console.dir(other.vertices);
+    console.dir(mergedVertices);//*/
     
     // Merge the lines, conditional lines, triangles and quads:
     this.vertices = mergedVertices;

@@ -1,4 +1,5 @@
+0 FILE test.dat
 0 Name: test.dat
 0 BFC CERTIFY CCW
-
-1 16 20 20 10 0 -1 -20 0 0 -20 -20 0 0 triangle.dat
+1 4 0 32 -20 40 0 0 0 -12 0 0 0 10 test_box4o4a.dat
+1 4 40 20 -10 0 -80 0 -20 0 0 0 0 -20 1-4cyli.dat
