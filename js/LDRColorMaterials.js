@@ -151,7 +151,7 @@ LDR.Colors.buildTriangleMaterial = function(colorManager, color) {
     return ret;
 }
 
-LDR.Colors.createRandomCanvas = function(size, damage, waves, waveSize, speckle) {
+LDR.Colors.createRandomTexture = function(size, damage, waves, waveSize, speckle) {
     let canvas = document.createElement("canvas");
     canvas.width = canvas.height = size;
     let ctx = canvas.getContext("2d");
@@ -261,78 +261,18 @@ LDR.Colors.createRandomCanvas = function(size, damage, waves, waveSize, speckle)
     ctx.fillStyle = 'rgb('+low2+','+low2+cornerB;
     ctx.fillRect(size, 0, 1, 1);
 
-    return [canvas, ctx];
-}
-
-LDR.Colors.absTextures = {};
-LDR.Colors.createAbsTexture = function(size) {
-    if(LDR.Colors.absTextures.hasOwnProperty(size)) {
-        return LDR.Colors.absTextures[size];
-    }
-
-    let [canvas, ctx] = LDR.Colors.createRandomCanvas(size, 50, 2, 3);
-
-    var texture = new THREE.Texture(canvas);
-    texture.needsUpdate = true;
+    let texture = new THREE.Texture(canvas);
+    texture.needsUpdate = true; // Otherwise canvas will not be applied.
     //document.body.appendChild(canvas);
-    return LDR.Colors.absTextures[size] = texture;
+    return texture;
 }
 
-LDR.Colors.pearlTextures = {};
-LDR.Colors.createPearlTexture = function(size) {
-    if(LDR.Colors.pearlTextures.hasOwnProperty(size)) {
-        return LDR.Colors.pearlTextures[size];
-    }
-
-    let [canvas, ctx] = LDR.Colors.createRandomCanvas(size, 20, 4, 8);
-
-    var texture = new THREE.Texture(canvas);
-    texture.needsUpdate = true;
-    //document.body.appendChild(canvas);
-    return LDR.Colors.pearlTextures[size] = texture;
-}
-
-LDR.Colors.rubberTextures = {};
-LDR.Colors.createRubberTexture = function(size) {
-    if(LDR.Colors.rubberTextures.hasOwnProperty(size)) {
-        return LDR.Colors.rubberTextures[size];
-    }
-
-    let [canvas, ctx] = LDR.Colors.createRandomCanvas(size, 2*size, 1, 1);
-
-    var texture = new THREE.Texture(canvas);
-    texture.needsUpdate = true;
-    //document.body.appendChild(canvas);
-    return LDR.Colors.rubberTextures[size] = texture;
-}
-
-LDR.Colors.metalTextures = {};
-LDR.Colors.createMetalTexture = function(size) {
-    if(LDR.Colors.metalTextures.hasOwnProperty(size)) {
-        return LDR.Colors.metalTextures[size];
-    }
-
-    let [canvas, ctx] = LDR.Colors.createRandomCanvas(size, size*2, 1, 12);
-
-    var texture = new THREE.Texture(canvas);
-    texture.needsUpdate = true;
-    //document.body.appendChild(canvas);
-    return LDR.Colors.metalTextures[size] = texture;
-}
-
-LDR.Colors.speckleTextures = {};
-LDR.Colors.createSpeckleTexture = function(size, fraction, minSize, maxSize) {
-    if(LDR.Colors.speckleTextures.hasOwnProperty(size)) {
-        return LDR.Colors.speckleTextures[size];
-    }
-
-    let [canvas, ctx] = LDR.Colors.createRandomCanvas(size, 0, 2, 3, {fraction:fraction, minSize:minSize, maxSize:maxSize}); // Same as for ABS, but without damage.
-
-    var texture = new THREE.Texture(canvas);
-    texture.needsUpdate = true;
-    //document.body.appendChild(canvas);
-    return LDR.Colors.speckleTextures[size] = texture;
-}
+LDR.Colors.createTransTexture = () => LDR.Colors.createRandomTexture(128, 20, 1, 12);
+LDR.Colors.createOpaqueAbsTexture = () => LDR.Colors.createRandomTexture(128, 50, 2, 3);
+LDR.Colors.createPearlTexture = () => LDR.Colors.createRandomTexture(128, 20, 4, 8);
+LDR.Colors.createRubberTexture = () => LDR.Colors.createRandomTexture(64, 100, 1, 1);
+LDR.Colors.createMetalTexture = () => LDR.Colors.createRandomTexture(64, 100, 1, 12);
+LDR.Colors.createSpeckleTexture = (size, fraction, minSize, maxSize) => LDR.Colors.createRandomTexture(size, 0, 2, 3, {fraction:fraction, minSize:minSize, maxSize:maxSize}); // Same as for ABS, but without damage.
 
 LDR.Colors.loadTextures = function() {
     if(LDR.Colors.textures) {
@@ -352,91 +292,98 @@ LDR.Colors.loadTextures = function() {
 
 LDR.Colors.buildStandardMaterial = function(colorID) {
     let color = LDR.Colors[colorID < 0 ? (-colorID-1) : colorID]; // Assume non-negative color.
-    if(!color.m) {
-        let params = {
-            color: colorID < 0 ? (color.edge ? color.edge : 0x333333) : color.value,
-            name: 'Material for color ' + color.name + ' (' + colorID + ')',
+    if(color.m) {
+        return color.m;
+    }
+
+    let params = {
+        color: colorID < 0 ? (color.edge ? color.edge : 0x333333) : color.value,
+        name: 'Material for color ' + color.name + ' (' + colorID + ')',
+        
+        roughness: 0.1, // Smooth ABS
+        metalness: 0.0,
+        
+        normalMapType: THREE.TangentSpaceNormalMap,
+        
+        /*aoMap: TODO: Can this even be computed on the fly and be any good?
+          aoMapIntensity: 1.0,//*/
+        
+        // Displacement map will not be used as it affects vertices of the mesh, not pixels,
+        
+        envMap: LDR.Colors.textures.reflectionCube,
+        envMapIntensity: 0.35
+    };
+    
+    if(color.material) { // Special materials:
+        if(color.material === 'CHROME' || color.material === 'METAL') {
+            params.metalness = 1.0;
+            params.roughness = 0.25;
+            params.normalMap = LDR.Colors.metalT || (LDR.Colors.metalT = LDR.Colors.createMetalTexture());
+            params.envMapIntensity = 1.0;
+        }
+        else if(color.material === 'RUBBER') {
+            params.roughness = 0.9;
+            params.normalMap = LDR.Colors.rubberT || (LDR.Colors.rubberT = LDR.Colors.createRubberTexture());
+        }
+        else if(color.material === 'PEARLESCENT') {
+            params.normalMap = LDR.Colors.pearlT || (LDR.Colors.pearlT = LDR.Colors.createPearlTexture());
+            params.roughness = 0.01; // Smooth
+        }
+        else if(color.material.startsWith('MATERIAL ')) {
+            params.roughness = 0.0;
+            params.envMapIntensity = 1.0;
             
-            roughness: 0.1, // Smooth ABS
-            metalness: 0.0,
-            
-            normalMapType: THREE.TangentSpaceNormalMap,
-
-            /*aoMap: TODO: Can this even be computed on the fly and be any good?
-            aoMapIntensity: 1.0,//*/
-            
-            // Displacement map will not be used as it affects vertices of the mesh, not pixels,
-
-            envMap: LDR.Colors.textures.reflectionCube,
-            envMapIntensity: 0.35
-        };
-
-        if(color.material) { // Special materials:
-            if(color.material === 'CHROME' || color.material === 'METAL') {
-                params.metalness = 1.0;
-                params.roughness = 0.25;
-                params.normalMap = LDR.Colors.createMetalTexture(64);
-                params.envMapIntensity = 1.0;
-            }
-            else if(color.material === 'RUBBER') {
-                params.roughness = 0.9;
-                params.normalMap = LDR.Colors.createRubberTexture(64);
-            }
-            else if(color.material === 'PEARLESCENT') {
-                params.normalMap = LDR.Colors.createPearlTexture(128);
-                params.roughness = 0.01; // Smooth
-            }
-            else if(color.material.startsWith('MATERIAL ')) {
-                params.roughness = 0.0;
-                params.envMapIntensity = 1.0;
-
-                let m = color.material.substring('MATERIAL '.length);
-                if(m.startsWith('SPECKLE FRACTION ')) {
-                    m = m.substring('SPECKLE FRACTION '.length).split(' ');
-                    if(m.length === 5) {
-                        let fraction = parseFloat(m[0]);
-                        let minSize = parseInt(m[2]);
-                        let maxSize = parseInt(m[4]);
-                        params.normalMap = LDR.Colors.createSpeckleTexture(256, fraction, minSize, maxSize);
-                    }
-                    else {
-                        console.warn('Failed to parse speckle definition for color ' + colorID + ': ' + m.join('/'));
-                    }
-                }
-                else if(m.startsWith('GLITTER FRACTION ')) {
-                    m = m.substring('GLITTER FRACTION '.length).split(' ');
-                    if(m.length === 5) {
-                        let fraction = parseFloat(m[0]);
-                        //let vFraction = parseFloat(m[2]); // Volume fraction is ignored as the material only has an affect on the surface, not the interior.
-                        let size = parseInt(m[4]);
-                        params.normalMap = LDR.Colors.createSpeckleTexture(128, fraction, size, size);
-                    }
-                    else {
-                        console.warn('Failed to parse glitter definition for color ' + colorID + ': ' + m.join('/'));
-                    }
+            let m = color.material.substring('MATERIAL '.length);
+            if(m.startsWith('SPECKLE FRACTION ')) {
+                m = m.substring('SPECKLE FRACTION '.length).split(' ');
+                if(m.length === 5) {
+                    let fraction = parseFloat(m[0]);
+                    let minSize = parseInt(m[2]);
+                    let maxSize = parseInt(m[4]);
+                    params.normalMap = LDR.Colors.speckleT || (LDR.Colors.speckleT = LDR.Colors.createSpeckleTexture(256, fraction, minSize, maxSize));
                 }
                 else {
-                    console.warn('Unknown material for color ' + colorID + ': ' + m);
+                    console.warn('Failed to parse speckle definition for color ' + colorID + ': ' + m.join('/'));
+                }
+            }
+            else if(m.startsWith('GLITTER FRACTION ')) {
+                m = m.substring('GLITTER FRACTION '.length).split(' ');
+                if(m.length === 5) {
+                    let fraction = parseFloat(m[0]);
+                    //let vFraction = parseFloat(m[2]); // Volume fraction is ignored as the material only has an affect on the surface, not the interior.
+                    let size = parseInt(m[4]);
+                    params.normalMap = LDR.Colors.glitterT || (LDR.Colors.glitterT = LDR.Colors.createSpeckleTexture(128, fraction, size, size));
+                }
+                else {
+                    console.warn('Failed to parse glitter definition for color ' + colorID + ': ' + m.join('/'));
                 }
             }
             else {
-                console.warn('Unknown material composition for color ' + colorID + ' -> ' + color.material);
+                console.warn('Unknown material for color ' + colorID + ': ' + m);
             }
         }
         else {
-            params.normalMap = LDR.Colors.createAbsTexture(128);
+            console.warn('Unknown material composition for color ' + colorID + ' -> ' + color.material);
         }
-
-        let m = new THREE.MeshStandardMaterial(params);
-        if(color.alpha > 0) {
-            m.transparent = true;
-            m.opacity = color.alpha/255;
-        }
-        if(color.luminance > 0) {
-            console.warn('Emissive materials not yet supported. Color: ' + colorID);
-            // TODO: Make emissive.
-        }
-        color.m = m;
     }
-    return color.m;
+    else if(color.alpha > 0) {
+        params.normalMap = LDR.Colors.transT  || (LDR.Colors.transT  = LDR.Colors.createTransTexture());
+    }
+    else {
+        params.normalMap = LDR.Colors.opaqueT || (LDR.Colors.opaqueT = LDR.Colors.createOpaqueAbsTexture());
+    }
+    
+    let m = new THREE.MeshStandardMaterial(params);
+    if(color.alpha > 0) {
+        m.transparent = true;
+        m.opacity = color.alpha/255;
+        // TODO: Use volume shader instead. https://stackoverflow.com/questions/26588568/volume-rendering-in-webgl and https://threejs.org/examples/webgl2_materials_texture3d.html
+    }
+
+    if(color.luminance > 0) {
+        console.warn('Emissive materials not yet supported. Color: ' + colorID);
+        // TODO: Make emissive.
+    }
+
+    return color.m = m;
 }

@@ -21,10 +21,10 @@
   <script>
       let startTime = new Date();
 
-      let model = 'models/corvette_full.mpd';
+      //let model = 'models/corvette_full.mpd';
       //let model = '6091.dat'; // Has overlap of line and conditional line causing trouble for the normal calculation.
       //let model = '85080.dat'; // Has conditional lines partially overlapping with hard corners, also causing issues for normal calculation.
-      //let model = 'test.dat';
+      let model = '3024.dat';
 
       // Materials:
       //let model = 'models/luminance.ldr';
@@ -35,6 +35,7 @@
       //let model = 'models/glitter.ldr';
       //let model = 'models/pearlescent.ldr';
       //let model = 'models/rubber.ldr';
+      //let model = 'models/trans.ldr';
 
       let scene = new ENV.Scene();
       document.body.appendChild(scene.renderer.domElement);
@@ -45,7 +46,7 @@
       let ldrLoader; // Three.js loader for LDraw models
       let onLoad = function() {
         let inv = new THREE.Matrix3(); inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
-        ldrLoader.getMainModel().generateThreePart(ldrLoader, 134, new THREE.Vector3(), inv, true, false, scene.mc);
+        ldrLoader.getMainModel().generateThreePart(ldrLoader, 383, new THREE.Vector3(), inv, true, false, scene.mc);
         scene.mc.updateMeshVisibility();
 
         scene.buildStandardScene();

@@ -178,7 +178,7 @@ ENV.Scene.prototype.buildStandardScene = function() {
     this.resetCamera();
     
     // Scene:
-    this.scene.background = new THREE.Color(0x3A3A3A);
+    this.scene.background = new THREE.Color(0x6D6D6D);
 
     // Subject:
     var elementCenter = new THREE.Vector3();
@@ -210,5 +210,5 @@ ENV.Scene.prototype.buildStandardScene = function() {
     this.addPointLight(size, 0xE6F3FF, 0.55, -0.1, size.w*0.7, size.h*1.6);
     this.reorientLights();
     
-    this.setHemisphereLight(0xF4F4FB, 0x30302B, 0.25);
+    this.setHemisphereLight(0xF4F4FB, 0x30302B, 0.45);
 }
