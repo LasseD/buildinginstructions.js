@@ -566,7 +566,7 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                 // Check if coordinates are degenerate in any axis:
                 // Math.atan2 -> [-PI;PI], but we want to wrap neatly, so ABS the result.
                 const PI2 = 1/(1.1*Math.PI);
-                let toCircle = (y, x) => Math.abs(Math.atan2(y, x))*PI2;
+                let toCircle = (y, x) => Math.abs(Math.atan2(y+0.05, x-0.05))*PI2; // Added .05 to avoid issues with rectilinear extensions of cylinders.
                 if(maxDiff(ns.map(v => v.x)) < LDR.EPS) {
                     if(setUV(ns, v => toCircle(v.y, v.z), (v,i) => dx(vs[i]))) {
                         return;
