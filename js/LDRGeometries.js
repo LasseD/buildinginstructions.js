@@ -463,7 +463,19 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
             let g = self.buildGeometry(triangleIndices, triangleVertexAttribute);
             g.computeVertexNormals(); // Also normalizes.
 
-            // Compute UV's using normals and project from bounding box 'b' of size 'size' onto [0;1]:
+            /* 
+               Compute UV's:
+               The heuristic for computing UV's has to translate from
+               3D space x 3D space (Positions and normals) to 2D (UV's)
+
+               The heuristic performs this reduction as follows:
+               0) If 3 or more normals point the same way, then project to one of the rectilinear planes and return.
+               1) The sum of normals N is computed.
+               2) Let v and n denote the position and normal of a point. UV is computed:
+                  U = v.x + planar_angle_of(n.x, n.z)
+                  V = v.z + acos(n.y)
+               *) If |N.y| >= MAX(|N.x|, |N.z|) then perform UV calculation using XY instead of XZ above.
+             */
             let normals = g.getAttribute('normal').array;
             let uvs = [];
             for(let i = 0; i < vLen; i++) {
@@ -488,7 +500,7 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                         if(Math.abs(prev.u-uv.u) < LDR.EPS && Math.abs(prev.v-uv.v) < LDR.EPS ||
                            Math.abs(prevprev.u-uv.u) < LDR.EPS && Math.abs(prevprev.v-uv.v) < LDR.EPS ||
                            Math.abs(turn(uv)) < 1e-7) {
-                            /*console.log(' Underlying data points:');
+                            console.log(' Underlying data points:');
                             console.dir(vs);
                             console.dir('Outputting:');
                             console.dir(ret);
@@ -512,9 +524,9 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
 
                 let maxDiff = xs => xs.map((x,idx,a) => Math.abs(x - a[idx === 0 ? len-1 : idx-1])).reduce((a,b) => a > b ? a : b, 0);
                 let vs = indices.map(i => vertices[i]);
-
-                // Face is not rectilinear! Project onto cylinders or globe using normals:
                 let ns = indices.map(i => 3*i).map(idx => new THREE.Vector3(normals[idx], normals[1+idx], normals[2+idx]));
+                let N = ns.reduce((a, b) => new THREE.Vector3(a.x+b.x, a.y+b.y, a.z+b.z), new THREE.Vector3());
+                let NX = N.x*N.x, NY = N.y*N.y, NZ = N.z*N.z;
 
                 // Check if at least 3 normals point the same direction:
                 let equalVector3 = (a, b) => Math.abs(a.x-b.x) < LDR.EPS && Math.abs(a.y-b.y) < LDR.EPS && Math.abs(a.z-b.z) < LDR.EPS;
@@ -530,31 +542,20 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                     return equalVector3(a[0], a[2]) || equalVector3(a[1], a[3]);
                 }
                 if(atLeast3EqualNormals()) { // Just project onto the plane where the normals point the most:
-
                     // First check if this is a simple rectilinear face:
-                    let DX = maxDiff(vs.map(v => v.x));
-                    if(DX < LDR.EPS) { // y/z projection:
-                        setUV(vs, dy, dz); // Ignore false returns as that indicates highly-degenerate polygons.
-                        return;
-                    }
-                    let DY = maxDiff(vs.map(v => v.y));
-                    if(DY < LDR.EPS) {
-                        setUV(vs, dz, dx); // Ignore false returns as that indicates highly-degenerate polygons.
-                        return;
-                    }
-                    let DZ = maxDiff(vs.map(v => v.z));
-                    if(DZ < LDR.EPS) {
-                        setUV(vs, dx, dy); // Ignore false returns as that indicates highly-degenerate polygons.
-                        return;
-                    }
-
-                    let nSum = ns.reduce((a, b) => new THREE.Vector3(a.x+b.x, a.y+b.y, a.z+b.z), new THREE.Vector3());
-                    let nx = nSum.x*nSum.x, ny = nSum.y*nSum.y, nz = nSum.z*nSum.z;
-
-                    if(nx >= ny && nx >= nz) {
+                    if(maxDiff(vs.map(v => v.x)) < LDR.EPS) { // y/z projection:
                         setUV(vs, dy, dz);
                     }
-                    else if(ny >= nx && ny >= nz) {
+                    else if(maxDiff(vs.map(v => v.y)) < LDR.EPS) {
+                        setUV(vs, dz, dx);
+                    }
+                    else if(maxDiff(vs.map(v => v.z)) < LDR.EPS) {
+                        setUV(vs, dx, dy);
+                    }
+                    else if(NX >= NY && NX >= NZ) {
+                        setUV(vs, dy, dz);
+                    }
+                    else if(NY >= NX && NY >= NZ) {
                         setUV(vs, dx, dz);
                     }
                     else {
@@ -563,28 +564,23 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                     return;
                 }
 
-                // Check if coordinates are degenerate in any axis:
-                // Math.atan2 -> [-PI;PI], but we want to wrap neatly, so ABS the result.
-                const PI2 = 1/(1.1*Math.PI);
-                let toCircle = (y, x) => Math.abs(Math.atan2(y+0.05, x-0.05))*PI2; // Added .05 to avoid issues with rectilinear extensions of cylinders.
-                if(maxDiff(ns.map(v => v.x)) < LDR.EPS) {
-                    if(setUV(ns, v => toCircle(v.y, v.z), (v,i) => dx(vs[i]))) {
-                        return;
-                    }
-                }
-                else if(maxDiff(ns.map(v => v.y)) < LDR.EPS) {
-                    if(setUV(ns, v => toCircle(v.x, v.z), (v,i) => dy(vs[i]))) {
-                        return;
-                    }
-                }
-                else if(maxDiff(ns.map(v => v.z)) < LDR.EPS) {
-                    if(setUV(ns, v => toCircle(v.x, v.y), (v,i) => dz(vs[i]))) {
-                        return;
-                    }
-                }
+                // Math.atan2 -> [-PI;PI], and Math.acos => [0;PI]
+                const PI1 = 0.89 / Math.PI;
+                const PI2 = 0.49 / Math.PI;
+                let toCircle = (y, x) => (Math.atan2(y, x)+Math.PI)*PI2;
+                let toHeight = x => Math.acos(x)*PI1;
+                const C3 = 0.1 / (size.x + size.y + size.z);
+                let dxyz = v => (v.x + v.y + v.z)*C3
 
-                if(!setUV(ns, v => toCircle(v.z, v.x), v => 0.5 + Math.asin(v.y)*PI2)) {
-                    setUV(vs, dx, dz);
+                if(NY >= Math.max(NX + NZ)) {
+                    setUV(vs,
+                          (v,i) => dxyz(v) + toCircle(ns[i].x, ns[i].z),
+                          (v,i) => dxyz(v) + toHeight(ns[i].y));
+                }
+                else {
+                    setUV(vs,
+                          (v,i) => dxyz(v) + toCircle(ns[i].x, ns[i].y),
+                          (v,i) => dxyz(v) + toHeight(ns[i].z));
                 }
             }
 

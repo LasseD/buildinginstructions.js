@@ -1,0 +1,30 @@
+0 Wedge  2 x  6 Double Right with AT-TE Pattern
+0 Name: 41747ps1.dat
+0 Author: Damien Roux [Darats]
+0 !LDRAW_ORG Part UPDATE 2012-01
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+
+0 BFC CERTIFY CCW
+
+0 !KEYWORDS Curved, Rounded, Slope, Star Wars
+
+0 !HISTORY 2011-12-29 [PTadmin] Official Update 2011-02
+0 !HISTORY 2012-02-21 [Wesley] moved studs from modified subfile
+0 !HISTORY 2012-03-30 [PTadmin] Official Update 2012-01
+
+1 16 0 0 0 -1 0 0 0 1 0 0 0 1 s\41748s01.dat
+1 16 0 0 -10 0 0 1 0 1 0 -1 0 0 stud.dat
+1 16 0 0 10 0 0 1 0 1 0 -1 0 0 stud.dat
+5 24 -10 0 -20 -30 20 -20 -30 20 20 -25 20 -40
+5 24 -10 0 -20 -25 20 -40 -30 20 -20 -10 2 -40
+5 24 -25 20 -40 -10 2 -40 -20 20 -60 -10 0 -20
+5 24 -10 2 -40 -20 20 -60 -25 20 -40 -10 6 -60
+5 24 -20 20 -60 -10 6 -60 -15 20 -80 -10 2 -40
+5 24 -10 6 -60 -15 20 -80 -20 20 -60 -10 12 -80
+5 24 -15 20 -80 -10 12 -80 -10 20 -100 -10 6 -60
+5 24 10 2 -40 -10 2 -40 10 0 -20 10 6 -60
+5 24 -10 0 -20 10 0 -20 10 2 -40 -10 0 20
+5 24 10 6 -60 -10 6 -60 10 2 -40 10 12 -80
+5 24 10 12 -80 -10 12 -80 10 6 -60 10 20 -100
+0 //
+1 16 0 0 0 -1 0 0 0 1 0 0 0 1 s\41748ps1a.dat
