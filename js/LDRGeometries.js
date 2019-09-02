@@ -565,12 +565,12 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                 }
 
                 // Math.atan2 -> [-PI;PI], and Math.acos => [0;PI]
-                const PI1 = 0.89 / Math.PI;
-                const PI2 = 0.49 / Math.PI;
+                const PI1 = 0.8 / Math.PI;
+                const PI2 = 0.3 / Math.PI;
                 let toCircle = (y, x) => (Math.atan2(y, x)+Math.PI)*PI2;
                 let toHeight = x => Math.acos(x)*PI1;
-                const C3 = 0.1 / (size.x + size.y + size.z);
-                let dxyz = v => (v.x + v.y + v.z)*C3
+                const C3 = 0.2 / (size.x + size.y + size.z);
+                let dxyz = v => 0.1 + (v.x + v.y + v.z)*C3;
 
                 if(NY >= Math.max(NX + NZ)) {
                     setUV(vs,
