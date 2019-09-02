@@ -107,6 +107,7 @@ ENV.Scene.prototype.addPointLight = function(color, intensity, angle, dist, y) {
 
     let c = new ENV.PointLightController(this, light, angle, dist, y);
     this.controllers.push(c);
+    this.activeControllerIndex = this.controllers.length-1;
 }
 
 /*
@@ -191,10 +192,10 @@ ENV.Scene.prototype.buildStandardScene = function() {
     this.baseObject.add(this.floor);
 
     // Lights:
-
-    this.addPointLight(0xF6E3FF, 0.73,  0.8, this.size.w*1.5, this.size.h*1.0);
+    this.addPointLight(0xF6E3FF, 0.65,  1.1, this.size.w*1.5, this.size.h*2.0);
+    this.addPointLight(0xF6E3FF, 0.65,  -0.1, this.size.w*1.5, this.size.h*2.0);
     
-    this.setHemisphereLight(0xF4F4FB, 0x30302B, 0.45);
+    this.setHemisphereLight(0xF4F4FB, 0x30302B, 0.65);
 }
 
 ENV.CameraController = function(scene, orbitControls) {
@@ -205,12 +206,12 @@ ENV.CameraController = function(scene, orbitControls) {
     this.handleKey = (key,shift) => {
         switch(key) {
         case 65: // A
-        orbitControls.pan(-PAN_SPEED, 0);
-        orbitControls.update();
+        scene.baseObject.rotation.y += 0.1;
+        scene.render();
         break;
         case 68: // D
-        orbitControls.pan(PAN_SPEED, 0);
-        orbitControls.update();
+        scene.baseObject.rotation.y -= 0.1;
+        scene.render();
         break;
         case 87: // W
         scene.baseObject.position.y += scene.size.h * 0.1;
@@ -223,6 +224,10 @@ ENV.CameraController = function(scene, orbitControls) {
         case 81: // Q
         orbitControls.dollyIn(1.1);
         orbitControls.update();
+        break;
+        case 82: // R
+        scene.hemisphereLight.intensity += (shift ? 0.05 : -0.05);
+        scene.render();
         break;
         case 69: // E
         orbitControls.dollyOut(1.1);
@@ -269,7 +274,7 @@ ENV.PointLightController = function(scene, light, angle, dist, y) {
         light.lookAt(0,0,0);
         scene.render();
         h.update();
-        console.log('Light at angle=' + angle + ', dist=' + dist + ', y=' + y);
+        console.log('Light at angle=' + (angle/origAngle) + ', dist=' + (dist/origDist) + ', y=' + (y/origY)) + ' (In comparison to original position)';
     }
     this.update();
 
@@ -279,7 +284,7 @@ ENV.PointLightController = function(scene, light, angle, dist, y) {
         angle = origAngle;
     }
 
-    this.handleKey = key => {
+    this.handleKey = (key,shift) => {
         switch(key) {
         case 65: // A
         angle += 0.1;
@@ -295,6 +300,10 @@ ENV.PointLightController = function(scene, light, angle, dist, y) {
         break;
         case 81: // Q
         dist += origDist*0.1;
+        break;
+        case 82: // R
+        light.intensity += (shift ? 0.05 : -0.05);
+        scene.render();
         break;
         case 69: // E
         dist -= origDist*0.1;
