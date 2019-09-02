@@ -268,7 +268,7 @@ LDR.Colors.createRandomTexture = function(size, damage, waves, waveSize, speckle
 }
 
 LDR.Colors.createTransTexture = () => LDR.Colors.createRandomTexture(128, 20, 1, 12);
-LDR.Colors.createOpaqueAbsTexture = () => LDR.Colors.createRandomTexture(128, 50, 2, 3);
+LDR.Colors.createOpaqueAbsTexture = () => LDR.Colors.createRandomTexture(128, 50, 1, 2);
 LDR.Colors.createPearlTexture = () => LDR.Colors.createRandomTexture(128, 20, 4, 8);
 LDR.Colors.createRubberTexture = () => LDR.Colors.createRandomTexture(64, 100, 1, 1);
 LDR.Colors.createMetalTexture = () => LDR.Colors.createRandomTexture(64, 100, 1, 12);
