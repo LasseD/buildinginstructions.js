@@ -24,7 +24,7 @@
       let model = 'models/corvette_full.mpd';
       //let model = '6091.dat'; // Has overlap of line and conditional line causing trouble for the normal calculation.
       //let model = '85080.dat'; // Has conditional lines partially overlapping with hard corners, also causing issues for normal calculation.
-      //let model = 'test.dat';
+      //let model = '50950.dat';
       //let model = 'models/3707 - Fabuland - Clover Cow.mpd';
       //let model = '41747ps1.dat';
 
@@ -47,7 +47,7 @@
       let ldrLoader; // Three.js loader for LDraw models
       let onLoad = function() {
         let inv = new THREE.Matrix3(); inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
-        ldrLoader.getMainModel().generateThreePart(ldrLoader, 383, new THREE.Vector3(), inv, true, false, scene.mc);
+        ldrLoader.getMainModel().generateThreePart(ldrLoader, 4, new THREE.Vector3(), inv, true, false, scene.mc);
         scene.mc.updateMeshVisibility();
 
         scene.buildStandardScene();

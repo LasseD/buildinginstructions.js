@@ -24,6 +24,7 @@ ENV.Scene = function() {
     //this.renderer.gammaOutput = true; // TODO: Is this just for metals?
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Default is PCFShadowMap
+    this.renderer.shadowMapSoft = true;
 
     // Set up camera:
     this.camera = new THREE.PerspectiveCamera(ENV.DEFAULT_FOV, 16/9.0, 0.1, 100000);
@@ -67,8 +68,11 @@ ENV.Scene = function() {
             c = self.controllers[self.activeControllerIndex];
             c.activate();
         }
+        else if(e.keyCode === 8 || e.keyCode === 46) { // DELETE
+            self.removeLight();
+        }
         else if(e.keyCode === 79) { // O
-            self.removePointLight();
+            self.addDirectionalLight(0xFFFFFF, 1, 0, self.size.w+self.size.l, self.size.h);
         }
         else if(e.keyCode === 80) { // P
             self.addPointLight(0xFFFFFF, 1, 0, self.size.w+self.size.l, self.size.h);
@@ -105,7 +109,31 @@ ENV.Scene.prototype.addPointLight = function(color, intensity, angle, dist, y) {
     light.shadow.camera.near = 0.5;
     light.shadow.camera.far = 2*(dist+y);
 
-    let c = new ENV.PointLightController(this, light, angle, dist, y);
+    let h = new THREE.PointLightHelper(light, 5, 0xFF0000);
+
+    let c = new ENV.LightController(this, light, h, angle, dist, y);
+    this.controllers.push(c);
+    this.activeControllerIndex = this.controllers.length-1;
+}
+
+ENV.Scene.prototype.addDirectionalLight = function(color, intensity, angle, dist, y) {
+    let diam = Math.sqrt(this.size.w*this.size.w + this.size.l*this.size.l);
+
+    let light = new THREE.DirectionalLight(color, intensity, 2*(dist+y));
+    
+    light.castShadow = true;
+    light.shadow.mapSize.width = Math.floor(2.5*diam); // Adjust according to size!
+    light.shadow.mapSize.height = Math.floor(2.5*diam);
+    light.shadow.camera.near = 0.5;
+    light.shadow.camera.far = 2*(dist+y);
+    light.shadow.camera.left = -diam;
+    light.shadow.camera.right = diam;
+    light.shadow.camera.top = diam;
+    light.shadow.camera.bottom = -diam;
+
+    let h = new THREE.DirectionalLightHelper(light, 5, 0x0000FF);
+
+    let c = new ENV.LightController(this, light, h, angle, dist, y);
     this.controllers.push(c);
     this.activeControllerIndex = this.controllers.length-1;
 }
@@ -125,10 +153,10 @@ ENV.Scene.prototype.addRectAreaLight = function(color, intensity, angle, dist, y
     this.scene.add(light);
 }*/
 
-ENV.Scene.prototype.removePointLight = function() {
+ENV.Scene.prototype.removeLight = function() {
     let c = this.controllers[this.activeControllerIndex];
-    if(!c.isPointLightController) {
-        console.warn('Not a point light!');
+    if(!c.isLightController) {
+        console.warn('Not a light!');
         return;
     }
 
@@ -136,7 +164,7 @@ ENV.Scene.prototype.removePointLight = function() {
 
     this.controllers = this.controllers.filter(cc => cc !== c);
     if(this.activeControllerIndex === this.controllers.length) {
-            this.activeControllerIndex = this.controllers.length-1;
+        this.activeControllerIndex = this.controllers.length-1;
     }
     this.render();
 }
@@ -193,7 +221,8 @@ ENV.Scene.prototype.buildStandardScene = function() {
 
     // Lights:
     this.addPointLight(0xF6E3FF, 0.65,  1.1, this.size.w*1.5, this.size.h*2.0);
-    this.addPointLight(0xF6E3FF, 0.65,  -0.1, this.size.w*1.5, this.size.h*2.0);
+    //this.addPointLight(0xF6E3FF, 0.65,  -0.1, this.size.w*1.5, this.size.h*2.0);
+    this.addDirectionalLight(0xF6E3FF, 0.35,  -0.1, this.size.w*1.5, this.size.h*2.0);
     
     this.setHemisphereLight(0xF4F4FB, 0x30302B, 0.65);
 }
@@ -248,14 +277,13 @@ ENV.CameraController = function(scene, orbitControls) {
     this.deactivate = () => {};
 }
 
-ENV.PointLightController = function(scene, light, angle, dist, y) {
+ENV.LightController = function(scene, light, h, angle, dist, y) {
     let self = this;
-    this.isPointLightController = true;
+    this.isLightController = true;
 
     const origAngle = angle;
     const origDist = dist;
     const origY = y;
-    let h = new THREE.PointLightHelper(light, 5, 0xFF0000);
     h.visible = false;
     scene.scene.add(light);
     scene.scene.add(h);
