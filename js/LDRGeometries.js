@@ -487,32 +487,39 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
 
             function setUVs(indices) {
                 const len = indices.length;
+                let maxDiff = xs => xs.map((x,idx,a) => Math.abs(x - a[idx === 0 ? len-1 : idx-1])).reduce((a,b) => a > b ? a : b, 0);
+                let vs = indices.map(i => vertices[i]);
+                let ns = indices.map(i => 3*i).map(idx => new THREE.Vector3(normals[idx], normals[1+idx], normals[2+idx]));
+                let N = ns.reduce((a, b) => new THREE.Vector3(a.x+b.x, a.y+b.y, a.z+b.z), new THREE.Vector3());
+                let NX = N.x*N.x, NY = N.y*N.y, NZ = N.z*N.z;
 
-                function setUV(vs, fu, fv) {
+                function setUV(fu, fv, force) {
                     let ret = vs.map((v,i) => {return {u:fu(v, i), v:fv(v, i)};});
-                    
-                    let prevprev = ret[ret.length-2];
-                    let prev = ret[ret.length-1];
-                    let turn = uv => (prev.u-prevprev.u)*(uv.v-prevprev.v) -
-                                     (prev.v-prevprev.v)*(uv.u-prevprev.u);
-                    for(let i = 0; i < ret.length; i++) {
-                        let uv = ret[i];
-                        if(Math.abs(prev.u-uv.u) < LDR.EPS && Math.abs(prev.v-uv.v) < LDR.EPS ||
-                           Math.abs(prevprev.u-uv.u) < LDR.EPS && Math.abs(prevprev.v-uv.v) < LDR.EPS ||
-                           Math.abs(turn(uv)) < 1e-7) {
-                            console.log(' Underlying data points:');
-                            console.dir(vs);
-                            console.dir('Outputting:');
-                            console.dir(ret);
-                            console.dir('Turn: ' + turn(uv));
-                            console.warn("Degenerate UV! " + uv.u + ', ' + uv.v);//*/
-                            return false;
+
+                    if(!force) {
+                        let prevprev = ret[ret.length-2];
+                        let prev = ret[ret.length-1];
+                        let turn = uv => (prev.u-prevprev.u)*(uv.v-prevprev.v) -
+                            (prev.v-prevprev.v)*(uv.u-prevprev.u);
+                        for(let i = 0; i < ret.length; i++) {
+                            let uv = ret[i];
+                            if(Math.abs(prev.u-uv.u) < LDR.EPS && Math.abs(prev.v-uv.v) < LDR.EPS ||
+                               Math.abs(prevprev.u-uv.u) < LDR.EPS && Math.abs(prevprev.v-uv.v) < LDR.EPS ||
+                               Math.abs(turn(uv)) < 1e-7) {
+                                /*console.log(' Underlying data points:');
+                                console.dir(vs);
+                                console.dir(ns);
+                                console.dir('Outputting:');
+                                console.dir(ret);
+                                console.dir('Turn: ' + turn(uv));//*/
+                                console.warn("Degenerate UV! " + uv.u + ', ' + uv.v);
+                                return false;
+                            }
+                            prevprev = prev;
+                            prev = uv;
                         }
-                        prevprev = prev;
-                        prev = uv;
                     }
                     
-                    // Output:
                     ret.forEach((uv, i) => {
                             let idx = 2*indices[i];
                             uvs[idx] = uv.u;
@@ -521,12 +528,6 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
 
                     return true;
                 }
-
-                let maxDiff = xs => xs.map((x,idx,a) => Math.abs(x - a[idx === 0 ? len-1 : idx-1])).reduce((a,b) => a > b ? a : b, 0);
-                let vs = indices.map(i => vertices[i]);
-                let ns = indices.map(i => 3*i).map(idx => new THREE.Vector3(normals[idx], normals[1+idx], normals[2+idx]));
-                let N = ns.reduce((a, b) => new THREE.Vector3(a.x+b.x, a.y+b.y, a.z+b.z), new THREE.Vector3());
-                let NX = N.x*N.x, NY = N.y*N.y, NZ = N.z*N.z;
 
                 // Check if at least 3 normals point the same direction:
                 let equalVector3 = (a, b) => Math.abs(a.x-b.x) < LDR.EPS && Math.abs(a.y-b.y) < LDR.EPS && Math.abs(a.z-b.z) < LDR.EPS;
@@ -544,22 +545,22 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                 if(atLeast3EqualNormals()) { // Just project onto the plane where the normals point the most:
                     // First check if this is a simple rectilinear face:
                     if(maxDiff(vs.map(v => v.x)) < LDR.EPS) { // y/z projection:
-                        setUV(vs, dy, dz);
+                        setUV(dy, dz, true);
                     }
                     else if(maxDiff(vs.map(v => v.y)) < LDR.EPS) {
-                        setUV(vs, dz, dx);
+                        setUV(dx, dz, true);
                     }
                     else if(maxDiff(vs.map(v => v.z)) < LDR.EPS) {
-                        setUV(vs, dx, dy);
+                        setUV(dx, dy, true);
                     }
                     else if(NX >= NY && NX >= NZ) {
-                        setUV(vs, dy, dz);
+                        setUV(dy, dz, true);
                     }
                     else if(NY >= NX && NY >= NZ) {
-                        setUV(vs, dx, dz);
+                        setUV(dx, dz, true);
                     }
-                    else {
-                        setUV(vs, dx, dy);
+                    else { // NZ >= both NX and NY
+                        setUV(dx, dy, true);
                     }
                     return;
                 }
@@ -573,14 +574,14 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                 let dxyz = v => 0.1 + (v.x + v.y + v.z)*C3;
 
                 if(NY >= Math.max(NX + NZ)) {
-                    setUV(vs,
-                          (v,i) => dxyz(v) + toCircle(ns[i].x, ns[i].z),
-                          (v,i) => dxyz(v) + toHeight(ns[i].y));
+                    setUV((v,i) => dxyz(v) + toCircle(ns[i].x, ns[i].z),
+                          (v,i) => dxyz(v) + toHeight(ns[i].y), false) ||
+                        setUV(dx, dz, true);
                 }
                 else {
-                    setUV(vs,
-                          (v,i) => dxyz(v) + toCircle(ns[i].x, ns[i].y),
-                          (v,i) => dxyz(v) + toHeight(ns[i].z));
+                    setUV((v,i) => dxyz(v) + toCircle(ns[i].x, ns[i].y),
+                          (v,i) => dxyz(v) + toHeight(ns[i].z), false) ||
+                        setUV(dx, dy, true);
                 }
             }
 
