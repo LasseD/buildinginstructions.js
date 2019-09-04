@@ -318,6 +318,7 @@ THREE.BufferGeometry.prototype.computeVertexNormals = function() {
 /**
    This function also computes normals to be used by standard materials.
  */
+LDR.LDRGeometry.UV_WarningWritten = false;
 LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
     if(this.geometriesBuilt) {
 	return;
@@ -506,13 +507,16 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                             if(Math.abs(prev.u-uv.u) < LDR.EPS && Math.abs(prev.v-uv.v) < LDR.EPS ||
                                Math.abs(prevprev.u-uv.u) < LDR.EPS && Math.abs(prevprev.v-uv.v) < LDR.EPS ||
                                Math.abs(turn(uv)) < 1e-7) {
-                                /*console.log(' Underlying data points:');
-                                console.dir(vs);
-                                console.dir(ns);
-                                console.dir('Outputting:');
-                                console.dir(ret);
-                                console.dir('Turn: ' + turn(uv));//*/
-                                console.warn("Degenerate UV! " + uv.u + ', ' + uv.v);
+                                if(!LDR.LDRGeometry.UV_WarningWritten) {
+                                    console.log('UV issue insights for debugging. Underlying data points (vertices and normals):');
+                                    console.dir(vs);
+                                    console.dir(ns);
+                                    console.dir('Computed U`s:');
+                                    console.dir(ret);
+                                    console.dir('Turn angle where the check failed: ' + turn(uv));
+                                    console.warn("Degenerate UV! " + uv.u + ', ' + uv.v);
+                                    LDR.LDRGeometry.UV_WarningWritten = true;
+                                }
                                 return false;
                             }
                             prevprev = prev;

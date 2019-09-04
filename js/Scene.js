@@ -2,7 +2,7 @@
 
 var ENV = {};
 
-ENV.DEFAULT_FOV = 30; // Camera frustrum vertical field of view.
+ENV.DEFAULT_FOV = 20; // Camera frustrum vertical field of view.
 
 ENV.Scene = function() {
     LDR.Colors.loadTextures(); // Load ASAP!
@@ -29,7 +29,7 @@ ENV.Scene = function() {
     // Set up camera:
     this.camera = new THREE.PerspectiveCamera(ENV.DEFAULT_FOV, 16/9.0, 0.1, 100000);
     let orbitControls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
-    orbitControls.addEventListener('change', () => self.render());
+    orbitControls.addEventListener('change', () => self.onCameraMoved());
     orbitControls.handleKeys = false;
     this.controllers.push(new ENV.CameraController(this, orbitControls));
     
@@ -91,11 +91,19 @@ ENV.Scene.prototype.render = function() {
     this.renderer.render(this.scene, this.camera);
 }
 
+ENV.Scene.prototype.onCameraMoved = function() {
+    let cameraDist = this.camera.position.length();
+    this.camera.near = Math.max(0.5, cameraDist - this.size.diam*3);
+    this.camera.far = cameraDist + this.size.diam*3;
+
+    this.camera.updateProjectionMatrix();
+    this.render();
+}
+
 ENV.Scene.prototype.onChange = function(eleW, eleH) {
     this.renderer.setSize(eleW, eleH);
     this.camera.aspect = eleW/eleH;
-    this.camera.updateProjectionMatrix();
-    this.render();
+    this.onCameraMoved();
 }
 
 ENV.Scene.prototype.addPointLight = function(color, intensity, angle, dist, y) {
@@ -179,7 +187,7 @@ ENV.Scene.prototype.setHemisphereLight = function(sky, ground, intensity) {
 }
 
 ENV.Scene.prototype.resetCamera = function() {
-    let cameraDist = 5*Math.max(this.size.w, this.size.l, this.size.h);
+    let cameraDist = 2*this.size.diam;
     this.baseObject.position.y = -this.size.h/2;
     this.camera.position.set(cameraDist, 0.7*cameraDist, cameraDist);
     this.camera.lookAt(new THREE.Vector3(0, 0, 0));
@@ -188,13 +196,14 @@ ENV.Scene.prototype.resetCamera = function() {
 ENV.Scene.prototype.buildStandardScene = function() {
     let self = this;
     let b = this.mc.boundingBox; // To build scene around.
-    this.size = {w:b.max.x-b.min.x, l:b.max.z-b.min.z, h:b.max.y-b.min.y};
+    let w = b.max.x-b.min.x, l = b.max.z-b.min.z, h = b.max.y-b.min.y;
+    this.size = {w:w, l:l, h:h, diam:Math.sqrt(w*w+l*l+h*h)};
 
     // Set up camera:
     this.resetCamera();
     
     // Scene:
-    this.scene.background = new THREE.Color(0x6D6D6D);
+    this.scene.background = new THREE.Color(0xFFFFFF);
 
     // Subject:
     var elementCenter = new THREE.Vector3();
@@ -206,7 +215,7 @@ ENV.Scene.prototype.buildStandardScene = function() {
     if(this.floor) {
         this.scene.remove(this.floor);
     }
-    let floorSize = 50 * Math.max(this.size.w, this.size.l);
+    let floorSize = 4 * this.size.diam;
     var floorGeometry = new THREE.PlaneBufferGeometry(floorSize, floorSize);
     var floorMaterial = new THREE.MeshStandardMaterial({
             color: 0xFEFEFE,

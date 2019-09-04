@@ -236,46 +236,25 @@ LDR.Generator.makeRing = function(sections, size) {
     return pt;
 }
 
+// Content below copied from logo.dat by Paul Easter [pneaster]
+LDR.Generator.logoPositions = [[-2,-4,2,-5,2,-3.5] // L
+                               ,
+                               [-2,0,-2,-2,2,-3,2,-1],[0,-1,0,-2.5], // E (Divided due to middle line)
+                               ,
+                               [-1.5,2.25,-2,2,-2,1,-1.5,0.5,1.5,-0.25,2,0,2,1,1.5,1.5,0,2,0,1] //G
+                               ,
+                               [-1.5,4.75,-2,4.5,-2,3.5,-1.5,3,1.5,2.25,2,2.5,2,3.5,1.5,4,-1.5,4.75] // O
+                               ];
+
 LDR.Generator.makeLogo1 = function() {
-    let pt = LDR.Generator.makeP('LEGO Logo for Studs - Non-3D Thin Lines', 
-                                 'logo.dat');
+    let pt = LDR.Generator.makeP('LEGO Logo for Studs - Non-3D Thin Lines', 'logo.dat');
     pt.ldraw_org = 'Unofficial_Primitive';
     let step = new THREE.LDRStep();
 
-    // Content below copied from logo.dat by Paul Easter [pneaster]
-    let a = [
-	[-2,0,-4,2,0,-5,
-	 2,0,-5,2,0,-3.5]
-	,
-	[-2,0,0,-2,0,-2,
-	 -2,0,-2,2,0,-3,
-	 2,0,-3,2,0,-1,
-	 0,0,-1,0,0,-2.5]
-	,
-	[-1.5,0,2.25,-2,0,2,
-	 -2,0,2,-2,0,1,
-	 -2,0,1,-1.5,0,0.5,
-	 -1.5,0,0.5,1.5,0,-0.25,
-	 1.5,0,-0.25,2,0,0,
-	 2,0,0,2,0,1,
-	 2,0,1,1.5,0,1.5,
-	 1.5,0,1.5,0,0,2,
-	 0,0,2,0,0,1]
-	,
-	[-1.5,0,4.75,-2,0,4.5,
-	 -2,0,4.5,-2,0,3.5,
-	 -2,0,3.5,-1.5,0,3,
-	 -1.5,0,3,1.5,0,2.25,
-	 1.5,0,2.25,2,0,2.5,
-	 2,0,2.5,2,0,3.5,
-	 2,0,3.5,1.5,0,4,
-	 1.5,0,4,-1.5,0,4.75]
-    ];
-
-    a.forEach(letter => {
-	for(let i = 0; i < letter.length; i+=6) {
-            let p1 = new THREE.Vector3(letter[i], letter[i+1], letter[i+2]);
-            let p2 = new THREE.Vector3(letter[i+3], letter[i+4], letter[i+5]);
+    LDR.Generator.logoPositions.forEach(letter => {
+	for(let i = 2; i < letter.length; i+=2) {
+            let p1 = new THREE.Vector3(letter[i-2], 0, letter[i-1]);
+            let p2 = new THREE.Vector3(letter[i], 0, letter[i+1]);
 	    step.addLine(24, p1, p2);
 	}    
     });
