@@ -19,7 +19,8 @@
     <script src="js/ClientStorage.js"></script>
     <script src="js/LDRLoader.js"></script>
     <script>
-      let partID = '18675ps2.dat';
+      let partID = 'test.dat';
+      //let partID = 'connhol3.dat';
       let color = 16;
 
       // Set up camera:
@@ -128,12 +129,12 @@
       }
 
       // Half-Harlequin-mode:
+
       var acceptedColors = [1, 2, 4, 5, 13, 14, 19, 22, 25, 27, 69, 71, 72, 73, 74, 77, 288, 308, 484];
       LDR.LDRGeometry.prototype.fromPartType = function(loader, pt) {
         loader.getMainModel().IS_MAIN_MODEL = true;
         let geometries = [];
         if(pt.steps.length === 0) {
-          console.warn("No steps in " + pt.ID);
           return; // Empty - just make empty.
         }
         if(pt.IS_MAIN_MODEL) { // Harlequin the triangles and quads:

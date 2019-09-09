@@ -152,18 +152,81 @@ LDR.Colors.buildTriangleMaterial = function(colorManager, color) {
 }
 
 LDR.Colors.createRandomTexture = function(size, damage, waves, waveSize, speckle) {
+    //    size = 512;
+
     let canvas = document.createElement("canvas");
     canvas.width = canvas.height = size;
-    let ctx = canvas.getContext("2d");
-
-    ctx.fillStyle = 'rgba(0,0,0,0)';
-    ctx.fillRect(0, 0, size, size);
 
     size--; // -2*1 pixel for outer edges, +1 for having right/down calculations available when writing back.
     var d = [];
-    for(let i = 0; i < size*size; i++) {
+    for(let i = size*size; i > 0; i--) {
         d.push(128);
     }
+
+    // Apply logo:
+    const LETTER_DX = 2; // of 20
+    const LETTER_DZ = 5; // of 20 (full 1x1 plate width)
+    const M = size/40; // Scale letter -> texture.
+    const R = size/250;
+    const DIST_MULT = 0.5/R*Math.PI;
+    const LOGO_HEIGHT = 0.5;
+    LDR.Generator.logoPositions.forEach(letter => {
+            for(let i = 0; i < letter.length; i+=2) {
+                let X0 = Math.round(size/4 + letter[i]*M);
+                let Y0 = Math.round(size/4 + letter[i+1]*M);
+
+                for(let dx = 0; dx <= R; dx++) {
+                    let dxdx = dx*dx;
+                    for(let dy = Math.floor(Math.sqrt(R*R-dxdx)); dy >= 0; dy--) {
+                        let dist = Math.sqrt(dxdx+dy*dy)*DIST_MULT;
+                        let h = Math.cos(dist) * LOGO_HEIGHT;
+
+                        d[(X0+dx)*size + Y0+dy] =
+                            d[(X0+dx)*size + Y0-dy] =
+                            d[(X0-dx)*size + Y0+dy] =
+                            d[(X0-dx)*size + Y0-dy] = 128 + h;
+                    }
+                }
+            }
+
+            for(let i = 2; i < letter.length; i+=2) {
+                let x1 = letter[i-1], y1 = letter[i-2], x2 = letter[i+1], y2 = letter[i];
+
+                if(y1 === y2) {
+                    if(x1 > x2) { // Swap so x1 <= x2:
+                        let tmp = x1; x1 = x2; x2 = tmp;
+                        tmp = y1; y1 = y2; y2 = tmp;
+                    }
+                    let X1 = Math.round(size/4 + x1*M), Y1 = Math.round(size/4 + y1*M);
+                    let X2 = Math.round(size/4 + x2*M), Y2 = Math.round(size/4 + y2*M);
+
+                    for(let ry = 0; ry <= R; ry++) {
+                        let h = Math.cos(ry/R * Math.PI/2) * LOGO_HEIGHT;
+                        for(let X = X1; X < X2; X++) {
+                            d[X + size*(Y1+ry)] = d[X + size*(Y1-ry)] = 128 + h;
+                        }
+                    }
+                }
+                else {
+                    if(y1 > y2) { // Swap so y1 < y2:
+                        let tmp = x1; x1 = x2; x2 = tmp;
+                        tmp = y1; y1 = y2; y2 = tmp;
+                    }
+                    let X1 = Math.round(size/4 + x1*M), Y1 = Math.round(size/4 + y1*M);
+                    let X2 = Math.round(size/4 + x2*M), Y2 = Math.round(size/4 + y2*M);
+
+                    const SLOPE = (x2-x1)/(y2-y1);
+                    for(let Y = Y1+1; Y < Y2; Y++) {
+                        let X = X1 + (Y-Y1)*SLOPE;
+                        let rX = Math.round(X);
+                        for(let rx = 0; rx <= R; rx++) {
+                            let h = Math.cos(rx/R * Math.PI/2) * LOGO_HEIGHT;
+                            d[rX+rx + size*Y] = d[rX-rx + size*Y] = 128 + h;
+                        }
+                    }
+                }
+            }
+        });
 
     // Some randomness:
     let r = [];
@@ -172,7 +235,6 @@ LDR.Colors.createRandomTexture = function(size, damage, waves, waveSize, speckle
     }
 
     let pos = 0;
-
     // Apply waves:
     if(waveSize > 0) {
         for(let y = 0; y < size; y++) {
@@ -180,7 +242,7 @@ LDR.Colors.createRandomTexture = function(size, damage, waves, waveSize, speckle
             for (let x = 0; x < size; x++) {
                 let X = x + x*Math.sin(x*5*r[0]/size);
                 let V = r[1]*X+r[2]*Y;
-                d[pos] += Math.round(Math.cos(Math.PI*waves*V/size)*waveSize);
+                d[pos] += Math.cos(Math.PI*waves*V/size)*waveSize;
                 pos++;
             }
         }
@@ -190,27 +252,40 @@ LDR.Colors.createRandomTexture = function(size, damage, waves, waveSize, speckle
     for(let i = 0; i < damage; i++) {
         let x0 = Math.floor(size*Math.random()), y0 = Math.floor(size*Math.random());
         let angle = Math.PI*2*Math.random();
-        let len = size/10*Math.random();
-        let debth = Math.round((Math.random()-0.5)*10);
-        if(debth === 0) {
-            continue; // No damage!
-        }
-        //console.log('Damage from ' + x0 + ', ' + y0 + ' of length ' + len + ' and debth ' + debth);
+        let len = size/8*Math.random();
+        let debth = 0.1*Math.random();
         for(let j = 0; j < len; j++) {
             let x = Math.floor(x0 + Math.cos(angle)*j);
             let y = Math.floor(y0 + Math.sin(angle)*j);
-            d[x*size+y] += debth;
+            d[x*size+y-size-1] -= debth;
+            d[x*size+y-size] -= debth;
+            d[x*size+y-size+1] -= debth;
+            d[x*size+y-1] -= debth;
+            d[x*size+y+1] -= debth;
+            d[x*size+y+size-1] -= debth;
+            d[x*size+y+size] -= debth;
+            d[x*size+y+size+1] -= debth;
+        }
+        debth *= 2;
+        for(let j = 0; j < len; j++) {
+            let x = Math.floor(x0 + Math.cos(angle)*j);
+            let y = Math.floor(y0 + Math.sin(angle)*j);
+            d[x*size+y] -= debth;
         }
     }
 
     // Write data back:
+    let ctx = canvas.getContext("2d");
     pos = 0;
     for(let y = 1; y < size; y++) {
         for (let x = 1; x < size; x++) {
-            let here = d[pos];
-            let right = here - Math.abs(here - d[pos+1]);
-            let down = here - Math.abs(here - d[pos+size+1]);
-            ctx.fillStyle = 'rgb(' + right + ',' + down + ',' + (255-here*0.2) + ')';
+            let a = [-size-1, -size, -size+1,   -1, 0, 1,   size-1, size, size+1].map(v => d[pos+v]);
+            let v = new THREE.Vector3(-(a[2]+a[8]-a[6]-a[0]+2*(a[5]-a[3])),
+                                      (a[6]+a[8]-a[2]-a[0]+2*(a[7]-a[1])),
+                                      1); // Sample left/right neighbours and weight direct neighbours the most.
+            v.normalize().multiplyScalar(128).addScalar(128);//.clampLength(0, 255);
+            ctx.fillStyle = 'rgb(' + Math.round(v.x) + ',' + Math.round(v.y) + ',' + Math.round(v.z) + ')';
+
             ctx.fillRect(x, y, 1, 1);
             pos++;
         }
@@ -263,7 +338,7 @@ LDR.Colors.createRandomTexture = function(size, damage, waves, waveSize, speckle
 
     let texture = new THREE.Texture(canvas);
     texture.needsUpdate = true; // Otherwise canvas will not be applied.
-    //document.body.appendChild(canvas);
+    document.body.appendChild(canvas);
     return texture;
 }
 
@@ -378,7 +453,7 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
     if(color.alpha > 0) {
         m.transparent = true;
         m.opacity = color.alpha/255;
-        // TODO: Use volume shader instead. https://stackoverflow.com/questions/26588568/volume-rendering-in-webgl and https://threejs.org/examples/webgl2_materials_texture3d.html
+        // TODO: Use alphaMap or volume shader instead. https://stackoverflow.com/questions/26588568/volume-rendering-in-webgl and https://threejs.org/examples/webgl2_materials_texture3d.html
     }
 
     if(color.luminance > 0) {

@@ -126,8 +126,8 @@ LDR.LDRGeometry.prototype.buildGeometriesAndColorsForLines = function() {
 	/*
 	  Duplicate vertices for each color.
 	 */
-	colorIdx++;
 	for(let c in this.lines) {
+            colorIdx++;
 	    if(!this.lines.hasOwnProperty(c)) {
 		continue;
 	    }
@@ -148,7 +148,6 @@ LDR.LDRGeometry.prototype.buildGeometriesAndColorsForLines = function() {
 	if(!this.conditionalLines.hasOwnProperty(c)) {
 	    continue;
 	}
-	colorIdx++;
 	let fc = this.lineColorManager.get(c);
 	this.conditionalLines[c].forEach(p => {
                 let p1 = this.vertices[p.p1];
@@ -170,7 +169,7 @@ LDR.LDRGeometry.prototype.buildGeometriesAndColors = function() {
     this.triangleColorManager = new LDR.ColorManager();
 
     var self = this;
-    let colorIdx = 0;
+    let colorIdx = -1;
     let handleVertex = function(vertices, idx, fc) {
 	let v = self.vertices[idx];
 	if(v.c !== colorIdx) {
@@ -226,7 +225,7 @@ LDR.LDRGeometry.prototype.buildGeometriesAndColors = function() {
 	  Duplicate vertices for each color.
 	 */
         allTriangleColors.forEach(c => {
-                colorIdx++;
+                colorIdx--;
                 let fc = this.triangleColorManager.get(c);
 
                 if(this.triangles.hasOwnProperty(c)) {

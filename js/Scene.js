@@ -224,7 +224,7 @@ ENV.Scene.prototype.buildStandardScene = function() {
         });
     this.floor = new THREE.Mesh(floorGeometry, floorMaterial);
     this.floor.rotation.x = -Math.PI/2;
-    this.floor.position.y = b.min.y;//+elementCenter.y;
+    this.floor.position.y = b.min.y - 0.001; // -0.001 to avoid floor clipping issues on large models.
     this.floor.receiveShadow = true;
     this.baseObject.add(this.floor);
 
