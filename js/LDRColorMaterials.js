@@ -152,8 +152,6 @@ LDR.Colors.buildTriangleMaterial = function(colorManager, color) {
 }
 
 LDR.Colors.createRandomTexture = function(size, damage, waves, waveSize, speckle) {
-    //    size = 512;
-
     let canvas = document.createElement("canvas");
     canvas.width = canvas.height = size;
 
@@ -164,6 +162,7 @@ LDR.Colors.createRandomTexture = function(size, damage, waves, waveSize, speckle
     }
 
     // Apply logo:
+    /*
     const LETTER_DX = 2; // of 20
     const LETTER_DZ = 5; // of 20 (full 1x1 plate width)
     const M = size/40; // Scale letter -> texture.
@@ -226,7 +225,7 @@ LDR.Colors.createRandomTexture = function(size, damage, waves, waveSize, speckle
                     }
                 }
             }
-        });
+        });//*/
 
     // Some randomness:
     let r = [];
@@ -238,7 +237,7 @@ LDR.Colors.createRandomTexture = function(size, damage, waves, waveSize, speckle
     // Apply waves:
     if(waveSize > 0) {
         for(let y = 0; y < size; y++) {
-            let Y = y;//Math.cos(r[0] + r[1]*rows*y/size);
+            let Y = y;//Math.cos(r[3] + r[4]*waves*y/size);
             for (let x = 0; x < size; x++) {
                 let X = x + x*Math.sin(x*5*r[0]/size);
                 let V = r[1]*X+r[2]*Y;
@@ -252,8 +251,8 @@ LDR.Colors.createRandomTexture = function(size, damage, waves, waveSize, speckle
     for(let i = 0; i < damage; i++) {
         let x0 = Math.floor(size*Math.random()), y0 = Math.floor(size*Math.random());
         let angle = Math.PI*2*Math.random();
-        let len = size/8*Math.random();
-        let debth = 0.1*Math.random();
+        let len = size*0.05*Math.random();
+        let debth = 0.01*Math.random();
         for(let j = 0; j < len; j++) {
             let x = Math.floor(x0 + Math.cos(angle)*j);
             let y = Math.floor(y0 + Math.sin(angle)*j);
@@ -342,13 +341,13 @@ LDR.Colors.createRandomTexture = function(size, damage, waves, waveSize, speckle
     return texture;
 }
 
-LDR.Colors.createTransTexture = () => LDR.Colors.createRandomTexture(128, 20, 1, 12);
-LDR.Colors.createOpaqueAbsTexture = () => LDR.Colors.createRandomTexture(128, 50, 1, 2);
-LDR.Colors.createPearlTexture = () => LDR.Colors.createRandomTexture(128, 20, 4, 8);
-LDR.Colors.createRubberTexture = () => LDR.Colors.createRandomTexture(64, 100, 1, 1);
-LDR.Colors.createMetalTexture = () => LDR.Colors.createRandomTexture(64, 100, 1, 12);
+LDR.Colors.createTransTexture = () => LDR.Colors.createRandomTexture(128, 5, 1.4, 0.1);
+LDR.Colors.createOpaqueAbsTexture = () => LDR.Colors.createRandomTexture(128, 10, 1, 0.2);
+LDR.Colors.createPearlTexture = () => LDR.Colors.createRandomTexture(128, 20, 2, 0.05);
+LDR.Colors.createRubberTexture = () => LDR.Colors.createRandomTexture(64, 10, 0.3, 0.1);
+LDR.Colors.createMetalTexture = () => LDR.Colors.createRandomTexture(64, 100, 0.6, 1.6);
 LDR.Colors.speckleTs = [];
-LDR.Colors.createSpeckleTexture = (size, fraction, minSize, maxSize) => LDR.Colors.createRandomTexture(size, 0, 2, 3, {fraction:fraction, minSize:minSize, maxSize:maxSize}); // Same as for ABS, but without damage.
+LDR.Colors.createSpeckleTexture = (size, fraction, minSize, maxSize) => LDR.Colors.createRandomTexture(size, 0, 2, 0.3, {fraction:fraction, minSize:minSize, maxSize:maxSize}); // Same as for ABS, but without damage.
 
 LDR.Colors.loadTextures = function() {
     if(LDR.Colors.textures) {
