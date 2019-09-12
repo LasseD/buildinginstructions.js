@@ -1420,7 +1420,9 @@ THREE.LDRPartType.prototype.cleanUp = function(loader) {
 
     if(this.isReplacedPart()) {
 	this.replacement = this.steps[0].subModels[0].ID;
-	loader.onWarning({message:'The part "' + this.ID + '" has been replaced by "' + this.replacement + '".', line:0, subModel:this});
+	if(this.replacement !== 'box.dat') { // Being replaced by box.dat indicates unknown part substitution, so warning has already been raised.
+	    loader.onWarning({message:'The part "' + this.ID + '" has been replaced by "' + this.replacement + '".', line:0, subModel:this});
+	}
     }
     else {
 	let newSteps = [];
