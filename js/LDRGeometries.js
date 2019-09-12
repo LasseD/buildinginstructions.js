@@ -126,8 +126,8 @@ LDR.LDRGeometry.prototype.buildGeometriesAndColorsForLines = function() {
 	/*
 	  Duplicate vertices for each color.
 	 */
-	colorIdx++;
 	for(let c in this.lines) {
+            colorIdx++;
 	    if(!this.lines.hasOwnProperty(c)) {
 		continue;
 	    }
@@ -148,7 +148,6 @@ LDR.LDRGeometry.prototype.buildGeometriesAndColorsForLines = function() {
 	if(!this.conditionalLines.hasOwnProperty(c)) {
 	    continue;
 	}
-	colorIdx++;
 	let fc = this.lineColorManager.get(c);
 	this.conditionalLines[c].forEach(p => {
                 let p1 = this.vertices[p.p1];
@@ -170,7 +169,7 @@ LDR.LDRGeometry.prototype.buildGeometriesAndColors = function() {
     this.triangleColorManager = new LDR.ColorManager();
 
     var self = this;
-    let colorIdx = 0;
+    let colorIdx = -1;
     let handleVertex = function(vertices, idx, fc) {
 	let v = self.vertices[idx];
 	if(v.c !== colorIdx) {
@@ -226,7 +225,7 @@ LDR.LDRGeometry.prototype.buildGeometriesAndColors = function() {
 	  Duplicate vertices for each color.
 	 */
         allTriangleColors.forEach(c => {
-                colorIdx++;
+                colorIdx--;
                 let fc = this.triangleColorManager.get(c);
 
                 if(this.triangles.hasOwnProperty(c)) {
@@ -318,6 +317,7 @@ THREE.BufferGeometry.prototype.computeVertexNormals = function() {
 /**
    This function also computes normals to be used by standard materials.
  */
+LDR.LDRGeometry.UV_WarningWritten = false;
 LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
     if(this.geometriesBuilt) {
 	return;
@@ -506,13 +506,16 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                             if(Math.abs(prev.u-uv.u) < LDR.EPS && Math.abs(prev.v-uv.v) < LDR.EPS ||
                                Math.abs(prevprev.u-uv.u) < LDR.EPS && Math.abs(prevprev.v-uv.v) < LDR.EPS ||
                                Math.abs(turn(uv)) < 1e-7) {
-                                /*console.log(' Underlying data points:');
-                                console.dir(vs);
-                                console.dir(ns);
-                                console.dir('Outputting:');
-                                console.dir(ret);
-                                console.dir('Turn: ' + turn(uv));//*/
-                                console.warn("Degenerate UV! " + uv.u + ', ' + uv.v);
+                                if(!LDR.LDRGeometry.UV_WarningWritten) {
+                                    console.log('UV issue insights for debugging. Underlying data points (vertices and normals):');
+                                    console.dir(vs);
+                                    console.dir(ns);
+                                    console.dir('Computed U`s:');
+                                    console.dir(ret);
+                                    console.dir('Turn angle where the check failed: ' + turn(uv));
+                                    console.warn("Degenerate UV! " + uv.u + ', ' + uv.v);
+                                    LDR.LDRGeometry.UV_WarningWritten = true;
+                                }
                                 return false;
                             }
                             prevprev = prev;

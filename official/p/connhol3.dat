@@ -1,0 +1,15 @@
+0 Technic Connector Hole One-Sided
+0 Name: connhol3.dat
+0 Author: Taylor Bangs [DoomTay]
+0 !LDRAW_ORG Primitive UPDATE 2013-02
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+
+0 BFC CERTIFY CCW
+
+0 !HISTORY 2013-12-23 [PTadmin] Official Update 2013-02
+
+1 16 0 -10 0 -1 0 0 0 1 0 0 0 1 peghole.dat
+0 BFC INVERTNEXT
+1 16 0 8 0 -6 0 0 0 -16 0 0 0 6 4-4cyli.dat
+1 16 0 8 0 0 0 -6 0 1 0 6 0 0 4-4edge.dat
+1 16 0 -10 0 -1 0 0 0 1 0 0 0 -1 4-4ring8.dat
