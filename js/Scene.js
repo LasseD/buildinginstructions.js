@@ -227,7 +227,7 @@ ENV.Scene.prototype.buildStandardScene = function() {
 
     // Lights:
     this.addPointLight(0xF6E3FF, 0.70,  1.1, this.size.w*1.5, this.size.h*2.0);
-    //this.addPointLight(0xF6E3FF, 0.65,  -0.1, this.size.w*1.5, this.size.h*2.0);
+    this.addPointLight(0xF7E5FD, 0.65,  0.8, this.size.w*1.3, this.size.h*1.7);
     //this.addDirectionalLight(0xF6E3FF, 0.35,  -0.1, this.size.w*1.5, this.size.h*2.0);
     
     this.setHemisphereLight(0xF4F4FB, 0x30302B, 0.45);
