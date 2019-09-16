@@ -107,13 +107,11 @@ ENV.Scene.prototype.onChange = function(eleW, eleH) {
 }
 
 ENV.Scene.prototype.addPointLight = function(color, intensity, angle, dist, y) {
-    let diam = Math.sqrt(this.size.w*this.size.w + this.size.l*this.size.l);
-
     let light = new THREE.PointLight(color, intensity, 2*(dist+y));
     
     light.castShadow = true;
-    light.shadow.mapSize.width = Math.floor(2.5*diam); // Adjust according to size!
-    light.shadow.mapSize.height = Math.floor(2.5*diam);
+    light.shadow.mapSize.width = Math.floor(2.5*this.size.diam); // Adjust according to size!
+    light.shadow.mapSize.height = Math.floor(2.5*this.size.diam);
     light.shadow.camera.near = 0.5;
     light.shadow.camera.far = 2*(dist+y);
 
@@ -125,11 +123,10 @@ ENV.Scene.prototype.addPointLight = function(color, intensity, angle, dist, y) {
 }
 
 ENV.Scene.prototype.addDirectionalLight = function(color, intensity, angle, dist, y) {
-    let diam = Math.sqrt(this.size.w*this.size.w + this.size.l*this.size.l);
-
     let light = new THREE.DirectionalLight(color, intensity, 2*(dist+y));
     
     light.castShadow = true;
+    let diam = this.size.diam;
     light.shadow.mapSize.width = Math.floor(2.5*diam); // Adjust according to size!
     light.shadow.mapSize.height = Math.floor(2.5*diam);
     light.shadow.camera.near = 0.5;
@@ -197,13 +194,13 @@ ENV.Scene.prototype.buildStandardScene = function() {
     let self = this;
     let b = this.mc.boundingBox || new THREE.Box3(new THREE.Vector3(), new THREE.Vector3(1,1,1)); // To build scene around.
     let w = b.max.x-b.min.x, l = b.max.z-b.min.z, h = b.max.y-b.min.y;
-    this.size = {w:w, l:l, h:h, diam:Math.sqrt(w*w+l*l+h*h)};
+    this.size = {w:w, l:l, h:h, diam:Math.sqrt(w*w + l*l + h*h)};
 
     // Set up camera:
     this.resetCamera();
     
     // Scene:
-    this.scene.background = new THREE.Color(0xFFFFFF);
+    this.scene.background = new THREE.Color(0x77777A);
 
     // Subject:
     var elementCenter = new THREE.Vector3();
@@ -229,11 +226,11 @@ ENV.Scene.prototype.buildStandardScene = function() {
     this.baseObject.add(this.floor);
 
     // Lights:
-    this.addPointLight(0xF6E3FF, 0.65,  1.1, this.size.w*1.5, this.size.h*2.0);
-    //this.addPointLight(0xF6E3FF, 0.65,  -0.1, this.size.w*1.5, this.size.h*2.0);
-    this.addDirectionalLight(0xF6E3FF, 0.35,  -0.1, this.size.w*1.5, this.size.h*2.0);
+    this.addPointLight(0xF6E3FF, 0.70,  1.1, this.size.w*1.5, this.size.h*2.0);
+    this.addPointLight(0xF7E5FD, 0.65,  0.8, this.size.w*1.3, this.size.h*1.7);
+    //this.addDirectionalLight(0xF6E3FF, 0.35,  -0.1, this.size.w*1.5, this.size.h*2.0);
     
-    this.setHemisphereLight(0xF4F4FB, 0x30302B, 0.65);
+    this.setHemisphereLight(0xF4F4FB, 0x30302B, 0.45);
 }
 
 ENV.CameraController = function(scene, orbitControls) {
