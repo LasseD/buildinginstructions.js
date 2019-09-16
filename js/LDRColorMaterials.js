@@ -166,7 +166,7 @@ LDR.Colors.createRandomTexture = function(size, damage, waves, waveSize, speckle
     const LETTER_DX = 2; // of 20
     const LETTER_DZ = 5; // of 20 (full 1x1 plate width)
     const M = size/40; // Scale letter -> texture.
-    const R = size/250;
+    const R = size/180;
     const DIST_MULT = 0.5/R*Math.PI;
     const LOGO_HEIGHT = 0.5;
     LDR.Generator.logoPositions.forEach(letter => {
@@ -211,16 +211,25 @@ LDR.Colors.createRandomTexture = function(size, damage, waves, waveSize, speckle
                         let tmp = x1; x1 = x2; x2 = tmp;
                         tmp = y1; y1 = y2; y2 = tmp;
                     }
+
                     let X1 = Math.round(size/4 + x1*M), Y1 = Math.round(size/4 + y1*M);
                     let X2 = Math.round(size/4 + x2*M), Y2 = Math.round(size/4 + y2*M);
+                    let DX = X2-X1, DY = Y2-Y1;
+                    let X1X2 = Math.sqrt(DY*DY + DX*DX);
+                    
+                    // Move (X,Y) from Y1 up to Y2: Color X-R to X+R
+
+                    let distance = (x,y) => Math.abs(DY*x - DX*y + X2*Y1 - Y2*X1) / X1X2;
 
                     const SLOPE = (x2-x1)/(y2-y1);
                     for(let Y = Y1+1; Y < Y2; Y++) {
-                        let X = X1 + (Y-Y1)*SLOPE;
-                        let rX = Math.round(X);
-                        for(let rx = 0; rx <= R; rx++) {
-                            let h = Math.cos(rx/R * Math.PI/2) * LOGO_HEIGHT;
-                            d[rX+rx + size*Y] = d[rX-rx + size*Y] = 128 + h;
+                        let X = X1 + SLOPE*(Y-Y1);
+                        for(let x = Math.floor(X-R); x < X+R+1; x++) {
+                            let D = distance(x, Y);
+                            if(D <= R) {
+                                let h = Math.cos(D/R * Math.PI/2) * LOGO_HEIGHT;
+                                d[x + size*Y] = 128 + h;
+                            }
                         }
                     }
                 }
@@ -283,6 +292,7 @@ LDR.Colors.createRandomTexture = function(size, damage, waves, waveSize, speckle
                                       (a[6]+a[8]-a[2]-a[0]+2*(a[7]-a[1])),
                                       1); // Sample left/right neighbours and weight direct neighbours the most.
             v.normalize().multiplyScalar(128).addScalar(128);//.clampLength(0, 255);
+            //v = new THREE.Vector3(d[pos], d[pos], d[pos]);
             ctx.fillStyle = 'rgb(' + Math.round(v.x) + ',' + Math.round(v.y) + ',' + Math.round(v.z) + ')';
 
             ctx.fillRect(x, y, 1, 1);
@@ -309,31 +319,38 @@ LDR.Colors.createRandomTexture = function(size, damage, waves, waveSize, speckle
     }
 
     // Edges (and corners):
-    let edgeDiff = 120, low = 128-edgeDiff, high = 128+edgeDiff, low2 = (128+low)/2, high2 = (128+high)/2;
-    let cornerB = ',180)';
-    ctx.fillStyle = 'rgb('+low+',128,255)';
-    ctx.fillRect(0, 1, 1, size-1); // LEFT
+    size = (size+1)/2-1;
+    let sides = [[1,0],[0,1],[-1,0],[0,-1]];
 
-    ctx.fillStyle = 'rgb('+low2+','+high2+cornerB;
-    ctx.fillRect(0, 0, 1, 1);
+    sides.forEach(side => {
+            ctx.translate((size+1)*side[0], (size+1)*side[1]);
 
-    ctx.fillStyle = 'rgb(128,'+high+',255)';
-    ctx.fillRect(1, 0, size-1, 1); // TOP
-
-    ctx.fillStyle = 'rgb('+high2+','+high2+cornerB;
-    ctx.fillRect(0, size, 1, 1);
-
-    ctx.fillStyle = 'rgb('+high+',128,255)';
-    ctx.fillRect(size, 0, 1, size-1); // RIGHT
-
-    ctx.fillStyle = 'rgb('+high2+','+low2+cornerB;
-    ctx.fillRect(size, size, 1, 1);
-
-    ctx.fillStyle = 'rgb(128,'+low+',255)';
-    ctx.fillRect(0, size, size-1, 1); // BOTTOM
-
-    ctx.fillStyle = 'rgb('+low2+','+low2+cornerB;
-    ctx.fillRect(size, 0, 1, 1);
+            let edgeDiff = 120, low = 128-edgeDiff, high = 128+edgeDiff, low2 = (128+low)/2, high2 = (128+high)/2;
+            let cornerB = ',180)';
+            ctx.fillStyle = 'rgb('+low+',128,255)';
+            ctx.fillRect(0, 1, 1, size-1); // LEFT
+            
+            ctx.fillStyle = 'rgb('+low2+','+high2+cornerB;
+            ctx.fillRect(0, 0, 1, 1);
+            
+            ctx.fillStyle = 'rgb(128,'+high+',255)';
+            ctx.fillRect(1, 0, size-1, 1); // TOP
+            
+            ctx.fillStyle = 'rgb('+high2+','+high2+cornerB;
+            ctx.fillRect(0, size, 1, 1);
+            
+            ctx.fillStyle = 'rgb('+high+',128,255)';
+            ctx.fillRect(size, 0, 1, size); // RIGHT
+            
+            ctx.fillStyle = 'rgb('+high2+','+low2+cornerB;
+            ctx.fillRect(size, size, 1, 1);
+            
+            ctx.fillStyle = 'rgb(128,'+low+',255)';
+            ctx.fillRect(0, size, size, 1); // BOTTOM
+            
+            ctx.fillStyle = 'rgb('+low2+','+low2+cornerB;
+            ctx.fillRect(size, 0, 1, 1);
+        });
 
     let texture = new THREE.Texture(canvas);
     texture.needsUpdate = true; // Otherwise canvas will not be applied.
@@ -341,11 +358,11 @@ LDR.Colors.createRandomTexture = function(size, damage, waves, waveSize, speckle
     return texture;
 }
 
-LDR.Colors.createTransTexture = () => LDR.Colors.createRandomTexture(128, 5, 1.4, 0.1);
-LDR.Colors.createOpaqueAbsTexture = () => LDR.Colors.createRandomTexture(128, 10, 1, 0.2);
-LDR.Colors.createPearlTexture = () => LDR.Colors.createRandomTexture(128, 20, 2, 0.05);
-LDR.Colors.createRubberTexture = () => LDR.Colors.createRandomTexture(64, 10, 0.3, 0.1);
-LDR.Colors.createMetalTexture = () => LDR.Colors.createRandomTexture(64, 100, 0.6, 1.6);
+LDR.Colors.createTransTexture = () => LDR.Colors.createRandomTexture(256, 5, 1.4, 0.1);
+LDR.Colors.createOpaqueAbsTexture = () => LDR.Colors.createRandomTexture(256, 10, 1, 0.2);
+LDR.Colors.createPearlTexture = () => LDR.Colors.createRandomTexture(256, 20, 2, 0.05);
+LDR.Colors.createRubberTexture = () => LDR.Colors.createRandomTexture(128, 10, 0.3, 0.1);
+LDR.Colors.createMetalTexture = () => LDR.Colors.createRandomTexture(128, 100, 0.6, 1.6);
 LDR.Colors.speckleTs = [];
 LDR.Colors.createSpeckleTexture = (size, fraction, minSize, maxSize) => LDR.Colors.createRandomTexture(size, 0, 2, 0.3, {fraction:fraction, minSize:minSize, maxSize:maxSize}); // Same as for ABS, but without damage.
 
@@ -427,7 +444,7 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
                     let fraction = parseFloat(m[0]);
                     //let vFraction = parseFloat(m[2]); // Volume fraction is ignored as the material only has an affect on the surface, not the interior.
                     let size = parseInt(m[4]);
-                    params.normalMap = LDR.Colors.speckleTs[colorID] || (LDR.Colors.speckleTs[colorID] = LDR.Colors.createSpeckleTexture(128, fraction, size, size));
+                    params.normalMap = LDR.Colors.speckleTs[colorID] || (LDR.Colors.speckleTs[colorID] = LDR.Colors.createSpeckleTexture(256, fraction, size, size));
                 }
                 else {
                     console.warn('Failed to parse glitter definition for color ' + colorID + ': ' + m.join('/'));

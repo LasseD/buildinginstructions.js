@@ -195,7 +195,7 @@ ENV.Scene.prototype.resetCamera = function() {
 
 ENV.Scene.prototype.buildStandardScene = function() {
     let self = this;
-    let b = this.mc.boundingBox; // To build scene around.
+    let b = this.mc.boundingBox || new THREE.Box3(new THREE.Vector3(), new THREE.Vector3(1,1,1)); // To build scene around.
     let w = b.max.x-b.min.x, l = b.max.z-b.min.z, h = b.max.y-b.min.y;
     this.size = {w:w, l:l, h:h, diam:Math.sqrt(w*w+l*l+h*h)};
 
@@ -309,9 +309,8 @@ ENV.LightController = function(scene, light, h, angle, dist, y) {
                            y, 
                            Math.sin(angle)*dist);
         light.lookAt(0,0,0);
-        scene.render();
         h.update();
-        console.log('Light at angle=' + (angle/origAngle) + ', dist=' + (dist/origDist) + ', y=' + (y/origY)) + ' (In comparison to original position)';
+        //console.log('Light at angle=' + (angle/origAngle) + ', dist=' + (dist/origDist) + ', y=' + (y/origY)) + ' (In comparison to original position)';
     }
     this.update();
 
@@ -340,7 +339,6 @@ ENV.LightController = function(scene, light, h, angle, dist, y) {
         break;
         case 82: // R
         light.intensity += (shift ? 0.05 : -0.05);
-        scene.render();
         break;
         case 69: // E
         dist -= origDist*0.1;
@@ -350,6 +348,7 @@ ENV.LightController = function(scene, light, h, angle, dist, y) {
         break;
         }
         self.update();
+        scene.render();
     }
 
     this.activate = () => h.visible = true;

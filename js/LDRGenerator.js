@@ -26,7 +26,8 @@ LDR.Generator.map = {
     '4-4ring3.dat': () => LDR.Generator.makeRing(4, 3),
     '4-4ring5.dat': () => LDR.Generator.makeRing(4, 5),
     '4-4ring6.dat': () => LDR.Generator.makeRing(4, 6),    
-    'logo.dat': () => LDR.Generator.makeLogo1()
+    'logo.dat': () => LDR.Generator.makeLogo1(),
+    'empty.dat': () => LDR.Generator.makeEmpty()
 };
 
 LDR.Generator.make = function(id) {
@@ -93,6 +94,12 @@ LDR.Generator.addQuadsToStep = function(step, quads, color = 16) {
 			   new THREE.Vector3(quads[i+6], quads[i+7], quads[i+8]),
 			   new THREE.Vector3(quads[i+9], quads[i+10], quads[i+11]));
     }
+}
+
+LDR.Generator.makeEmpty = function(id = 'empty.dat') {
+    let pt = LDR.Generator.makeP(id, id);
+    pt.steps.push(new THREE.LDRStep());
+    return pt;
 }
 
 LDR.Generator.makeCylinderClosed = function(sections) {

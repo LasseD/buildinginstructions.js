@@ -6,6 +6,9 @@ LDR.EPS = 1e-5;
   Binary merge of the geometry streams.
  */
 LDR.mergeGeometries = function(geometries) {
+    if(geometries.length === 0) {
+        return new LDR.LDRGeometry();
+    }
     while(geometries.length > 1) { // Repeat rounds until only 1 left:
 	let nextGeometries = []; // Result of round.
 
@@ -484,6 +487,7 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
             let dx = v => (v.x-b.min.x)/size.x;
             let dy = v => (v.y-b.min.y)/size.y;
             let dz = v => (v.z-b.min.z)/size.z;
+            let [UVU, UVV] = [[0,0],[0,0.5],[0.5,0]][Math.floor(Math.random()*3)]; // Which of the 3 cells to use for the UV mapping (not 1,1 with the LEGO logo)
 
             function setUVs(indices) {
                 const len = indices.length;
@@ -525,8 +529,8 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                     
                     ret.forEach((uv, i) => {
                             let idx = 2*indices[i];
-                            uvs[idx] = uv.u;
-                            uvs[idx+1] = uv.v;
+                            uvs[idx] = 0.5*uv.u + UVU;
+                            uvs[idx+1] = 0.5*uv.v + UVV;
                         });
 
                     return true;
@@ -897,10 +901,10 @@ LDR.LDRGeometry.prototype.fromStep = function(loader, step) {
 
 LDR.LDRGeometry.prototype.fromPartType = function(loader, pt) {
     let geometries = [];
-    if(pt.steps.length === 0) {
+    /*if(pt.steps.length === 0) {
 	console.warn("No steps in " + pt.ID);
 	return; // Empty - just make empty.
-    }
+    }*/
 
     pt.steps.forEach(step => {
             let g = new LDR.LDRGeometry();
