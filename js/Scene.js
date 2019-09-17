@@ -4,7 +4,7 @@ var ENV = {};
 
 ENV.DEFAULT_FOV = 20; // Camera frustrum vertical field of view.
 
-ENV.Scene = function() {
+ENV.Scene = function(canvas) {
     let self = this;
 
     this.controllers = [];
@@ -16,10 +16,10 @@ ENV.Scene = function() {
     this.scene = new THREE.Scene();
 
     // Set up renderer:
-    this.renderer = new THREE.WebGLRenderer({antialias: true});
+    this.renderer = new THREE.WebGLRenderer({canvas:canvas, antialias: true});
     this.renderer.setPixelRatio(window.devicePixelRatio);
-    //this.renderer.gammaInput = true; // TODO: Is this just for metals?
-    //this.renderer.gammaOutput = true; // TODO: Is this just for metals?
+    //this.renderer.gammaInput = true; // Use gamma correction if the intersection of lights bothers you.
+    //this.renderer.gammaOutput = true;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Default is PCFShadowMap
     this.renderer.shadowMapSoft = true;

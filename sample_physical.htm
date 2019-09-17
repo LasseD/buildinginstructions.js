@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width" />
  </head>
  <body>
+  <div id="canvas_holder" style="position:relative;top:0">
+   <canvas id="canvas"></canvas>
+   <p id="loading_text" style="display:block;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:white;">Loading...</p>
+  </div>
   <script src="js/three.min.js"></script>
   <script src="js/OrbitControls.js"></script>
   <script src="js/colors.js"></script>
@@ -22,14 +26,14 @@
       let startTime = new Date();
 
       // Test models:
-      let model = 'models/corvette_full.mpd';
+      //let model = 'models/corvette_full.mpd';
       //let model = '6091.dat'; // Has overlap of line and conditional line causing trouble for the normal calculation.
       //let model = '85080.dat'; // Has conditional lines partially overlapping with hard corners, also causing issues for normal calculation.
       //let model = '50950.dat';
       //let model = '3820.dat';
       //let model = '41747ps1.dat';
       //let model = 'models/mf.mpd';
-      //let model = '3001.dat';
+      let model = 'box.dat';
 
       // Materials:
       //let model = 'models/luminance.ldr';
@@ -41,18 +45,20 @@
       //let model = 'models/pearlescent.ldr';
       //let model = 'models/trans.ldr';
 
-      let scene = new ENV.Scene();
-      document.body.appendChild(scene.renderer.domElement);
+      let canvas = document.getElementById('canvas');
+      let scene = new ENV.Scene(canvas);
 
       let onWindowResize = () => scene.onChange(window.innerWidth, window.innerHeight);
       window.addEventListener('resize', onWindowResize, false);
 
       let ldrLoader; // Three.js loader for LDraw models
       let onLoad = function() {
+        document.getElementById('loading_text').style.display = 'none';
         console.log("Data loaded after " + (new Date()-startTime) + "ms.");
         let inv = new THREE.Matrix3(); inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
-        ldrLoader.getMainModel().generateThreePart(ldrLoader, 383, new THREE.Vector3(), inv, true, false, scene.mc);
-        scene.mc.updateMeshVisibility();
+        ldrLoader.getMainModel().generateThreePart(ldrLoader, 16, new THREE.Vector3(), inv, true, false, scene.mc);
+        LDR.Colors[16].m.color = new THREE.Color(LDR.Colors[1].value); // Set main color.
+        scene.mc.updateMeshVisibility(); // Hide lines
 
         scene.buildStandardScene();
         onWindowResize(); // Render

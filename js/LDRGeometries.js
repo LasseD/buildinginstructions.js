@@ -318,14 +318,14 @@ THREE.BufferGeometry.prototype.computeVertexNormals = function() {
 }
 
 /**
-   This function also computes normals to be used by standard materials.
+   This function also computes normals and UV's to be used by standard materials.
  */
 LDR.LDRGeometry.UV_WarningWritten = false;
 LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
     if(this.geometriesBuilt) {
 	return;
     }
-    //this.buildGeometriesAndColorsForLines();
+
     var self = this;
     let vertices = this.vertices;
     let vLen = vertices.length;
