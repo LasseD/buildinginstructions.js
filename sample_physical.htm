@@ -22,19 +22,14 @@
       let startTime = new Date();
 
       // Test models:
-      //let model = 'models/corvette_full.mpd';
+      let model = 'models/corvette_full.mpd';
       //let model = '6091.dat'; // Has overlap of line and conditional line causing trouble for the normal calculation.
       //let model = '85080.dat'; // Has conditional lines partially overlapping with hard corners, also causing issues for normal calculation.
       //let model = '50950.dat';
       //let model = '3820.dat';
       //let model = '41747ps1.dat';
       //let model = 'models/mf.mpd';
-      let model = '3024.dat';
-      /* Rendering times:
-      4500ms on battery and texture loading inlined.
-
-      */
-      //let model = 'box.dat';
+      //let model = '3001.dat';
 
       // Materials:
       //let model = 'models/luminance.ldr';
@@ -54,19 +49,26 @@
 
       let ldrLoader; // Three.js loader for LDraw models
       let onLoad = function() {
+        console.log("Data loaded after " + (new Date()-startTime) + "ms.");
         let inv = new THREE.Matrix3(); inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
-        ldrLoader.getMainModel().generateThreePart(ldrLoader, 4, new THREE.Vector3(), inv, true, false, scene.mc);
+        ldrLoader.getMainModel().generateThreePart(ldrLoader, 383, new THREE.Vector3(), inv, true, false, scene.mc);
         scene.mc.updateMeshVisibility();
 
         scene.buildStandardScene();
         onWindowResize(); // Render
 
-        console.log("Scene rendered in " + (new Date()-startTime) + "ms.");
+        console.log("Initial non-textured render loaded after " + (new Date()-startTime) + "ms.");
+
+        function onTextureLoaded() {
+          scene.render();
+          console.log("Texture loaded after " + (new Date()-startTime) + "ms.");
+        }
+        setTimeout(() => LDR.Colors.loadTextures(onTextureLoaded), 200);
       }
 
       var ldrOptions = new LDR.Options();
       ldrOptions.lineContrast = 2; // No lines.
-      let logo = ldrOptions.studs = 4; // 0 for quick draw. 4 for special logo.
+      let logo = ldrOptions.studs = 0; // 0 for quick draw. 4 for special logo.
 
       let storage;
       LDR.Studs.makeGenerators('', 0, logo);

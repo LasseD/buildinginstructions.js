@@ -5,8 +5,6 @@ var ENV = {};
 ENV.DEFAULT_FOV = 20; // Camera frustrum vertical field of view.
 
 ENV.Scene = function() {
-    LDR.Colors.loadTextures(); // Load ASAP!
-
     let self = this;
 
     this.controllers = [];
