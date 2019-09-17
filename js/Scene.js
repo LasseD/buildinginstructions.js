@@ -227,7 +227,9 @@ ENV.Scene.prototype.buildStandardScene = function() {
     this.addPointLight(0xF6E3FF, 0.70,  1.1, this.size.w*1.5, this.size.h*2.0);
     this.addPointLight(0xF7E5FD, 0.65,  0.8, this.size.w*1.3, this.size.h*1.7);
     //this.addDirectionalLight(0xF6E3FF, 0.35,  -0.1, this.size.w*1.5, this.size.h*2.0);
-    
+
+    this.activeControllerIndex = 0; // Since adding point lights changes this.
+
     this.setHemisphereLight(0xF4F4FB, 0x30302B, 0.45);
 }
 
@@ -238,42 +240,48 @@ ENV.CameraController = function(scene, orbitControls) {
 
     this.handleKey = (key,shift) => {
         switch(key) {
-        case 65: // A
-        scene.baseObject.rotation.y += 0.1;
-        scene.render();
-        break;
-        case 68: // D
-        scene.baseObject.rotation.y -= 0.1;
-        scene.render();
-        break;
-        case 87: // W
-        scene.baseObject.position.y += scene.size.h * 0.1;
-        scene.render();
-        break;
-        case 83: // S
-        scene.baseObject.position.y -= scene.size.h * 0.1;
-        scene.render();
-        break;
-        case 81: // Q
-        orbitControls.dollyIn(1.1);
-        orbitControls.update();
-        break;
-        case 82: // R
-        scene.hemisphereLight.intensity += (shift ? 0.05 : -0.05);
-        scene.render();
-        break;
-        case 69: // E
-        orbitControls.dollyOut(1.1);
-        orbitControls.update();
-        break;
-        case 70: // F
-        scene.camera.fov += (shift ? 5 : -5);
-        scene.camera.updateProjectionMatrix();
-        scene.render();
-        break;
         case 27: // ESC
-        scene.resetCamera();
-        break;
+          scene.resetCamera();
+          break;
+        case 65: // A
+          scene.baseObject.rotation.y += 0.1;
+          scene.render();
+          break;
+        case 67: // C
+          console.log(shift);
+          LDR.Colors[16].m.color = new THREE.Color(LDR.Colors[shift ? 1 : 4].value); // Set main color.
+          LDR.Colors[16].m.needsUpdate = true;
+          scene.render();
+          break;
+        case 68: // D
+          scene.baseObject.rotation.y -= 0.1;
+          scene.render();
+          break;
+        case 69: // E
+          orbitControls.dollyOut(1.1);
+          orbitControls.update();
+          break;
+        case 70: // F
+          scene.camera.fov += (shift ? 5 : -5);
+          scene.camera.updateProjectionMatrix();
+          scene.render();
+          break;
+        case 81: // Q
+          orbitControls.dollyIn(1.1);
+          orbitControls.update();
+          break;
+        case 82: // R
+          scene.hemisphereLight.intensity += (shift ? 0.05 : -0.05);
+          scene.render();
+          break;
+        case 83: // S
+          scene.baseObject.position.y -= scene.size.h * 0.1;
+          scene.render();
+          break;
+        case 87: // W
+          scene.baseObject.position.y += scene.size.h * 0.1;
+          scene.render();
+          break;
         }
     }
 
