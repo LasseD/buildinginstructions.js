@@ -70,6 +70,9 @@
         scene.mc.updateMeshVisibility(); // Hide lines
 
         scene.buildStandardScene();
+        if(!LDR.Colors[16].m) {
+          document.getElementById('color_button').style.display = 'none'; // Hide if nothing can change.
+        }
         onWindowResize(); // Render
 
         console.log("Initial non-textured render loaded after " + (new Date()-startTime) + "ms.");
