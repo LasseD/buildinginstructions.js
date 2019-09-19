@@ -36,14 +36,14 @@
       let startTime = new Date();
 
       // Test models:
-      //let model = 'models/corvette_full.mpd';
+      let model = 'models/corvette_full.mpd';
       //let model = '6091.dat'; // Has overlap of line and conditional line causing trouble for the normal calculation.
       //let model = '85080.dat'; // Has conditional lines partially overlapping with hard corners, also causing issues for normal calculation.
       //let model = '50950.dat';
       //let model = '3820.dat';
       //let model = '41747ps1.dat';
       //let model = 'models/mf.mpd';
-      let model = 'box.dat';
+      //let model = 'box.dat';
 
       // Materials:
       //let model = 'models/luminance.ldr';
@@ -123,9 +123,17 @@
 
         console.log('setting color ' + idx);
 
-        LDR.Colors[16].m.color = new THREE.Color(LDR.Colors[idx].value); // Set main color.
-        //LDR.Colors[16].m.needsUpdate = true;
-        scene.render();
+        // Copy material settings:
+        const m = LDR.Colors.buildStandardMaterial(idx);
+        const M = LDR.Colors[16].m;
+        M.color = m.color;
+        M.roughness = m.roughness;
+        M.metalness = m.metalness;
+        M.envMapIntensity = m.envMapIntensity;
+        M.transparent = m.transparent;
+        M.opacity = m.opacity;
+
+        LDR.Colors.loadTextures(() => {M.normalMap = m.normalMap; M.needsUpdate = true; scene.render();});
       }
 
       let colorButton = colorPicker.createButton();

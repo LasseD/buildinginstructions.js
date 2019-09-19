@@ -366,16 +366,10 @@ LDR.Colors.listeningMaterials = {trans:[], // Only one trans material.
                                  speckle:{} }; // Speckle materials ordered by colorID: colorID->[]
 LDR.Colors.speckleInfo = {};
 
-LDR.Colors.loadTextures = function(render) {
-    // Environment map:
-    var textureLoader = new THREE.TextureLoader();
-    textureLoader.setPath('textures/');
-    var sides = ['px', 'nx', 'py', 'ny', 'pz', 'nz'];
-    
+LDR.Colors.loadEnvMapTextures = function(render) {    
     function updateEnvMapsForList(reflectionCube, list) {
         list.forEach(material => {material.envMap = reflectionCube; material.needsUpdate = true;});
     }
-
     function updateEnvMaps(reflectionCube) {
         updateEnvMapsForList(reflectionCube, LDR.Colors.listeningMaterials.trans);
         updateEnvMapsForList(reflectionCube, LDR.Colors.listeningMaterials.opaque);
@@ -387,40 +381,54 @@ LDR.Colors.loadTextures = function(render) {
                 updateEnvMapsForList(reflectionCube, LDR.Colors.listeningMaterials.speckle[colorID]);
             }
         }
+        LDR.Colors.reflectionCube = reflectionCube;
         render();
     }
-    new THREE.CubeTextureLoader().load(sides.map(x => 'textures/cube/' + x + '.jpg'), updateEnvMaps);
+
+    if(LDR.Colors.reflectionCube) {
+        updateEnvMaps(LDR.Colors.reflectionCube);
+    }
+    else {
+        var textureLoader = new THREE.TextureLoader();
+        textureLoader.setPath('textures/');
+        var sides = ['px', 'nx', 'py', 'ny', 'pz', 'nz'];
+
+        new THREE.CubeTextureLoader().load(sides.map(x => 'textures/cube/' + x + '.jpg'), updateEnvMaps);
+    }
+}
+
+LDR.Colors.loadTextures = function(render) {
+    // Environment map:
+    LDR.Colors.loadEnvMapTextures(render);
 
     // Normal maps:
     function updateNormalMapsForList(t, list) {
         list.forEach(material => {material.normalMap = t; material.needsUpdate = true;});
     }
+    function setNormalMapsForList(l, createTexture) {
+        if(l.length === 0) {
+            return; // Nothing to build.
+        }
+        let t = l.t || createTexture();
+        l.t = t;
+        updateNormalMapsForList(t, l);        
+    }
 
-    if(LDR.Colors.listeningMaterials.trans.length > 0) {
-        let t = LDR.Colors.createRandomTexture(256, 5, 1.4, 0.1);
-        updateNormalMapsForList(t, LDR.Colors.listeningMaterials.trans);
-    }
-    if(LDR.Colors.listeningMaterials.opaque.length > 0) {
-        let t = LDR.Colors.createRandomTexture(256, 10, 1, 0.2);
-        updateNormalMapsForList(t, LDR.Colors.listeningMaterials.opaque);
-    }
-    if(LDR.Colors.listeningMaterials.pearl.length > 0) {
-        let t = LDR.Colors.createRandomTexture(256, 20, 2.5, 0.05);
-        updateNormalMapsForList(t, LDR.Colors.listeningMaterials.pearl);
-    }
-    if(LDR.Colors.listeningMaterials.rubber.length > 0) {
-        let t = LDR.Colors.createRandomTexture(128, 10, 0.3, 0.1);
-        updateNormalMapsForList(t, LDR.Colors.listeningMaterials.rubber);
-    }
-    if(LDR.Colors.listeningMaterials.metal.length > 0) {
-        let t = LDR.Colors.createRandomTexture(256, 100, 0.6, 1.6);
-        updateNormalMapsForList(t, LDR.Colors.listeningMaterials.metal);
-    }
+    setNormalMapsForList(LDR.Colors.listeningMaterials.trans, 
+                         () => LDR.Colors.createRandomTexture(256, 5, 1.4, 0.1));
+    setNormalMapsForList(LDR.Colors.listeningMaterials.opaque,
+                         () => LDR.Colors.createRandomTexture(256, 10, 1, 0.2));
+    setNormalMapsForList(LDR.Colors.listeningMaterials.pearl,
+                         () => LDR.Colors.createRandomTexture(256, 20, 2.5, 0.05));
+    setNormalMapsForList(LDR.Colors.listeningMaterials.rubber,
+                         () => LDR.Colors.createRandomTexture(128, 10, 0.3, 0.1));
+    setNormalMapsForList(LDR.Colors.listeningMaterials.metal,
+                         () => LDR.Colors.createRandomTexture(256, 100, 0.6, 1.6));
     for(let colorID in LDR.Colors.listeningMaterials.speckle) {
-        if(LDR.Colors.listeningMaterials.speckle.hasOwnProperty(colorID)) {
+        if(LDR.Colors.listeningMaterials.speckle.hasOwnProperty(colorID)) {            
             let s = LDR.Colors.speckleInfo[colorID];
-            let t = LDR.Colors.createRandomTexture(256, 5, 1.4, 0.1, s);
-            updateNormalMapsForList(t, LDR.Colors.listeningMaterials.speckle[colorID]);
+            setNormalMapsForList(LDR.Colors.listeningMaterials.speckle[colorID],
+                                 () => LDR.Colors.createRandomTexture(256, 5, 1.4, 0.1, s));
         }
     }
 

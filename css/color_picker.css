@@ -1,0 +1,39 @@
+.color_container {
+  display: inline-block;
+  text-align: center;
+  line-height: 4vw;
+  font-weight: bold;
+  border: none;
+  padding: 0.1em;
+  cursor: pointer;
+  font-size: 2vw;
+}
+.color_ele {
+  display: block;
+  min-width: 4vw;
+  height: 4vw;
+  border-radius: 10vw;
+}
+#color_picker_button {
+  display: inline-block;
+  position: absolute;
+  top: 1vw;
+  right: 1vw;
+  border: 1px solid black;
+  margin: 0;
+  padding: 0;
+  min-width: 4vw;
+  height: 4vw;
+  background: none;
+  cursor: pointer;
+  border-radius: 10vw;
+  font-size: 2vw;
+
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+}
+#color_picker_button svg {
+  width: 4vw;
+  height: 4vw;
+}
+
