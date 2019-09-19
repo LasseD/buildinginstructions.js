@@ -2,13 +2,22 @@
 <html>
  <head>
   <title>Sample Rendering with Physical Properties</title>
+  <link href="css/index.css" rel="stylesheet" type="text/css">
+  <link href="css/preview.css" rel="stylesheet" type="text/css">
+  <link href="css/color_picker.css" rel="stylesheet" type="text/css">
   <meta name="viewport" content="width=device-width" />
  </head>
  <body>
   <div id="canvas_holder" style="position:relative;top:0">
    <canvas id="canvas"></canvas>
    <p id="loading_text" style="display:block;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:white;">Loading...</p>
+   <div id="color_button" onclick="$('#color_picker_background, #color_picker_holder').fadeIn(250)"></div>
   </div>
+  <div id="color_picker">
+   <div id="color_picker_background" class="background" onclick="$('#color_picker').hide();"></div>
+   <div id="color_picker_holder" class="holder"></div>
+  </div>
+  <script src="js/jquery.min.js"></script>
   <script src="js/three.min.js"></script>
   <script src="js/OrbitControls.js"></script>
   <script src="js/colors.js"></script>
@@ -22,6 +31,7 @@
   <script src="js/LDRGeometries.js"></script>
   <script src="js/LDRLoader.js"></script>
   <script src="js/LDRStuds.js"></script>
+  <script src="js/LDRColorPicker.js"></script>
   <script>
       let startTime = new Date();
 
@@ -57,7 +67,6 @@
         console.log("Data loaded after " + (new Date()-startTime) + "ms.");
         let inv = new THREE.Matrix3(); inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
         ldrLoader.getMainModel().generateThreePart(ldrLoader, 16, new THREE.Vector3(), inv, true, false, scene.mc);
-        LDR.Colors[16].m.color = new THREE.Color(LDR.Colors[1].value); // Set main color.
         scene.mc.updateMeshVisibility(); // Hide lines
 
         scene.buildStandardScene();
@@ -99,6 +108,28 @@
 
       ldrLoader = new THREE.LDRLoader(onLoad, storage, {physicalRenderingAge:20});
       ldrLoader.load(model);
+
+      // Color setup:
+      let colorPicker = new LDR.ColorPicker(setColor);
+    
+      function setColor(idx) {
+        if(idx === undefined) {
+	  return;
+	}
+        let color = LDR.Colors[idx];
+
+        let buttonEle = document.getElementById('color_picker_button');
+        colorPicker.decorateEle(buttonEle, color, idx);
+
+        console.log('setting color ' + idx);
+
+        LDR.Colors[16].m.color = new THREE.Color(LDR.Colors[idx].value); // Set main color.
+        //LDR.Colors[16].m.needsUpdate = true;
+        scene.render();
+      }
+
+      let colorButton = colorPicker.createButton();
+      document.getElementById('color_button').append(colorButton);
   </script>
  </body>
 </html>

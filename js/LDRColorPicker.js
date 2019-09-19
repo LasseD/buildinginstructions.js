@@ -14,6 +14,14 @@ LDR.ColorPicker = function(onColorSelected) {
     // Create color picker HTML elements:
     const colorPickerEle = document.getElementById('color_picker_holder');
 
+    this.decorateEle = function(colorEle, color, i) {
+        colorEle.style.backgroundColor = LDR.Colors.int2Hex(color.value);
+        const contrastVector = LDR.Colors.getHighContrastColor4(i);
+        const contrastColor = new THREE.Color(contrastVector.x, contrastVector.y, contrastVector.z);
+        colorEle.style.color = '#' + contrastColor.getHexString();
+        colorEle.innerHTML = i;
+    }
+
     function addColorElement(color, i) {
         let colorContainer = document.createElement('span');
         colorContainer.setAttribute('class', 'color_container');
@@ -23,11 +31,8 @@ LDR.ColorPicker = function(onColorSelected) {
         colorEle.setAttribute('class', 'color_ele');
         colorContainer.append(colorEle);
 
-        colorEle.style.backgroundColor = LDR.Colors.int2Hex(color.value);
-        const contrastVector = LDR.Colors.getHighContrastColor4(i);
-        const contrastColor = new THREE.Color(contrastVector.x, contrastVector.y, contrastVector.z);
-        colorEle.style.color = '#' + contrastColor.getHexString();
-        colorEle.innerHTML = i;
+        self.decorateEle(colorEle, color, i);
+
         colorEle.colorID = i;
         colorEle.addEventListener('click', function(event){
                 event.preventDefault();
@@ -41,7 +46,7 @@ LDR.ColorPicker = function(onColorSelected) {
 
 LDR.ColorPicker.prototype.createButton = function() {
     let button = document.createElement('button');
-    button.ID = 'color_picker_button';
+    button.id = 'color_picker_button';
     button.setAttribute('class', 'editor_button');
 
     button.addEventListener('click', () => $("#color_picker_background, #color_picker_holder").fadeIn(250));

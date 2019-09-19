@@ -247,12 +247,6 @@ ENV.CameraController = function(scene, orbitControls) {
           scene.baseObject.rotation.y += 0.1;
           scene.render();
           break;
-        case 67: // C
-          console.log(shift);
-          LDR.Colors[16].m.color = new THREE.Color(LDR.Colors[shift ? 1 : 4].value); // Set main color.
-          LDR.Colors[16].m.needsUpdate = true;
-          scene.render();
-          break;
         case 68: // D
           scene.baseObject.rotation.y -= 0.1;
           scene.render();
