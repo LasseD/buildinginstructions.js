@@ -26,10 +26,10 @@ ENV.Scene = function(canvas) {
 
     // Set up camera:
     this.camera = new THREE.PerspectiveCamera(ENV.DEFAULT_FOV, 16/9.0, 0.1, 100000);
-    let orbitControls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
-    orbitControls.addEventListener('change', () => self.onCameraMoved());
-    orbitControls.handleKeys = false;
-    this.controllers.push(new ENV.CameraController(this, orbitControls));
+    this.orbitControls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+    this.orbitControls.addEventListener('change', () => self.onCameraMoved());
+    this.orbitControls.handleKeys = false;
+    this.controllers.push(new ENV.CameraController(this));
     
     // Rendering elements:
     this.baseObject = new THREE.Group();
@@ -233,7 +233,7 @@ ENV.Scene.prototype.buildStandardScene = function() {
     this.setHemisphereLight(0xF4F4FB, 0x30302B, 0.45);
 }
 
-ENV.CameraController = function(scene, orbitControls) {
+ENV.CameraController = function(scene) {
     this.isCameraController = true;
     
     const PAN_SPEED = 20;
@@ -252,8 +252,8 @@ ENV.CameraController = function(scene, orbitControls) {
           scene.render();
           break;
         case 69: // E
-          orbitControls.dollyOut(1.1);
-          orbitControls.update();
+          scene.orbitControls.dollyOut(1.1);
+          scene.orbitControls.update();
           break;
         case 70: // F
           scene.camera.fov += (shift ? 5 : -5);
@@ -261,8 +261,8 @@ ENV.CameraController = function(scene, orbitControls) {
           scene.render();
           break;
         case 81: // Q
-          orbitControls.dollyIn(1.1);
-          orbitControls.update();
+          scene.orbitControls.dollyIn(1.1);
+          scene.orbitControls.update();
           break;
         case 82: // R
           scene.hemisphereLight.intensity += (shift ? 0.05 : -0.05);
