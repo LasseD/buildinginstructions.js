@@ -52,7 +52,7 @@ LDR.AssemblyManager = function(loader) {
 	let armLeft = step.subModels.find(sm => sm.ID.startsWith('3819') && sm.ID.endsWith('.dat')); if(!armLeft) return; // Missing left arm.
 	let armRight = step.subModels.find(sm => sm.ID.startsWith('3818') && sm.ID.endsWith('.dat')); if(!armRight) return; // Missing right arm.
 	let hand = step.subModels.find(sm => sm.ID.startsWith('3820') && sm.ID.endsWith('.dat')); if(!hand) return; // Only need one to get the color
-            
+
         // New torso part type:
         let torsoStep = new THREE.LDRStep();
         let zeroVector = new THREE.Vector3();

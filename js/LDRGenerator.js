@@ -49,6 +49,7 @@ LDR.Generator.makeP = function(desc, name) {
    pt.inlined = 'GENERATED';
    pt.ldraw_org = 'Primitive';
    pt.cleanSteps = pt.certifiedBFC = pt.CCW = pt.consistentFileAndName = true;
+   pt.isPart = true;
 
    return pt;
 }

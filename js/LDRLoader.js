@@ -484,12 +484,15 @@ THREE.LDRLoader.prototype.parse = function(data) {
     }
     loadedParts.forEach(pt => pt.steps.forEach(s => s.subModels.forEach(sm => checkPart(sm.ID))));
 
+    // Set part info (part vs non-part):
+    loadedParts.forEach(pt => pt.isPart = pt.computeIsPart(self));
+
     // Check assemblies:
     if(this.options.buildAssemblies) {
         if(!this.assemblyManager) {
             this.assemblyManager = new LDR.AssemblyManager(this);
         }
-	loadedParts.forEach(pt => { if(!pt.isPart()) { pt.steps.forEach(
+	loadedParts.forEach(pt => { if(!pt.isPart) { pt.steps.forEach(
 	    step => self.assemblyManager.handleStep(step).forEach(checkPart)
 	)} });
     }
@@ -680,7 +683,7 @@ THREE.LDRLoader.prototype.pack = function() {
 	    }
 	});
 	
-	if(pt.isPart()) {
+	if(pt.isPart) {
 	    ret['d' + idx] = pt.modelDescription;
 	    ret['n' + idx] = (pt.inlined === 'UNOFFICIAL' ? -1 : pt.inlined);
 	}
@@ -1088,7 +1091,7 @@ THREE.LDRStep.prototype.containsNonPartSubModels = function(loader) {
     }
     // We only have to check first sub model, since steps with sub assemblies will be separate:
     let firstSubModel = loader.getPartType(this.subModels[0].ID);
-    return !(!firstSubModel || firstSubModel.isPart());
+    return !(!firstSubModel || firstSubModel.isPart);
 }
 
 THREE.LDRStep.prototype.containsPartSubModels = function(loader) {
@@ -1096,7 +1099,7 @@ THREE.LDRStep.prototype.containsPartSubModels = function(loader) {
         return false;
     }
     let firstSubModel = loader.getPartType(this.subModels[0].ID);
-    return firstSubModel.isPart();
+    return firstSubModel.isPart;
 }
 
 THREE.LDRStep.prototype.countParts = function(loader) {
@@ -1114,7 +1117,7 @@ THREE.LDRStep.prototype.countParts = function(loader) {
 	    console.warn("Unknown part type: " + subModel.ID);
 	    return;
 	}
-        if(pt.isPart()) {
+        if(pt.isPart) {
             cnt++;
         }
         else {
@@ -1145,7 +1148,7 @@ THREE.LDRStep.prototype.cleanUp = function(loader, newSteps) {
 
     function handleSubModel(subModelDesc) {
         let subModel = loader.getPartType(subModelDesc.ID);
-        if(!subModel || subModel.isPart()) {
+        if(!subModel || subModel.isPart) {
             parts.push(subModelDesc);
         }
         else { // Not a part:
@@ -1360,7 +1363,7 @@ THREE.LDRPartType = function() {
 
 THREE.LDRPartType.prototype.canBePacked = function() {
     return (this.inlined ? (this.inlined === 'OFFICIAL') : true) && // Only pack official parts (not 'GENERATED' (from LDRGenerator) or 'IDB' (unpacked from IndexedDB).
-           this.isPart() && // Should be a part.
+           this.isPart && // Should be a part.
            this.license === 'Redistributable under CCAL version 2.0 : see CAreadme.txt' &&
 	   this.ldraw_org && // And an LDRAW_ORG statement.
            !this.ldraw_org.startsWith('Unofficial_'); // Double-check that it is official.
@@ -1390,10 +1393,11 @@ THREE.LDRPartType.prototype.unpack = function(obj) {
     this.certifiedBFC = obj.e % 2 === 1;
     this.CCW = Math.floor(obj.e/2) % 2 === 1;
     this.inlined = 'IDB';
+    this.isPart = true;
 }
 
 THREE.LDRPartType.prototype.purgePart = function(loader, ID) {
-    if(this.isPart()) {
+    if(this.isPart) {
         return;
     }
     function handleStep(step) {
@@ -1517,7 +1521,7 @@ THREE.LDRPartType.prototype.addStep = function(step) {
     
 THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, inv, mc, pd) {
     if(!this.geometry) {
-	if(this.isPart()) {
+	if(this.isPart) {
 	    this.ensureGeometry(loader);
 	}
 	else {
@@ -1595,12 +1599,45 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
     mc.expandBoundingBox(b, m4);
 }
     
-THREE.LDRPartType.prototype.isPart = function() {
-    return this.steps.length === 1 && (this.ID.endsWith('.dat') || this.steps[0].hasPrimitives);
+THREE.LDRPartType.prototype.computeIsPart = function(loader) {
+    // Simple checks:
+    if(this.steps.length !== 1) {
+        return false; // No steps in parts.
+    }
+    let s = this.steps[0];
+    if(s.hasPrimitives) {
+        return true; // Contains line, triangle or quad primitives.
+    }
+
+    // LDRAW_ORG checks:
+    if(this.ldraw_org === 'Part' ||
+       this.ldraw_org === 'Primitive' ||
+       this.ldraw_org === 'Subpart' ||
+       this.ldraw_org === '8_Primitive' ||
+       this.ldraw_org === '48_Primitive' ||
+       this.ldraw_org === 'Shortcut') {
+        return true; // Official LDraw part types: https://www.ldraw.org/article/398.html
+    }
+    
+    // Check sub-models. If any is a primitive or subpart, then this is a part:
+    for(let i = 0; i < s.subModels.length; i++) {
+        let t = loader.getPartType(s.subModels[i].ID);
+        if(t.ldraw_org === 'Primitive' ||
+           t.ldraw_org === 'Subpart' ||
+           t.ldraw_org === '8_Primitive' ||
+           t.ldraw_org === '48_Primitive') {
+            return true;
+        }
+        if(t.steps.length !== 1) {
+            return false; // Sub model is not a part.
+        }
+    }
+
+    return this.ID.endsWith('.dat'); // Unsafe check as some old models used 'dat' for non-parts, but what can we do?
 }
 
 THREE.LDRPartType.prototype.isReplacedPart = function() {
-    if(!this.isPart()) {
+    if(!this.isPart) {
 	return false; // Not a part
     }
     let step = this.steps[0];
@@ -1622,7 +1659,7 @@ THREE.LDRPartType.prototype.isReplacedPart = function() {
 }
 
 THREE.LDRPartType.prototype.countParts = function(loader) {
-    if(this.cnt >= 0 || this.isPart()) {
+    if(this.cnt >= 0 || this.isPart) {
 	return this.cnt;
     }
     this.cnt = this.steps.map(step => step.countParts(loader)).reduce((a,b)=>a+b, 0);

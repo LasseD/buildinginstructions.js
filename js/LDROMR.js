@@ -103,10 +103,10 @@ LDR.OMR.FixPlacements = function() {
 LDR.OMR.FixAuthors = function(expectedAuthor) {
     let title = "Change all author lines in the models of the LDraw file to '" + expectedAuthor + "' (This does not include any unofficial parts)";
 
-    let checkers = {checkPartType: pt => pt.isPart() ? false : (pt.author !== expectedAuthor ? title : false)};
+    let checkers = {checkPartType: pt => pt.isPart ? false : (pt.author !== expectedAuthor ? title : false)};
     
     let handlers = {handlePartType: pt => {
-        if(!pt.isPart())  {
+        if(!pt.isPart)  {
             pt.author = expectedAuthor;
 	}
     }};
@@ -145,8 +145,8 @@ LDR.OMR.SetLDrawOrg = function(unofficial) {
         title += " indicating the model is OMR compliant and accepted into the official library";
     }
 
-    let checkers = {checkPartType: pt => (!LDR.OMR.LDrawOrgChanged && !pt.isPart() && pt.ldraw_org !== type && pt.ldraw_org !== 'Model') ? title : false};
-    let handlers = {handlePartType: pt => {if(!pt.isPart()){pt.ldraw_org = type; LDR.OMR.LDrawOrgChanged = true;}}};
+    let checkers = {checkPartType: pt => (!LDR.OMR.LDrawOrgChanged && !pt.isPart && pt.ldraw_org !== type && pt.ldraw_org !== 'Model') ? title : false};
+    let handlers = {handlePartType: pt => {if(!pt.isPart){pt.ldraw_org = type; LDR.OMR.LDrawOrgChanged = true;}}};
     return {checkers:checkers, handlers:handlers};
 }
 
@@ -157,9 +157,9 @@ LDR.OMR.SetLDrawOrg = function(unofficial) {
 LDR.OMR.InlineUnofficialParts = function() {
     let title = id => "Copy content of unofficial files, such as " + id + " into the MPD file to improve OMR compliance";
 
-    let checkers = {checkPartType: pt => (pt.isPart() && pt.ldraw_org && pt.ldraw_org.startsWith('Unofficial_') && pt.inlined !== "GENERATED") ? title(pt.ID) : false};
+    let checkers = {checkPartType: pt => (pt.isPart && pt.ldraw_org && pt.ldraw_org.startsWith('Unofficial_') && pt.inlined !== "GENERATED") ? title(pt.ID) : false};
 
-    let handlers = {handlePartType: pt => {if(pt.isPart() && pt.inlined && pt.ldraw_org && pt.ldraw_org.startsWith('Unofficial_') && pt.inlined !== "GENERATED"){pt.inlined = undefined;}}};
+    let handlers = {handlePartType: pt => {if(pt.isPart && pt.inlined && pt.ldraw_org && pt.ldraw_org.startsWith('Unofficial_') && pt.inlined !== "GENERATED"){pt.inlined = undefined;}}};
 
     return {checkers:checkers, handlers:handlers};
 }
@@ -189,7 +189,7 @@ LDR.OMR.StandardizeFileNames = function(setNumber) {
     }
 
     let checkPartType = function(pt) {
-        if(!pt.isPart()) { // Not a part: Check that all 3 lines are well-formed:
+        if(!pt.isPart) { // Not a part: Check that all 3 lines are well-formed:
 	    let d = extract(pt.name);
 	    let i = setNumberPrefix + d + '.ldr';
             if(pt.name !== i || pt.modelDescription !== d) {
@@ -207,7 +207,7 @@ LDR.OMR.StandardizeFileNames = function(setNumber) {
     }
 
     let handlePartType = function(pt) {
-        if(!pt.isPart()) {
+        if(!pt.isPart) {
 	    let d = extract(pt.name);
 	    pt.modelDescription = d;
 	    pt.name = setNumberPrefix + d + '.ldr';

@@ -92,7 +92,7 @@ LDR.PLIBuilder.prototype.createClickMap = function(step) {
 	}
 	let partID = (this.groupParts && dat.REPLACEMENT_PLI) ? dat.REPLACEMENT_PLI : dat.ID;
 	let partType = this.loader.getPartType(partID);
-        if(!partType.isPart()) {
+        if(!partType.isPart) {
             continue; // Do not show sub models.
         }
 	let colorID = dat.colorID;

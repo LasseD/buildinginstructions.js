@@ -173,7 +173,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
         if(self.canEdit) {
             function removeGeometries() {
                 self.ldrLoader.applyOnPartTypes(pt => {
-                        if(!pt.isPart()) {
+                        if(!pt.isPart) {
                             pt.geometry = null;
                         }
                     });
@@ -813,7 +813,7 @@ LDR.InstructionsManager.prototype.setUpOptions = function() {
     ldrOptions.listeners.push(function(partGeometriesChanged) {
             if(partGeometriesChanged) { // Update all studs:
                 self.ldrLoader.applyOnPartTypes(pt => {
-                        if(pt.isPart()) {
+                        if(pt.isPart) {
                             pt.geometry = pt.mesh = null;
                         }
                     });
