@@ -45,7 +45,7 @@ LDR.ColorPicker = function(onColorSelected) {
 }
 
 LDR.ColorPicker.prototype.createButton = function() {
-    let button = document.createElement('button');
+    let button = document.createElement('div');
     button.id = 'color_picker_button';
     button.setAttribute('class', 'editor_button');
 

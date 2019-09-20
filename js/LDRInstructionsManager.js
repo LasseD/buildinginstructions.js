@@ -1,11 +1,12 @@
 'use strict';
 
-LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, baseURL, stepFromParameters, options) {
+LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, refreshCache, baseURL, stepFromParameters, options) {
     let startTime = new Date();
     let self = this;
     this.stepEditor;
     this.canEdit = options && options.canEdit; // Only set if LDRStepEditor.js is loaded.
     this.modelID = modelID;
+    this.modelColor = modelColor;
     this.refreshCache = refreshCache;
     this.baseURL = baseURL;
     LDR.Colors.canBeOld = true;
@@ -121,7 +122,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, mainImage, refreshCache, b
         let origo = new THREE.Vector3();
         let inv = new THREE.Matrix3(); inv.set(1,0,0, 0,1,0, 0,0,1); // Invert Y-axis
         
-        let pd = new THREE.LDRPartDescription(0, origo, inv, mainModel, false);
+        let pd = new THREE.LDRPartDescription(self.modelColor, origo, inv, mainModel, false);
         
         self.pliBuilder = new LDR.PLIBuilder(self.ldrLoader,
                                              self.canEdit,
@@ -428,7 +429,7 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
 
     let size = b.min.distanceTo(b.max);
     let viewPortSize = Math.sqrt(this.viewPortWidth*this.viewPortWidth + this.viewPortHeight*this.viewPortHeight);
-    //console.log("size=" + size + ", screen size=" + viewPortSize + ", size/screen=" + (size/viewPortSize));
+
     if(size > viewPortSize) {
         useAccumulatedBounds = false;
         b = this.stepHandler.getBounds();
@@ -436,7 +437,7 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
         if(size < viewPortSize) {
             let b2 = new THREE.Box3(); b2.copy(b); b = b2;
             let bDiff = new THREE.Vector3(); bDiff.subVectors(b.max, b.min); // b.max-b.min
-            // Move min and max: max = min + bDiff -> min + bDiff/2 + (bDiff/2*X) = min + bDiff - bDiff/2 + (bDiff/2*X) = max + (X-1)*bDiff/2
+
             bDiff.multiplyScalar(0.5*(viewPortSize/size-1));
             b.max.add(bDiff);
             b.min.sub(bDiff);

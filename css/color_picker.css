@@ -28,8 +28,10 @@
   cursor: pointer;
   border-radius: 10vw;
   font-size: 2vw;
+  line-height: 4vw;
 
   overflow-x: hidden;
+  overflow-y: hidden;
   text-overflow: ellipsis;
 }
 #color_picker_button svg {

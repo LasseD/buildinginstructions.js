@@ -7,6 +7,9 @@ LDR.ICON_SIZE = 200;
   primitives, and comment lines.
 */
 LDR.SubPartBuilder = function(baseMC, table, redPoints, loader, partType, colorID, position, rotation, scene, subjectSize, onIconClick, from) {
+    if(colorID === undefined)
+	throw "Color undefined!";
+
     let self = this;
     this.baseMC = baseMC;
     this.table = table;

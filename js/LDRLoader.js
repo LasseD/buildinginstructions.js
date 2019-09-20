@@ -516,6 +516,9 @@ THREE.LDRLoader.prototype.parse = function(data) {
 
 THREE.LDRLoader.prototype.getPartType = function(id) {
     if(!this.partTypes.hasOwnProperty(id)) {
+	if(LDR.Generator && (subModel = LDR.Generator.make(id))) {
+	    return this.partTypes[id] = subModel;
+	}
         return null;
     }
     let pt = this.partTypes[id];
@@ -1012,9 +1015,6 @@ THREE.LDRStep.prototype.removePrimitivesAndSubParts = function() {
 }
 
 THREE.LDRStep.prototype.cloneColored = function(colorID) {
-    if(colorID === 16 || colorID === 24) {
-        throw "Cannot clone colored with special color 16 or 24!";
-    }
     if(this.hasPrimitives) {
         throw "Cannot clone step with primitives!";
     }
@@ -1215,13 +1215,8 @@ THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, 
 	
 	let subModel = loader.getPartType(subModelDesc.ID);
 	if(!subModel) {
-	    if(LDR.Generator && (subModel = LDR.Generator.make(subModelDesc.ID))) {
-		loader.partTypes[subModelDesc.ID] = subModel;
-	    }
-	    else {
-		loader.onError("Unloaded sub model: " + subModelDesc.ID);
-		return;
-	    }
+	    loader.onError("Unloaded sub model: " + subModelDesc.ID);
+	    return;
 	}
 	if(subModel.replacement) {
 	    let replacementSubModel = loader.getPartType(subModel.replacement);
@@ -1381,6 +1376,7 @@ THREE.LDRPartType.prototype.pack = function(loader) {
     // Ignore headers and history to save space.
     ret.md = this.modelDescription;
     ret.e = (this.CCW ? 2 : 0) + (this.certifiedBFC ? 1 : 0);
+    ret.d = this.ldraw_org;
     return ret;
 }
 
@@ -1394,6 +1390,7 @@ THREE.LDRPartType.prototype.unpack = function(obj) {
     this.CCW = Math.floor(obj.e/2) % 2 === 1;
     this.inlined = 'IDB';
     this.isPart = true;
+    this.ldraw_org = obj.d;
 }
 
 THREE.LDRPartType.prototype.purgePart = function(loader, ID) {
@@ -1599,6 +1596,13 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
     mc.expandBoundingBox(b, m4);
 }
     
+THREE.LDRPartType.prototype.isPrimitive = function() {
+    return this.ldraw_org === 'Primitive' ||
+        this.ldraw_org === 'Subpart' ||
+        this.ldraw_org === '8_Primitive' ||
+        this.ldraw_org === '48_Primitive';
+}
+
 THREE.LDRPartType.prototype.computeIsPart = function(loader) {
     // Simple checks:
     if(this.steps.length !== 1) {
@@ -1622,10 +1626,11 @@ THREE.LDRPartType.prototype.computeIsPart = function(loader) {
     // Check sub-models. If any is a primitive or subpart, then this is a part:
     for(let i = 0; i < s.subModels.length; i++) {
         let t = loader.getPartType(s.subModels[i].ID);
-        if(t.ldraw_org === 'Primitive' ||
-           t.ldraw_org === 'Subpart' ||
-           t.ldraw_org === '8_Primitive' ||
-           t.ldraw_org === '48_Primitive') {
+	if(!t) {
+	    console.log(s.subModels[i].ID);
+	    throw "Unknown part type: " + s.subModels[i].ID;
+	}
+        if(t.isPrimitive()) {
             return true;
         }
         if(t.steps.length !== 1) {

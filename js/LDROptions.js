@@ -5,7 +5,7 @@ LDR.Options = function() {
     
     // Default values for options (in case of first visit or no cookies:
     this.showOldColors = 0; // 0 = all colors. 1 = single color old
-    this.lineContrast = 1; // 0 = High contrast, 1 = LDraw, 2 = Off
+    this.lineContrast = 1; // 0 = High contrast, 1 = LDraw
     this.bgColor = 0xFFFFFF;
     this.pointColor = 0xFF0000;
     this.pointSize = 2;
@@ -212,7 +212,7 @@ LDR.Options.prototype.appendOldBrickColorOptions = function(optionsBlock) {
 }
 
 LDR.Options.prototype.appendContrastOptions = function(optionsBlock) {
-    let group = this.addOptionsGroup(optionsBlock, 3, "Lines");
+    let group = this.addOptionsGroup(optionsBlock, 2, "Lines");
     let options = this;
     let onChange = function(idx) {
 	options.lineContrast = idx;
@@ -224,7 +224,7 @@ LDR.Options.prototype.appendContrastOptions = function(optionsBlock) {
         }
 	options.onChange(false);
     };
-    let buttons = this.createButtons(group, 3, this.lineContrast, onChange);
+    let buttons = this.createButtons(group, 2, this.lineContrast, onChange);
     
     // Color functions:
     let red = function(){return '#C91A09';};
@@ -260,14 +260,14 @@ LDR.Options.prototype.appendContrastOptions = function(optionsBlock) {
     /* 
        2: No lines:
     */
-    {
+    /*{
 	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '-100 -25 200 50');
 	buttons[2].appendChild(svg);
 	this.createSvgBlock(-LDR.Options.svgBlockWidth-2, 0, true, red, red, svg);
 	this.createSvgBlock(0, 0, true, brown, brown, svg);
 	this.createSvgBlock(LDR.Options.svgBlockWidth+2, 0, true, black, black, svg);
-    }
+    }*/
 }
 
 /*
