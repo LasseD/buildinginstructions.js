@@ -516,6 +516,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 
 THREE.LDRLoader.prototype.getPartType = function(id) {
     if(!this.partTypes.hasOwnProperty(id)) {
+        let subModel;
 	if(LDR.Generator && (subModel = LDR.Generator.make(id))) {
 	    return this.partTypes[id] = subModel;
 	}
