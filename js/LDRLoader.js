@@ -1896,13 +1896,10 @@ LDR.MeshCollector.prototype.overwriteColor = function(color) {
     }
     function handle(obj, edge) {
         const m = obj.mesh.material;
-        const p = obj.part;
-        if(p && (p.colorID !== 16)) {
-            return; // Can only color those of color 16!
-        }
         const c = m.colorManager;
 	c.overWrite(color);
 	let colors = !edge || ldrOptions.lineContrast > 0 ? c.shaderColors : c.highContrastShaderColors;
+
 	if(colors.length === 1) {
 	    m.uniforms.color.value = colors[0];
         }
