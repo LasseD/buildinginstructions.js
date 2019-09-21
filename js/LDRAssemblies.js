@@ -44,7 +44,7 @@ LDR.AssemblyManager = function(loader) {
     // Add torsos:
     function handleTorsosInStep(step) {
 	// Try to find a torso, two arms and two hands:
-	let torso = step.subModels.find(sm => sm.ID.length >= 10 && sm.ID.startsWith('973') && sm.ID.endsWith('.dat')); if(!torso) return; // No torsos.
+	let torso = step.subModels.find(sm => sm.ID.length >= 7 && sm.ID.startsWith('973') && sm.ID.endsWith('.dat')); if(!torso) return; // No torsos.
         let ID = torso.ID.substring(0, torso.ID.length-4) + 'c' + torso.colorID + '.dat'; // Assembly ID
         if(self.loader.partTypes.hasOwnProperty(ID)) {
             return; // Already built.
@@ -76,6 +76,10 @@ LDR.AssemblyManager = function(loader) {
         // Torso part type:
         let torsoPT = new THREE.LDRPartType();
 	let pt = loader.getPartType(torso.ID);
+        if(!pt) {
+            console.warn('Missing torso part: ' + torso.ID);
+            return;
+        }
         torsoPT.name = torsoPT.ID = ID;
         torsoPT.modelDescription = LDR.Colors[torso.colorID].name + ' ' + pt.modelDescription + ' / ';
 	if(armLeft.colorID === armRight.colorID) {
@@ -92,6 +96,7 @@ LDR.AssemblyManager = function(loader) {
         torsoPT.inlined = 'UNOFFICIAL';
         torsoPT.cleanSteps = torsoPT.certifiedBFC = torsoPT.CCW = torsoPT.consistentFileAndName = true;
         torsoPT.steps = [torsoStep];
+        torsoPT.isPart = true;
         self.loader.partTypes[ID] = torsoPT;
 	
         let keys = [armLeft.ID + '_' + armLeft.colorID, 

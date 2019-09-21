@@ -1627,15 +1627,13 @@ THREE.LDRPartType.prototype.computeIsPart = function(loader) {
     // Check sub-models. If any is a primitive or subpart, then this is a part:
     for(let i = 0; i < s.subModels.length; i++) {
         let t = loader.getPartType(s.subModels[i].ID);
-	if(!t) {
-	    console.log(s.subModels[i].ID);
-	    throw "Unknown part type: " + s.subModels[i].ID;
-	}
-        if(t.isPrimitive()) {
-            return true;
-        }
-        if(t.steps.length !== 1) {
-            return false; // Sub model is not a part.
+	if(t) {
+            if(t.isPrimitive()) {
+                return true;
+            }
+            if(t.steps.length !== 1) {
+                return false; // Sub model is not a part.
+            }
         }
     }
 
@@ -1783,13 +1781,12 @@ LDR.MeshCollector.prototype.addLines = function(mesh, part, conditional) {
 }
 
 LDR.MeshCollector.prototype.addOpaque = function(mesh, part) {
-    //scene.add(new THREE.VertexNormalsHelper( mesh, 5, 0x00ff00));
+    if(!part) throw "Missing part!";
     this.triangleMeshes.push({mesh:mesh, part:part, opaque:true});
     this.opaqueObject.add(mesh);
 }
 
 LDR.MeshCollector.prototype.addTrans = function(mesh, part) {
-    //scene.add(new THREE.VertexNormalsHelper( mesh, 5, 0x0000ff));
     this.triangleMeshes.push({mesh:mesh, part:part, opaque:false});
     this.transObject.add(mesh);
 }
@@ -1899,6 +1896,10 @@ LDR.MeshCollector.prototype.overwriteColor = function(color) {
     }
     function handle(obj, edge) {
         const m = obj.mesh.material;
+        const p = obj.part;
+        if(p && (p.colorID !== 16)) {
+            return; // Can only color those of color 16!
+        }
         const c = m.colorManager;
 	c.overWrite(color);
 	let colors = !edge || ldrOptions.lineContrast > 0 ? c.shaderColors : c.highContrastShaderColors;
