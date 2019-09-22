@@ -612,6 +612,18 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
         });
 
     this.geometriesBuilt = true;
+    
+    this.cleanTempData();
+}
+
+LDR.LDRGeometry.prototype.cleanTempData = function() {
+    delete this.vertices;
+    delete this.lines;
+    delete this.conditionalLines;
+    delete this.quads;
+    delete this.quads2;
+    delete this.triangles;
+    delete this.triangles2;
 }
 
 LDR.LDRGeometry.prototype.buildGeometry = function(indices, vertexAttribute) {
@@ -1070,19 +1082,6 @@ LDR.LDRGeometry.prototype.mapIndices = function(map) {
     for(let c in this.quads2) {
 	if(this.quads2.hasOwnProperty(c)) {
 	    this.quads2[c].forEach(x => map4(x, map));
-        }
-    }
-}
-
-LDR.LDRGeometry.prototype.print = function() {
-    console.log(this.vertices.length);
-    this.vertices.forEach((v,idx) => console.log(idx + ': ' + v.x + ' ' + v.y + ' ' + v.z));
-    for(let c in this.lines) {
-        if(this.lines.hasOwnProperty(c)) {
-            let lines = this.lines[c];
-            let s = 'Color ' + c + ': ' + lines.length + ' lines: ';
-            lines.forEach(p => s += ' ' + p.p1 + '->' + p.p2);
-            console.log(s);
         }
     }
 }
