@@ -66,22 +66,36 @@
         document.getElementById('loading_text').style.display = 'none';
         console.log("Data loaded after " + (new Date()-startTime) + "ms.");
         let inv = new THREE.Matrix3(); inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
-        ldrLoader.getMainModel().generateThreePart(ldrLoader, 16, new THREE.Vector3(), inv, true, false, scene.mc);
-        scene.mc.updateMeshVisibility(); // Hide lines
 
+        let taskList = [];
+        ldrLoader.getMainModel().generateThreePart(ldrLoader, 16, new THREE.Vector3(), inv, true, false, scene.mc, null, taskList);
+        console.log("Animation info constructed after " + (new Date()-startTime) + "ms.");
         scene.buildStandardScene();
-        if(!LDR.Colors[16].m) {
-          document.getElementById('color_button').style.display = 'none'; // Hide if nothing can change.
+        console.log("Scene built after " + (new Date()-startTime) + "ms.");
+
+        let taskListIdx = 0;
+        function animateConstruction() {
+          animationID = requestAnimationFrame(animateConstruction);
+          if(taskListIdx >= taskList.length) {
+            scene.mc.updateMeshVisibility(); // Hide lines
+            setTimeout(() => LDR.Colors.loadTextures(() => scene.render(), 200));
+            if(LDR.Colors[16].m) { // Hide if nothing can change.
+              document.getElementById('color_button').style.display = 'block';
+            }
+            cancelAnimationFrame(animationID);
+            return; // Done.
+          }
+
+          let animationStartTime = new Date();
+          while((new Date()-animationStartTime) < 20 && taskListIdx < taskList.length) {
+            taskList[taskListIdx++]();
+          }
+
+          scene.repositionFloor(0.001);
+          scene.render();
         }
         onWindowResize(); // Render
-
-        console.log("Initial non-textured render loaded after " + (new Date()-startTime) + "ms.");
-
-        function onTextureLoaded() {
-          scene.render();
-          console.log("Texture loaded after " + (new Date()-startTime) + "ms.");
-        }
-        setTimeout(() => LDR.Colors.loadTextures(onTextureLoaded), 200);
+        animateConstruction();
       }
 
       var ldrOptions = new LDR.Options();

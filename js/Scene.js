@@ -188,6 +188,12 @@ ENV.Scene.prototype.resetCamera = function() {
     this.camera.lookAt(new THREE.Vector3(0, 0, 0));
 }
 
+ENV.Scene.prototype.repositionFloor = function(dist) {
+    if(this.floor) {
+        this.floor.position.y = this.mc.boundingBox.min.y - dist;
+    }
+}
+
 ENV.Scene.prototype.buildStandardScene = function() {
     let self = this;
     let b = this.mc.boundingBox || new THREE.Box3(new THREE.Vector3(), new THREE.Vector3(1,1,1)); // To build scene around.
@@ -219,8 +225,8 @@ ENV.Scene.prototype.buildStandardScene = function() {
         });
     this.floor = new THREE.Mesh(floorGeometry, floorMaterial);
     this.floor.rotation.x = -Math.PI/2;
-    this.floor.position.y = b.min.y - 0.001; // -0.001 to avoid floor clipping issues on large models.
     this.floor.receiveShadow = true;
+    this.repositionFloor(0.001); // -0.001 to avoid floor clipping issues on large models.
     this.baseObject.add(this.floor);
 
     // Lights:

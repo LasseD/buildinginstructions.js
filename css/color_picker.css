@@ -1,3 +1,6 @@
+#color_button {
+  display: none;
+}
 .color_container {
   display: inline-block;
   text-align: center;

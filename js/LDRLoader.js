@@ -1186,7 +1186,7 @@ THREE.LDRStep.prototype.cleanUp = function(loader, newSteps) {
     }
 }
 
-THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, rotation, cull, invertCCW, mc) {
+THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, rotation, cull, invertCCW, mc, taskList) {
     //console.log("STEP: Creating three part for " + this.subModels.length + " sub models in color " + colorID + ", cull: " + cull + ", invertion: " + invertCCW);
     let ownInversion = (rotation.determinant() < 0) !== invertCCW; // Adjust for inversed matrix!
     let ownCull = cull && this.cull;
@@ -1235,7 +1235,7 @@ THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, 
 	let nextPosition = transformPoint(subModelDesc.position);
 	let nextRotation = new THREE.Matrix3();
 	nextRotation.multiplyMatrices(rotation, subModelDesc.rotation);
-	subModel.generateThreePart(loader, subModelColor, nextPosition, nextRotation, subModelCull, subModelInversion, mc, subModelDesc);
+	subModel.generateThreePart(loader, subModelColor, nextPosition, nextRotation, subModelCull, subModelInversion, mc, subModelDesc, taskList);
     }
     
     // Add submodels:
@@ -1517,13 +1517,21 @@ THREE.LDRPartType.prototype.addStep = function(step) {
     this.lastRotation = step.rotation;
 }
     
-THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, inv, mc, pd) {
+THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, inv, mc, pd, taskList) {
     if(!this.geometry) {
 	if(this.isPart) {
-	    this.ensureGeometry(loader);
+            if(taskList) {
+                let self = this;
+                taskList.push(() => self.generateThreePart(loader, c, p, r, cull, inv, mc, pd));
+                mc.expandBoundingBoxByPoint(p); // Assumes p is within the part.
+                return;
+            }
+            else {
+                this.ensureGeometry(loader);
+            }
 	}
 	else {
-            this.steps.forEach(step => step.generateThreePart(loader, c, p, r, cull, inv, mc));
+            this.steps.forEach(step => step.generateThreePart(loader, c, p, r, cull, inv, mc, taskList));
 	    return;
 	}
     }
@@ -1812,6 +1820,12 @@ LDR.MeshCollector.prototype.updateMeshVisibility = function() {
     this.triangleMeshes.forEach(obj => obj.mesh.visible = v && (old || !(ldrOptions.showEditor && obj.part && obj.part.original && obj.part.original.ghost))); // Do not show faces for ghosted parts.
 }
 
+LDR.MeshCollector.prototype.expandBoundingBoxByPoint = function(p) {
+    if(!this.boundingBox) {
+	this.boundingBox = new THREE.Box3();
+    }
+    this.boundingBox.expandByPoint(p);
+}
 LDR.MeshCollector.prototype.expandBoundingBox = function(boundingBox, m) {
     let b = new THREE.Box3();
     b.copy(boundingBox);
