@@ -115,7 +115,7 @@ LDR.AssemblyManager.prototype.handleStep = function(step) {
 
     // First find all sub models that are main models of assemblies:
     function handleSubModel(sm, idx) {
-        if(sm.REMOVE || !self.map.hasOwnProperty(sm.ID)) {
+        if(sm.REPLACEMENT_PLI || !self.map.hasOwnProperty(sm.ID)) {
             return; // Not part of an assembly.
         }
 

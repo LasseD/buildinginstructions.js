@@ -41,9 +41,9 @@ LDR.PartsBuilder = function(loader, mainModelID, mainModelColor, onBuiltPart) {
                 key += '_' + datColorID;
                 let pc = pcs[key];
                 if(!pc) {
-                    pc = new LDR.PartAndColor(key, dat, datColorID, loader);
-                    pcs[key] = pc;
-                    pcKeys.push(key);
+		    pc = new LDR.PartAndColor(key, dat, datColorID, loader);
+		    pcs[key] = pc;
+		    pcKeys.push(key);
                 }
                 // Add count:
                 pc.amount += multiplier;
@@ -75,8 +75,8 @@ LDR.PartAndColor = function(key, part, colorID, loader) {
 
     this.partType = loader.getPartType(this.ID);
     if(!this.partType) {
-	console.dir(loader);
-	throw "Unknown part type: " + this.ID;
+	console.warn("Unknown part type: " + this.ID + ". Showing box instead.");
+	this.partType = LDR.Generator.makeEmpty(this.ID);
     }
 
     // Rotate for pli:

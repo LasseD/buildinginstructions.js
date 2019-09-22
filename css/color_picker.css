@@ -32,10 +32,7 @@
   border-radius: 10vw;
   font-size: 2vw;
   line-height: 4vw;
-
-  overflow-x: hidden;
-  overflow-y: hidden;
-  text-overflow: ellipsis;
+  text-align: center;
 }
 #color_picker_button svg {
   width: 4vw;

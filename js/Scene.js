@@ -197,7 +197,8 @@ ENV.Scene.prototype.repositionFloor = function(dist) {
 ENV.Scene.prototype.buildStandardScene = function() {
     let self = this;
     let b = this.mc.boundingBox || new THREE.Box3(new THREE.Vector3(), new THREE.Vector3(1,1,1)); // To build scene around.
-    let w = b.max.x-b.min.x, l = b.max.z-b.min.z, h = b.max.y-b.min.y;
+    let bump = x => Math.max(100, x);
+    let w = bump(b.max.x-b.min.x), l = bump(b.max.z-b.min.z), h = bump(b.max.y-b.min.y);
     this.size = {w:w, l:l, h:h, diam:Math.sqrt(w*w + l*l + h*h)};
 
     // Set up camera:

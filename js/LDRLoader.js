@@ -42,6 +42,7 @@ THREE.LDRLoader = function(onLoad, storage, options) {
             }
         }
         unloaded.forEach(id => delete self.partTypes[id]);
+
         onLoad();
     };
     this.storage = storage || {retrievePartsFromStorage: (loader, toBeFetched, onDone) => onDone(toBeFetched)}; // If there is no storage, simply act as if the storage is not able to fetch anything.
@@ -90,6 +91,7 @@ THREE.LDRLoader.prototype.load = function(id) {
 	self.unloadedFiles--; // Warning - might have concurrency issue when two threads simultaneously update this!
 	self.reportProgress(id);
     }
+
     var urlID = 0;
     let onError = function(event) {
         urlID++;
@@ -97,6 +99,9 @@ THREE.LDRLoader.prototype.load = function(id) {
             self.loader.load(urls[urlID], onFileLoaded, self.onProgress, onError);
         }
         else {
+	    console.warn('Failed to load ' + id);
+            self.unloadedFiles--; // Can't load this.
+  	    self.reportProgress(id);
             self.onError(event);
         }
     }
@@ -112,6 +117,7 @@ THREE.LDRLoader.prototype.load = function(id) {
 THREE.LDRLoader.prototype.loadMultiple = function(ids) {
     let self = this;
     function onStorageFetchingDone(unloadedParts) {
+        self.onPartsLoaded();
         self.unloadedFiles--;
         unloadedParts.forEach(id => self.load(id));
         self.reportProgress(ids[0]);
@@ -473,6 +479,29 @@ THREE.LDRLoader.prototype.parse = function(data) {
     this.partTypes[part.ID] = part;
     loadedParts.push(part);
 
+    this.onPartsLoaded(loadedParts);
+
+    // Save loaded parts into IndexedDB:
+    if(this.storage.db) {
+	if(this.options.hasOwnProperty('key') && this.options.hasOwnProperty('timestamp')) {
+            setTimeout(() => self.storage.saveInstructionsToStorage(self, self.options.key, self.options.timestamp), 1500); // Don't let this action delay rendering.
+	}
+        setTimeout(() => self.storage.savePartsToStorage(loadedParts, self), 2000); // Don't let this action delay rendering.
+        // Do not call storage.db.close() as there might be other parts that should be saved.
+    }
+
+    //let parseEndTime = new Date();
+    //console.log(loadedParts.length + " LDraw file(s) read in " + (parseEndTime-parseStartTime) + "ms.");
+};
+
+THREE.LDRLoader.prototype.onPartsLoaded = function(loadedParts) {
+    let self = this;
+
+    if(!loadedParts) {
+	loadedParts = [];
+	this.applyOnPartTypes(pt => loadedParts.push(pt));
+    }
+    
     // Load the unknown parts:    
     let unloadedPartsSet = {};
     let unloadedPartsList = [];
@@ -487,32 +516,24 @@ THREE.LDRLoader.prototype.parse = function(data) {
     // Set part info (part vs non-part):
     loadedParts.forEach(pt => pt.isPart = pt.computeIsPart(self));
 
-    // Check assemblies:
+    // Handle assemblies:
     if(this.options.buildAssemblies) {
-        if(!this.assemblyManager) {
+	if(!this.assemblyManager) {
             this.assemblyManager = new LDR.AssemblyManager(this);
-        }
-	loadedParts.forEach(pt => { if(!pt.isPart) { pt.steps.forEach(
-	    step => self.assemblyManager.handleStep(step).forEach(checkPart)
-	)} });
+	}
+	const am = this.assemblyManager;
+	let handle = pt => { 
+	    if(!pt.isPart) {
+		pt.steps.forEach(s => am.handleStep(s).forEach(checkPart));
+	    }
+	};
+	loadedParts.forEach(handle);
     }
 
     if(unloadedPartsList.length > 0) {
         self.loadMultiple(unloadedPartsList);
     }
-
-    // Save loaded parts into IndexedDB:
-    if(this.storage.db) {
-	if(this.options.hasOwnProperty('key') && this.options.hasOwnProperty('timestamp')) {
-            setTimeout(() => self.storage.saveInstructionsToStorage(self, self.options.key, self.options.timestamp), 1500); // Don't let this action delay rendering.
-	}
-        setTimeout(() => self.storage.savePartsToStorage(loadedParts, self), 2000); // Don't let this action delay rendering.
-        // Do not call storage.db.close() as there might be other parts that should be saved.
-    }
-
-    //let parseEndTime = new Date();
-    //console.log(loadedParts.length + " LDraw file(s) read in " + (parseEndTime-parseStartTime) + "ms.");
-};
+}
 
 THREE.LDRLoader.prototype.getPartType = function(id) {
     if(!this.partTypes.hasOwnProperty(id)) {
