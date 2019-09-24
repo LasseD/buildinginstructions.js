@@ -10,10 +10,11 @@ ENV.Scene = function(canvas) {
     this.controllers = [];
     this.activeControllerIndex = 0;
 
-    this.floor;
     this.hemisphereLight;
 
     this.scene = new THREE.Scene();
+    this.R; // Radius of floor.
+    this.sides = [null, null, null, null, null]; // floor, N, E, S, W
 
     // Set up renderer:
     this.renderer = new THREE.WebGLRenderer({canvas:canvas, antialias: true});
@@ -189,8 +190,12 @@ ENV.Scene.prototype.resetCamera = function() {
 }
 
 ENV.Scene.prototype.repositionFloor = function(dist) {
-    if(this.floor) {
-        this.floor.position.y = this.mc.boundingBox.min.y - dist;
+    let height = this.mc.boundingBox.min.y - dist;
+
+    this.sides[0].position.y = height; // Floor
+
+    for(let i = 1; i < 5; i++) { // Update the four sides:
+        this.sides[i].position.y = height + this.R;
     }
 }
 
@@ -204,40 +209,58 @@ ENV.Scene.prototype.buildStandardScene = function() {
     // Set up camera:
     this.resetCamera();
     
-    // Scene:
-    this.scene.background = new THREE.Color(0x77777A);
-
     // Subject:
     var elementCenter = new THREE.Vector3();
     b.getCenter(elementCenter);
     this.baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
     //this.baseObject.add(new THREE.Box3Helper(b, 0xFF00FF));
 
-    // Floor:
-    if(this.floor) {
-        this.scene.remove(this.floor);
-    }
-    let floorSize = 4 * this.size.diam;
-    var floorGeometry = new THREE.PlaneBufferGeometry(floorSize, floorSize);
+    // Floor and sides:
+    let R = this.R = 1.6 * this.size.diam;
+    var floorGeometry = new THREE.PlaneBufferGeometry(2*R, 2*R);
     var floorMaterial = new THREE.MeshStandardMaterial({
             color: 0xFEFEFE,
             metalness: 0.0,
-            roughness: 0.9,
+            roughness: 0.0,
+            normalMap: ENV.createFloorTexture(64, Math.floor(R/2)),
         });
-    this.floor = new THREE.Mesh(floorGeometry, floorMaterial);
-    this.floor.rotation.x = -Math.PI/2;
-    this.floor.receiveShadow = true;
+    var sideMaterial = new THREE.MeshStandardMaterial({
+            color: 0xFFFFFF,
+            metalness: 0.0,
+            roughness: 1.0,
+        });
+    for(let i = 0; i < 5; i++) {
+        this.sides[i] = new THREE.Mesh(floorGeometry, i === 0 ? floorMaterial : sideMaterial);
+        this.sides[i].receiveShadow = true;
+        this.baseObject.add(this.sides[i]);
+    }
+
+    // Floor:
+    let floor = this.sides[0];
+    floor.rotation.x = -Math.PI/2;
+
+    // Sides:
+    let sidePositionX = [0, R, 0, -R];
+    let sidePositionZ = [-R, 0, R, 0];
+    let sideRotation = [0, -Math.PI/2, Math.PI, Math.PI/2];
+    for(let i = 0; i < 4; i++) {
+        let side = this.sides[i+1];
+        side.position.x = sidePositionX[i];
+        side.position.z = sidePositionZ[i];
+        side.rotation.y = sideRotation[i];
+    }
+
     this.repositionFloor(0.001); // -0.001 to avoid floor clipping issues on large models.
-    this.baseObject.add(this.floor);
+
 
     // Lights:
     this.addPointLight(0xF6E3FF, 0.70,  1.1, this.size.w*1.5, this.size.h*2.0);
-    this.addPointLight(0xF7E5FD, 0.65,  0.8, this.size.w*1.3, this.size.h*1.7);
+    //this.addPointLight(0xF7E5FD, 0.65,  0.8, this.size.w*1.3, this.size.h*1.7);
     //this.addDirectionalLight(0xF6E3FF, 0.35,  -0.1, this.size.w*1.5, this.size.h*2.0);
 
     this.activeControllerIndex = 0; // Since adding point lights changes this.
 
-    this.setHemisphereLight(0xF4F4FB, 0x30302B, 0.45);
+    this.setHemisphereLight(0xF4F4FB, 0x30302B, 0.65);
 }
 
 ENV.CameraController = function(scene) {
@@ -357,4 +380,51 @@ ENV.LightController = function(scene, light, h, angle, dist, y) {
 
     this.activate = () => h.visible = true;
     this.deactivate = () => h.visible = false;
+}
+
+ENV.createFloorTexture = function(size, repeats) {
+    if(ENV.FloorTexture)
+        return ENV.FloorTexture;
+
+    let canvas = document.createElement("canvas");
+    canvas.width = canvas.height = size;
+
+    let ctx = canvas.getContext("2d");
+    ctx.fillStyle = 'rgb(128,128,255)';
+    ctx.fillRect(0, 0, size, size);
+
+    const M = size/2;
+    const EDGE = 0.5;
+    let toColor = x => 128 + Math.round(127*x);
+
+    for(let y = 0; y < size; y++) {
+        let Y = (y < M) ? y*2 : (y-M)*2;
+        for (let x = 0; x < size; x++) {
+            let X = y < M ? x : (x+M > size ? x+M-size : x+M);
+
+            let dx = (M-X)/M, dy = (M-Y)/M;
+            let D = dx*dx + dy*dy;
+            if(D > 1) {
+                continue;
+            }
+            let DD = 1-D;
+            if(DD < EDGE) { // Blend back to blue: dx/dy -> 0 as EDGE -> DD -> 0
+                dx *= 1-(EDGE-DD)/EDGE;
+                dy *= 1-(EDGE-DD)/EDGE;
+            }
+            
+            let dz = Math.sqrt(1 - dx*dx - dy*dy);//Math.asin(dy);
+
+            ctx.fillStyle = 'rgb(' + toColor(dx) + ',' + toColor(dy) + ',' + toColor(dz) + ')';
+            ctx.fillRect(x, y, 1, 1);
+        }
+    }
+
+    let texture = new THREE.Texture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(repeats, repeats);
+    texture.needsUpdate = true; // Otherwise canvas will not be applied.
+    document.body.appendChild(canvas);
+    return ENV.FloorTexture = texture;
 }
