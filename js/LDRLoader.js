@@ -117,7 +117,6 @@ THREE.LDRLoader.prototype.load = function(id) {
 THREE.LDRLoader.prototype.loadMultiple = function(ids) {
     let self = this;
     function onStorageFetchingDone(unloadedParts) {
-        self.onPartsLoaded();
         self.unloadedFiles--;
         unloadedParts.forEach(id => self.load(id));
         self.reportProgress(ids[0]);
@@ -1810,7 +1809,6 @@ LDR.MeshCollector.prototype.addLines = function(mesh, part, conditional) {
 }
 
 LDR.MeshCollector.prototype.addOpaque = function(mesh, part) {
-    if(!part) throw "Missing part!";
     this.triangleMeshes.push({mesh:mesh, part:part, opaque:true});
     this.opaqueObject.add(mesh);
 }

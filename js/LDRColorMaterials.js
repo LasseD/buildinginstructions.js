@@ -442,6 +442,7 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
     }
 
     let registerTextureListener = () => {};
+    let createMaterial = p => new THREE.MeshPhongMaterial(p);
 
     let params = {
         color: colorID < 0 ? (color.edge ? color.edge : 0x333333) : color.value,
@@ -449,6 +450,8 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
         
         roughness: 0.1, // Smooth ABS
         metalness: 0.0,
+        specular: 0xFFFFFF, // Used by black
+        shininess: 82.0, // Used by black
         
         normalMapType: THREE.TangentSpaceNormalMap,
         
@@ -524,7 +527,7 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
         registerTextureListener = m => LDR.Colors.listeningMaterials.opaque.push(m);
     }
     
-    let m = new THREE.MeshStandardMaterial(params);
+    let m = colorID === 0 ? new THREE.MeshPhongMaterial(params) : new THREE.MeshStandardMaterial(params);
     registerTextureListener(m);
 
     if(color.alpha > 0) {

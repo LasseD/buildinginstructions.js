@@ -8,15 +8,28 @@
   <meta name="viewport" content="width=device-width" />
  </head>
  <body>
+
   <div id="canvas_holder" style="position:relative;top:0">
    <canvas id="canvas"></canvas>
    <p id="loading_text" style="display:block;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:white;">Loading...</p>
    <div id="color_button" onclick="$('#color_picker_background, #color_picker_holder').fadeIn(250)"></div>
+   <div id="common_buttons">
+    <div id="setup_add_directional_light_button" onclick="scene.addDefaultDirectionalLight();">O</div>
+    <div id="setup_add_point_light_button" onclick="scene.addDefaultPointLight();">P</div>
+    <div id="setup_remove_right" onclick="scene.removeLight();">DEL</div>
+   </div>
+   <div id="setup_buttons">
+    <div id="setup_left_button" onclick="scene.moveControllersLeft();">L</div>
+    <div id="setup_control_buttons"></div>
+    <div id="setup_right_button" onclick="scene.moveControllersRight();">R</div>
+   </div>
   </div>
+
   <div id="color_picker">
    <div id="color_picker_background" class="background" onclick="$('#color_picker').hide();"></div>
    <div id="color_picker_holder" class="holder"></div>
   </div>
+
   <script src="js/jquery.min.js"></script>
   <script src="js/three.min.js"></script>
   <script src="js/OrbitControls.js"></script>

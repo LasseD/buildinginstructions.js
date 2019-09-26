@@ -134,13 +134,9 @@
         }
       }
 
-      let storage;
-      let onStorageReady = function() {
-        ldrLoader = new THREE.LDRLoader(onLoad, storage, {idToUrl:idToUrl});
-        LDR.Studs.setStuds(ldrLoader, ldrOptions.studHighContrast,
-                           ldrOptions.studLogo, () => ldrLoader.load(partID));
-      }
-      onStorageReady();
+      ldrLoader = new THREE.LDRLoader(onLoad, null, {idToUrl:idToUrl});
+      LDR.Studs.setStuds(ldrLoader, ldrOptions.studHighContrast,
+                         ldrOptions.studLogo, () => ldrLoader.load(partID));
  </script>
  </body>
 </html>

@@ -41,6 +41,27 @@ ENV.Scene = function(canvas) {
     this.scene.add(this.baseObject);
     this.mc = new LDR.MeshCollector(opaqueObject, transObject);
 
+    // Buttons:
+    this.moveControllersLeft = function() {
+        c.deactivate();
+        self.activeControllerIndex--;
+        if(self.activeControllerIndex < 0) {
+            self.activeControllerIndex = self.controllers.length-1;
+        }
+        c = self.controllers[self.activeControllerIndex];
+        c.activate();
+    }
+    this.moveControllersRight = function() {
+        c.deactivate();
+        self.activeControllerIndex++;
+        if(self.activeControllerIndex === self.controllers.length) {
+            self.activeControllerIndex = 0;
+        }
+        c = self.controllers[self.activeControllerIndex];
+        c.activate();        
+    }
+
+    // Keys:
     function handleKeyDown(e) {
         e = e || window.event;
         if(e.altKey) {
@@ -50,22 +71,10 @@ ENV.Scene = function(canvas) {
         //console.dir(e);
         let c = self.controllers[self.activeControllerIndex];
         if(e.keyCode === 37) { // Left:
-            c.deactivate();
-            self.activeControllerIndex--;
-            if(self.activeControllerIndex < 0) {
-                self.activeControllerIndex = self.controllers.length-1;
-            }
-            c = self.controllers[self.activeControllerIndex];
-            c.activate();
+            self.moveControllersLeft();
         }
         else if (e.keyCode === 39) { // Right:
-            c.deactivate();
-            self.activeControllerIndex++;
-            if(self.activeControllerIndex === self.controllers.length) {
-                self.activeControllerIndex = 0;
-            }
-            c = self.controllers[self.activeControllerIndex];
-            c.activate();
+            self.moveControllersRight();
         }
         else if(e.keyCode === 8 || e.keyCode === 46) { // DELETE
             self.removeLight();
@@ -82,8 +91,6 @@ ENV.Scene = function(canvas) {
         self.render();
     }
     document.onkeydown = handleKeyDown;
-
-    //RectAreaLightUniformsLib.init();
 }
 
 ENV.Scene.prototype.render = function() {
@@ -141,21 +148,6 @@ ENV.Scene.prototype.addDirectionalLight = function(color, intensity, angle, dist
     this.controllers.push(c);
     this.activeControllerIndex = this.controllers.length-1;
 }
-
-/*
-ENV.Scene.prototype.addRectAreaLight = function(color, intensity, angle, dist, y) {
-    let light = new THREE.RectAreaLight(color, intensity, this.size, this.size);
-    light.origAngle = light.angle = angle;
-    light.origDist = light.dist = dist;
-    light.origY = light.y = y;
-
-    //light.castShadow = true; // Shadows not yet supported!
-    light.add(new THREE.RectAreaLightHelper(light));
-
-    console.dir(light);
-
-    this.scene.add(light);
-}*/
 
 ENV.Scene.prototype.removeLight = function() {
     let c = this.controllers[this.activeControllerIndex];
@@ -251,7 +243,6 @@ ENV.Scene.prototype.buildStandardScene = function() {
     }
 
     this.repositionFloor(0.001); // -0.001 to avoid floor clipping issues on large models.
-
 
     // Lights:
     this.addPointLight(0xF6E3FF, 0.70,  1.1, this.size.w*1.5, this.size.h*2.0);
