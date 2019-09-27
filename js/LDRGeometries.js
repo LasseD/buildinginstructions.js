@@ -613,7 +613,7 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
 
     this.geometriesBuilt = true;
     
-    this.cleanTempData();
+    //this.cleanTempData();
 }
 
 LDR.LDRGeometry.prototype.cleanTempData = function() {
@@ -924,6 +924,7 @@ LDR.LDRGeometry.prototype.fromPartType = function(loader, pt) {
 }
 
 LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
+    console.log('PD ' + pd.ID);
     let pt = loader.getPartType(pd.ID);
     if(!pt) {
         throw "Part not loaded: " + pd.ID;
