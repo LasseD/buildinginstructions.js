@@ -254,6 +254,30 @@ ENV.Scene.prototype.buildStandardScene = function() {
     this.setHemisphereLight(0xF4F4FB, 0x30302B, 0.65);
 }
 
+ENV.Scene.prototype.buildOMRScene = function() {
+    let self = this;
+    let b = this.mc.boundingBox || new THREE.Box3(new THREE.Vector3(), new THREE.Vector3(1,1,1)); // To build scene around.
+    let bump = x => Math.max(100, x);
+    let w = bump(b.max.x-b.min.x), l = bump(b.max.z-b.min.z), h = bump(b.max.y-b.min.y);
+    this.size = {w:w, l:l, h:h, diam:Math.sqrt(w*w + l*l + h*h)};
+
+    // Set up camera:
+    this.resetCamera();
+    
+    // Subject:
+    var elementCenter = new THREE.Vector3();
+    b.getCenter(elementCenter);
+    this.baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
+
+    // Background:
+    this.scene.background = new THREE.Color(0xF4F4F4);
+
+    // Lights:
+    this.addPointLight(0xF6E3FF, 0.70,  1.1, this.size.w*1.5, this.size.h*2.0);
+
+    this.setHemisphereLight(0xF4F4FB, 0x30302B, 0.65);
+}
+
 ENV.CameraController = function(scene) {
     this.isCameraController = true;
     

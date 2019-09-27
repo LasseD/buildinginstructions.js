@@ -91,7 +91,7 @@
           animationID = requestAnimationFrame(animateConstruction);
           if(taskListIdx >= taskList.length) {
             scene.mc.updateMeshVisibility(); // Hide lines
-            setTimeout(() => LDR.Colors.loadTextures(() => scene.render(), 200));
+            setTimeout(() => LDR.Colors.loadTextures(() => scene.render()), 200);
             if(LDR.Colors[16].m) { // Hide if nothing can change.
               document.getElementById('color_button').style.display = 'block';
             }

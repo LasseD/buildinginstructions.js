@@ -358,6 +358,7 @@ LDR.Colors.createRandomTexture = function(size, damage, waves, waveSize, speckle
     return texture;
 }
 
+LDR.Colors.envMapPrefix = 'textures/cube/';
 LDR.Colors.listeningMaterials = {trans:[], // Only one trans material.
                                  opaque:[], // -||-
                                  pearl:[],
@@ -393,7 +394,7 @@ LDR.Colors.loadEnvMapTextures = function(render) {
         textureLoader.setPath('textures/');
         var sides = ['px', 'nx', 'py', 'ny', 'pz', 'nz'];
 
-        new THREE.CubeTextureLoader().load(sides.map(x => 'textures/cube/' + x + '.jpg'), updateEnvMaps);
+        new THREE.CubeTextureLoader().load(sides.map(x => LDR.Colors.envMapPrefix + x + '.jpg'), updateEnvMaps);
     }
 }
 
@@ -442,7 +443,8 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
     }
 
     let registerTextureListener = () => {};
-    let createMaterial = p => new THREE.MeshPhongMaterial(p);
+    let createMaterial = p => new THREE.MeshStandardMaterial(p);
+    //let createMaterial = p => new THREE.MeshPhongMaterial(p);
 
     let params = {
         color: colorID < 0 ? (color.edge ? color.edge : 0x333333) : color.value,
@@ -450,8 +452,6 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
         
         roughness: 0.1, // Smooth ABS
         metalness: 0.0,
-        specular: 0xFFFFFF, // Used by black
-        shininess: 82.0, // Used by black
         
         normalMapType: THREE.TangentSpaceNormalMap,
         
@@ -520,6 +520,11 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
             console.warn('Unknown material composition for color ' + colorID + ' -> ' + color.material);
         }
     }
+    else if(colorID === 0) {
+        params.specular = 0xFFFFFF;
+        params.shininess = 82.0;
+        createMaterial = p => new THREE.MeshPhongMaterial(p);
+    }
     else if(color.alpha > 0) {
         registerTextureListener = m => LDR.Colors.listeningMaterials.trans.push(m);
     }
@@ -527,7 +532,7 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
         registerTextureListener = m => LDR.Colors.listeningMaterials.opaque.push(m);
     }
     
-    let m = colorID === 0 ? new THREE.MeshPhongMaterial(params) : new THREE.MeshStandardMaterial(params);
+    let m = createMaterial(params);
     registerTextureListener(m);
 
     if(color.alpha > 0) {
