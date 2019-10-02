@@ -43,6 +43,7 @@ ENV.Scene = function(canvas) {
 
     // Buttons:
     this.moveControllersLeft = function() {
+        let c = self.controllers[self.activeControllerIndex];
         c.deactivate();
         self.activeControllerIndex--;
         if(self.activeControllerIndex < 0) {
@@ -52,6 +53,7 @@ ENV.Scene = function(canvas) {
         c.activate();
     }
     this.moveControllersRight = function() {
+        let c = self.controllers[self.activeControllerIndex];
         c.deactivate();
         self.activeControllerIndex++;
         if(self.activeControllerIndex === self.controllers.length) {
@@ -69,7 +71,6 @@ ENV.Scene = function(canvas) {
 	    return;
         }
         //console.dir(e);
-        let c = self.controllers[self.activeControllerIndex];
         if(e.keyCode === 37) { // Left:
             self.moveControllersLeft();
         }

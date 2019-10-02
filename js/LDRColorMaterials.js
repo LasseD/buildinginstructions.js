@@ -443,24 +443,21 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
     }
 
     let registerTextureListener = () => {};
-    let createMaterial = p => new THREE.MeshStandardMaterial(p);
-    //let createMaterial = p => new THREE.MeshPhongMaterial(p);
+    let createMaterial = p => new THREE.MeshPhongMaterial(p);
 
     let params = {
         color: colorID < 0 ? (color.edge ? color.edge : 0x333333) : color.value,
         name: 'Material for color ' + color.name + ' (' + colorID + ')',
-        
-        roughness: 0.1, // Smooth ABS
-        metalness: 0.0,
-        
-        normalMapType: THREE.TangentSpaceNormalMap,
-        
+        //normalMapType: THREE.TangentSpaceNormalMap, (default)
         // Displacement map will not be used as it affects vertices of the mesh, not pixels,
-        
-        envMapIntensity: 0.35
     };
     
     if(color.material) { // Special materials:
+        createMaterial = p => new THREE.MeshStandardMaterial(p);
+        params.metalness = 0.0;
+        params.roughness = 0.1;
+        params.envMapIntensity = 0.35;
+
         if(color.material === 'CHROME' || color.material === 'METAL') {
             params.metalness = 1.0;
             params.roughness = 0.25;
@@ -521,15 +518,20 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
         }
     }
     else if(colorID === 0) {
-        params.specular = 0xFFFFFF;
-        params.shininess = 82.0;
-        createMaterial = p => new THREE.MeshPhongMaterial(p);
+        registerTextureListener = m => LDR.Colors.listeningMaterials.opaque.push(m);
+        params.specular = 0xFFFFFF; // Increase glare
+        params.shininess = 82;
+        params.reflectivity = 0.9;
     }
     else if(color.alpha > 0) {
         registerTextureListener = m => LDR.Colors.listeningMaterials.trans.push(m);
+        params.shininess = 100;
+        params.reflectivity = 0.8;
     }
     else {
         registerTextureListener = m => LDR.Colors.listeningMaterials.opaque.push(m);
+        params.shininess = 100;
+        params.reflectivity = 0.1;
     }
     
     let m = createMaterial(params);
