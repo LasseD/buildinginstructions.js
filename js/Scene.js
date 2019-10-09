@@ -177,19 +177,18 @@ ENV.Scene.prototype.setHemisphereLight = function(sky, ground, intensity) {
 
 ENV.Scene.prototype.resetCamera = function() {
     let cameraDist = 2*this.size.diam;
-    this.baseObject.position.y = -this.size.h/2;
     this.camera.position.set(cameraDist, 0.7*cameraDist, cameraDist);
-    this.camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+    let b = this.mc.boundingBox;
+    this.camera.lookAt(new THREE.Vector3(0, 0.5*(b.max.y-b.min.y), 0));
 }
 
 ENV.Scene.prototype.repositionFloor = function(dist) {
-    let height = this.mc.boundingBox.min.y - dist;
-
-    this.sides[0].position.y = height; // Floor
-
-    for(let i = 1; i < 5; i++) { // Update the four sides:
-        this.sides[i].position.y = height + this.R;
-    }
+    this.resetCamera();
+    let b = this.mc.boundingBox;
+    this.baseObject.position.set(-b.min.x - 0.5*(b.max.x - b.min.x), 
+				 -b.min.y - dist, 
+				 -b.min.z - 0.5*(b.max.z - b.min.z));
 }
 
 ENV.Scene.prototype.buildStandardScene = function() {
@@ -199,13 +198,10 @@ ENV.Scene.prototype.buildStandardScene = function() {
     let w = bump(b.max.x-b.min.x), l = bump(b.max.z-b.min.z), h = bump(b.max.y-b.min.y);
     this.size = {w:w, l:l, h:h, diam:Math.sqrt(w*w + l*l + h*h)};
 
-    // Set up camera:
-    this.resetCamera();
-    
     // Subject:
     var elementCenter = new THREE.Vector3();
     b.getCenter(elementCenter);
-    this.baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
+    this.baseObject.position.set(-elementCenter.x, elementCenter.y, -elementCenter.z);
     //this.baseObject.add(new THREE.Box3Helper(b, 0xFF00FF));
 
     // Floor and sides:
@@ -225,7 +221,7 @@ ENV.Scene.prototype.buildStandardScene = function() {
     for(let i = 0; i < 5; i++) {
         this.sides[i] = new THREE.Mesh(floorGeometry, i === 0 ? floorMaterial : sideMaterial);
         this.sides[i].receiveShadow = true;
-        this.baseObject.add(this.sides[i]);
+        this.scene.add(this.sides[i]);
     }
 
     // Floor:
@@ -239,6 +235,7 @@ ENV.Scene.prototype.buildStandardScene = function() {
     for(let i = 0; i < 4; i++) {
         let side = this.sides[i+1];
         side.position.x = sidePositionX[i];
+        side.position.y = R;
         side.position.z = sidePositionZ[i];
         side.rotation.y = sideRotation[i];
     }
@@ -399,8 +396,9 @@ ENV.LightController = function(scene, light, h, angle, dist, y) {
 }
 
 ENV.createFloorTexture = function(size, repeats) {
-    if(ENV.FloorTexture)
+    if(ENV.FloorTexture) {
         return ENV.FloorTexture;
+    }
 
     let canvas = document.createElement("canvas");
     canvas.width = canvas.height = size;
@@ -441,6 +439,6 @@ ENV.createFloorTexture = function(size, repeats) {
     texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(repeats, repeats);
     texture.needsUpdate = true; // Otherwise canvas will not be applied.
-    document.body.appendChild(canvas);
+    // document.body.appendChild(canvas);
     return ENV.FloorTexture = texture;
 }
