@@ -13,7 +13,7 @@
    <canvas id="canvas"></canvas>
    <p id="loading_text" style="display:block;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:white;">Loading...</p>
    <div id="color_button" onclick="$('#color_picker_background, #color_picker_holder').fadeIn(250)"></div>
-   <div id="common_buttons">
+   <!--<div id="common_buttons">
     <div id="setup_add_directional_light_button" onclick="scene.addDefaultDirectionalLight();">O</div>
     <div id="setup_add_point_light_button" onclick="scene.addDefaultPointLight();">P</div>
     <div id="setup_remove_right" onclick="scene.removeLight();">DEL</div>
@@ -22,7 +22,7 @@
     <div id="setup_left_button" onclick="scene.moveControllersLeft();">L</div>
     <div id="setup_control_buttons"></div>
     <div id="setup_right_button" onclick="scene.moveControllersRight();">R</div>
-   </div>
+   </div>-->
   </div>
 
   <div id="color_picker">
@@ -56,7 +56,7 @@
       //let model = '3820.dat';
       //let model = '41747ps1.dat';
       //let model = 'models/mf.mpd';
-      //let model = 'box.dat';
+      //let model = '3001.dat';
 
       // Materials:
       //let model = 'models/luminance.ldr';
@@ -113,10 +113,10 @@
 
       var ldrOptions = new LDR.Options();
       ldrOptions.lineContrast = 2; // No lines.
-      let logo = ldrOptions.studs = 0; // 0 for quick draw. 4 for special logo.
+      ldrOptions.studs = 2; // Logos are made using textures
 
       let storage;
-      LDR.Studs.makeGenerators('', 0, logo);
+      LDR.Studs.makeGenerators('', 0, 2);
       storage = {
         retrievePartsFromStorage: (loader, toBeFetched, onDone) => {
           let retrieved = [];

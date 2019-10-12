@@ -151,7 +151,26 @@ LDR.Colors.buildTriangleMaterial = function(colorManager, color) {
     return ret;
 }
 
-LDR.Colors.createRandomTexture = function(size, damage, waves, waveSize, speckle) {
+LDR.Colors.logoPositions = [[-2,-4,2,-5,2,-3.5] // L
+                            ,
+                            [0,-1,0,-2.5], // E (Divided due to middle line)
+                            [-2,0,-2,-2,2,-3,2,-1],
+                            ,
+                            [-1.5,2.25,
+                             -2,1.5,-1.5,0.5,1.5,-0.25,
+                             2,0.5,1.5,1.5,0,2,0,1] //G
+                            ,
+                            [-1.5,4.75,
+                             -2,4,-1.5,3,1.5,2.25,
+                             2,3,1.5,4,-1.5,4.75] // O
+                            ];
+LDR.Colors.logoCurves = [[-1.5, 0.5 , -2,1.5, -1.5,2.25],
+                         [ 1.5,-0.25,  2,0.5,  1.5,1.5 ], // G
+                         [-1.5, 3   , -2,  4, -1.5,4.75],
+                         [ 1.5, 2.25,  2,  3,  1.5,4   ]]; // O
+
+LDR.Colors.createRandomTexture = function(damage, waves, waveSize, speckle) {
+    let size = 512;
     let canvas = document.createElement("canvas");
     canvas.width = canvas.height = size;
 
@@ -161,97 +180,20 @@ LDR.Colors.createRandomTexture = function(size, damage, waves, waveSize, speckle
         d.push(128);
     }
 
-    // Apply logo:
-    /*
-    const LETTER_DX = 2; // of 20
-    const LETTER_DZ = 5; // of 20 (full 1x1 plate width)
-    const M = size/40; // Scale letter -> texture.
-    const R = size/180;
-    const DIST_MULT = 0.5/R*Math.PI;
-    const LOGO_HEIGHT = 0.5;
-    LDR.Generator.logoPositions.forEach(letter => {
-            for(let i = 0; i < letter.length; i+=2) {
-                let X0 = Math.round(size/4 + letter[i]*M);
-                let Y0 = Math.round(size/4 + letter[i+1]*M);
-
-                for(let dx = 0; dx <= R; dx++) {
-                    let dxdx = dx*dx;
-                    for(let dy = Math.floor(Math.sqrt(R*R-dxdx)); dy >= 0; dy--) {
-                        let dist = Math.sqrt(dxdx+dy*dy)*DIST_MULT;
-                        let h = Math.cos(dist) * LOGO_HEIGHT;
-
-                        d[(X0+dx)*size + Y0+dy] =
-                            d[(X0+dx)*size + Y0-dy] =
-                            d[(X0-dx)*size + Y0+dy] =
-                            d[(X0-dx)*size + Y0-dy] = 128 + h;
-                    }
-                }
-            }
-
-            for(let i = 2; i < letter.length; i+=2) {
-                let x1 = letter[i-1], y1 = letter[i-2], x2 = letter[i+1], y2 = letter[i];
-
-                if(y1 === y2) {
-                    if(x1 > x2) { // Swap so x1 <= x2:
-                        let tmp = x1; x1 = x2; x2 = tmp;
-                        tmp = y1; y1 = y2; y2 = tmp;
-                    }
-                    let X1 = Math.round(size/4 + x1*M), Y1 = Math.round(size/4 + y1*M);
-                    let X2 = Math.round(size/4 + x2*M), Y2 = Math.round(size/4 + y2*M);
-
-                    for(let ry = 0; ry <= R; ry++) {
-                        let h = Math.cos(ry/R * Math.PI/2) * LOGO_HEIGHT;
-                        for(let X = X1; X < X2; X++) {
-                            d[X + size*(Y1+ry)] = d[X + size*(Y1-ry)] = 128 + h;
-                        }
-                    }
-                }
-                else {
-                    if(y1 > y2) { // Swap so y1 < y2:
-                        let tmp = x1; x1 = x2; x2 = tmp;
-                        tmp = y1; y1 = y2; y2 = tmp;
-                    }
-
-                    let X1 = Math.round(size/4 + x1*M), Y1 = Math.round(size/4 + y1*M);
-                    let X2 = Math.round(size/4 + x2*M), Y2 = Math.round(size/4 + y2*M);
-                    let DX = X2-X1, DY = Y2-Y1;
-                    let X1X2 = Math.sqrt(DY*DY + DX*DX);
-                    
-                    // Move (X,Y) from Y1 up to Y2: Color X-R to X+R
-
-                    let distance = (x,y) => Math.abs(DY*x - DX*y + X2*Y1 - Y2*X1) / X1X2;
-
-                    const SLOPE = (x2-x1)/(y2-y1);
-                    for(let Y = Y1+1; Y < Y2; Y++) {
-                        let X = X1 + SLOPE*(Y-Y1);
-                        for(let x = Math.floor(X-R); x < X+R+1; x++) {
-                            let D = distance(x, Y);
-                            if(D <= R) {
-                                let h = Math.cos(D/R * Math.PI/2) * LOGO_HEIGHT;
-                                d[x + size*Y] = 128 + h;
-                            }
-                        }
-                    }
-                }
-            }
-        });//*/
-
     // Some randomness:
-    let r = [];
-    for(let i = 0; i < 8; i++) {
-        r.push(0.6+0.8*Math.random());
+    let random = [];
+    for(let i = 0; i < 3; i++) {
+        random.push(0.6+0.8*Math.random());
     }
-
+    
     let pos = 0;
     // Apply waves:
     if(waveSize > 0) {
         for(let y = 0; y < size; y++) {
-            let Y = y;//Math.cos(r[3] + r[4]*waves*y/size);
             for (let x = 0; x < size; x++) {
-                let X = x + x*Math.sin(x*5*r[0]/size);
-                let V = r[1]*X+r[2]*Y;
-                d[pos] += Math.cos(Math.PI*waves*V/size)*waveSize;
-                pos++;
+                let X = x + x*Math.sin(x*5*random[0]/size);
+                let V = random[1]*X+random[2]*y;
+                d[pos++] += Math.cos(Math.PI*waves*V/size)*waveSize;
             }
         }
     }
@@ -291,8 +233,7 @@ LDR.Colors.createRandomTexture = function(size, damage, waves, waveSize, speckle
             let v = new THREE.Vector3(-(a[2]+a[8]-a[6]-a[0]+2*(a[5]-a[3])),
                                       (a[6]+a[8]-a[2]-a[0]+2*(a[7]-a[1])),
                                       1); // Sample left/right neighbours and weight direct neighbours the most.
-            v.normalize().multiplyScalar(128).addScalar(128);//.clampLength(0, 255);
-            //v = new THREE.Vector3(d[pos], d[pos], d[pos]);
+            v.normalize().multiplyScalar(128).addScalar(128);
             ctx.fillStyle = 'rgb(' + Math.round(v.x) + ',' + Math.round(v.y) + ',' + Math.round(v.z) + ')';
 
             ctx.fillRect(x, y, 1, 1);
@@ -317,6 +258,128 @@ LDR.Colors.createRandomTexture = function(size, damage, waves, waveSize, speckle
         }
         ctx.rotate(-numSpeckles);
     }
+
+    // Apply logo:
+    const LETTER_DX = 2; // of 20
+    const LETTER_DZ = 5; // of 20 (full 1x1 plate width)
+    const M = size/40; // Scale letter -> texture.
+    const r = size/400, R = r*2.5; // 400
+    const rr = r*r, RR = R*R;
+    let damper = 1;
+    let clamp = (x,min,max) => x < min ? min : (x > max ? max : x);
+    let toRG = x => Math.round(128 + 127 * x / R * damper);
+    let toB = x => Math.round(128 + 127 * x / R);
+    const SIZE4 = size/4;
+
+    LDR.Colors.logoPositions.forEach(letter => { // For each letter:
+            for(let i = 0; i < letter.length; i+=2) { // Apply dots:
+                let X0 = Math.round(SIZE4 + letter[i+1]*M);
+                let Y0 = Math.round(SIZE4 + letter[i]*M);
+
+                for(let dx = -Math.ceil(R); dx <= R; dx++) {
+                    let dxdx = dx*dx;
+                    let maxDY = Math.floor(Math.sqrt(RR-dxdx));
+                    for(let dy = -maxDY; dy <= maxDY; dy++) {
+                        let distSq = dxdx+dy*dy;
+                        damper = distSq < rr ? 1 : (RR-distSq)/(RR-rr);
+                        let dz = R - Math.sqrt(distSq)*damper;
+                        ctx.fillStyle = 'rgb(' + toRG(dx) + ',' + toRG(-dy) + ',' + toB(dz) + ')';
+                        ctx.fillRect(X0+dx, Y0+dy, 1, 1);
+                    }
+                }
+            } // Apply dots
+
+            // Apply lines:
+            for(let i = 2; i < letter.length; i+=2) {
+                let x1 = letter[i-1], y1 = letter[i-2], x2 = letter[i+1], y2 = letter[i];
+
+                if(y1 === y2) { // Horizontal lines -_-
+                    if(x1 > x2) { // Swap so x1 <= x2:
+                        let tmp = x1; x1 = x2; x2 = tmp;
+                        tmp = y1; y1 = y2; y2 = tmp;
+                    }
+                    let X1 = Math.ceil(SIZE4 + x1*M), Y1 = Math.round(SIZE4 + y1*M);
+                    let DX = Math.ceil(SIZE4 + x2*M - X1);
+
+                    for(let dy = -Math.floor(R); dy <= R; dy++) {
+                        let dydy = dy*dy;
+                        damper = dydy < rr ? 1 : (RR-dydy)/(RR-rr);
+                        let dz = R + (dy < 0 ? dy : -dy)*damper;
+                        ctx.fillStyle = 'rgb(128,' + toRG(-dy) + ',' + toB(dz) + ')';
+                        ctx.fillRect(X1, Y1+dy, DX, 1);
+                    }
+                } // Horizontal lines -_-
+                else { // All other lines:
+                    if(y1 > y2) { // Swap so y1 < y2:
+                        let tmp = x1; x1 = x2; x2 = tmp;
+                        tmp = y1; y1 = y2; y2 = tmp;
+                    }
+
+                    let X1 = Math.round(SIZE4 + x1*M), Y1 = Math.round(SIZE4 + y1*M);
+                    let X2 = Math.round(SIZE4 + x2*M), Y2 = Math.round(SIZE4 + y2*M);
+                    let DX = X2-X1, DY = Y2-Y1;
+                    let X1X2 = Math.sqrt(DY*DY + DX*DX);
+                    let normalizedDX = DX / X1X2;
+                    let normalizedDY = -DY / X1X2;
+                    
+                    // Move (X,Y) from Y1 up to Y2: Color X-R to X+R
+                    let distance = (x,y) => (DY*x - DX*y + X2*Y1 - Y2*X1) / X1X2;
+
+                    const SLOPE = (x2-x1)/(y2-y1);
+                    for(let Y = Y1; Y < Y2; Y++) {
+                        let X = X1 + SLOPE*(Y-Y1);
+                        for(let x = Math.floor(X-R)-1; x < X+R+1; x++) {
+                            let apy = X1-x;
+                            let apx = Y1-Y;
+                            let scalar = apx*normalizedDX + apy*normalizedDY;
+                            let dx = normalizedDX * scalar;
+                            let dy = normalizedDY * scalar;
+                            let distSq = dx*dx + dy*dy;
+                            if(distSq <= RR) {
+                                damper = distSq < rr ? 1 : (RR-distSq)/(RR-rr);
+                                let dz = R - Math.sqrt(distSq)*damper;
+                                ctx.fillStyle = 'rgb(' + toRG(-dy) + ',' + toRG(dx) + ',' + toB(dz) + ')';
+                                ctx.fillRect(x, Y, 1, 1);
+                            }
+                        }
+                    }
+                } // All other lines:
+                } // Apply lines 
+        });// For each letter
+    LDR.Colors.logoCurves.forEach(curve => {
+            let [y1, x1, y2, x2, y3, x3] = curve.map(x => SIZE4 + x*M);
+
+            let [yMin,yMax] = y1 < y2 ? [y1,y2+R] : [y2-R,y1];
+            let [xMin,xMax] = x1 < x3 ? [x1-R,x3+R] : [x3-R,x1+R];
+            let [xMid,yMid] = [(x1+x3)/2, y1];
+            let rX = 1.1*Math.abs(x1-x3)*0.5; // Horizontal radius
+            let rY = Math.abs(y2-y1); // Vertical radius
+
+            let sigma = y2 > y1 ? -1 : 1;
+            for(let y = Math.floor(yMin); y <= yMax; y++) {                
+                for(let x = Math.floor(xMin); x <= xMax; x++) {
+                    let [dx,dy] = [x-xMid,y-yMid];
+
+                    let DX = dx + Math.abs(x2-xMid)*(y-y1)/(yMax-yMin);
+                    let DY = dy - sigma*(rX-rY);
+
+                    let dxdy = Math.sqrt(DX*DX + DY*DY);
+                    let dR = rX - dxdy;
+                    let distSq = dR*dR;
+                    if(distSq > 2*RR) {
+                        continue; // Outside of curve.
+                    }
+
+                    dx = (DX / dxdy) * dR;
+                    dy = (DY / dxdy) * dR;
+                    damper = distSq < rr ? 1 : clamp((RR-distSq)/(RR-rr), 0, 1);
+                    let dz = R - Math.sqrt(distSq)*damper;
+                    
+                    ctx.fillStyle = 'rgb(' + toRG(-dx) + ',' + toRG(dy) + ',' + toB(dz) + ')';
+                    ctx.fillRect(x, y, 1, 1);
+                }
+            }
+        }); // For each curve
 
     // Edges (and corners):
     size = (size+1)/2-1;
@@ -416,20 +479,20 @@ LDR.Colors.loadTextures = function(render) {
     }
 
     setNormalMapsForList(LDR.Colors.listeningMaterials.trans, 
-                         () => LDR.Colors.createRandomTexture(256, 5, 1.4, 0.1));
+                         () => LDR.Colors.createRandomTexture(5, 1.4, 0.1));
     setNormalMapsForList(LDR.Colors.listeningMaterials.opaque,
-                         () => LDR.Colors.createRandomTexture(256, 10, 1, 0.2));
+                         () => LDR.Colors.createRandomTexture(10, 1, 0.2));
     setNormalMapsForList(LDR.Colors.listeningMaterials.pearl,
-                         () => LDR.Colors.createRandomTexture(256, 20, 2.5, 0.05));
+                         () => LDR.Colors.createRandomTexture(20, 2.5, 0.05));
     setNormalMapsForList(LDR.Colors.listeningMaterials.rubber,
-                         () => LDR.Colors.createRandomTexture(128, 10, 0.3, 0.1));
+                         () => LDR.Colors.createRandomTexture(10, 0.3, 0.1));
     setNormalMapsForList(LDR.Colors.listeningMaterials.metal,
-                         () => LDR.Colors.createRandomTexture(256, 100, 0.6, 1.6));
+                         () => LDR.Colors.createRandomTexture(100, 0.6, 1.6));
     for(let colorID in LDR.Colors.listeningMaterials.speckle) {
         if(LDR.Colors.listeningMaterials.speckle.hasOwnProperty(colorID)) {            
             let s = LDR.Colors.speckleInfo[colorID];
             setNormalMapsForList(LDR.Colors.listeningMaterials.speckle[colorID],
-                                 () => LDR.Colors.createRandomTexture(256, 5, 1.4, 0.1, s));
+                                 () => LDR.Colors.createRandomTexture(5, 1.4, 0.1, s));
         }
     }
 

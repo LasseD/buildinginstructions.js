@@ -55,7 +55,7 @@ LDR.vertexEqual = function(a, b) {
 }
 
 LDR.LDRGeometry = function() {
-    this.vertices = []; // sorted (x,y,z).
+    this.vertices = []; // Sorted (x,y,z,o), where 'o' is a LEGO-logo indicator.
     this.lines = {}; // c -> [{p1,p2},...] (color -> indices)
     this.conditionalLines = {}; // c -> [{p1,p2,p3,p4},...]
     this.triangles = {}; // c -> [{p1,p2,p3},...]
@@ -487,7 +487,7 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
             let dx = v => (v.x-b.min.x)/size.x;
             let dy = v => (v.y-b.min.y)/size.y;
             let dz = v => (v.z-b.min.z)/size.z;
-            let [UVU, UVV] = [[0,0],[0,0.5],[0.5,0]][Math.floor(Math.random()*3)]; // Which of the 3 cells to use for the UV mapping (not 1,1 with the LEGO logo)
+            let [UVU, UVV] = [[0.5,0.5],[0,0],[0.5,0]][Math.floor(Math.random()*3)]; // Which of the 3 cells to use for the UV mapping (not 1,1 with the LEGO logo)
 
             function setUVs(indices) {
                 const len = indices.length;
@@ -503,8 +503,7 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                     if(!force) {
                         let prevprev = ret[ret.length-2];
                         let prev = ret[ret.length-1];
-                        let turn = uv => (prev.u-prevprev.u)*(uv.v-prevprev.v) -
-                            (prev.v-prevprev.v)*(uv.u-prevprev.u);
+                        let turn = uv => (prev.u-prevprev.u)*(uv.v-prevprev.v) - (prev.v-prevprev.v)*(uv.u-prevprev.u);
                         for(let i = 0; i < ret.length; i++) {
                             let uv = ret[i];
                             if(Math.abs(prev.u-uv.u) < LDR.EPS && Math.abs(prev.v-uv.v) < LDR.EPS ||
@@ -551,23 +550,45 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                 }
                 if(atLeast3EqualNormals()) { // Just project onto the plane where the normals point the most:
                     // First check if this is a simple rectilinear face:
+                    let DX, DY, DZ;
+                    if(vs.some(v => v.o === true)) {
+                        let origo = vs.find(v => v.o === true);
+
+                        DX = v => 0.5+(v.x-origo.x)/20;
+                        DY = v => 0.5+(v.y-origo.y)/20;
+                        DZ = v => 0.5+(v.z-origo.z)/20;
+                        setUV = function(fu, fv) {
+                            let ret = vs.map((v,i) => {return {u:fu(v, i), v:fv(v, i)};});
+                            ret.forEach((uv, i) => {
+                                    let idx = 2*indices[i];
+                                    uvs[idx] = 0.5*uv.u;
+                                    uvs[idx+1] = 0.5*uv.v + 0.5;
+                                });
+                        }
+                    }
+                    else {
+                        DX = dx;
+                        DY = dy;
+                        DZ = dz;
+                    }
+
                     if(maxDiff(vs.map(v => v.x)) < LDR.EPS) { // y/z projection:
-                        setUV(dy, dz, true);
+                        setUV(DY, DZ, true);
                     }
                     else if(maxDiff(vs.map(v => v.y)) < LDR.EPS) {
-                        setUV(dx, dz, true);
+                        setUV(DX, DZ, true);
                     }
                     else if(maxDiff(vs.map(v => v.z)) < LDR.EPS) {
-                        setUV(dx, dy, true);
+                        setUV(DX, DY, true);
                     }
                     else if(NX >= NY && NX >= NZ) {
-                        setUV(dy, dz, true);
+                        setUV(DY, DZ, true);
                     }
                     else if(NY >= NX && NY >= NZ) {
-                        setUV(dx, dz, true);
+                        setUV(DX, DZ, true);
                     }
                     else { // NZ >= both NX and NY
-                        setUV(dx, dy, true);
+                        setUV(DX, DY, true);
                     }
                     return;
                 }
@@ -679,7 +700,7 @@ LDR.LDRGeometry.prototype.replaceWith = function(g) {
 
 LDR.LDRGeometry.prototype.replaceWithDeep = function(g) {
     let self = this;
-    g.vertices.forEach(v => self.vertices.push({x:v.x, y:v.y, z:v.z}));
+    g.vertices.forEach(v => self.vertices.push({x:v.x, y:v.y, z:v.z, o:v.o}));
 
     for(let c in g.lines) {
 	if(!g.lines.hasOwnProperty(c)) {
@@ -771,7 +792,7 @@ LDR.LDRGeometry.prototype.sortAndBurnVertices = function(vertices, primitives) {
     for(let i = 0; i < vertices.length; i++) {
 	let v = vertices[i];
 	if(!(prev && LDR.vertexEqual(prev, v))) {
-	    this.vertices.push({x:v.x, y:v.y, z:v.z});
+            this.vertices.push({x:v.x, y:v.y, z:v.z, o:false});                        
 	}
 
         let p = primitives[v.c][v.idx];
@@ -912,15 +933,12 @@ LDR.LDRGeometry.prototype.fromStep = function(loader, step) {
 }
 
 LDR.LDRGeometry.prototype.fromPartType = function(loader, pt) {
-    let geometries = [];
-
-    pt.steps.forEach(step => {
-            let g = new LDR.LDRGeometry();
-            g.fromStep(loader, step);
-            geometries.push(g);
-        }); // Only one step expected, but we do not know if someone suddenly gets the bright idea to have stes in part files..
-
-    this.replaceWith(LDR.mergeGeometries(geometries));
+    if(pt.steps.length === 1) {
+        this.fromStep(loader, pt.steps[0]);
+    }
+    else {
+        console.warn('Expected 1 step. Skipping geometry for ' + pt.ID);
+    }
 }
 
 LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
@@ -983,16 +1001,19 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
     
     // Update and re-sort the vertices:
     // First decorate with initial index and update position:
+    let position = new THREE.Vector3();
+    let lp = pd.logoPosition;
     for(let i = 0; i < this.vertices.length; i++) {
 	let v = this.vertices[i];
 	v.oldIndex = i;
 	
-	let position = new THREE.Vector3(v.x, v.y, v.z);
+	position.set(v.x, v.y, v.z);
 	position.applyMatrix3(pd.rotation);
 	position.add(pd.position);
 	v.x = position.x;
 	v.y = position.y;
 	v.z = position.z;
+        v.o = v.o || (lp && lp.x === v.x && lp.y === v.y && lp.z === v.z);
     }
     let newIndices = [];
     this.vertices.sort(LDR.vertexSorter);
@@ -1104,6 +1125,7 @@ LDR.LDRGeometry.prototype.merge = function(other) {
 	if(LDR.vertexEqual(pThis, pOther)) {
 	    indexMapThis.push(mergedVertices.length);
 	    indexMapOther.push(mergedVertices.length);
+            pThis.o = pThis.o || pOther.o;
 	    mergedVertices.push(pThis);
 	    ++idxThis;
 	    ++idxOther;

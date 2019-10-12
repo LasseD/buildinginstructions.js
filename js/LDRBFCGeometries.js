@@ -275,19 +275,12 @@ LDR.BFCGeometry.prototype.fromStep = function(loader, step) {
 }
 
 LDR.BFCGeometry.prototype.fromPartType = function(loader, pt) {
-    let geometries = [];
-    if(pt.steps.length === 0) {
-	console.warn("No steps in " + pt.ID);
-	return; // Empty - just make empty.
+    if(pt.steps.length === 1) {
+        this.fromStep(loader, pt.steps[0]);
     }
-
-    pt.steps.forEach(step => { // Each step has BFC and culling info.
-            let g = new LDR.BFCGeometry();
-            g.fromStep(loader, step);
-            geometries.push(g);
-        }); // Only one step expected, but we do not know if someone suddenly gets the bright idea to have stes in part files..
-
-    this.replaceWith(LDR.mergeGeometries(geometries));
+    else {
+        console.log('Expected 1 step. Skipping geometry for ' + pt.ID);
+    }
 }
 
 LDR.BFCGeometry.prototype.fromPartDescription = function(loader, pd) {
