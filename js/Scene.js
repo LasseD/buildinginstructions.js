@@ -181,6 +181,7 @@ ENV.Scene.prototype.resetCamera = function() {
 
     let b = this.mc.boundingBox;
     this.camera.lookAt(new THREE.Vector3(0, 0.5*(b.max.y-b.min.y), 0));
+    this.orbitControls.update();
 }
 
 ENV.Scene.prototype.repositionFloor = function(dist) {
