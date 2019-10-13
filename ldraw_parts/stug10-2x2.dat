@@ -1,0 +1,20 @@
+0 Stud Group For Round  2 x  2 Parts
+0 Name: stug10-2x2.dat
+0 Author: Magnus Forsberg [MagFors]
+0 !LDRAW_ORG Primitive UPDATE 2019-01
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+
+0 BFC CERTIFY CCW
+
+0 !HISTORY 2019-06-28 [PTadmin] Official Update 2019-01
+
+0 // activate next lines to add logos on studs
+0 // 1 16 10 -4 10 1 0 0 0 1 0 0 0 1 logo5.dat
+0 // 1 16 -10 -4 10 1 0 0 0 1 0 0 0 1 logo5.dat
+0 // 1 16 -10 -4 -10 1 0 0 0 1 0 0 0 1 logo5.dat
+0 // 1 16 10 -4 -10 1 0 0 0 1 0 0 0 1 logo5.dat
+
+1 16 10 0 10 1 0 0 0 1 0 0 0 1 stud10.dat
+1 16 -10 0 10 0 0 -1 0 1 0 1 0 0 stud10.dat
+1 16 10 0 -10 0 0 1 0 1 0 -1 0 0 stud10.dat
+1 16 -10 0 -10 -1 0 0 0 1 0 0 0 -1 stud10.dat

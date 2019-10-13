@@ -1,0 +1,23 @@
+0 Technic Axle Hole Semi-Reduced Tooth Surface
+0 Name: axl3ho10.dat
+0 Author: Santeri Piippo [arezey]
+0 !LDRAW_ORG Primitive UPDATE 2011-01
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+
+0 BFC CERTIFY CCW
+
+0 !HISTORY 2011-07-25 [PTadmin] Official Update 2011-01
+
+4 16 -2.5 0 2.5 -2.791 0 5.213 -4.243 0 4.243 -5.213 0 2.791
+0 //
+4 16 2.5 0 -2.5 2.791 0 -5.213 4.243 0 -4.243 5.213 0 -2.791
+0 //
+4 16 -5.602 0 -2 -5.543 0 -2.296 -4.243 0 -4.243 -4 0 -2
+4 16 -4 0 -2 -4.243 0 -4.243 -2 0 -4 -2.5 0 -2.5
+4 16 -2.296 0 -5.543 -2 0 -5.602 -2 0 -4 -4.243 0 -4.243
+0 //
+4 16 5.602 0 2 5.543 0 2.296 4.243 0 4.243 4 0 2
+4 16 4 0 2 4.243 0 4.243 2 0 4 2.5 0 2.5
+4 16 2.296 0 5.543 2 0 5.602 2 0 4 4.243 0 4.243
+0 //
+0
