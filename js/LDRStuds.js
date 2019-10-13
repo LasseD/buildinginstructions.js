@@ -178,7 +178,7 @@ LDR.Studs.makeStud2 = function(highContrast, logoType, force) {
         step.addSubModel(new THREE.LDRPartDescription(16, p0, r061, 'logo.dat', true, false));
     }
     else if(logoType === 2) {
-        let p5 = new THREE.Vector3(0, 0.5, 0);
+        let p5 = new THREE.Vector3(0, -0.5, 0);
 
         let logoSM = new THREE.LDRPartDescription(16, p5, r41, force+'4-4disc.dat', true, false);;
         step.addSubModel(logoSM);
@@ -427,7 +427,7 @@ LDR.Studs.makeStud17 = function(highContrast, logoType, force, withoutBaseEdges)
         step.addSubModel(new THREE.LDRPartDescription(16, p0, r061, 'logo.dat', true, false));
     }
     else if(logoType === 2) {
-        let p5 = new THREE.Vector3(0, 0.5, 0);
+        let p5 = new THREE.Vector3(0, -0.5, 0);
         let logoSM = new THREE.LDRPartDescription(16, p5, r41, force+'4-4disc.dat', true, false);
         logoSM.logoPosition = p5;
         step.addSubModel(logoSM);
@@ -540,7 +540,7 @@ LDR.Studs.makeStud6 = function(highContrast, logoType, force, withoutBaseEdges) 
         step.addSubModel(new THREE.LDRPartDescription(16, p0, r061, 'logo.dat', true, false));
     }
     else if(logoType === 2) {
-        let p5 = new THREE.Vector3(0, 0.5, 0);
+        let p5 = new THREE.Vector3(0, -0.5, 0);
         let logoSM = new THREE.LDRPartDescription(16, p5, r41, force+'4-4disc.dat', true, false);
         logoSM.logoPosition = p5;
         step.addSubModel(logoSM);

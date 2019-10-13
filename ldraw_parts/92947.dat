@@ -1,0 +1,36 @@
+0 Brick  2 x  2 Round with Grille
+0 Name: 92947.dat
+0 Author: Joerg Sommerer [Brickaneer]
+0 !LDRAW_ORG Part UPDATE 2011-02
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+
+0 BFC CERTIFY CCW
+
+0 !HISTORY 2011-12-29 [PTadmin] Official Update 2011-02
+
+1 16 0 16 0 0 0 -1 0 -16 0 -1 0 0 axl3ho10.dat
+1 16 0 16 0 1 0 0 0 16 0 0 0 1 axl3hol3.dat
+1 16 0 16 0 1 0 0 0 16 0 0 0 1 axl3hol9.dat
+1 16 0 0 0 1 0 0 0 16 0 0 0 1 axl3hol8.dat
+1 16 0 0 0 1 0 0 0 16 0 0 0 1 axl3ho10.dat
+1 16 0 0 0 1 0 0 0 16 0 0 0 1 axl3hol9.dat
+1 16 0 0 0 1 0 0 0 16 0 0 0 1 axl3hol2.dat
+1 16 0 16 0 1 0 0 0 -2 0 0 0 -1 STUD4A.dat
+1 16 0 4 0 8 0 0 0 12 0 0 0 8 4-4cyli.dat
+1 16 0 4 0 8 0 0 0 1 0 0 0 8 4-4edge.dat
+1 16 0 4 0 8 0 0 0 -1 0 0 0 -8 4-4ring1.dat
+1 16 0 4 0 16 0 0 0 1 0 0 0 16 4-4edge.dat
+0 BFC INVERTNEXT
+1 16 0 4 0 16 0 0 0 16 0 0 0 16 4-4cyli.dat
+1 16 0 0 0 0 0 -1 0 1 0 -1 0 0 s\92947s00.dat
+1 16 0 0 0 1 0 0 0 1 0 0 0 1 s\92947s00.dat
+1 16 0 0 0 1 0 0 0 1 0 0 0 -1 s\92947s00.dat
+1 16 0 0 0 0 0 -1 0 1 0 1 0 0 s\92947s00.dat
+1 16 0 0 0 0 0 1 0 1 0 1 0 0 s\92947s00.dat
+1 16 0 0 0 -1 0 0 0 1 0 0 0 -1 s\92947s00.dat
+1 16 0 0 0 -1 0 0 0 1 0 0 0 1 s\92947s00.dat
+1 16 0 0 0 0 0 1 0 1 0 -1 0 0 s\92947s00.dat
+1 16 10 0 10 1 0 0 0 1 0 0 0 1 stud15.dat
+1 16 10 0 -10 0 0 1 0 1 0 -1 0 0 stud15.dat
+1 16 -10 0 -10 -1 0 0 0 1 0 0 0 -1 stud15.dat
+1 16 -10 0 10 0 0 -1 0 1 0 1 0 0 stud15.dat

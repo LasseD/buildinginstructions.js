@@ -515,7 +515,7 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                                     console.dir(ns);
                                     console.dir('Computed U`s:');
                                     console.dir(ret);
-                                    console.dir('Turn angle where the check failed: ' + turn(uv));
+                                    console.dir('Turn angle check at failure: ' + turn(uv));
                                     console.warn("Degenerate UV! " + uv.u + ', ' + uv.v);
                                     LDR.LDRGeometry.UV_WarningWritten = true;
                                 }
@@ -553,10 +553,15 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                     let DX, DY, DZ;
                     if(vs.some(v => v.o === true)) {
                         let origo = vs.find(v => v.o === true);
+                        let anyOther = vs.find(v => v.o !== true);
+                        DX = origo.x - anyOther.x;
+                        DY = origo.y - anyOther.y;
+                        DZ = origo.z - anyOther.z;
+                        let radius = 3*Math.sqrt(DX*DX + DY*DY + DZ*DZ);
 
-                        DX = v => 0.5+(v.x-origo.x)/20;
-                        DY = v => 0.5+(v.y-origo.y)/20;
-                        DZ = v => 0.5+(v.z-origo.z)/20;
+                        DX = v => 0.5+(v.x-origo.x)/radius;
+                        DY = v => 0.5+(v.y-origo.y)/radius;
+                        DZ = v => 0.5+(v.z-origo.z)/radius;
                         setUV = function(fu, fv) {
                             let ret = vs.map((v,i) => {return {u:fu(v, i), v:fv(v, i)};});
                             ret.forEach((uv, i) => {
@@ -788,25 +793,27 @@ LDR.LDRGeometry.prototype.fromPrimitives = function(cull, lines, conditionalLine
  */
 LDR.LDRGeometry.prototype.sortAndBurnVertices = function(vertices, primitives) {
     vertices.sort(LDR.vertexSorter);
+    let idx = this.vertices.length-1;
     let prev;
     for(let i = 0; i < vertices.length; i++) {
 	let v = vertices[i];
 	if(!(prev && LDR.vertexEqual(prev, v))) {
-            this.vertices.push({x:v.x, y:v.y, z:v.z, o:false});                        
+            this.vertices.push({x:v.x, y:v.y, z:v.z, o:false});
+            idx++;
 	}
 
         let p = primitives[v.c][v.idx];
 	if(v.p === 1) {
-	    p.p1 = this.vertices.length-1;
+	    p.p1 = idx;
         }
 	else if(v.p === 2) {
-	    p.p2 = this.vertices.length-1;
+	    p.p2 = idx;
         }
 	else if(v.p === 3) {
-	    p.p3 = this.vertices.length-1;
+	    p.p3 = idx;
         }
 	else {
-	    p.p4 = this.vertices.length-1;
+	    p.p4 = idx;
         }
 	prev = v;
     }
