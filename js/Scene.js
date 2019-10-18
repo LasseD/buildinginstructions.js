@@ -13,6 +13,8 @@ ENV.Scene = function(canvas) {
     this.hemisphereLight;
 
     this.scene = new THREE.Scene();
+    this.roomObject = new THREE.Group();
+    this.scene.add(this.roomObject);
     this.R; // Radius of floor.
     this.sides = [null, null, null, null, null]; // floor, N, E, S, W
 
@@ -101,7 +103,7 @@ ENV.Scene.prototype.render = function() {
 ENV.Scene.prototype.onCameraMoved = function() {
     let cameraDist = this.camera.position.length();
     this.camera.near = Math.max(0.5, cameraDist - this.size.diam*3);
-    this.camera.far = cameraDist + this.size.diam*3;
+    this.camera.far = cameraDist + this.size.diam*4;
 
     this.camera.updateProjectionMatrix();
     this.render();
@@ -176,19 +178,19 @@ ENV.Scene.prototype.setHemisphereLight = function(sky, ground, intensity) {
 }
 
 ENV.Scene.prototype.resetCamera = function() {
-    let cameraDist = 2*this.size.diam;
-    this.camera.position.set(cameraDist, 0.7*cameraDist, cameraDist);
-
-    let b = this.mc.boundingBox;
-    this.camera.lookAt(new THREE.Vector3(0, 0.5*(b.max.y-b.min.y), 0));
+    let cameraDist = 1.4*this.size.diam;
+    this.camera.position.set(cameraDist, 0.65*cameraDist, cameraDist);
+    this.camera.lookAt(new THREE.Vector3());
 }
 
 ENV.Scene.prototype.repositionFloor = function(dist) {
-    this.resetCamera();
+    this.resetCamera(); // Updates distance
+
     let b = this.mc.boundingBox;
     this.baseObject.position.set(-b.min.x - 0.5*(b.max.x - b.min.x), 
-				 -b.min.y - dist, 
+				 -b.min.y - 0.5*(b.max.y - b.min.y), 
 				 -b.min.z - 0.5*(b.max.z - b.min.z));
+    this.roomObject.position.set(0, dist - 0.5*(b.max.y - b.min.y), 0);
 }
 
 ENV.Scene.prototype.buildStandardScene = function() {
@@ -205,7 +207,7 @@ ENV.Scene.prototype.buildStandardScene = function() {
     //this.baseObject.add(new THREE.Box3Helper(b, 0xFF00FF));
 
     // Floor and sides:
-    let R = this.R = 1.6 * this.size.diam;
+    let R = this.R = 2.6 * this.size.diam;
     var floorGeometry = new THREE.PlaneBufferGeometry(2*R, 2*R);
     var floorMaterial = new THREE.MeshStandardMaterial({
             color: 0xFEFEFE,
@@ -221,7 +223,7 @@ ENV.Scene.prototype.buildStandardScene = function() {
     for(let i = 0; i < 5; i++) {
         this.sides[i] = new THREE.Mesh(floorGeometry, i === 0 ? floorMaterial : sideMaterial);
         this.sides[i].receiveShadow = true;
-        this.scene.add(this.sides[i]);
+        this.roomObject.add(this.sides[i]);
     }
 
     // Floor:
