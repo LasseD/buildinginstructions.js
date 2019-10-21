@@ -20,6 +20,7 @@ LDR.Generator.map = {
     '4-4cyls.dat': () => LDR.Generator.makeCylinderSloped(4),
     '1-4disc.dat': () => LDR.Generator.makeDisc(1),
     '2-4disc.dat': () => LDR.Generator.makeDisc(2),
+    //'3-4disc.dat': () => LDR.Generator.makeDisc(3), // TODO Check that this is correct!
     '4-4disc.dat': () => LDR.Generator.makeDisc(4),
     '2-4ring1.dat': () => LDR.Generator.makeRing(2, 1),
     '4-4ring2.dat': () => LDR.Generator.makeRing(4, 2),
@@ -264,7 +265,7 @@ LDR.Generator.makeLogo1 = function() {
             let p1 = new THREE.Vector3(letter[i-2], 0, letter[i-1]);
             let p2 = new THREE.Vector3(letter[i], 0, letter[i+1]);
 	    step.addLine(24, p1, p2);
-	}    
+	}
     });
 
     pt.steps.push(step); // No need to user 'addStep()' for primitives.

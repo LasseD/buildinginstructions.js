@@ -32,6 +32,7 @@ ENV.Scene = function(canvas) {
     this.orbitControls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
     this.orbitControls.addEventListener('change', () => self.onCameraMoved());
     this.orbitControls.handleKeys = false;
+    this.orbitControls.screenSpacePanning = true;
     this.controllers.push(new ENV.CameraController(this));
     
     // Rendering elements:
