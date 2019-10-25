@@ -1,11 +1,54 @@
 <!DOCTYPE html>
 <html>
  <head>
-    <meta charset=utf-8>
-    <title>Sample Render</title>
-    <meta name="viewport" content="width=device-width" />
+  <meta charset=utf-8>
+  <title>Sample Render</title>
+  <meta name="viewport" content="width=device-width" />
  </head>
  <body>
+  <script id="vertexShader" type="x-shader/x-vertex">
+precision highp float;
+precision mediump int;
+
+uniform vec4 color;
+uniform float centerDist;
+uniform mat4 projectionMatrix;
+uniform mat4 modelViewMatrix;
+
+attribute vec3 position;
+
+varying vec4 vColor;
+varying float cameraDist;
+
+void main(){
+    vColor = color;
+    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+    cameraDist = (mvPosition.z - centerDist) / 1000000.0;;
+    gl_Position = projectionMatrix * mvPosition;
+}
+  </script>
+  <script id="fragmentShader" type="x-shader/x-fragment">
+      #include <packing>
+
+      varying vec4 vColor;
+      varying vec2 vUv;
+
+      uniform sampler2D tDepth;
+      uniform float cameraNear;
+      uniform float cameraFar;
+
+      float readDepth( sampler2D depthSampler, vec2 coord ) {
+        float fragCoordZ = texture2D( depthSampler, coord ).x;
+        float viewZ = perspectiveDepthToViewZ( fragCoordZ, cameraNear, cameraFar );
+        return viewZToOrthographicDepth( viewZ, cameraNear, cameraFar );
+      }
+
+      void main() {
+        float depth = readDepth( tDepth, vUv );
+        gl_FragColor = color;//.rgb = 1.0 - vec3( depth );
+        gl_FragColor.a = depth;
+      }
+    </script>
     <script src="js/three.min.js"></script>
     <script src="js/OrbitControls.js"></script>
     <script src="js/colors.js"></script>
@@ -18,27 +61,67 @@
     <script src="js/LDRGenerator.js"></script>
     <script src="js/LDRStuds.js"></script>
     <script>
-      var startTime = new Date();
-      // The model to be rendered:
-      var model = 'models/corvette_full.mpd';
+      let camera, target;
+
+      LDR.Colors.buildTriangleMaterial = function(colorManager, color) {
+        colorManager = colorManager.clone();
+        colorManager.overWrite(color);
+        let colors = colorManager.shaderColors;
+        let len = colors.length;
+
+        let uniforms = {tDepth: {value: target.depthTexture}};
+        if(LDR.Colors.canBeOld) {
+	    uniforms['old'] = {value: false};
+        }
+        if(len > 1) {
+	    uniforms['colors'] = {type: 'v4v', value: colors};
+        }
+        else {
+	    uniforms['color'] = {type: 'v4', value: colors[0]};
+        }
+        let ret = new THREE.RawShaderMaterial({
+            side: THREE.DoubleSide,
+            //side: THREE.FrontSide,
+	    uniforms: uniforms,
+            vertexShader: document.getElementById('vertexShader').textContent,
+            fragmentShader: document.getElementById('fragmentShader').textContent,
+	    transparent: true//colorManager.containsTransparentColors()
+        });
+        ret.colorManager = colorManager;
+        return ret;
+      }
+
+      //let model = 'models/corvette_full.mpd';
+      let model = '3024.dat';
 
       // Set up camera:
-      var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
+      camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
       camera.position.set(10000, 7000, 10000);
       camera.lookAt(new THREE.Vector3());
 
       // Set up scene:
-      var scene = new THREE.Scene();
+      let scene = new THREE.Scene();
       scene.background = new THREE.Color(0xFFFFFF);
 
-      var baseObject = new THREE.Group(), opaqueObject = new THREE.Group(), transObject = new THREE.Group();
+      // Depth texture for transparent parts:
+      target = new THREE.WebGLRenderTarget( window.innerWidth, window.innerHeight );
+      target.texture.format = THREE.RGBFormat;
+      target.texture.minFilter = THREE.NearestFilter;
+      target.texture.magFilter = THREE.NearestFilter;
+      target.texture.generateMipmaps = false;
+      target.stencilBuffer = false;
+      target.depthBuffer = true;
+      target.depthTexture = new THREE.DepthTexture();
+      target.depthTexture.type = THREE.ShortType;
+
+      let baseObject = new THREE.Group(), opaqueObject = new THREE.Group(), transObject = new THREE.Group();
       baseObject.add(opaqueObject); // Draw non-trans before trans.
       baseObject.add(transObject);
       scene.add(baseObject);
-      var mc = new LDR.MeshCollector(opaqueObject, transObject);
+      let mc = new LDR.MeshCollector(opaqueObject, transObject);
 
       // Set up renderer:
-      var renderer = new THREE.WebGLRenderer({antialias: true});
+      let renderer = new THREE.WebGLRenderer({antialias: true});
       renderer.setPixelRatio(window.devicePixelRatio);
       function render() {
         renderer.render(scene, camera);
@@ -56,47 +139,43 @@
       }
 
       // React to user input:
-      var controls = new THREE.OrbitControls(camera, renderer.domElement);
+      let controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.addEventListener('change', render);
       window.addEventListener('resize', onWindowResize, false);
 
       // Three.js loader for LDraw models:
-      var ldrLoader;
+      let ldrLoader;
 
-      var onLoad = function() {
-        var mainModel = ldrLoader.getMainModel(); // Main model from the LDraw file (first model encountered)
+      let onLoad = function() {
+        let mainModel = ldrLoader.getMainModel(); // Main model from the LDraw file (first model encountered)
 
         // Place model in scene:
-        var origo = new THREE.Vector3();
-        var inv = new THREE.Matrix3(); 
+        let origo = new THREE.Vector3();
+        let inv = new THREE.Matrix3(); 
         inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
 
         // Generate the mesh:
         mainModel.generateThreePart(ldrLoader, 4, origo, inv, true, false, mc);
 
         // Find center of drawn model:
-        var b = mc.boundingBox;
-        var elementCenter = new THREE.Vector3();
+        let b = mc.boundingBox;
+        let elementCenter = new THREE.Vector3();
         b.getCenter(elementCenter);
         baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
-        //baseObject.add(new THREE.Box3Helper(b, 0x0000FF)); // Uncomment if you want to see the bounding box
 
 	camera.zoom = window.innerWidth/b.min.distanceTo(b.max);
         onWindowResize();
-        console.log("Model rendered in " + (new Date()-startTime) + "ms.");
       }
 
       let storage;
-      var ldrOptions = new LDR.Options(); // Determine how to show lines, studs, and logos. Change options using sample_instruction.htm
+      let ldrOptions = new LDR.Options(); // Determine how to show lines, studs, and logos. Change options using sample_instruction.htm
 
       let onStorageReady = function() {
         ldrLoader = new THREE.LDRLoader(onLoad, storage);
         LDR.Studs.setStuds(ldrLoader, ldrOptions.studHighContrast, 
                            ldrOptions.studLogo, () => ldrLoader.load(model));
       }
-
-      //storage = new LDR.STORAGE(onStorageReady);
-      onStorageReady();
+      storage = new LDR.STORAGE(onStorageReady);
  </script>
  </body>
 </html>
