@@ -116,6 +116,7 @@ LDR.PLIBuilder.prototype.createClickMap = function(step) {
 		pt.author = partType.author;
 		pt.license = partType.license;
 		pt.inlined = partType.inlined;
+                pt.isPart = partType.isPart;
 		pt.steps.push(step);
 		this.loader.partTypes[partID] = pt;
 	    }
