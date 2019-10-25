@@ -225,42 +225,40 @@ THREE.LDRLoader.prototype.parse = function(data) {
             return true; // Description set.
 	}
 
-	function handlePotentialFileStart(originalFileName) {
+	function handleFileOrNameLine(originalFileName) {
 	    // Normalize the name by bringing to lower case and replacing backslashes:
 	    let fileName = originalFileName.toLowerCase().replace('\\', '/');
 	    localCull = false; // BFC Statements come after the FILE or Name: - directives.
+	    let isEmpty = part.steps.length === 0 && step.isEmpty();
 
 	    if(part.ID === fileName) { // Consistent 'FILE' and 'Name:' lines.
 		setModelDescription();
 		part.consistentFileAndName = true;
 	    }
-	    else if(!self.mainModel) { // First model
+	    else if(isEmpty && !self.mainModel) { // First model
 		self.mainModel = part.ID = fileName;
 	    }
-	    else if(part.steps.length === 0 && step.isEmpty() && self.mainModel === part.ID) {
+	    else if(isEmpty && self.mainModel && self.mainModel === part.ID) {
 		console.warn("Special case: Main model ID change from " + part.ID + " to " + fileName);
 		self.mainModel = part.ID = fileName;
 	    }
-	    else { // Close model and start new:
-		if(part.steps.length === 0 && step.isEmpty() && part.ID && !part.consistentFileAndName) {
+	    else { // Close model and start new as no FILE directive has been encountered:
+		if(isEmpty && part.ID && !part.consistentFileAndName) {
 		    console.warn("Special case: Empty '" + part.ID + "' does not match '" + fileName + "' - Create new shallow part!");		
 		    // Create pseudo-model with just one of 'fileName' inside:
-		    let rotation = new THREE.Matrix3();
-		    rotation.set(1, 0, 0, 0, 1, 0, 0, 0, 1);
-		    let shallowSubModel = new THREE.LDRPartDescription(16, 
-								       new THREE.Vector3(),
-								       rotation, 
-								       fileName,
-								       true,
-								       false);
-		    step.addSubModel(shallowSubModel);
+		    let r = new THREE.Matrix3(); r.set(1, 0, 0, 0, 1, 0, 0, 0, 1);
+		    step.addSubModel(new THREE.LDRPartDescription(16, new THREE.Vector3(), r, fileName, true, false));
 		}
 		closeStep(false);
-		if(part.ID) {
-		    self.partTypes[part.ID] = part;
-		    self.onProgress(part.ID);
-                    loadedParts.push(part);
+
+		if(!part.ID) { // No ID in main model: 
+		    console.warn('No ID in main model - setting default ID.');
+		    self.mainModel = part.ID = 'missing_main_model_id_in_file_using_default_name.ldr';
 		}
+		self.partTypes[part.ID] = part;
+		self.onProgress(part.ID);
+                loadedParts.push(part);
+
 		part = new THREE.LDRPartType();
                 inHeader = true;
 		part.ID = fileName;
@@ -272,8 +270,8 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	switch(lineType) {
 	case 0:
 	    if(is("FILE") || is("file") || is("Name:")) {
-		// LDR FILE or 'Name:' line found. Set name and update data in case this is a new ldr file (do not use file suffix to determine).
-		handlePotentialFileStart(parts.slice(2).join(" "));
+		// LDR FILE or 'Name:' line found. Set name and update data in case this is a new file (do not use file suffix to determine as people are wildly inconsistent with the standard when creating these files).
+		handleFileOrNameLine(parts.slice(2).join(" "));
                 saveThisHeaderLine = false;
 	    }
 	    else if(is("Author:")) {
@@ -1173,7 +1171,7 @@ THREE.LDRStep.prototype.cleanUp = function(loader, newSteps) {
             parts.push(subModelDesc);
         }
         else { // Not a part:
-            subModel.cleanUp(loader);
+	    subModel.cleanUp(loader);
             let key = subModelDesc.colorID + '_' + subModel.ID;
             if(subModelsByTypeAndColor.hasOwnProperty(key)) {
                 subModelsByTypeAndColor[key].push(subModelDesc);

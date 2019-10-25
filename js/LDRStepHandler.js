@@ -46,9 +46,9 @@ LDR.StepHandler.prototype.rebuild = function() {
     for(let i = 0; i < this.length; i++) {
 	let step = this.part.steps[i];
         let sh = null;
-        if(step.containsNonPartSubModels(this.loader)) { // All are sub models (not parts):
+        if(step.containsNonPartSubModels(this.loader)) { // All are sub models (not parts):	    
             let subDescs = step.subModels.map(subModel => subModel.placeAt(partDesc));
-            sh = new LDR.StepHandler(this.opaqueObject, this.transObject, 
+            sh = new LDR.StepHandler(this.opaqueObject, this.transObject,
 				     this.loader, subDescs, false, this.storage);
         }
         this.steps.push(new LDR.StepInfo(sh, step.cloneColored(partDesc.colorID)));
