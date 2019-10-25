@@ -157,7 +157,7 @@ LDR.OMR.SetLDrawOrg = function(unofficial) {
 LDR.OMR.InlineUnofficialParts = function() {
     let title = id => "Copy content of unofficial files, such as " + id + " into the MPD file to improve OMR compliance";
 
-    let checkers = {checkPartType: pt => (pt.isPart && pt.ldraw_org && pt.ldraw_org.startsWith('Unofficial_') && pt.inlined !== "GENERATED") ? title(pt.ID) : false};
+    let checkers = {checkPartType: pt => (pt.isPart && pt.inlined && pt.ldraw_org && pt.ldraw_org.startsWith('Unofficial_') && pt.inlined !== "GENERATED") ? title(pt.ID) : false};
 
     let handlers = {handlePartType: pt => {if(pt.isPart && pt.inlined && pt.ldraw_org && pt.ldraw_org.startsWith('Unofficial_') && pt.inlined !== "GENERATED"){pt.inlined = undefined;}}};
 
