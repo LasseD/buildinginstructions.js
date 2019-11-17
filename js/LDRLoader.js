@@ -171,6 +171,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
     // State information:
     let previousComment;
     let inHeader = true;
+    let hasFILE = false;
 
     let dataLines = data.split(/(\r\n)|\n/);
     for(let i = 0; i < dataLines.length; i++) {
@@ -225,17 +226,14 @@ THREE.LDRLoader.prototype.parse = function(data) {
             return true; // Description set.
 	}
 
-	function handleFileOrNameLine(originalFileName) {
+	function handleFileLine(originalFileName) {
 	    // Normalize the name by bringing to lower case and replacing backslashes:
 	    let fileName = originalFileName.toLowerCase().replace('\\', '/');
 	    localCull = false; // BFC Statements come after the FILE or Name: - directives.
+            saveThisHeaderLine = false;
 	    let isEmpty = part.steps.length === 0 && step.isEmpty();
 
-	    if(part.ID === fileName) { // Consistent 'FILE' and 'Name:' lines.
-		setModelDescription();
-		part.consistentFileAndName = true;
-	    }
-	    else if(isEmpty && !self.mainModel) { // First model
+	    if(isEmpty && !self.mainModel) { // First model
 		self.mainModel = part.ID = fileName;
 	    }
 	    else if(isEmpty && self.mainModel && self.mainModel === part.ID) {
@@ -243,12 +241,6 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		self.mainModel = part.ID = fileName;
 	    }
 	    else { // Close model and start new as no FILE directive has been encountered:
-		if(isEmpty && part.ID && !part.consistentFileAndName) {
-		    console.warn("Special case: Empty '" + part.ID + "' does not match '" + fileName + "' - Create new shallow part!");		
-		    // Create pseudo-model with just one of 'fileName' inside:
-		    let r = new THREE.Matrix3(); r.set(1, 0, 0, 0, 1, 0, 0, 0, 1);
-		    step.addSubModel(new THREE.LDRPartDescription(16, new THREE.Vector3(), r, fileName, true, false));
-		}
 		closeStep(false);
 
 		if(!part.ID) { // No ID in main model: 
@@ -269,9 +261,19 @@ THREE.LDRLoader.prototype.parse = function(data) {
         let p1, p2, p3, p4; // Used in switch.
 	switch(lineType) {
 	case 0:
-	    if(is("FILE") || is("file") || is("Name:")) {
-		// LDR FILE or 'Name:' line found. Set name and update data in case this is a new file (do not use file suffix to determine as people are wildly inconsistent with the standard when creating these files).
-		handleFileOrNameLine(parts.slice(2).join(" "));
+	    if(is("FILE")) {
+		hasFILE = true;
+		handleFileLine(parts.slice(2).join(" "));
+	    }
+	    else if(!hasFILE && is(file)) { // Special case where some very old files use '0 file' instead of the proper '0 FILE':
+		handleFileLine(parts.slice(2).join(" "));		
+	    }
+	    else if(is("Name:")) {
+		part.name = parts.slice(2).join(" ");
+		if(part.ID === part.name) { // Consistent 'FILE' and 'Name:' lines.
+		    setModelDescription();
+		    part.consistentFileAndName = true;
+		}
                 saveThisHeaderLine = false;
 	    }
 	    else if(is("Author:")) {
@@ -771,8 +773,7 @@ THREE.LDRPartDescription.prototype.placedColor = function(pdColorID) {
 
 THREE.LDRPartDescription.prototype.toLDR = function(loader) {
     let pt = loader.getPartType(this.ID);
-    let ID = pt.name; // Proper casing.
-    return '1 ' + this.colorID + ' ' + this.position.toLDR() + ' ' + this.rotation.toLDR() + ' ' + ID + '\r\n';
+    return '1 ' + this.colorID + ' ' + this.position.toLDR() + ' ' + this.rotation.toLDR() + ' ' + pt.ID + '\r\n';
 }
 
 THREE.LDRPartDescription.prototype.placeAt = function(pd) {
@@ -1458,11 +1459,13 @@ THREE.LDRPartType.prototype.cleanUp = function(loader) {
 }
 
 THREE.LDRPartType.prototype.toLDR = function(loader) {
-    let ret = '0 FILE ' + this.name + '\r\n';
+    let ret = '0 FILE ' + this.ID + '\r\n';
     if(this.modelDescription) {
         ret += '0 ' + this.modelDescription + '\r\n';
     }
-    ret += '0 Name: ' + this.name + '\r\n';
+    if(this.name) {
+	ret += '0 Name: ' + this.name + '\r\n';
+    }
     if(this.author) {
         ret += '0 Author: ' + this.author + '\r\n';
     }
