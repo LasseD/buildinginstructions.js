@@ -265,7 +265,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		hasFILE = true;
 		handleFileLine(parts.slice(2).join(" "));
 	    }
-	    else if(!hasFILE && is(file)) { // Special case where some very old files use '0 file' instead of the proper '0 FILE':
+	    else if(!hasFILE && is("file")) { // Special case where some very old files use '0 file' instead of the proper '0 FILE':
 		handleFileLine(parts.slice(2).join(" "));		
 	    }
 	    else if(is("Name:")) {
