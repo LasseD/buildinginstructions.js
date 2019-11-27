@@ -374,7 +374,7 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
 
     function renew(i) {
         let v = vertices[i];
-        vertices.push({x:v.x, y:v.y, z:v.z}); // No mark as it is new and will not be visited again.
+        vertices.push({x:v.x, y:v.y, z:v.z, t:v.t}); // No mark as it is new and will not be visited again.
         vLen++;
         return vLen-1;
     }
@@ -660,6 +660,9 @@ LDR.LDRGeometry.prototype.buildGeometry = function(indices, vertexAttribute) {
     g.setIndex(indices);
     g.addAttribute('position', vertexAttribute);
 
+    // TODO: Build UV in case there is a texmapPlacement:
+    
+
     return g;
 }
 
@@ -705,7 +708,7 @@ LDR.LDRGeometry.prototype.replaceWith = function(g) {
 
 LDR.LDRGeometry.prototype.replaceWithDeep = function(g) {
     let self = this;
-    g.vertices.forEach(v => self.vertices.push({x:v.x, y:v.y, z:v.z, o:v.o}));
+    g.vertices.forEach(v => self.vertices.push({x:v.x, y:v.y, z:v.z, o:v.o, t:v.t}));
 
     for(let c in g.lines) {
 	if(!g.lines.hasOwnProperty(c)) {
@@ -798,7 +801,7 @@ LDR.LDRGeometry.prototype.sortAndBurnVertices = function(vertices, primitives) {
     for(let i = 0; i < vertices.length; i++) {
 	let v = vertices[i];
 	if(!(prev && LDR.vertexEqual(prev, v))) {
-            this.vertices.push({x:v.x, y:v.y, z:v.z, o:false});
+            this.vertices.push({x:v.x, y:v.y, z:v.z, o:false, t:v.t});
             idx++;
 	}
 
@@ -881,9 +884,9 @@ LDR.LDRGeometry.prototype.fromTriangles = function(cull, ps) {
                 triangles[p.colorID] = [{}];
                 idx = 0;
             }
-            vertices.push({x:p.p1.x, y:p.p1.y, z:p.p1.z, c:p.colorID, idx:idx, p:1},
-                          {x:p.p2.x, y:p.p2.y, z:p.p2.z, c:p.colorID, idx:idx, p:2},
-                          {x:p.p3.x, y:p.p3.y, z:p.p3.z, c:p.colorID, idx:idx, p:3});
+            vertices.push({x:p.p1.x, y:p.p1.y, z:p.p1.z, c:p.colorID, idx:idx, p:1, t:p.texmapPlacement},
+                          {x:p.p2.x, y:p.p2.y, z:p.p2.z, c:p.colorID, idx:idx, p:2, t:p.texmapPlacement},
+                          {x:p.p3.x, y:p.p3.y, z:p.p3.z, c:p.colorID, idx:idx, p:3, t:p.texmapPlacement});
             self.boundingBox.expandByPoint(p.p1);
             self.boundingBox.expandByPoint(p.p2);
             self.boundingBox.expandByPoint(p.p3);
@@ -906,10 +909,10 @@ LDR.LDRGeometry.prototype.fromQuads = function(cull, ps) {
                 quads[p.colorID] = [{}];
                 idx = 0;
             }
-            vertices.push({x:p.p1.x, y:p.p1.y, z:p.p1.z, c:p.colorID, idx:idx, p:1},
-		          {x:p.p2.x, y:p.p2.y, z:p.p2.z, c:p.colorID, idx:idx, p:2},
-		          {x:p.p3.x, y:p.p3.y, z:p.p3.z, c:p.colorID, idx:idx, p:3},
-		          {x:p.p4.x, y:p.p4.y, z:p.p4.z, c:p.colorID, idx:idx, p:4});
+            vertices.push({x:p.p1.x, y:p.p1.y, z:p.p1.z, c:p.colorID, idx:idx, p:1, t:p.texmapPlacement},
+                          {x:p.p2.x, y:p.p2.y, z:p.p2.z, c:p.colorID, idx:idx, p:2, t:p.texmapPlacement},
+                          {x:p.p3.x, y:p.p3.y, z:p.p3.z, c:p.colorID, idx:idx, p:3, t:p.texmapPlacement},
+                          {x:p.p4.x, y:p.p4.y, z:p.p4.z, c:p.colorID, idx:idx, p:4, t:p.texmapPlacement});
             self.boundingBox.expandByPoint(p.p1);
             self.boundingBox.expandByPoint(p.p2);
             self.boundingBox.expandByPoint(p.p3);

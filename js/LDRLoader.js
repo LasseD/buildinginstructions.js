@@ -13,7 +13,7 @@
  * The optional options object has the following optional parameters:
  * - manager: Three.js loading manager. The default loading manager is used if none is present.
  * - onWarning(warningObj) is called when non-breaking errors are encountered, such as unknown colors and unsupported META commands.
- * - onProgress is called when a sub model has been loaded and will also be used by the manager.
+ * - onProgress is called when a sub model or texture has been loaded and will also be used by the manager. A texture is detected by having the second parameter 'true'.
  * - onError(errorObj) is called on breaking errors. errorObj has the following properties:
  *  - message: Human-readable error message.
  *  - line: Line number in the loaded file where the error occured.
@@ -25,7 +25,8 @@
 THREE.LDRLoader = function(onLoad, storage, options) {
     let self = this;
 
-    this.partTypes = {}; // id => part. id is typically something like "parts/3001.dat", and "model.mpd".
+    this.partTypes = {}; // id => true or part. id is typically something like "parts/3001.dat", and "model.mpd".
+    this.texmaps = {}; // id => true or THREE.Texture. id is typically something like wall_deco123.png
     this.unloadedFiles = 0;
 
     this.onLoad = function() {
@@ -172,6 +173,8 @@ THREE.LDRLoader.prototype.parse = function(data) {
     let previousComment;
     let inHeader = true;
     let hasFILE = false;
+    let texmapPlacement = null;
+    let inTexmapFallback = false;
 
     let dataLines = data.split(/(\r\n)|\n/);
     for(let i = 0; i < dataLines.length; i++) {
@@ -204,6 +207,12 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		colorID = parseInt(colorID);
 	    }
 	}
+
+        // Expire texmapPlacement:
+        if(texmapPlacement && texmapPlacement.used) {
+            texmapPlacement = null;
+        }
+
 	//console.log("Parsing line " + i + " of type " + lineType + ', color ' + colorID + ": " + line); // Useful if you encounter parse errors.
 
 	let l3 = parts.length >= 3;
@@ -335,10 +344,75 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    }
 	    else if(parts[1] === "!BRICKHUB_INLINED") {
 		part.inlined = parts.length === 3 ? parts[2] : 'UNKNOWN';
-                saveThisHeaderLine = false;
 	    }
 	    else if(parts[1] === "!HISTORY") {
 		part.historyLines.push(parts.slice(2).join(" "));
+	    }
+	    else if(parts[1] === "!TEXMAP") {
+                if(texmapPlacement) { // Expect "0 !TEXMAP FALLBACK" or "0 !TEXMAP END"
+                    if(!(parts.length === 3 && (parts[2] === 'FALLBACK' || parts[2] === 'END'))) {
+                        self.onWarning({message:'Unexpected !TEXMAP line. Expected FALLBACK or END line. Found: "' + line + '".', line:i, subModel:part});
+                        inTexmapFallback = false;
+                        texmapPlacement = null;
+                    }
+                    else if(parts[2] === 'FALLBACK') {
+                        inTexmapFallback = true;
+                    }
+                    else { // !TEXMAP END
+                        inTexmapFallback = false;
+                        texmapPlacement = null;
+                    }
+                }
+                else { // Expect 0 !TEXMAP START | NEXT...
+                    texmapPlacement = new LDR.TexmapPlacement(params);
+                    if(texmapPlacement.error) {
+                        self.onWarning({message:texmapPlacement.error + ': "' + line + '"', line:i, subModel:part});
+                        texmapPlacement = null;
+                    }
+                    else {
+                        function setTexture(texture, id) {
+                            self.texmaps[id] = texture;
+                            self.onProgress(id, true);
+                        }
+                        function loadTexture(id) {
+                            if(id) {
+                                new THREE.TextureLoader().load('textures/' + id,
+                                                               t => setTexture(t, id));
+                            }
+                        }
+                        loadTexture(texmapPlacement.file);
+                        loadTexture(texmapPlacement.glossmapFile);
+                    }
+                }
+	    }
+	    else if(parts[1] === "!DATA" && parts.length === 3 && parts[2] === "START") { // Inline texmap: https://forums.ldraw.org/thread-23683.html
+                // Take over parsing in order to read full encoded block:
+                let encodedContent = '';
+                // Parse encoded content:
+                for(; i < dataLines.length; i++) {
+                    line = dataLines[i]; if(!line) continue;
+                    parts = line.split(' ').filter(x => x !== ''); if(parts.length <= 1) continue; // Empty/ empty comment line
+                    lineType = parseInt(parts[0]);
+                    if(lineType !== 0) {self.onWarning({message:'Unexpected DATA line type ' + lineType + ' is ignored.', line:i, subModel:part}); continue;}
+                    if(parts.length === 3 && parts[1] === '!DATA' && parts[2] === 'END') break; // Done
+                    if(!parts[1].startsWith('!:')) continue;
+
+                    encodedContent += parts[1].subString(2);
+                    if(parts.length > 2) encodedContent += parts.slice(2).join('');
+                }
+                console.log('Inline texmap file encountered');
+
+                let image = new Image();
+                let mimetype = this.detectMimetype(part.ID);
+                image.src = 'data:image/' + mimetype + ';base64,' + encodedContent;
+
+                let texture = new THREE.Texture();
+                texture.image = image;
+                image.onload = function() {
+                    texture.needsUpdate = true;
+                };
+                texmaps[part.ID] = texture;
+
                 saveThisHeaderLine = false;
 	    }
 	    else if(parts[1][0] === "!") {
@@ -364,8 +438,8 @@ THREE.LDRLoader.prototype.parse = function(data) {
                 }
 	    }
 	    
-	    // TODO: TEXMAP commands
 	    // TODO: Buffer exchange commands
+            // TODO: New animation commands (commands yet to be defined)
 
 	    if(this.saveFileLines && saveThisHeaderLine) {
                 let fileLine = new LDR.Line0(parts.slice(1).join(" "));
@@ -387,13 +461,11 @@ THREE.LDRLoader.prototype.parse = function(data) {
 			 parts[8],  parts[9],  parts[10], 
 			 parts[11], parts[12], parts[13]);
 	    let subModelID = parts.slice(14).join(" ").toLowerCase().replace('\\', '/');
-	    let subModel = new THREE.LDRPartDescription(colorID, 
-							position, 
-							rotation, 
-							subModelID,
-							localCull,
-						        invertNext);
-            step.addSubModel(subModel); // DAT part - no step.
+	    let subModel = new THREE.LDRPartDescription(colorID, position, rotation, subModelID, localCull, invertNext, texmapPlacement);
+
+            if(!inTexmapFallback) {
+                step.addSubModel(subModel); // Adding the line to the step.
+            }
 
             inHeader = false;
 	    if(this.saveFileLines) {
@@ -404,7 +476,10 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	case 2: // Line "2 <colour> x1 y1 z1 x2 y2 z2"
 	    p1 = new THREE.Vector3(parseFloat(parts[2]), parseFloat(parts[3]), parseFloat(parts[4]));
 	    p2 = new THREE.Vector3(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
-	    step.addLine(colorID, p1, p2);
+
+            if(!inTexmapFallback) {
+                step.addLine(colorID, p1, p2, texmapPlacement);
+            }
 
             inHeader = false;
 	    if(this.saveFileLines) {
@@ -419,12 +494,14 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    if(!part.certifiedBFC || !localCull) {
 		step.cull = false; // Ensure no culling when step is handled.
             }
-	    if(CCW === invertNext) {
-		step.addTrianglePoints(colorID, p3, p2, p1);
-	    }
-	    else {
-		step.addTrianglePoints(colorID, p1, p2, p3);
-	    }
+            if(!inTexmapFallback) {
+                if(CCW === invertNext) {
+                    step.addTrianglePoints(colorID, p3, p2, p1, texmapPlacement);
+                }
+                else {
+                    step.addTrianglePoints(colorID, p1, p2, p3, texmapPlacement);
+                }
+            }
 
             inHeader = false;
 	    if(this.saveFileLines) {
@@ -440,12 +517,14 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    if(!part.certifiedBFC || !localCull) {
 		step.cull = false; // Ensure no culling when step is handled.
             }
-	    if(CCW === invertNext) {
-		step.addQuadPoints(colorID, p4, p3, p2, p1);
-	    }
-	    else {
-		step.addQuadPoints(colorID, p1, p2, p3, p4);
-	    }
+            if(!inTexmapFallback) {
+                if(CCW === invertNext) {
+                    step.addQuadPoints(colorID, p4, p3, p2, p1, texmapPlacement);
+                }
+                else {
+                    step.addQuadPoints(colorID, p1, p2, p3, p4, texmapPlacement);
+                }
+            }
 
             inHeader = false;
 	    if(this.saveFileLines) {
@@ -458,7 +537,9 @@ THREE.LDRLoader.prototype.parse = function(data) {
 	    p2 = new THREE.Vector3(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
 	    p3 = new THREE.Vector3(parseFloat(parts[8]), parseFloat(parts[9]), parseFloat(parts[10]));
 	    p4 = new THREE.Vector3(parseFloat(parts[11]), parseFloat(parts[12]), parseFloat(parts[13]));
-	    step.addConditionalLine(colorID, p1, p2, p3, p4);
+            if(!inTexmapFallback) {
+                step.addConditionalLine(colorID, p1, p2, p3, p4, texmapPlacement);
+            }
             inHeader = false;
 	    if(this.saveFileLines) {
 		step.fileLines.push(new LDR.Line5(colorID, p1, p2, p3, p4));
@@ -492,6 +573,14 @@ THREE.LDRLoader.prototype.parse = function(data) {
     //let parseEndTime = new Date();
     //console.log(loadedParts.length + " LDraw file(s) read in " + (parseEndTime-parseStartTime) + "ms.");
 };
+
+THREE.LDRLoader.prototype.detectMimetype = function(id) {
+    const DEFAULT_MIMETYPE = 'png';    
+    if(id.endswith('jpg') || id.endswith('jpeg')) {
+        return 'jpeg';
+    }
+    return DEFAULT_MIMETYPE;
+}
 
 THREE.LDRLoader.prototype.onPartsLoaded = function(loadedParts) {
     let self = this;
@@ -728,15 +817,17 @@ THREE.LDRLoader.prototype.pack = function() {
   Part description: a part (ID) placed (position, rotation) with a
   given color (16/24 allowed) and invertCCW to allow for sub-parts in DAT-parts.
 */
-THREE.LDRPartDescription = function(colorID, position, rotation, ID, cull, invertCCW) {
+THREE.LDRPartDescription = function(colorID, position, rotation, ID, cull, invertCCW, texmapPlacement) {
     this.colorID = colorID; // LDraw ID. Negative values indicate edge colors - see top description.
     this.position = position; // Vector3
     this.rotation = rotation; // Matrix3
     this.ID = ID.toLowerCase(); // part.dat lowercase
     this.cull = cull;
     this.invertCCW = invertCCW;
+    this.texmapPlacement = texmapPlacement;
     this.ghost;
     this.original; // If this PD is a colored clone of an original PD.
+    texmapPlacement && texmapPlacement.use();
 }
 
 THREE.LDRPartDescription.prototype.cloneColored = function(colorID) {
@@ -751,8 +842,8 @@ THREE.LDRPartDescription.prototype.cloneColored = function(colorID) {
     else if(this.colorID === 24) {
 	c = -colorID-1;
     }
-    let ret = new THREE.LDRPartDescription(c, this.position, this.rotation, this.ID, 
-					   this.cull, this.invertCCW);
+    let ret = new THREE.LDRPartDescription(c, this.position, this.rotation, this.ID,
+					   this.cull, this.invertCCW, this.texmapPlacement);
     ret.REPLACEMENT_PLI = this.REPLACEMENT_PLI;
     ret.original = this;
     ret.ghost = this.ghost || false; // For editor.
@@ -790,7 +881,7 @@ THREE.LDRPartDescription.prototype.placeAt = function(pd) {
 
     let invert = this.invertCCW === pd.invertCCW;
 
-    return new THREE.LDRPartDescription(colorID, position, rotation, this.ID, this.cull, invert);
+    return new THREE.LDRPartDescription(colorID, position, rotation, this.ID, this.cull, invert, this.texmapPlacement);
 }
 
 THREE.LDRStepRotation = function(x, y, z, type) {
@@ -896,8 +987,8 @@ THREE.LDRStep = function() {
     this.subModels = [];
     this.lines = []; // {colorID, p1, p2}
     this.conditionalLines = []; // {colorID, p1, p2, p3, p4}
-    this.triangles = []; // {colorID, p1, p2, p3}
-    this.quads = []; // {colorID, p1, p2, p3, p4}
+    this.triangles = []; // {colorID, p1, p2, p3, texmapPlacement}
+    this.quads = []; // {colorID, p1, p2, p3, p4, texmapPlacement}
     this.rotation = null;
     this.cull = true;
     this.cnt = -1;
@@ -953,7 +1044,7 @@ THREE.LDRStep.prototype.packInto = function(arrayF, arrayI, subModelMap) {
     this.subModels.forEach(handleSubModel);
 
     // Primitives:
-    function handle(primitives, size) {
+    function handle(primitives, size) { // TODO: Handle texmap
         arrayI.push(primitives.length);
         primitives.forEach(x => {
                 arrayI.push(x.colorID);
@@ -1081,24 +1172,28 @@ THREE.LDRStep.prototype.addSubModel = function(subModel) {
     this.subModels.push(subModel);
 }
 
-THREE.LDRStep.prototype.addLine = function(c, p1, p2) {
+THREE.LDRStep.prototype.addLine = function(c, p1, p2, texmapPlacement) {
     this.hasPrimitives = true;
     this.lines.push({colorID:c, p1:p1, p2:p2});
+    texmapPlacement && texmapPlacement.use();
 }
 
-THREE.LDRStep.prototype.addTrianglePoints = function(c, p1, p2, p3) {
+THREE.LDRStep.prototype.addTrianglePoints = function(c, p1, p2, p3, texmapPlacement) {
     this.hasPrimitives = true;
-    this.triangles.push({colorID:c, p1:p1, p2:p2, p3:p3});
+    this.triangles.push({colorID:c, p1:p1, p2:p2, p3:p3, texmapPlacement:texmapPlacement});
+    texmapPlacement && texmapPlacement.use();
 }
 
-THREE.LDRStep.prototype.addQuadPoints = function(c, p1, p2, p3, p4) {
+THREE.LDRStep.prototype.addQuadPoints = function(c, p1, p2, p3, p4, texmapPlacement) {
     this.hasPrimitives = true;
-    this.quads.push({colorID:c, p1:p1, p2:p2, p3:p3, p4:p4});
+    this.quads.push({colorID:c, p1:p1, p2:p2, p3:p3, p4:p4, texmapPlacement:texmapPlacement});
+    texmapPlacement && texmapPlacement.use();
 }
 
-THREE.LDRStep.prototype.addConditionalLine = function(c, p1, p2, p3, p4) {
+THREE.LDRStep.prototype.addConditionalLine = function(c, p1, p2, p3, p4, texmapPlacement) {
     this.hasPrimitives = true;
     this.conditionalLines.push({colorID:c, p1:p1, p2:p2, p3:p3, p4:p4});
+    texmapPlacement && texmapPlacement.use();    
 }
 
 /*
@@ -1697,6 +1792,60 @@ THREE.LDRPartType.prototype.countParts = function(loader) {
     }
     this.cnt = this.steps.map(step => step.countParts(loader)).reduce((a,b)=>a+b, 0);
     return this.cnt;
+}
+
+/*
+  0 !TEXMAP (START | NEXT) <method> <parameters> <pngfile> [GLOSSMAP pngfile]
+ */
+LDR.TexmapPlacement = function(parts) {
+    if(parts.length < 13) {
+        this.error = 'Too few arguments on !TEXMAP line';
+        return;
+    }
+    if(parts[2] === 'START') {
+        // OK
+    }
+    else if(parts[2] === 'NEXT') {
+        this.nextOnly = true;
+    }
+    else {
+        this.error = 'Unexpected first !TEXMAP command';
+        return;
+    }
+
+    this.p = [];
+    let idx = 4;
+    for(let i = 0; i < 3; i++) {
+        this.p.push({x:parseFloat(parts[idx++]), y:parseFloat(parts[idx++]), z:parseFloat(parts[idx++])});
+    }
+    this.method = parts[3];
+    if(parts[3] === 'PLANAR') {
+        // OK
+    }
+    else if(parts[3] === 'CYLINDRICAL' && parts.length > 13) {
+        this.a = parseFloat(parts[idx++]);
+    }
+    else if(parts[3] === 'SPHERICAL' && parts.length > 14) {
+        this.a = parseFloat(parts[idx++]);
+        this.b = parseFloat(parts[idx++]);
+    }
+    else {
+        this.error = 'Unexpected method in !TEXMAP command or not enough parameters';
+        return;
+    }
+
+    this.file = parts[idx];
+    if(parts[parts.length-2] === 'GLOSSMAP') {
+        this.glossmapFile = parts[idx+2];
+    }
+
+    this.used = false;
+}
+
+LDR.TexmapPlacement.prototype.use = function() {
+    if(this.nextOnly) {
+        this.used = true;
+    }
 }
 
 LDR.ColorManager = function() {
