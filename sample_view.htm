@@ -6,49 +6,6 @@
   <meta name="viewport" content="width=device-width" />
  </head>
  <body>
-  <script id="vertexShader" type="x-shader/x-vertex">
-precision highp float;
-precision mediump int;
-
-uniform vec4 color;
-uniform float centerDist;
-uniform mat4 projectionMatrix;
-uniform mat4 modelViewMatrix;
-
-attribute vec3 position;
-
-varying vec4 vColor;
-varying float cameraDist;
-
-void main(){
-    vColor = color;
-    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-    cameraDist = (mvPosition.z - centerDist) / 1000000.0;;
-    gl_Position = projectionMatrix * mvPosition;
-}
-  </script>
-  <script id="fragmentShader" type="x-shader/x-fragment">
-      #include <packing>
-
-      varying vec4 vColor;
-      varying vec2 vUv;
-
-      uniform sampler2D tDepth;
-      uniform float cameraNear;
-      uniform float cameraFar;
-
-      float readDepth( sampler2D depthSampler, vec2 coord ) {
-        float fragCoordZ = texture2D( depthSampler, coord ).x;
-        float viewZ = perspectiveDepthToViewZ( fragCoordZ, cameraNear, cameraFar );
-        return viewZToOrthographicDepth( viewZ, cameraNear, cameraFar );
-      }
-
-      void main() {
-        float depth = readDepth( tDepth, vUv );
-        gl_FragColor = color;//.rgb = 1.0 - vec3( depth );
-        gl_FragColor.a = depth;
-      }
-    </script>
     <script src="js/three.min.js"></script>
     <script src="js/OrbitControls.js"></script>
     <script src="js/colors.js"></script>
@@ -61,58 +18,18 @@ void main(){
     <script src="js/LDRGenerator.js"></script>
     <script src="js/LDRStuds.js"></script>
     <script>
-      let camera, target;
-
-      LDR.Colors.buildTriangleMaterial = function(colorManager, color) {
-        colorManager = colorManager.clone();
-        colorManager.overWrite(color);
-        let colors = colorManager.shaderColors;
-        let len = colors.length;
-
-        let uniforms = {tDepth: {value: target.depthTexture}};
-        if(LDR.Colors.canBeOld) {
-	    uniforms['old'] = {value: false};
-        }
-        if(len > 1) {
-	    uniforms['colors'] = {type: 'v4v', value: colors};
-        }
-        else {
-	    uniforms['color'] = {type: 'v4', value: colors[0]};
-        }
-        let ret = new THREE.RawShaderMaterial({
-            side: THREE.DoubleSide,
-            //side: THREE.FrontSide,
-	    uniforms: uniforms,
-            vertexShader: document.getElementById('vertexShader').textContent,
-            fragmentShader: document.getElementById('fragmentShader').textContent,
-	    transparent: true//colorManager.containsTransparentColors()
-        });
-        ret.colorManager = colorManager;
-        return ret;
-      }
-
-      //let model = 'models/corvette_full.mpd';
-      let model = '3024.dat';
+      let startTime = new Date();
+      // The model to be rendered:
+      let model = 'models/corvette_full.mpd';
 
       // Set up camera:
-      camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
+      let camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
       camera.position.set(10000, 7000, 10000);
       camera.lookAt(new THREE.Vector3());
 
       // Set up scene:
       let scene = new THREE.Scene();
       scene.background = new THREE.Color(0xFFFFFF);
-
-      // Depth texture for transparent parts:
-      target = new THREE.WebGLRenderTarget( window.innerWidth, window.innerHeight );
-      target.texture.format = THREE.RGBFormat;
-      target.texture.minFilter = THREE.NearestFilter;
-      target.texture.magFilter = THREE.NearestFilter;
-      target.texture.generateMipmaps = false;
-      target.stencilBuffer = false;
-      target.depthBuffer = true;
-      target.depthTexture = new THREE.DepthTexture();
-      target.depthTexture.type = THREE.ShortType;
 
       let baseObject = new THREE.Group(), opaqueObject = new THREE.Group(), transObject = new THREE.Group();
       baseObject.add(opaqueObject); // Draw non-trans before trans.
@@ -162,20 +79,16 @@ void main(){
         let elementCenter = new THREE.Vector3();
         b.getCenter(elementCenter);
         baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
+        //baseObject.add(new THREE.Box3Helper(b, 0x0000FF)); // Uncomment if you want to see the bounding box
 
 	camera.zoom = window.innerWidth/b.min.distanceTo(b.max);
         onWindowResize();
+        console.log("Model rendered in " + (new Date()-startTime) + "ms.");
       }
 
-      let storage;
       let ldrOptions = new LDR.Options(); // Determine how to show lines, studs, and logos. Change options using sample_instruction.htm
-
-      let onStorageReady = function() {
-        ldrLoader = new THREE.LDRLoader(onLoad, storage);
-        LDR.Studs.setStuds(ldrLoader, ldrOptions.studHighContrast, 
-                           ldrOptions.studLogo, () => ldrLoader.load(model));
-      }
-      storage = new LDR.STORAGE(onStorageReady);
+      ldrLoader = new THREE.LDRLoader(onLoad);
+      ldrLoader.load(model);
  </script>
  </body>
 </html>

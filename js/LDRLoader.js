@@ -88,7 +88,7 @@ THREE.LDRLoader.prototype.load = function(id) {
 
     let self = this;
     let onFileLoaded = function(text) {
-	self.parse(text);
+	self.parse(text, id);
 	self.unloadedFiles--; // Warning - might have concurrency issue when two threads simultaneously update this!
 	self.reportProgress(id);
     }
@@ -118,8 +118,8 @@ THREE.LDRLoader.prototype.load = function(id) {
 THREE.LDRLoader.prototype.loadMultiple = function(ids) {
     let self = this;
     function onStorageFetchingDone(unloadedParts) {
-        self.unloadedFiles--;
         unloadedParts.forEach(id => self.load(id));
+        self.unloadedFiles--;
         self.reportProgress(ids[0]);
     }
     self.unloadedFiles++; // Prevent early exit.
@@ -148,7 +148,7 @@ THREE.LDRLoader.prototype.reportProgress = function(id) {
  * 
  * data is the plain text file content.
  */
-THREE.LDRLoader.prototype.parse = function(data) {
+THREE.LDRLoader.prototype.parse = function(data, defaultID) {
     let parseStartTime = new Date();
 
     // BFC Parameters:
@@ -553,8 +553,11 @@ THREE.LDRLoader.prototype.parse = function(data) {
     }
 
     part.addStep(step);
-    if(part.ID === null && this.mainModel === undefined) {
-        part.ID = this.mainModel = 'main'; // No name given - use 'main'.
+    if(!part.ID) {
+        part.ID = defaultID; // No name given in file.
+        if(!this.mainModel) {
+            this.mainModel = part.ID;
+        }
     }
     this.partTypes[part.ID] = part;
     loadedParts.push(part);
