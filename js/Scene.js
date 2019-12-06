@@ -16,7 +16,7 @@ ENV.Scene = function(canvas) {
     this.roomObject = new THREE.Group();
     this.scene.add(this.roomObject);
     this.R; // Radius of floor.
-    this.sides = [null, null, null, null, null]; // floor, N, E, S, W
+    this.floor;
 
     // Set up renderer:
     this.renderer = new THREE.WebGLRenderer({canvas:canvas, antialias: true});
@@ -124,6 +124,7 @@ ENV.Scene.prototype.addPointLight = function(color, intensity, angle, dist, y) {
     light.shadow.mapSize.height = Math.floor(2.5*this.size.diam);
     light.shadow.camera.near = 0.5;
     light.shadow.camera.far = 2*(dist+y);
+    light.shadow.radius = 8; // Soft shadow
 
     let h = new THREE.PointLightHelper(light, 5, 0xFF0000);
 
@@ -222,7 +223,7 @@ ENV.Scene.prototype.buildStandardScene = function() {
     //this.baseObject.add(new THREE.Box3Helper(b, 0xFF00FF));
 
     // Floor and sides:
-    let R = this.R = 2.6 * this.size.diam;
+    let R = this.R = 6 * this.size.diam;
     var floorGeometry = new THREE.PlaneBufferGeometry(2*R, 2*R);
     var floorMaterial = new THREE.MeshStandardMaterial({
             color: 0xFEFEFE,
@@ -230,33 +231,12 @@ ENV.Scene.prototype.buildStandardScene = function() {
             roughness: 0.0,
             normalMap: ENV.createFloorTexture(64, Math.floor(R/2)),
         });
-    var sideMaterial = new THREE.MeshStandardMaterial({
-            color: 0xFFFFFF,
-            metalness: 0.0,
-            roughness: 1.0,
-        });
-    for(let i = 0; i < 5; i++) {
-        this.sides[i] = new THREE.Mesh(floorGeometry, i === 0 ? floorMaterial : sideMaterial);
-        this.sides[i].receiveShadow = true;
-        this.roomObject.add(this.sides[i]);
-    }
+    this.floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    this.floor.receiveShadow = true;
+    this.roomObject.add(this.floor);
 
     // Floor:
-    let floor = this.sides[0];
-    floor.rotation.x = -Math.PI/2;
-
-    // Sides:
-    let sidePositionX = [0, R, 0, -R];
-    let sidePositionZ = [-R, 0, R, 0];
-    let sideRotation = [0, -Math.PI/2, Math.PI, Math.PI/2];
-    for(let i = 0; i < 4; i++) {
-        let side = this.sides[i+1];
-        side.position.x = sidePositionX[i];
-        side.position.y = R;
-        side.position.z = sidePositionZ[i];
-        side.rotation.y = sideRotation[i];
-    }
-
+    this.floor.rotation.x = -Math.PI/2;
     this.repositionFloor(0.001); // -0.001 to avoid floor clipping issues on large models.
 
     // Lights:
@@ -267,6 +247,9 @@ ENV.Scene.prototype.buildStandardScene = function() {
     this.activeControllerIndex = 0; // Since adding point lights changes this.
 
     this.setHemisphereLight(0xF4F4FB, 0x30302B, 0.65);
+
+    // Background:
+    this.scene.background = new THREE.Color(0xA0A0A2);
 }
 
 ENV.Scene.prototype.buildOMRScene = function() {
