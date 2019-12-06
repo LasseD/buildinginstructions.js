@@ -193,21 +193,27 @@ ENV.Scene.prototype.resetCamera = function() {
 }
 
 ENV.Scene.prototype.repositionFloor = function(dist) {
+    let b = this.mc.boundingBox;
+    this.setSize(b);
     this.resetCamera(); // Updates distance
 
-    let b = this.mc.boundingBox;
     this.baseObject.position.set(-b.min.x - 0.5*(b.max.x - b.min.x), 
 				 -b.min.y - 0.5*(b.max.y - b.min.y), 
 				 -b.min.z - 0.5*(b.max.z - b.min.z));
     this.roomObject.position.set(0, dist - 0.5*(b.max.y - b.min.y), 0);
+    this.onCameraMoved();
+}
+
+ENV.Scene.prototype.setSize = function(b) {
+    let bump = x => Math.max(100, x);
+    let w = bump(b.max.x-b.min.x), l = bump(b.max.z-b.min.z), h = bump(b.max.y-b.min.y);
+    this.size = {w:w, l:l, h:h, diam:Math.sqrt(w*w + l*l + h*h)};
 }
 
 ENV.Scene.prototype.buildStandardScene = function() {
     let self = this;
     let b = this.mc.boundingBox || new THREE.Box3(new THREE.Vector3(), new THREE.Vector3(1,1,1)); // To build scene around.
-    let bump = x => Math.max(100, x);
-    let w = bump(b.max.x-b.min.x), l = bump(b.max.z-b.min.z), h = bump(b.max.y-b.min.y);
-    this.size = {w:w, l:l, h:h, diam:Math.sqrt(w*w + l*l + h*h)};
+    this.setSize(b);
 
     // Subject:
     var elementCenter = new THREE.Vector3();
@@ -266,9 +272,7 @@ ENV.Scene.prototype.buildStandardScene = function() {
 ENV.Scene.prototype.buildOMRScene = function() {
     let self = this;
     let b = this.mc.boundingBox || new THREE.Box3(new THREE.Vector3(), new THREE.Vector3(1,1,1)); // To build scene around.
-    let bump = x => Math.max(100, x);
-    let w = bump(b.max.x-b.min.x), l = bump(b.max.z-b.min.z), h = bump(b.max.y-b.min.y);
-    this.size = {w:w, l:l, h:h, diam:Math.sqrt(w*w + l*l + h*h)};
+    this.setSize(b);
 
     // Set up camera:
     this.resetCamera();
