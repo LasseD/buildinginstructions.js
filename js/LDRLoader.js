@@ -1730,42 +1730,13 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
                 mc.addOpaque(mesh, pd);
             }            
         }
-
-        for(let idx in this.geometry.texmapGeometries) { // Texmap geometries:
-            if(!this.geometry.texmapGeometries.hasOwnProperty(idx)) {
-                continue;
-            }
-            this.geometry.texmapGeometries[idx].forEach(obj => {
-                    let g = obj.geometry, c = obj.colorID;
-                    let smallCM = new LDR.ColorManager(); smallCM.get(c);
-                    let textureFile = LDR.TexmapPlacements[idx].file;
-
-                    let material;
-                    if(loader.texmaps[textureFile] === true) {
-                        material = LDR.Colors.buildTriangleMaterial(smallCM, c, true);
-                        function setTexmap(t) {
-                            material.uniforms.texmap = {type:'t',value:t};
-                            material.needsUpdate = true;
-                            loader.onProgress(textureFile);
-                        }
-                        loader.texmapListeners[textureFile].push(setTexmap);
-                    }
-                    else {
-                        let texmap = loader.texmaps[textureFile];
-                        material = LDR.Colors.buildTriangleMaterial(smallCM, c, texmap);
-                    }
-                    let mesh = new THREE.Mesh(g.clone(), material);
-                    mesh.geometry.applyMatrix(m4);
-                    mc.addOpaque(mesh, pd);
-                });
-        }
     }
     else { // Physical rendering:
         for(let tc in this.geometry.triangleGeometries) {
             if(!this.geometry.triangleGeometries.hasOwnProperty(tc)) {
                 continue;
             }
-            let g = this.geometry.triangleGeometry[tc];
+            let g = this.geometry.triangleGeometries[tc];
 
             let shownColor = tc === '16' ? c : tc;
             let material = LDR.Colors.buildStandardMaterial(shownColor);
@@ -1781,6 +1752,45 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
             }            
         }
     }
+
+    for(let idx in this.geometry.texmapGeometries) { // Texmap geometries:
+        if(!this.geometry.texmapGeometries.hasOwnProperty(idx)) {
+            continue;
+        }
+        this.geometry.texmapGeometries[idx].forEach(obj => {
+                let g = obj.geometry, c = obj.colorID;
+                let smallCM = new LDR.ColorManager(); smallCM.get(c);
+                let textureFile = LDR.TexmapPlacements[idx].file;
+
+                let material;
+                let buildMaterial = loader.physicalRenderingAge === 0 ?
+                  t => LDR.Colors.buildTriangleMaterial(smallCM, c, t) :
+                  t => LDR.Colors.buildStandardMaterial(c, t);
+
+                if(loader.texmaps[textureFile] === true) {
+                    material = buildMaterial(true);
+                    function setTexmap(t) {
+                        material.uniforms.map = {type:'t',value:t};
+                        material.needsUpdate = true;
+                        loader.onProgress(textureFile);
+                    }
+                    loader.texmapListeners[textureFile].push(setTexmap);
+                }
+                else {
+                    material = buildMaterial(loader.texmaps[textureFile]);
+                }
+
+                let mesh = new THREE.Mesh(g.clone(), material);
+                mesh.geometry.applyMatrix(m4);
+                if(LDR.Colors.isTrans(c)) {
+                    mc.addTrans(mesh, pd);
+                }
+                else {
+                    mc.addOpaque(mesh, pd);
+                }
+            });
+    }
+
 
     let b = this.geometry.boundingBox;
     mc.expandBoundingBox(b, m4);

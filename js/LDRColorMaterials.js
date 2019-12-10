@@ -142,7 +142,7 @@ LDR.Colors.buildTriangleMaterial = function(colorManager, color, texmap) {
 	uniforms['color'] = {type: 'v4', value: colors[0]};
     }
     if(texmap && texmap !== true) {
-        uniforms['texmap'] = {type: 't', value: texmap};
+        uniforms['map'] = {type: 't', value: texmap};
     }
     let ret = new THREE.RawShaderMaterial({
 	uniforms: uniforms,
@@ -502,9 +502,9 @@ LDR.Colors.loadTextures = function(render) {
     render();
 }
 
-LDR.Colors.buildStandardMaterial = function(colorID) {
+LDR.Colors.buildStandardMaterial = function(colorID, texmap) {
     let color = LDR.Colors[colorID < 0 ? (-colorID-1) : colorID]; // Assume non-negative color.
-    if(color.m) {
+    if(color.m && !texmap) {
         return color.m;
     }
 
@@ -517,6 +517,9 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
         //normalMapType: THREE.TangentSpaceNormalMap, (default)
         // Displacement map will not be used as it affects vertices of the mesh, not pixels,
     };
+    if(texmap && texmap !== true) {
+        params.map = texmap;
+    }
     
     if(color.material) { // Special materials:
         createMaterial = p => new THREE.MeshStandardMaterial(p);
@@ -606,7 +609,8 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
     if(color.alpha > 0) {
         m.transparent = true;
         m.opacity = color.alpha/255;
-        // TODO: Use alphaMap or volume shader instead. https://stackoverflow.com/questions/26588568/volume-rendering-in-webgl and https://threejs.org/examples/webgl2_materials_texture3d.html
+        // TODO: Use alphaMap or volume shader instead. 
+        // https://stackoverflow.com/questions/26588568/volume-rendering-in-webgl and https://threejs.org/examples/webgl2_materials_texture3d.html
     }
 
     if(color.luminance > 0) {
@@ -614,5 +618,8 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
         // TODO: Make emissive.
     }
 
-    return color.m = m;
+    if(!texmap) {
+        color.m = m;
+    }
+    return m;
 }
