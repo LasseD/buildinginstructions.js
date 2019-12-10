@@ -114,7 +114,7 @@ LDR.Colors.buildLineMaterial = function(colorManager, color, conditional) {
 	uniforms: uniforms,
 	vertexShader: (conditional ? 
 	    LDR.Shader.createConditionalVertexShader(LDR.Colors.canBeOld, colors, true) : 
-            LDR.Shader.createSimpleVertexShader(LDR.Colors.canBeOld, colors, true, true)),
+                       LDR.Shader.createSimpleVertexShader(LDR.Colors.canBeOld, colors, true, true, false)),
 	fragmentShader: (conditional ? 
 	    LDR.Shader.AlphaTestFragmentShader :
 	    LDR.Shader.SimpleFragmentShader),
@@ -125,7 +125,7 @@ LDR.Colors.buildLineMaterial = function(colorManager, color, conditional) {
     return ret;
 }
 
-LDR.Colors.buildTriangleMaterial = function(colorManager, color) {
+LDR.Colors.buildTriangleMaterial = function(colorManager, color, texmap) {
     colorManager = colorManager.clone();
     colorManager.overWrite(color);
     let colors = colorManager.shaderColors;
@@ -141,11 +141,14 @@ LDR.Colors.buildTriangleMaterial = function(colorManager, color) {
     else {
 	uniforms['color'] = {type: 'v4', value: colors[0]};
     }
+    if(texmap && texmap !== true) {
+        uniforms['texmap'] = {type: 't', value: texmap};
+    }
     let ret = new THREE.RawShaderMaterial({
 	uniforms: uniforms,
-	vertexShader: LDR.Shader.createSimpleVertexShader(LDR.Colors.canBeOld, colors, false, false),
-	fragmentShader: LDR.Shader.SimpleFragmentShader,
-	transparent: colorManager.containsTransparentColors()
+	vertexShader: LDR.Shader.createSimpleVertexShader(LDR.Colors.canBeOld, colors, false, false, texmap),
+	fragmentShader: texmap ? LDR.Shader.TextureFragmentShader : LDR.Shader.SimpleFragmentShader,
+	transparent: colorManager.containsTransparentColors() || texmap !== false
     });
     ret.colorManager = colorManager;
     return ret;

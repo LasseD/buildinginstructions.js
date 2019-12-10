@@ -21,8 +21,12 @@ LDR.Shader.createShaderHeader = function(canBeOld, numberOfColors, c, defaultIsE
     return ret;
 }
 
-LDR.Shader.createShaderBody = function(canBeOld, multiColored) {
-    let ret = 'uniform mat4 projectionMatrix;uniform mat4 modelViewMatrix;';
+LDR.Shader.createShaderBody = function(canBeOld, multiColored, hasTexmap) {
+    let ret = '  uniform mat4 projectionMatrix;uniform mat4 modelViewMatrix;\n';
+    if(hasTexmap) {
+        ret += "  attribute vec2 uv;\n";
+        ret += "  varying vec2 vuv;\n";
+    }
 
     if(multiColored)
 	ret += "  attribute vec4 position;\n";
@@ -43,18 +47,21 @@ LDR.Shader.createShaderBody = function(canBeOld, multiColored) {
 	ret += "color;\n";
 	ret += "    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);";
     }
+    if(hasTexmap) {
+        ret += "  vuv=uv;\n";
+    }
 
     return ret;
 }
 
-LDR.Shader.createSimpleVertexShader = function(canBeOld, colors, push, defaultIsEdge) {
+LDR.Shader.createSimpleVertexShader = function(canBeOld, colors, push, defaultIsEdge, hasTexmap) {
     let numberOfColors = colors.length;
     if(numberOfColors === 0) {
 	throw "No colors!";
     }
     let ret = LDR.Shader.createShaderHeader(canBeOld, numberOfColors, colors[0], defaultIsEdge);
 
-    ret += LDR.Shader.createShaderBody(canBeOld, numberOfColors > 1);
+    ret += LDR.Shader.createShaderBody(canBeOld, numberOfColors > 1, hasTexmap);
     if(push) {
 	ret += "gl_Position.w -= 0.0000005;";
     }
@@ -107,3 +114,5 @@ LDR.Shader.createConditionalVertexShader = function(canBeOld, colors, push) {
 LDR.Shader.SimpleFragmentShader = 'precision lowp float;varying vec4 vColor;void main(){gl_FragColor=vColor;}';
 
 LDR.Shader.AlphaTestFragmentShader = 'precision lowp float;varying vec4 vColor;void main(){if(vColor.a <= 0.001)discard;gl_FragColor = vColor;}';
+
+LDR.Shader.TextureFragmentShader = 'precision lowp float;varying vec4 vColor;varying vec2 vuv;uniform sampler2D texmap;void main(){gl_FragColor = vuv.x >= 0.0 && vuv.x <= 1.0 && vuv.y >= 0.0 && vuv.y <= 1.0 ? texture2D(texmap,vuv) : gl_FragColor=vColor;}';

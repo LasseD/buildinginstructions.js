@@ -1,0 +1,21 @@
+0 ~Moved to 3067a
+0 Name: 3067.dat
+0 Author: [PTadmin]
+0 !LDRAW_ORG Part UPDATE 2017-01
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+
+0 BFC CERTIFY CCW
+
+0 !HISTORY 2017-12-30 [PTadmin] Official Update 2017-01
+
+0 // Brick  1 x  6 without Centre Studs
+
+1 16 0 0 0 1 0 0 0 1 0 0 0 1 3067a.dat
+
+0 !TEXMAP START PLANAR -60 0 -10 60 24 -10 -60 24 -10 3067pb02.png
+4 16 -60 24 -10 60 24 -10 60 0 -10 -60 0 -10
+
+0 !TEXMAP FALLBACK
+4 16 -60 24 -10 60 24 -10 60 0 -10 -60 0 -10
+
+0 !TEXMAP END

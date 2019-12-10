@@ -1,6 +1,6 @@
 0 FILE main.ldr
 0 Author: Roland Melkert
-1 15  -40 -20 0  1 0 0  0 0 1  0 1 0 plane.dat
+1 4  -40 -20 0  1 0 0  0 0 1  0 1 0 plane.dat
 
 0 FILE plane.dat
 0 plane texmap test

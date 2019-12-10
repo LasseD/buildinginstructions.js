@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <meta charset=utf-8>
+  <meta name="viewport" content="width=device-width" />
+ </head>
+ <body>
+    <script src="js/three.min.js"></script>
+    <script src="js/OrbitControls.js"></script>
+    <script src="js/colors.js"></script>
+    <script src="js/LDROptions.js"></script>
+    <script src="js/LDRShaders.js"></script>
+    <script src="js/LDRColorMaterials.js"></script>
+    <script src="js/LDRGeometries.js"></script>
+    <script src="js/LDRLoader.js"></script>
+    <script>
+      //let model = '3067_test.dat';
+      let model = '3067.dat';
+      //let model = 'test_texmap.dat';
+
+      // Set up camera:
+      let camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
+      camera.position.set(10000, 7000, 10000);
+      camera.lookAt(new THREE.Vector3());
+
+      // Set up scene:
+      let scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xFFFFFF);
+
+      let baseObject = new THREE.Group(), opaqueObject = new THREE.Group(), transObject = new THREE.Group();
+      baseObject.add(opaqueObject); // Draw non-trans before trans.
+      baseObject.add(transObject);
+      scene.add(baseObject);
+      let mc = new LDR.MeshCollector(opaqueObject, transObject);
+
+      // Set up renderer:
+      let renderer = new THREE.WebGLRenderer({antialias: true});
+      renderer.setPixelRatio(window.devicePixelRatio);
+      document.body.appendChild(renderer.domElement);
+
+      function render() {
+        renderer.render(scene, camera);
+      }
+
+      function onWindowResize(){
+        camera.left = -window.innerWidth;
+        camera.right = window.innerWidth;
+        camera.top = window.innerHeight;
+        camera.bottom = -window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        render();
+      }
+
+      // React to user input:
+      let controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.addEventListener('change', render);
+      window.addEventListener('resize', onWindowResize, false);
+
+      // Three.js loader for LDraw models:
+      let ldrLoader;
+
+      let onLoad = function() {
+        ldrLoader.generate(36, mc);
+
+        // Find center of drawn model:
+        let b = mc.boundingBox;
+        let elementCenter = new THREE.Vector3(); b.getCenter(elementCenter);
+        baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
+
+	camera.zoom = window.innerWidth / b.min.distanceTo(b.max);
+        onWindowResize();
+      }
+
+      let ldrOptions = new LDR.Options(); // Determine how to show lines, studs, and logos. Change options using sample_instruction.htm
+      ldrLoader = new THREE.LDRLoader(onLoad, false, {onProgress:render});
+
+      ldrLoader.load(model);
+ </script>
+ </body>
+</html>
