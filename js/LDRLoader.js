@@ -202,7 +202,6 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
         if(lineType === 0 && parts.length > 2 && texmapPlacement && parts[1] === '!:') {
             parts = parts.slice(2); // Texmap content.
             lineType = parseInt(parts[0]);
-            console.dir(parts);
         }
 
         let colorID;
@@ -1942,12 +1941,14 @@ LDR.TexmapPlacement.prototype.getUVPlanar = function(p) {
 }
 
 LDR.TexmapPlacement.prototype.getUVCylindrical = function(p) {
-    throw "TEXMAP Cylindrical not yet supported";
+    console.warn("TEXMAP Cylindrical not yet supported");
+    return [0,0];
     // TODO
 }
 
 LDR.TexmapPlacement.prototype.getUVSpherical = function(p) {
-    throw "TEXMAP Spherical not yet supported";
+    console.warn("TEXMAP Spherical not yet supported");
+    return [0,0];
     // TODO
 }
 
