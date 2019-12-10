@@ -469,6 +469,42 @@ LDR.Colors.loadTextures = function(render) {
     LDR.Colors.loadEnvMapTextures(render);
 
     // Normal maps:
+    var textureLoader = new THREE.TextureLoader();
+    textureLoader.setPath('textures/materials/');
+
+    function updateNormalMapsForList(t, list) {
+        list.forEach(material => {material.normalMap = t; material.needsUpdate = true; render()});
+    }
+    function setNormalMapsForList(l, textureName) {
+        if(l.length === 0) {
+            return; // Nothing to build.
+        }
+	if(l.t) {
+            updateNormalMapsForList(t, l);
+	}
+	else {
+	    textureLoader.load(textureName, t => updateNormalMapsForList(t, l));
+	}
+    }
+
+    setNormalMapsForList(LDR.Colors.listeningMaterials.trans, 'abs.png');
+    setNormalMapsForList(LDR.Colors.listeningMaterials.opaque, 'abs.png');
+    setNormalMapsForList(LDR.Colors.listeningMaterials.pearl, 'pearl.png');
+    setNormalMapsForList(LDR.Colors.listeningMaterials.rubber, 'rubber.png');
+    setNormalMapsForList(LDR.Colors.listeningMaterials.metal, 'metal.png');
+    for(let colorID in LDR.Colors.listeningMaterials.speckle) {
+        if(LDR.Colors.listeningMaterials.speckle.hasOwnProperty(colorID)) {            
+            let s = LDR.Colors.speckleInfo[colorID];
+            setNormalMapsForList(LDR.Colors.listeningMaterials.speckle[colorID], 'speckle.png');
+        }
+    }
+}
+
+LDR.Colors.generateTextures = function(render) {
+    // Environment map:
+    LDR.Colors.loadEnvMapTextures(render);
+
+    // Normal maps:
     function updateNormalMapsForList(t, list) {
         list.forEach(material => {material.normalMap = t; material.needsUpdate = true;});
     }
