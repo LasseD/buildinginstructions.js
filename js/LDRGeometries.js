@@ -250,68 +250,74 @@ LDR.LDRGeometry.prototype.buildGeometriesAndColors = function() {
     }
 
     // Handle texmap geometries:
-    function buildTexmapGeometriesForColor(c) {
-        let texmapped = {}; // idx => [{p,size,noBFC}]
-        function check(ps, q, noBFC) {
-            if(ps.hasOwnProperty(c)) {
-                ps[c].filter(p => p.t).forEach(p => {
-                        if(!texmapped.hasOwnProperty(p.t.idx)) {
-                            texmapped[p.t.idx] = [];
-                        }
-                        texmapped[p.t.idx].push({p:p, q:q, noBFC:noBFC});
-                    });
-            }
-        }
-        check(self.triangles, false, false);
-        check(self.triangles2, false, true);
-        check(self.quads, true, false);
-        check(self.quads2, true, true);
-        for(let idx in texmapped) {
-            if(!texmapped.hasOwnProperty(idx)) {
-                return;
-            }
-            let primitiveList = texmapped[idx];
-            // Build non-indexed geometry for the texture!
-            let ps = [];
-            let uvs = [];
-
-            // Compute ps and uvs:
-            let texmapPlacement;
-            function addTriangle(a, b, c) {
-                ps.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
-                uvs.push(...texmapPlacement.getUV(a));
-                uvs.push(...texmapPlacement.getUV(b));
-                uvs.push(...texmapPlacement.getUV(c));
-            }
-            primitiveList.forEach(ele => {
-                    let p = ele.p, q = ele.q, noBFC = ele.noBFC;
-                    texmapPlacement = p.t;
-                    let v1 = self.vertices[p.p1], v2 = self.vertices[p.p2], v3 = self.vertices[p.p3];
-                    addTriangle(v1, v2, v3);
-                    if(noBFC) {
-                        addTriangle(v3, v2, v1);                        
-                    }
-                    if(q) {
-                        let v4 = self.vertices[p.p4];
-                        addTriangle(v1, v3, v4);
-                        if(noBFC) {
-                            addTriangle(v4, v3, v1);
-                        }
-                    }
-                });
-
-            let g = new THREE.BufferGeometry();
-            g.addAttribute('position', new THREE.BufferAttribute(new Float32Array(ps), 3));
-            g.addAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-            if(!self.texmapGeometries.hasOwnProperty(texmapPlacement.idx)) {
-                self.texmapGeometries[texmapPlacement.idx] = [];
-            }
-            self.texmapGeometries[texmapPlacement.idx].push({colorID:c, geometry:g});
-        }
-    }
-    allTriangleColors.forEach(buildTexmapGeometriesForColor);
+    allTriangleColors.forEach(c => self.buildTexmapGeometriesForColor(c, triangleVertexAttribute));
 
     this.geometriesBuilt = true;
+}
+
+LDR.LDRGeometry.prototype.buildTexmapGeometriesForColor = function(c, triangleVertexAttribute) {
+    let self = this;
+    let texmapped = {}; // idx => [{p,size,noBFC}]
+    function check(ps, q, noBFC) {
+        if(ps.hasOwnProperty(c)) {
+            ps[c].filter(p => p.t).forEach(p => {
+                    if(!texmapped.hasOwnProperty(p.t.idx)) {
+                        texmapped[p.t.idx] = [];
+                    }
+                    texmapped[p.t.idx].push({p:p, q:q, noBFC:noBFC});
+                });
+        }
+    }
+    check(self.triangles, false, false);
+    check(self.triangles2, false, true);
+    check(self.quads, true, false);
+    check(self.quads2, true, true);
+
+    for(let idx in texmapped) {
+        if(!texmapped.hasOwnProperty(idx)) {
+            return;
+        }
+        let primitiveList = texmapped[idx];
+        // Build non-indexed geometry for the texture!
+        let triangleIndices = [];
+        let uvs = new Float32Array(this.vertices.length*2);
+        
+        // Compute ps and uvs:
+        let texmapPlacement;
+        function setUV(a) {
+            let [u,v] = texmapPlacement.getUV(self.vertices[a]);
+            uvs[2*a] = u;
+            uvs[2*a+1] = v;
+        }
+        primitiveList.forEach(ele => {
+                let p = ele.p, q = ele.q, noBFC = ele.noBFC;
+                texmapPlacement = p.t;
+
+                triangleIndices.push(p.p1, p.p2, p.p3);
+                setUV(p.p1);
+                setUV(p.p2);
+                setUV(p.p3);
+                if(noBFC) {
+                    triangleIndices.push(p.p3, p.p2, p.p1);
+                }
+                if(q) { // Quad:
+                    triangleIndices.push(p.p1, p.p3, p.p4);
+                    setUV(p.p4);
+                    if(noBFC) {
+                        triangleIndices.push(p.p4, p.p3, p.p1);
+                    }
+                }
+            });
+        
+        let g = self.buildGeometry(triangleIndices, triangleVertexAttribute);
+        g.computeVertexNormals(); // Also normalizes.
+
+        g.addAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+        if(!self.texmapGeometries.hasOwnProperty(texmapPlacement.idx)) {
+            self.texmapGeometries[texmapPlacement.idx] = [];
+        }
+        self.texmapGeometries[texmapPlacement.idx].push({colorID:c, geometry:g});
+    }
 }
 
 // Optimized version of the one found in https://github.com/mrdoob/three.js/blob/master/src/core/BufferGeometry.js
@@ -482,23 +488,18 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                 triangleIndices.push(b, c, d);
             }
 
-            if(self.triangles.hasOwnProperty(c)) {
-                self.triangles[c].forEach(t => pushT(t.p1, t.p2, t.p3));
-            }
-            if(self.triangles2.hasOwnProperty(c)) {
-                self.triangles2[c].forEach(t => {pushT(t.p1, t.p2, t.p3);
-                                                 pushT(t.p3, t.p2, t.p1);});
-            }
-            if(self.quads.hasOwnProperty(c)) {
-                self.quads[c].forEach(q => pushQ(q.p1, q.p2, q.p3, q.p4));
-            }
-            if(self.quads2.hasOwnProperty(c)) {
-                self.quads2[c].forEach(q => {pushQ(q.p1, q.p2, q.p3, q.p4);
-                                             pushQ(q.p4, q.p3, q.p2, q.p1);});
-            }
+            let triangles = self.triangles.hasOwnProperty(c) ? self.triangles[c].filter(p => !p.t) : [];
+            let triangles2 = self.triangles2.hasOwnProperty(c) ? self.triangles2[c].filter(p => !p.t) : [];
+            let quads = self.quads.hasOwnProperty(c) ? self.quads[c].filter(p => !p.t) : [];
+            let quads2 = self.quads2.hasOwnProperty(c) ? self.quads2[c].filter(p => !p.t) : [];
+
+            triangles.forEach(t => pushT(t.p1, t.p2, t.p3));
+            triangles2.forEach(t => {pushT(t.p1, t.p2, t.p3); pushT(t.p3, t.p2, t.p1);});
+            quads.forEach(q => pushQ(q.p1, q.p2, q.p3, q.p4));
+            quads2.forEach(q => {pushQ(q.p1, q.p2, q.p3, q.p4); pushQ(q.p4, q.p3, q.p2, q.p1);});
 
             if(triangleIndices.length === 0) {
-                return;
+                return; // None in color.
             }
 
             let g = self.buildGeometry(triangleIndices, triangleVertexAttribute); // TODO: Split vertexattribute by color! - compare performance!
@@ -656,18 +657,10 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                 }
             }
 
-            if(self.triangles.hasOwnProperty(c)) {
-                self.triangles[c].forEach(t => setUVs([t.p1, t.p2, t.p3]));
-            }
-            if(self.triangles2.hasOwnProperty(c)) {
-                self.triangles2[c].forEach(t => setUVs([t.p1, t.p2, t.p3]));
-            }
-            if(self.quads.hasOwnProperty(c)) {
-                self.quads[c].forEach(q => setUVs([q.p1, q.p2, q.p3, q.p4]));
-            }
-            if(self.quads2.hasOwnProperty(c)) {
-                self.quads2[c].forEach(q => setUVs([q.p1, q.p2, q.p3, q.p4]));
-            }
+            triangles.forEach(t => setUVs([t.p1, t.p2, t.p3]));
+            triangles2.forEach(t => setUVs([t.p1, t.p2, t.p3]));
+            quads.forEach(q => setUVs([q.p1, q.p2, q.p3, q.p4]));
+            quads2.forEach(q => setUVs([q.p1, q.p2, q.p3, q.p4]));
 
             g.addAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
             //g.attributes.uv2 = g.attributes.uv; // Used by aoMap (not in use yet)
@@ -675,8 +668,8 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
             self.triangleGeometries[c] = g;
         });
 
-    // TODO: Texmap geometries:
-    
+    // Handle texmap geometries:
+    allTriangleColors.forEach(c => self.buildTexmapGeometriesForColor(c, triangleVertexAttribute));
 
     this.geometriesBuilt = true;
     
@@ -724,10 +717,10 @@ LDR.LDRGeometry.prototype.buildGeometryForConditionalLines = function(multiColor
 	    colorIndices.push(line.fc, line.fc); // 2 points.
         }
     }
-    this.conditionalLineGeometry.addAttribute('position', new THREE.BufferAttribute(new Float32Array(p1s), 3));
-    this.conditionalLineGeometry.addAttribute('p2', new THREE.BufferAttribute(new Float32Array(p2s), 3));
-    this.conditionalLineGeometry.addAttribute('p3', new THREE.BufferAttribute(new Float32Array(p3s), 3));
-    this.conditionalLineGeometry.addAttribute('p4', new THREE.BufferAttribute(new Float32Array(p4s), 3));
+    this.conditionalLineGeometry.addAttribute('position', new THREE.Float32BufferAttribute(p1s, 3));
+    this.conditionalLineGeometry.addAttribute('p2', new THREE.Float32BufferAttribute(p2s, 3));
+    this.conditionalLineGeometry.addAttribute('p3', new THREE.Float32BufferAttribute(p3s, 3));
+    this.conditionalLineGeometry.addAttribute('p4', new THREE.Float32BufferAttribute(p4s, 3));
     if(multiColored) {
 	this.conditionalLineGeometry.addAttribute('colorIndex', new THREE.BufferAttribute(new Float32Array(colorIndices), 1));
     }
@@ -999,7 +992,6 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
 
     this.replaceWithDeep(pt.geometry);
     if(pd.texmapPlacement) { // Overwrite texmap placement on primitives:
-        // TODO: Might need to reposition the placement - let's see how this gets coded...
         this.triangles.forEach(t => t.t = pd.texmapPlacement);
         this.triangles2.forEach(t => t.t = pd.texmapPlacement);
         this.quads.forEach(t => t.t = pd.texmapPlacement);

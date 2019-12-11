@@ -407,7 +407,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
                     encodedContent += parts[1].substring(2);
                     if(parts.length > 2) encodedContent += parts.slice(2).join('');
                 }
-                console.log('Inline texmap file encountered');
+                console.log('Inline texmap file encountered - standard not yet finalized, so errors might occur!');
 
                 let detectMimetype = id => id.endsWith('jpg') || id.endsWith('jpeg') ? 'jpeg' : 'png';
                 let mimetype = detectMimetype(part.ID);
@@ -597,7 +597,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
             if(!self.texmaps.hasOwnProperty(id)) {
                 self.texmaps[id] = true;
                 self.texmapListeners[id] = [];
-                self.texmapLoader.load(self.idToTextureUrl(id), t => setTexture(t, id));
+                self.texmapLoader.load(self.idToTextureUrl(id), t => setTexture(t, id), undefined, e => self.onError(e));
             }
         });
 
@@ -1763,21 +1763,28 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
                 let textureFile = LDR.TexmapPlacements[idx].file;
 
                 let material;
-                let buildMaterial = loader.physicalRenderingAge === 0 ?
-                  t => LDR.Colors.buildTriangleMaterial(smallCM, c, t) :
-                  t => LDR.Colors.buildStandardMaterial(c, t);
+                let buildMaterial, setMap;
+                if(loader.physicalRenderingAge === 0 || !true) {
+                    buildMaterial = t => LDR.Colors.buildTriangleMaterial(smallCM, c, t);
+                    setMap = t => material.uniforms.map = {type:'t',value:t};
+                }
+                else {
+                    buildMaterial = t => LDR.Colors.buildStandardMaterial(c, t);
+                    setMap = t => material.map = t;
+                }
 
                 if(loader.texmaps[textureFile] === true) {
                     material = buildMaterial(true);
                     function setTexmap(t) {
-                        material.uniforms.map = {type:'t',value:t};
+                        setMap(t);
                         material.needsUpdate = true;
                         loader.onProgress(textureFile);
                     }
                     loader.texmapListeners[textureFile].push(setTexmap);
                 }
                 else {
-                    material = buildMaterial(loader.texmaps[textureFile]);
+                    let texture = loader.texmaps[textureFile];
+                    material = buildMaterial(texture);
                 }
 
                 let mesh = new THREE.Mesh(g.clone(), material);

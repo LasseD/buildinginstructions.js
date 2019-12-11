@@ -549,12 +549,13 @@ LDR.Colors.buildStandardMaterial = function(colorID, texmap) {
 
     let params = {
         color: colorID < 0 ? (color.edge ? color.edge : 0x333333) : color.value,
-        name: 'Material for color ' + color.name + ' (' + colorID + ')',
-        //normalMapType: THREE.TangentSpaceNormalMap, (default)
-        // Displacement map will not be used as it affects vertices of the mesh, not pixels,
+        name: 'Material for color ' + color.name + ' (' + colorID + ')' + (texmap?' with texmap':''),
     };
-    if(texmap && texmap !== true) {
-        params.map = texmap;
+    if(texmap) {
+        params.color = 0xFFFFFF; // TODO: Right now color is forced to white when textures are applied in order to avoid color modulation on texture. Ideally a custom material should be used.
+        if(texmap !== true) {
+            params.map = texmap; // Map set now!
+        }
     }
     
     if(color.material) { // Special materials:
@@ -640,7 +641,12 @@ LDR.Colors.buildStandardMaterial = function(colorID, texmap) {
     }
     
     let m = createMaterial(params);
-    registerTextureListener(m);
+    if(texmap) {
+        m.transparent = true; // We do not know if texture is transparent.
+    }
+    else {
+        registerTextureListener(m); // Texture does not work with map since they both use UV's, but for different purposes!
+    }
 
     if(color.alpha > 0) {
         m.transparent = true;
