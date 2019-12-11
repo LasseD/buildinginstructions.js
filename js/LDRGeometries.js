@@ -991,11 +991,19 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
     pt.ensureGeometry(loader);
 
     this.replaceWithDeep(pt.geometry);
+    console.dir(this);
     if(pd.texmapPlacement) { // Overwrite texmap placement on primitives:
-        this.triangles.forEach(t => t.t = pd.texmapPlacement);
-        this.triangles2.forEach(t => t.t = pd.texmapPlacement);
-        this.quads.forEach(t => t.t = pd.texmapPlacement);
-        this.quads2.forEach(t => t.t = pd.texmapPlacement);
+        function copyDown(ps) {
+            for(let c in ps) {
+                if(ps.hasOwnProperty(c)) {
+                    ps[c].forEach(t => t.t = pd.texmapPlacement);
+                }
+            }
+        }
+        copyDown(this.triangles);
+        copyDown(this.triangle2);
+        copyDown(this.quads);
+        copyDown(this.quads2);
     }
 
     let m4 = new THREE.Matrix4();
