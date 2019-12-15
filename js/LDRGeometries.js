@@ -991,20 +991,6 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
     pt.ensureGeometry(loader);
 
     this.replaceWithDeep(pt.geometry);
-    console.dir(this);
-    if(pd.texmapPlacement) { // Overwrite texmap placement on primitives:
-        function copyDown(ps) {
-            for(let c in ps) {
-                if(ps.hasOwnProperty(c)) {
-                    ps[c].forEach(t => t.t = pd.texmapPlacement);
-                }
-            }
-        }
-        copyDown(this.triangles);
-        copyDown(this.triangle2);
-        copyDown(this.quads);
-        copyDown(this.quads2);
-    }
 
     let m4 = new THREE.Matrix4();
     let m3e = pd.rotation.elements;
@@ -1081,7 +1067,6 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
     this.vertices.forEach(v => delete v.oldIndex);    
     
     // Update the indices and colors on the primitives:
-
     function t(withColors, transform) {
         let ret = {};
         for(let c in withColors) {
@@ -1099,7 +1084,6 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
         }
         return ret;
     }
-
     this.lines = t(this.lines, p => {return {p1:newIndices[p.p1],p2:newIndices[p.p2]};});
     this.conditionalLines = t(this.conditionalLines, p => {return {p1:newIndices[p.p1],p2:newIndices[p.p2],p3:newIndices[p.p3],p4:newIndices[p.p4]};});
     if(invert) {
@@ -1112,6 +1096,40 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
     }
     this.triangles2 = t(this.triangles2, p => {return {p1:newIndices[p.p3],p2:newIndices[p.p2],p3:newIndices[p.p1]};});
     this.quads2 = t(this.quads2, p => {return {p1:newIndices[p.p4],p2:newIndices[p.p3],p3:newIndices[p.p2],p4:newIndices[p.p1]};});
+
+    // No culling in PD: Move all culled triangles and quads to non-culled:
+    if(!pd.cull) {
+        function mv(from, to) {
+            for(let c in from) {
+                if(!from.hasOwnProperty(c)) {
+                    continue;
+                }
+                if(!to.hasOwnProperty(c)) {
+                    to[c] = [];
+                }
+                to[c].push(...from[c]);
+            }
+        }
+        mv(this.triangles, this.triangles2);
+        this.triangles = [];
+        mv(this.quads, this.quads2);
+        this.quads = [];
+    }
+
+    // Overwrite texmap placement on primitives:
+    if(pd.texmapPlacement) {
+        function copyDown(ps) {
+            for(let c in ps) {
+                if(ps.hasOwnProperty(c)) {
+                    ps[c].forEach(t => t.t = pd.texmapPlacement);
+                }
+            }
+        }
+        copyDown(this.triangles);
+        copyDown(this.triangle2);
+        copyDown(this.quads);
+        copyDown(this.quads2);
+    }
 }
 
 LDR.LDRGeometry.prototype.mapIndices = function(map) {

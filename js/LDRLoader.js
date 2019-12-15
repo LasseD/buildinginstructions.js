@@ -326,6 +326,11 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 		    part.CCW = CCW = true;
                     localCull = true;
 		    break;
+		case "NOCERTIFY":
+		    part.certifiedBFC = false;
+		    part.CCW = CCW = true; // Doens't matter since there is no culling.
+                    localCull = false;
+		    break;
 		case "INVERTNEXT":
                     invertNext = true;
 		    break;
@@ -418,6 +423,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
                 let image = new Image();
                 image.onload = function(e) {
                     let texture = new THREE.Texture(this);
+                    //texture.wrapS = texture.wrapT = THREE.RepeatWrapping;//THREE.ClampToEdgeWrapping;
                     texture.needsUpdate = true;
                     self.texmaps[part.ID] = texture;
                     self.texmapListeners[part.ID].forEach(l => l(texture));
@@ -734,7 +740,7 @@ THREE.LDRLoader.prototype.substituteReplacementParts = function() {
 
 THREE.LDRLoader.prototype.unpack = function(obj) {
     let self = this;
-    let names = obj.names.split('�');
+    let names = obj.names.split('¤');
 
     let parts = [];
     this.mainModel = names[0];
@@ -802,7 +808,7 @@ THREE.LDRLoader.prototype.pack = function() {
     }
     scanNames(mainModel);
 
-    let ret = {names:names.join('�')};
+    let ret = {names:names.join('¤')};
 
     let arrayF = [];
     let arrayI = [];
@@ -1903,25 +1909,32 @@ LDR.TexmapPlacement = function(parts) {
     }
     this.method = parts[3];
     if(parts[3] === 'PLANAR') {
-        // Normal and lenth for plane P1:
-        this.N1 = new THREE.Vector3();
-        this.N1.subVectors(this.p[1], this.p[0]);
-        this.N1Len = this.N1.length();
-        this.D1 = -this.N1.x*this.p[1].x -this.N1.y*this.p[1].y -this.N1.z*this.p[1].z;
+        // Normal and lenth squared for plane P1:
+        this.N1 = new THREE.Vector3(); this.N1.subVectors(this.p[1], this.p[0]);
+        this.N1LenSq = this.N1.lengthSq();
+        this.D1 = -this.N1.x*this.p[1].x -this.N1.y*this.p[1].y -this.N1.z*this.p[1].z; // D from 
 
-        // Normal and lenth for plane P2:
-        this.N2 = new THREE.Vector3();
-        this.N2.subVectors(this.p[2], this.p[0]);
-        this.N2Len = this.N2.length();
+        // Normal and lenth squared for plane P2:
+        this.N2 = new THREE.Vector3(); this.N2.subVectors(this.p[2], this.p[0]);
+        this.N2LenSq = this.N2.lengthSq();
         this.D2 = -this.N2.x*this.p[2].x -this.N2.y*this.p[2].y -this.N2.z*this.p[2].z;
 
         this.getUV = this.getUVPlanar;
     }
     else if(parts[3] === 'CYLINDRICAL' && parts.length > 13) {
-        this.a = parseFloat(parts[idx++]);
+        this.a = parseFloat(parts[idx++]) * Math.PI / 180;
+        this.n = new THREE.Vector3(); this.n.subVectors(this.p[1], this.p[0]);
+        this.nLen = this.n.length();
+        this.n.normalize();
+        this.D = -this.n.x*this.p[1].x -this.n.y*this.p[1].y -this.n.z*this.p[1].z;
+
+        let p3 = this.projectPointToPlane(this.n, this.p[0], this.p[2]);
+        this.m = new THREE.Vector3(); this.m.subVectors(p3, this.p[0]);
+
         this.getUV = this.getUVCylindrical;
     }
     else if(parts[3] === 'SPHERICAL' && parts.length > 14) {
+        console.warn("TEXMAP SPHERICAL not yet supported");
         this.a = parseFloat(parts[idx++]);
         this.b = parseFloat(parts[idx++]);
         this.getUV = this.getUVSpherical;
@@ -1947,24 +1960,72 @@ LDR.TexmapPlacement.prototype.use = function() {
     }
 }
 
+// Plane with normal n and p0 being a point on the plane. p is the point to project.
+// q = p - (n * (p-p0))*n. q is projected point.
+LDR.TexmapPlacement.prototype.projectPointToPlane = function(n, p0, p) {
+    let pp0 = new THREE.Vector3(); pp0.subVectors(p, p0);
+    let npp0 = n.dot(pp0);
+    let npp0n = new THREE.Vector3(); npp0n.copy(n); npp0n.multiplyScalar(npp0);
+
+    let q = new THREE.Vector3(); q.subVectors(p, npp0n);
+
+    return q;
+}
+
 // Use this.p = [p1,p2,p3]
 LDR.TexmapPlacement.prototype.getUVPlanar = function(p) {
     let toPlane = (n, D) => Math.abs(n.x*p.x + n.y*p.y + n.z*p.z + D);
 
-    let u = 1 - toPlane(this.N1, this.D1) / this.N1Len / this.N1Len; // TODO: Why is inversion required here?
-    let v = toPlane(this.N2, this.D2) / this.N2Len / this.N2Len;
+    let U = 1 - toPlane(this.N1, this.D1) / this.N1LenSq; // Inversion is required since textures by default have y flipped
+    let V = toPlane(this.N2, this.D2) / this.N2LenSq;
 
-    return [u, v];
+    return [U,V];
 }
 
+/*
+x1 y1 z1 x2 y2 z2 x3 y3 z3 a
+
+p1 = (x1,y1,z1) = Bottom center of cylinder
+p2 = (x2,y2,z2) = Top center of cylinder
+p3 = (x3,y3,z3) = A location on the outer edge of the cylinder bottom where the center-bottom of the texture would touch
+a = Extend of mapping by the texture. [–a/2;a/2] as measured relative to radial line from p1p3
+n = p1p2
+m = p1p3
+
+p -> (U,V):
+ U = angle(m,p1q) / a, q is projection to bottom of the cylinder.
+  U = atan2(m x p1q) . n, m . p1q)
+ V = dist(p,q) / |n|
+ */
 LDR.TexmapPlacement.prototype.getUVCylindrical = function(p) {
-    console.warn("TEXMAP Cylindrical not yet supported");
-    return [0,0];
-    // TODO
+    let q = this.projectPointToPlane(this.n, this.p[0], p);
+    let p1q = new THREE.Vector3(); p1q.subVectors(this.p[0], q);
+    let cross = new THREE.Vector3(); cross.crossVectors(p1q, this.m);
+    let angle = Math.atan2(-cross.dot(this.n), -this.m.dot(p1q));
+    let U = 0.5 + angle / this.a;
+
+    let distToP1Disc = this.n.x*p.x + this.n.y*p.y + this.n.z*p.z + this.D;
+    let V = -distToP1Disc / this.nLen;
+
+    return [U,V];
 }
 
+/*
+x1 y1 z1 x2 y2 z2 x3 y3 z3 a b
+
+p1 = (x1,y1,z1) = center of sphere
+p2 = (x2,y2,z2) = a point on the sphere where the center of the texture map will touch
+p3 = (x3,y3,z3) = Forms a plane (P1) perpendicular to the texture and bisects it horizontally
+ Plane P2 can be computed by using p1 and p2 and generating a 3rd point along the normal of P1.
+ P2 will be perpendicular to both P1 and the texture and will bisect the texture vertically.
+ The two angles indicate the extents of the sphere that get mapped to.
+ These are [–a/2;a/2] and [–b/2;b/2] as measured relative to p1p2 and within P1 and P2 respectively.
+
+p -> (U,V):
+U = angle(p1p2, p1q1)/a, q1 = proj(p onto P1)
+V = angle(p1p2, p1q2)/b, q2 = proj(p onto P2)
+ */
 LDR.TexmapPlacement.prototype.getUVSpherical = function(p) {
-    console.warn("TEXMAP Spherical not yet supported");
     return [0,0];
     // TODO
 }
