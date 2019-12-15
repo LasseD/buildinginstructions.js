@@ -2,7 +2,7 @@
 0 Author: Roland Melkert
 1 15  -40 -20 0  1 0 0  0 0 1  0 1 0 plane.dat
 1 36 50 0 0 -0.5 0 -0.866 0 1 0 0.866 0 -0.5 sphere.dat
-1 4 140 -40 0 1 0 0 0 1 0 0 0 1 cyl.dat
+1 14 140 -40 0 1 0 0 0 1 0 0 0 1 cyl.dat
 
 0 FILE plane.dat
 0 plane texmap test
@@ -29,8 +29,8 @@
 0 !LDRAW_ORG UNOFFICIAL Part
 0 BFC NOCERTIFY
 
-2 1 0 0 -40 0 10 0
-2 4 0 10 0 0 75 0
+2 16 0 0 -40 0 10 0
+2 16 0 10 0 0 75 0
 0 !TEXMAP START CYLINDRICAL 0 10 0    0 75 0     0 0 -40    360 checker123yyz.png
 1 16 0 0 0 40 0 0 0 80 0 0 0 40 4-4cyli.dat
 0 !TEXMAP END

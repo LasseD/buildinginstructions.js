@@ -897,9 +897,8 @@ THREE.LDRPartDescription.prototype.placedColor = function(pdColorID) {
         colorID = pdColorID;
     }
     else if(colorID === 24) {
-        colorID = (pdColorID === 16) ? 24 : pdColorID; // Ensure color 24 is propagated correctly when placed for main color (16)..
+        colorID = (pdColorID === 16) ? 24 : pdColorID; // Ensure color 24 is propagated correctly when placed for main color (16).
     }
-
     return colorID;
 }
 
@@ -1764,18 +1763,19 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
             continue;
         }
         this.geometry.texmapGeometries[idx].forEach(obj => {
-                let g = obj.geometry, c = obj.colorID;
-                let smallCM = new LDR.ColorManager(); smallCM.get(c);
+                let g = obj.geometry, c2 = obj.colorID;
+                let c3 = c2 === '16' ? c : c2;
+                let smallCM = new LDR.ColorManager(); smallCM.get(c3);
                 let textureFile = LDR.TexmapPlacements[idx].file;
 
                 let material;
                 let buildMaterial, setMap;
                 if(loader.physicalRenderingAge === 0 || !true) {
-                    buildMaterial = t => LDR.Colors.buildTriangleMaterial(smallCM, c, t);
+                    buildMaterial = t => LDR.Colors.buildTriangleMaterial(smallCM, c3, t);
                     setMap = t => material.uniforms.map = {type:'t',value:t};
                 }
                 else {
-                    buildMaterial = t => LDR.Colors.buildStandardMaterial(c, t);
+                    buildMaterial = t => LDR.Colors.buildStandardMaterial(c3, t);
                     setMap = t => material.map = t;
                 }
 
@@ -1795,7 +1795,7 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 
                 let mesh = new THREE.Mesh(g.clone(), material);
                 mesh.geometry.applyMatrix(m4);
-                if(LDR.Colors.isTrans(c)) {
+                if(LDR.Colors.isTrans(c3)) {
                     mc.addTrans(mesh, pd);
                 }
                 else {
