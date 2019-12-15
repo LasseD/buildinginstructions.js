@@ -1996,13 +1996,28 @@ p -> (U,V):
  U = angle(m,p1q) / a, q is projection to bottom of the cylinder.
   U = atan2(m x p1q) . n, m . p1q)
  V = dist(p,q) / |n|
+
+The point p will be one of the vertices of a triangle. In case V=0, the cylindrical nature of 
+The two points pCtx1 and cPtx2 are for providing context of the origi
  */
-LDR.TexmapPlacement.prototype.getUVCylindrical = function(p) {
-    let q = this.projectPointToPlane(this.n, this.p[0], p);
-    let p1q = new THREE.Vector3(); p1q.subVectors(this.p[0], q);
-    let cross = new THREE.Vector3(); cross.crossVectors(p1q, this.m);
-    let angle = Math.atan2(-cross.dot(this.n), -this.m.dot(p1q));
-    let U = 0.5 + angle / this.a;
+LDR.TexmapPlacement.prototype.getUVCylindrical = function(p, pCtx1, pCtx2) {
+    let self = this;
+    function getU(pt) {
+        let q = self.projectPointToPlane(self.n, self.p[0], pt);
+        let p1q = new THREE.Vector3(); p1q.subVectors(self.p[0], q);
+        let cross = new THREE.Vector3(); cross.crossVectors(p1q, self.m);
+        let dx = cross.dot(self.n), dy = self.m.dot(p1q);
+        let angle = Math.atan2(-dx, -dy);
+        let U = 0.5 + angle / self.a;
+        return U;
+    }
+    let U = getU(p);
+    if(-1e-4 < U && U < 1e-4) { // Fix wraparound issue.
+        let uCtx1 = getU(pCtx1), uCtx2 = getU(pCtx2);
+        if(uCtx2 > 0.75 || uCtx1 > 0.5) {
+            U = 1;
+        }
+    }
 
     let distToP1Disc = this.n.x*p.x + this.n.y*p.y + this.n.z*p.z + this.D;
     let V = -distToP1Disc / this.nLen;

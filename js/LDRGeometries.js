@@ -250,23 +250,25 @@ LDR.LDRGeometry.prototype.buildGeometriesAndColors = function() {
     }
 
     // Handle texmap geometries:
-    allTriangleColors.forEach(c => self.buildTexmapGeometriesForColor(c, triangleVertexAttribute));
+    allTriangleColors.forEach(c => self.buildTexmapGeometriesForColor(c));
 
     this.geometriesBuilt = true;
 }
 
-LDR.LDRGeometry.prototype.buildTexmapGeometriesForColor = function(c, triangleVertexAttribute) {
+LDR.LDRGeometry.prototype.buildTexmapGeometriesForColor = function(c) {
     let self = this;
+
     let texmapped = {}; // idx => [{p,size,noBFC}]
     function check(ps, q, noBFC) {
-        if(ps.hasOwnProperty(c)) {
-            ps[c].filter(p => p.t).forEach(p => {
-                    if(!texmapped.hasOwnProperty(p.t.idx)) {
-                        texmapped[p.t.idx] = [];
-                    }
-                    texmapped[p.t.idx].push({p:p, q:q, noBFC:noBFC});
-                });
+        if(!ps.hasOwnProperty(c)) {
+            return;
         }
+        ps[c].filter(p => p.t).forEach(p => {
+                if(!texmapped.hasOwnProperty(p.t.idx)) {
+                    texmapped[p.t.idx] = [];
+                }
+                texmapped[p.t.idx].push({p:p, q:q, noBFC:noBFC});
+            });
     }
     check(self.triangles, false, false);
     check(self.triangles2, false, true);
@@ -278,41 +280,62 @@ LDR.LDRGeometry.prototype.buildTexmapGeometriesForColor = function(c, triangleVe
             return;
         }
         let primitiveList = texmapped[idx];
-        // Build non-indexed geometry for the texture!
-        let triangleIndices = [];
-        let uvs = new Float32Array(this.vertices.length*2);
+
+        // Build indexed geometry for the texture:
+        let vertices = []; // x 3
+        let indices = []; // x 1
+        let uvs = []; // x 2
+        let indexMap = {}; // original index -> new index
+
+        //let uvs = new Float32Array(triangleVertices.length*2);
         
         // Compute ps and uvs:
         let texmapPlacement;
-        function setUV(a) {
-            let [u,v] = texmapPlacement.getUV(self.vertices[a]);
-            uvs[2*a] = u;
-            uvs[2*a+1] = v;
+        function set(a, b, c) {
+            let vertex = self.vertices[a];
+            let [u,v] = texmapPlacement.getUV(vertex, self.vertices[b], self.vertices[c]);
+
+            if(indexMap.hasOwnProperty(a)) {
+                let idx = indexMap[a];
+                // Check UV:
+                let oldU = uvs[2*idx], oldV = uvs[2*idx+1];
+                if(false && oldU === u && oldV === v) {
+                    indices.push(idx);
+                    return;
+                }
+            }
+
+            let idx = indices.length;
+            indexMap[a] = idx;
+            vertices.push(vertex.x, vertex.y, vertex.z);
+            indices.push(idx);
+            uvs.push(u, v);
+        }
+        function setAll(a, b, c) {
+            set(a, b, c);
+            set(b, a, c);
+            set(c, a, b);
         }
         primitiveList.forEach(ele => {
                 let p = ele.p, q = ele.q, noBFC = ele.noBFC;
                 texmapPlacement = p.t;
 
-                triangleIndices.push(p.p1, p.p2, p.p3);
-                setUV(p.p1);
-                setUV(p.p2);
-                setUV(p.p3);
+                setAll(p.p1, p.p2, p.p3);
                 if(noBFC) {
-                    triangleIndices.push(p.p3, p.p2, p.p1);
+                    setAll(p.p3, p.p2, p.p1);
                 }
                 if(q) { // Quad:
-                    triangleIndices.push(p.p1, p.p3, p.p4);
-                    setUV(p.p4);
+                    setAll(p.p1, p.p3, p.p4);
                     if(noBFC) {
-                        triangleIndices.push(p.p4, p.p3, p.p1);
+                        setAll(p.p4, p.p3, p.p1);
                     }
                 }
             });
         
-        let g = self.buildGeometry(triangleIndices, triangleVertexAttribute);
+        let g = self.buildGeometry(indices, new THREE.Float32BufferAttribute(vertices, 3));
         g.computeVertexNormals(); // Also normalizes.
 
-        g.addAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+        g.addAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
         if(!self.texmapGeometries.hasOwnProperty(texmapPlacement.idx)) {
             self.texmapGeometries[texmapPlacement.idx] = [];
         }
@@ -669,7 +692,7 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
         });
 
     // Handle texmap geometries:
-    allTriangleColors.forEach(c => self.buildTexmapGeometriesForColor(c, triangleVertexAttribute));
+    allTriangleColors.forEach(c => self.buildTexmapGeometriesForColor(c));
 
     this.geometriesBuilt = true;
     
