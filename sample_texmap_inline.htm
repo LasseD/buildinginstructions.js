@@ -18,9 +18,8 @@
     <script src="js/LDRGenerator.js"></script>
     <script src="js/LDRStuds.js"></script>
     <script>
-      let startTime = new Date();
       // The model to be rendered:
-      let model = 'models/corvette_full.mpd';
+      let model = 'models/inline_texmap.mpd';
 
       // Set up camera:
       let camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
@@ -64,22 +63,28 @@
       let ldrLoader;
 
       let onLoad = function() {
-        ldrLoader.generate(4, mc);
+        let mainModel = ldrLoader.getMainModel(); // Main model from the LDraw file (first model encountered)
+
+        // Place model in scene:
+        let origo = new THREE.Vector3();
+        let inv = new THREE.Matrix3(); 
+        inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
+
+        // Generate the mesh:
+        mainModel.generateThreePart(ldrLoader, 4, origo, inv, true, false, mc);
 
         // Find center of drawn model:
         let b = mc.boundingBox;
         let elementCenter = new THREE.Vector3();
         b.getCenter(elementCenter);
         baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
-        //baseObject.add(new THREE.Box3Helper(b, 0x0000FF)); // Uncomment if you want to see the bounding box
 
 	camera.zoom = window.innerWidth/b.min.distanceTo(b.max);
         onWindowResize();
-        console.log("Model rendered in " + (new Date()-startTime) + "ms.");
       }
 
       let ldrOptions = new LDR.Options(); // Determine how to show lines, studs, and logos. Change options using sample_instruction.htm
-      ldrLoader = new THREE.LDRLoader(onLoad);
+      ldrLoader = new THREE.LDRLoader(onLoad, false, {onProgress:render});
       ldrLoader.load(model);
  </script>
  </body>

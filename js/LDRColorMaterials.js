@@ -114,7 +114,7 @@ LDR.Colors.buildLineMaterial = function(colorManager, color, conditional) {
 	uniforms: uniforms,
 	vertexShader: (conditional ? 
 	    LDR.Shader.createConditionalVertexShader(LDR.Colors.canBeOld, colors, true) : 
-            LDR.Shader.createSimpleVertexShader(LDR.Colors.canBeOld, colors, true, true)),
+                       LDR.Shader.createSimpleVertexShader(LDR.Colors.canBeOld, colors, true, true, false)),
 	fragmentShader: (conditional ? 
 	    LDR.Shader.AlphaTestFragmentShader :
 	    LDR.Shader.SimpleFragmentShader),
@@ -125,7 +125,7 @@ LDR.Colors.buildLineMaterial = function(colorManager, color, conditional) {
     return ret;
 }
 
-LDR.Colors.buildTriangleMaterial = function(colorManager, color) {
+LDR.Colors.buildTriangleMaterial = function(colorManager, color, texmap) {
     colorManager = colorManager.clone();
     colorManager.overWrite(color);
     let colors = colorManager.shaderColors;
@@ -141,11 +141,14 @@ LDR.Colors.buildTriangleMaterial = function(colorManager, color) {
     else {
 	uniforms['color'] = {type: 'v4', value: colors[0]};
     }
+    if(texmap && texmap !== true) {
+        uniforms['map'] = {type: 't', value: texmap};
+    }
     let ret = new THREE.RawShaderMaterial({
 	uniforms: uniforms,
-	vertexShader: LDR.Shader.createSimpleVertexShader(LDR.Colors.canBeOld, colors, false, false),
-	fragmentShader: LDR.Shader.SimpleFragmentShader,
-	transparent: colorManager.containsTransparentColors()
+	vertexShader: LDR.Shader.createSimpleVertexShader(LDR.Colors.canBeOld, colors, false, false, texmap),
+	fragmentShader: texmap ? LDR.Shader.TextureFragmentShader : LDR.Shader.SimpleFragmentShader,
+	transparent: colorManager.containsTransparentColors() || texmap !== false
     });
     ret.colorManager = colorManager;
     return ret;
@@ -535,9 +538,9 @@ LDR.Colors.generateTextures = function(render) {
     render();
 }
 
-LDR.Colors.buildStandardMaterial = function(colorID) {
+LDR.Colors.buildStandardMaterial = function(colorID, texmap) {
     let color = LDR.Colors[colorID < 0 ? (-colorID-1) : colorID]; // Assume non-negative color.
-    if(color.m) {
+    if(color.m && !texmap) {
         return color.m;
     }
 
@@ -546,10 +549,14 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
 
     let params = {
         color: colorID < 0 ? (color.edge ? color.edge : 0x333333) : color.value,
-        name: 'Material for color ' + color.name + ' (' + colorID + ')',
-        //normalMapType: THREE.TangentSpaceNormalMap, (default)
-        // Displacement map will not be used as it affects vertices of the mesh, not pixels,
+        name: 'Material for color ' + color.name + ' (' + colorID + ')' + (texmap?' with texmap':''),
     };
+    if(texmap) {
+        params.color = 0xFFFFFF; // TODO: Right now color is forced to white when textures are applied in order to avoid color modulation on texture. Ideally a custom material should be used.
+        if(texmap !== true) {
+            params.map = texmap; // Map set now!
+        }
+    }
     
     if(color.material) { // Special materials:
         createMaterial = p => new THREE.MeshStandardMaterial(p);
@@ -634,12 +641,18 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
     }
     
     let m = createMaterial(params);
-    registerTextureListener(m);
+    if(texmap) {
+        m.transparent = true; // We do not know if texture is transparent.
+    }
+    else {
+        registerTextureListener(m); // Texture does not work with map since they both use UV's, but for different purposes!
+    }
 
     if(color.alpha > 0) {
         m.transparent = true;
         m.opacity = color.alpha/255;
-        // TODO: Use alphaMap or volume shader instead. https://stackoverflow.com/questions/26588568/volume-rendering-in-webgl and https://threejs.org/examples/webgl2_materials_texture3d.html
+        // TODO: Use alphaMap or volume shader instead. 
+        // https://stackoverflow.com/questions/26588568/volume-rendering-in-webgl and https://threejs.org/examples/webgl2_materials_texture3d.html
     }
 
     if(color.luminance > 0) {
@@ -647,5 +660,8 @@ LDR.Colors.buildStandardMaterial = function(colorID) {
         // TODO: Make emissive.
     }
 
-    return color.m = m;
+    if(!texmap) {
+        color.m = m;
+    }
+    return m;
 }

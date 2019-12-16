@@ -1,0 +1,11 @@
+0 FILE main.ldr
+0 Author: Roland Melkert
+1 4  -40 -20 0  1 0 0  0 0 1  0 1 0 plane.dat
+0
+0 FILE plane.dat
+0 plane texmap test
+0 UNOFFICIAL PART
+0 BFC NOCERTIFY
+0 !TEXMAP START PLANAR  0 0 0  40 0 0  0 0 40  test.png
+4 16  0 0 0  40 0 0  40 0 40  0 0 40
+0 !TEXMAP END

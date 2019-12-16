@@ -1,0 +1,13 @@
+0 Stolen from https://www.1000steine.de/de/gemeinschaft/forum/?entry=1&id=355345
+0 Name: balloons.dat
+0 Author: asdas
+0 !LDRAW_ORG Unofficial_Part
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+0 BFC CERTIFY CCW
+
+1 16 0 0 0 1 0 0 0 1 0 0 0 1 s\3069bs01.dat
+0 !TEXMAP START PLANAR -20 0 -10 -20 0 10 20 0 -10 TEXMAPTest.png
+0 !: 4 16 20 0 -10 20 0 10 -20 0 10 -20 0 -10
+0 !TEXMAP FALLBACK
+0    4 16 20 0 -10 20 0 10 -20 0 10 -20 0 -10
+0 !TEXMAP END

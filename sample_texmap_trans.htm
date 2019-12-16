@@ -2,25 +2,21 @@
 <html>
  <head>
   <meta charset=utf-8>
-  <title>Sample Render</title>
   <meta name="viewport" content="width=device-width" />
  </head>
  <body>
     <script src="js/three.min.js"></script>
     <script src="js/OrbitControls.js"></script>
     <script src="js/colors.js"></script>
-    <script src="js/ClientStorage.js"></script>
     <script src="js/LDROptions.js"></script>
     <script src="js/LDRShaders.js"></script>
     <script src="js/LDRColorMaterials.js"></script>
     <script src="js/LDRGeometries.js"></script>
     <script src="js/LDRLoader.js"></script>
-    <script src="js/LDRGenerator.js"></script>
-    <script src="js/LDRStuds.js"></script>
     <script>
-      let startTime = new Date();
-      // The model to be rendered:
-      let model = 'models/corvette_full.mpd';
+      //let model = '3067_test.dat';
+      let model = '3067.dat';
+      //let model = 'test_texmap.dat';
 
       // Set up camera:
       let camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
@@ -40,10 +36,11 @@
       // Set up renderer:
       let renderer = new THREE.WebGLRenderer({antialias: true});
       renderer.setPixelRatio(window.devicePixelRatio);
+      document.body.appendChild(renderer.domElement);
+
       function render() {
         renderer.render(scene, camera);
       }
-      document.body.appendChild(renderer.domElement);
 
       function onWindowResize(){
         camera.left = -window.innerWidth;
@@ -64,22 +61,20 @@
       let ldrLoader;
 
       let onLoad = function() {
-        ldrLoader.generate(4, mc);
+        ldrLoader.generate(36, mc);
 
         // Find center of drawn model:
         let b = mc.boundingBox;
-        let elementCenter = new THREE.Vector3();
-        b.getCenter(elementCenter);
+        let elementCenter = new THREE.Vector3(); b.getCenter(elementCenter);
         baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
-        //baseObject.add(new THREE.Box3Helper(b, 0x0000FF)); // Uncomment if you want to see the bounding box
 
-	camera.zoom = window.innerWidth/b.min.distanceTo(b.max);
+	camera.zoom = window.innerWidth / b.min.distanceTo(b.max);
         onWindowResize();
-        console.log("Model rendered in " + (new Date()-startTime) + "ms.");
       }
 
       let ldrOptions = new LDR.Options(); // Determine how to show lines, studs, and logos. Change options using sample_instruction.htm
-      ldrLoader = new THREE.LDRLoader(onLoad);
+      ldrLoader = new THREE.LDRLoader(onLoad, false, {onProgress:render});
+
       ldrLoader.load(model);
  </script>
  </body>
