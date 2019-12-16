@@ -1912,12 +1912,12 @@ LDR.TexmapPlacement = function(parts) {
         // Normal and lenth squared for plane P1:
         this.N1 = new THREE.Vector3(); this.N1.subVectors(this.p[1], this.p[0]);
         this.N1LenSq = this.N1.lengthSq();
-        this.D1 = -this.N1.x*this.p[1].x -this.N1.y*this.p[1].y -this.N1.z*this.p[1].z; // D from 
+        this.D1 = -this.N1.dot(this.p[1]);
 
         // Normal and lenth squared for plane P2:
         this.N2 = new THREE.Vector3(); this.N2.subVectors(this.p[2], this.p[0]);
         this.N2LenSq = this.N2.lengthSq();
-        this.D2 = -this.N2.x*this.p[2].x -this.N2.y*this.p[2].y -this.N2.z*this.p[2].z;
+        this.D2 = -this.N2.dot(this.p[2]);
 
         this.getUV = this.getUVPlanar;
     }
@@ -1926,7 +1926,7 @@ LDR.TexmapPlacement = function(parts) {
         this.n = new THREE.Vector3(); this.n.subVectors(this.p[1], this.p[0]);
         this.nLen = this.n.length();
         this.n.normalize();
-        this.D = -this.n.x*this.p[1].x -this.n.y*this.p[1].y -this.n.z*this.p[1].z;
+        this.D = -this.n.dot(this.p[1]);
 
         let p3 = this.projectPointToPlane(this.n, this.p[0], this.p[2]);
         this.m = new THREE.Vector3(); this.m.subVectors(p3, this.p[0]);
@@ -1934,9 +1934,18 @@ LDR.TexmapPlacement = function(parts) {
         this.getUV = this.getUVCylindrical;
     }
     else if(parts[3] === 'SPHERICAL' && parts.length > 14) {
-        console.warn("TEXMAP SPHERICAL not yet supported");
-        this.a = parseFloat(parts[idx++]);
-        this.b = parseFloat(parts[idx++]);
+        this.a = parseFloat(parts[idx++]) * Math.PI / 180;
+        this.b = parseFloat(parts[idx++]) * Math.PI / 180;
+
+        // n = p1p2
+        this.n = new THREE.Vector3(); this.n.subVectors(this.p[1], this.p[0]);
+        this.m = new THREE.Vector3(); this.m.subVectors(this.p[2], this.p[0]);
+        // N1 = Normal of P1:
+        this.N1 = new THREE.Vector3(); this.N1.crossVectors(this.n, this.m); this.N1.normalize();
+        this.D = -this.N1.dot(this.p[0]);
+        // N2 = Normal of P2:
+        //this.N2 = new THREE.Vector3(); this.N2.crossVectors(this.n, this.N1); this.N2.normalize();
+
         this.getUV = this.getUVSpherical;
     }
     else {
@@ -1994,7 +2003,7 @@ m = p1p3
 
 p -> (U,V):
  U = angle(m,p1q) / a, q is projection to bottom of the cylinder.
-  U = atan2(m x p1q) . n, m . p1q)
+  U = atan2((m x p1q) . n, m . p1q) / a
  V = dist(p,q) / |n|
 
 The point p will be one of the vertices of a triangle. In case V=0, the cylindrical nature of 
@@ -2006,16 +2015,15 @@ LDR.TexmapPlacement.prototype.getUVCylindrical = function(p, pCtx1, pCtx2) {
         let q = self.projectPointToPlane(self.n, self.p[0], pt);
         let p1q = new THREE.Vector3(); p1q.subVectors(self.p[0], q);
         let cross = new THREE.Vector3(); cross.crossVectors(p1q, self.m);
-        let dx = cross.dot(self.n), dy = self.m.dot(p1q);
-        let angle = Math.atan2(-dx, -dy);
+        let angle = Math.atan2(-cross.dot(self.n), -self.m.dot(p1q));
         let U = 0.5 + angle / self.a;
         return U;
     }
     let U = getU(p);
     if(-1e-4 < U && U < 1e-4) { // Fix wraparound issue.
         let uCtx1 = getU(pCtx1), uCtx2 = getU(pCtx2);
-        if(uCtx2 > 0.75 || uCtx1 > 0.5) {
-            U = 1;
+        if(uCtx2 > 0.75 || uCtx1 > 0.75) {
+            U = 1-U;
         }
     }
 
@@ -2029,20 +2037,53 @@ LDR.TexmapPlacement.prototype.getUVCylindrical = function(p, pCtx1, pCtx2) {
 x1 y1 z1 x2 y2 z2 x3 y3 z3 a b
 
 p1 = (x1,y1,z1) = center of sphere
-p2 = (x2,y2,z2) = a point on the sphere where the center of the texture map will touch
-p3 = (x3,y3,z3) = Forms a plane (P1) perpendicular to the texture and bisects it horizontally
+p2 = (x2,y2,z2) = Point on the sphere = center of texture map
+p3 = (x3,y3,z3) = Forms a plane P1 perpendicular to the texture and bisects it horizontally:
+ P1 contains p1, p2, p3.
  Plane P2 can be computed by using p1 and p2 and generating a 3rd point along the normal of P1.
  P2 will be perpendicular to both P1 and the texture and will bisect the texture vertically.
  The two angles indicate the extents of the sphere that get mapped to.
  These are [–a/2;a/2] and [–b/2;b/2] as measured relative to p1p2 and within P1 and P2 respectively.
 
 p -> (U,V):
-U = angle(p1p2, p1q1)/a, q1 = proj(p onto P1)
-V = angle(p1p2, p1q2)/b, q2 = proj(p onto P2)
+n = p1p2
+q1 = proj(p onto P1)
+q2 = proj(p onto P2)
+U = angle(n, p1q1)/a 
+V = angle(n, p1q2)/b
  */
-LDR.TexmapPlacement.prototype.getUVSpherical = function(p) {
-    return [0,0];
-    // TODO
+LDR.TexmapPlacement.prototype.getUVSpherical = function(p, pCtx1, pCtx2) {
+    let self = this;
+
+    let a = new THREE.Vector3(); 
+    let cross = new THREE.Vector3();
+    function getU(pt) {
+        let q1 = self.projectPointToPlane(self.N1, self.p[0], pt);
+        //let q2 = this.projectPointToPlane(this.N2, this.p[0], pt);
+        // angle(a,b) = atan2((axb) . n, a.b), a = q-p1
+        function getAngle(q, b, n) {
+            a.subVectors(q, self.p[0]);
+            cross.crossVectors(a, b);
+            return Math.atan2(-cross.dot(n), a.dot(b));
+        }
+        return 0.5 + getAngle(q1, self.n, self.N1) / self.a;
+    }
+
+    let U = getU(p);
+    if(U < 1e-4) { // Fix wraparound issue.
+        let uCtx1 = getU(pCtx1), uCtx2 = getU(pCtx2);
+        if(uCtx2 > 0.75 || uCtx1 > 0.75) {
+            U = 1-U;
+        }
+    }
+
+    let distToP = this.p[0].distanceTo(p);
+    let distToP1 = this.N1.x*p.x + this.N1.y*p.y + this.N1.z*p.z + this.D;
+    let angle = Math.asin(distToP1 / distToP);
+    let V = 0.5 + angle / this.b;
+    //let V = 0.5 + getAngle(q2, this.n, this.N2) / this.b; // Correct implementation according to specification, but not what others do!
+
+    return [U,V];
 }
 
 LDR.ColorManager = function() {
