@@ -9,12 +9,16 @@
     <script src="js/OrbitControls.js"></script>
     <script src="js/colors.js"></script>
     <script src="js/LDROptions.js"></script>
+    <script src="js/ClientStorage.js"></script>
     <script src="js/LDRShaders.js"></script>
     <script src="js/LDRColorMaterials.js"></script>
+    <script src="js/LDRGenerator.js"></script>
+    <script src="js/LDRStuds.js"></script>
     <script src="js/LDRGeometries.js"></script>
     <script src="js/LDRLoader.js"></script>
     <script>
-      let model = 'balloons.dat';
+      //let model = 'balloons.dat';
+      let model = 'models/texmap_dish.ldr';
 
       // Set up camera:
       let camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
@@ -71,9 +75,13 @@
       }
 
       let ldrOptions = new LDR.Options(); // Determine how to show lines, studs, and logos. Change options using sample_instruction.htm
-      ldrLoader = new THREE.LDRLoader(onLoad, false, {onProgress:render});
-
-      ldrLoader.load(model);
+      let storage;
+      let onStorageReady = function() {
+        LDR.Studs.makeGenerators('', ldrOptions.studHighContrast, ldrOptions.studLogo);
+        ldrLoader = new THREE.LDRLoader(onLoad, storage, {onProgress:render});
+        storage.retrieveInstructionsFromStorage(ldrLoader, () => ldrLoader.load(model));
+      }
+      storage = new LDR.STORAGE(onStorageReady);
  </script>
  </body>
 </html>

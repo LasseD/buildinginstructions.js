@@ -1,7 +1,7 @@
 'use strict';
 
 LDR.STORAGE = function(onReady) {
-    this.req = indexedDB.open("ldraw", 5);
+    this.req = indexedDB.open("ldraw", 6);
     this.db;
 
     this.req.onupgradeneeded = function(event) {
@@ -11,16 +11,17 @@ LDR.STORAGE = function(onReady) {
 	if(event.oldVersion < 1) {
 	    db.createObjectStore("parts", {keyPath: "ID"});
 	}
-	/*if(event.oldVersion < 3) {
+	if(event.oldVersion < 3) {
 	    // New structure of the parts table - now storing lines instead of geometries.
-	    var partsStore = this.transaction.objectStore("parts");
-	    partsStore.clear();
-	}*/
+	}
 	if(event.oldVersion < 4) {
 	    db.createObjectStore("instructions", {keyPath: "key"});
 	}
 	if(event.oldVersion < 5) {
 	    // ldraw_org added to parts.
+	}
+	if(event.oldVersion < 6) {
+	    // texmap added
 	    var partsStore = this.transaction.objectStore("parts");
 	    partsStore.clear();
 	}

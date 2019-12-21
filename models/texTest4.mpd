@@ -1,0 +1,35 @@
+0 FILE main.ldr
+0 Author: Roland Melkert
+1 3 0 0 0 1 0 0 0 1 0 0 0 1 sphere.dat
+
+0 FILE plane.dat
+0 plane texmap test
+0 UNOFFICIAL PART
+0 BFC NOCERTIFY
+
+0 !TEXMAP START PLANAR  0 0 0  40 0 0  0 0 40  checker.png
+4 16  0 0 0  40 0 0  40 0 40  0 0 40
+0 !TEXMAP END
+
+
+0 FILE sphere.dat
+0 sphere texmap test
+0 UNOFFICIAL PART
+0 BFC CERTIFY CCW
+
+0 !TEXMAP START SPHERICAL 0 0 0 0 0 -100 100 0 -100 300 120 checker_marked.png
+1 16 0 0 0 40 0 0 0 40 0 0 0 40 48\8-8sphe.dat
+0 !TEXMAP END
+0 BFC NOCLIP
+0 3 36 0 0 0 0 0 -100 100 0 -100
+0 4 34 100 0 100 100 0 -100 -100 0 -100 -100 0 100
+0 4 33 0 100 100 0 100 -100 0 -100 -100 0 -100 100
+
+0 FILE cyl.dat
+0 sphere texmap test
+0 UNOFFICIAL PART
+0 BFC NOCERTIFY 
+
+0 !TEXMAP START CYLINDRICAL 0 10 0  0 75 0   0 0 -40  360 checker.png
+1 16 0 0 0 40 0 0 0 80 0 0 0 40 4-4cyli.dat
+0 !TEXMAP END

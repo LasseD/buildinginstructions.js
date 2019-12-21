@@ -1,0 +1,19 @@
+0 Dish  4 x  4 Inverted with White and Aqua Swirl Pattern
+0 Name: 3960p0b.dat
+0 Author: Philippe Hurbain [Philo]
+0 !LDRAW_ORG Part UPDATE 2017-01
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+
+0 BFC CERTIFY CW
+
+0 !KEYWORDS Round, Elves
+
+0 !HISTORY 2017-12-30 [PTadmin] Official Update 2017-01
+
+1 16 0 0 0 1 0 0 0 1 0 0 0 1 s\3960s01.dat
+0 !TEXMAP START PLANAR -40 0 40 40 0 40 -40 0 -40 3960p0b.png
+0 !: 1 16 0 0 0 1 0 0 0 1 0 0 0 1 s\3960s03.dat
+0 !TEXMAP FALLBACK
+1 15 0 0 0 1 0 0 0 1 0 0 0 1 s\3960p2b.dat
+1 16 0 0 0 1 0 0 0 1 0 0 0 1 s\3960p2a.dat
+0 !TEXMAP END

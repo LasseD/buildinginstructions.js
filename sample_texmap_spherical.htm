@@ -28,6 +28,7 @@
       let baseObject = new THREE.Group(), opaqueObject = new THREE.Group(), transObject = new THREE.Group();
       baseObject.add(opaqueObject); // Draw non-trans before trans.
       baseObject.add(transObject);
+      baseObject.add(new THREE.AxesHelper(120));
       scene.add(baseObject);
       let mc = new LDR.MeshCollector(opaqueObject, transObject);
 
