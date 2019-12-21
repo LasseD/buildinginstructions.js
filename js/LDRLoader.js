@@ -621,7 +621,6 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 THREE.LDRLoader.prototype.loadTexmaps = function() {
     let self = this;
     if(LDR.TexmapPlacements.length > 0) {
-        console.log('Handling texmaps');
         if(!this.texmapLoader) {
             this.texmapLoader = new THREE.TextureLoader();
         }
