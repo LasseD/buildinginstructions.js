@@ -32,6 +32,7 @@ THREE.LDRLoader = function(onLoad, storage, options) {
     this.partTypes = {}; // id => true or part. id is typically something like "parts/3001.dat", and "model.mpd".
     this.texmaps = {}; // fileName => true or THREE.Texture. fileName is typically something like wall_deco123.png
     this.texmapListeners = {}; // fileName => list of functions to be called.
+    this.texmapDataurls = []; // [id,dataurl] for sotring inline texmaps.
     this.unloadedFiles = 0;
 
     this.onLoad = function() {
@@ -409,18 +410,18 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
                     encodedContent += parts[1].substring(2);
                     if(parts.length > 2) encodedContent += parts.slice(2).join('');
                 }
-                console.log('Inline texmap file encountered - standard not yet finalized, so errors might occur!');
+                console.warn('Inline texmap file encountered - standard not yet finalized, so errors might occur!');
 
-                let detectMimetype = id => id.endsWith('jpg') || id.endsWith('jpeg') ? 'jpeg' : 'png';
+                let detectMimetype = id => id.endsWith('jpg') || id.endsWith('jpeg') ? 'jpeg' : 'png'; // Only png supported according to the spec.
                 let mimetype = detectMimetype(part.ID);
                 let dataurl = 'data:image/' + mimetype + ';base64,' + encodedContent;
+                self.texmapDataurls.push({id:part.ID, dataurl:dataurl});
 
                 self.texmaps[part.ID] = true;
                 self.texmapListeners[part.ID] = [];
                 let image = new Image();
                 image.onload = function(e) {
                     let texture = new THREE.Texture(this);
-                    //texture.wrapS = texture.wrapT = THREE.RepeatWrapping;//THREE.ClampToEdgeWrapping;
                     texture.needsUpdate = true;
                     self.texmaps[part.ID] = texture;
                     self.texmapListeners[part.ID].forEach(l => l(texture));
@@ -774,14 +775,48 @@ THREE.LDRLoader.prototype.substituteReplacementParts = function() {
 
 THREE.LDRLoader.prototype.unpack = function(obj) {
     let self = this;
-    let names = obj.names.split('¤');
+    let names = obj['names'].split('¤');
 
     let parts = [];
     this.mainModel = names[0];
 
     let arrayI = obj['i'];
     let arrayF = obj['f'];
-    let idxI = 0, idxF = 0;
+    let arrayS = obj['s'].split('¤');
+    let idxI = 0, idxF = 0, idxS = 0;
+
+    // Unpack texmaps:
+    let numberOfTexmaps = arrayI[idxI++];
+    for(let i = 0; i < numberOfTexmaps; i++) {
+        let tmp = new LDR.TexmapPlacement();
+        [idxI, idxF, idxS] = tmp.unpackFrom(arrayI, arrayF, arrayS, idxI, idxF, idxS, names);
+        if(tmp.idx !== LDR.TexmapPlacements.length) {
+            console.error('Indexing error on packed texmap. Expected ' + LDR.TexmapPlacements.length + ', found ' + tmp.idx);
+        }
+        LDR.TexmapPlacements.push(tmp);
+    }
+
+    // Unpack inline textures:
+    let numberOfDataurls = arrayI[idxI++];
+    for(let i = 0; i < numberOfDataurls; i++) {
+        let id = arrayS[idxS++];
+        let dataurl = arrayS[idxS++];
+        self.texmapDataurls.push({id:id, dataurl:dataurl});
+        
+        self.texmaps[id] = true;
+        self.texmapListeners[id] = [];
+        let image = new Image();
+        image.onload = function(e) {
+            let texture = new THREE.Texture(this);
+            texture.needsUpdate = true;
+            self.texmaps[id] = texture;
+            self.texmapListeners[id].forEach(l => l(texture));
+            self.onProgress(id);
+        };
+        image.src = dataurl;
+    }
+
+    // Unpack all non-parts:
     names.forEach((name, i) => {
 	let numSteps = arrayI[idxI++];
 	if(numSteps === 0) {
@@ -795,7 +830,7 @@ THREE.LDRLoader.prototype.unpack = function(obj) {
 
 	for(let j = 0; j < numSteps; j++) {
 	    let step = new THREE.LDRStep();
-	    [idxI, idxF] = step.unpackFrom(arrayI, arrayF, idxI, idxF, names);
+	    [idxI, idxF] = step.unpackFrom(arrayI, arrayF, idxI, idxF, names, LDR.TexmapPlacements);
 
 	    // Handle rotation:
 	    let r = arrayI[idxI++];
@@ -814,6 +849,9 @@ THREE.LDRLoader.prototype.unpack = function(obj) {
 
 	self.partTypes[name] = pt;
     });
+
+    this.onPartsLoaded();
+    this.loadTexmaps();
 
     return parts;
 }
@@ -843,11 +881,17 @@ THREE.LDRLoader.prototype.pack = function() {
     scanNames(mainModel);
 
     let ret = {names:names.join('¤')};
+    let arrayF = [], arrayI = [], arrayS = [];
 
-    let arrayF = [];
-    let arrayI = [];
+    // Pack texmaps:
+    arrayI.push(LDR.TexmapPlacements.length);
+    LDR.TexmapPlacements.forEach(tmp => tmp.packInto(arrayF, arrayI, arrayS, nameMap));
+    
+    // Pack dataurls:
+    arrayI.push(this.texmapDataurls.length);
+    this.texmapDataurls.forEach(x => arrayS.push(x.id, x.dataurl));
 
-    // Pack:
+    // Pack everything which could not be packed as parts:
     names.forEach((id, idx) => {
 	let pt = self.getPartType(id);
 	if(pt.canBePacked()) {
@@ -884,6 +928,7 @@ THREE.LDRLoader.prototype.pack = function() {
 	ret['i'] = new Int16Array(arrayI);
     }
     ret['f'] = new Float32Array(arrayF);
+    ret['s'] = arrayS.join('¤');
 
     return ret;
 }
@@ -1013,7 +1058,6 @@ THREE.LDRStepRotation.ABS = THREE.LDRStepRotation.getAbsRotationMatrix();
    Specification: https://www.lm-software.com/mlcad/Specification_V2.0.pdf (page 7 and 8)
 */
 THREE.LDRStepRotation.prototype.getRotationMatrix = function(defaultMatrix) {
-    //console.log("Rotating for " + this.x + ", " + this.y + ", " + this.z);
     let wx = this.x / 180.0 * Math.PI;
     let wy = -this.y / 180.0 * Math.PI;
     let wz = -this.z / 180.0 * Math.PI;
@@ -1119,10 +1163,16 @@ THREE.LDRStep.prototype.pack = function(obj) {
 }
 
 THREE.LDRStep.prototype.packInto = function(arrayF, arrayI, subModelMap) {
+    arrayI.push(this.cull ? 1 : 0);
+
     arrayI.push(this.subModels.length);
     function handleSubModel(sm) {
+        if(!subModelMap.hasOwnProperty(sm.ID)) {
+            console.dir(subModelMap);
+            throw "Unknown sub model " + sm.ID + ' not in map!';
+        }
         arrayI.push(sm.colorID);
-        arrayI.push(sm.texmapPlacement ? sm.texmapPlacement.idx : -1);
+        arrayI.push(sm.texmapPlacement ? sm.texmapPlacement.idx : -1);        
         arrayI.push((subModelMap[sm.ID] * 4) +
                     (sm.invertCCW ? 2 : 0) +
                     (sm.cull ? 1 : 0)); // Encode these three properties into a single int.
@@ -1166,11 +1216,10 @@ THREE.LDRStep.prototype.unpack = function(obj) {
     let arrayF = obj.af;
     let arrayS = obj.sx.split('|'); // texmap files.
     let subModelList = obj.sp.split('|').map(x => x += '.dat');
-    this.unpackFrom(arrayI, arrayF, arrayS, 0, 0, 0, subModelList);
-}
 
-THREE.LDRStep.prototype.unpackFrom = function(arrayI, arrayF, arrayS, idxI, idxF, idxS, subModelList) {
     // Texmaps:
+    let idxI = 0, idxF = 0, idxS = 0;
+
     let numberOfTexmapPlacements = arrayI[idxI++];
     let texmapPlacementMap = {};
     for(let i = 0; i < numberOfTexmapPlacements; i++) {
@@ -1181,6 +1230,12 @@ THREE.LDRStep.prototype.unpackFrom = function(arrayI, arrayF, arrayS, idxI, idxF
         texmapPlacement.idx = LDR.TexmapPlacements.length;
         LDR.TexmapPlacements.push(texmapPlacement);
     }
+
+    this.unpackFrom(arrayI, arrayF, idxI, idxF, subModelList, texmapPlacementMap);
+}
+
+THREE.LDRStep.prototype.unpackFrom = function(arrayI, arrayF, idxI, idxF, subModelList, texmapPlacementMap) {
+    this.cull = arrayI[idxI++] === 1;
 
     // Sub Models:
     let numSubModels = arrayI[idxI++];
@@ -1234,7 +1289,7 @@ THREE.LDRStep.prototype.unpackFrom = function(arrayI, arrayF, arrayS, idxI, idxF
     this.quads = handle(4, true);
     this.hasPrimitives = this.lines.length > 0 || this.conditionalLines.length > 0 || this.triangles.length > 0 || this.quads.length > 0;
 
-    return [idxI, idxF, idxS];
+    return [idxI, idxF];
 }
 
 // Count the number of unique texmap placements in the step. Placements are added to the 'seen' map.
@@ -1861,6 +1916,7 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
         }
     }
 
+    let self = this;
     for(let idx in this.geometry.texmapGeometries) { // Texmap geometries:
         if(!this.geometry.texmapGeometries.hasOwnProperty(idx)) {
             continue;
@@ -1868,13 +1924,12 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
         this.geometry.texmapGeometries[idx].forEach(obj => {
                 let g = obj.geometry, c2 = obj.colorID;
                 let c3 = c2 === '16' ? c : c2;
-                let smallCM = new LDR.ColorManager(); smallCM.get(c3);
                 let textureFile = LDR.TexmapPlacements[idx].file;
 
                 let material;
                 let buildMaterial, setMap;
                 if(loader.physicalRenderingAge === 0 || !true) {
-                    buildMaterial = t => LDR.Colors.buildTriangleMaterial(smallCM, c3, t);
+                    buildMaterial = t => LDR.Colors.buildTriangleMaterial(self.geometry.triangleColorManager, c3, t);
                     setMap = t => material.uniforms.map = {type:'t',value:t};
                 }
                 else {
@@ -2115,7 +2170,6 @@ LDR.TexmapPlacement.prototype.packInto = function(arrayF, arrayI, arrayS, subMod
         arrayS.push(this.file);
     }
 
-    arrayI.push(0); // No texmap placements in fallback.
     this.fallback.packInto(arrayF, arrayI, subModelMap);
 }
 
@@ -2151,7 +2205,7 @@ LDR.TexmapPlacement.prototype.unpackFrom = function(arrayI, arrayF, arrayS, idxI
     }
 
     this.fallback = new THREE.LDRStep();
-    [idxI, idxF, idxS] = this.fallback.unpackFrom(arrayI, arrayF, arrayS, idxI, idxF, idxS, subModelList);
+    [idxI, idxF] = this.fallback.unpackFrom(arrayI, arrayF, idxI, idxF, subModelList, {});
 
     return [idxI, idxF, idxS];
 }

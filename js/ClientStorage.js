@@ -22,8 +22,10 @@ LDR.STORAGE = function(onReady) {
 	}
 	if(event.oldVersion < 6) {
 	    // texmap added
-	    var partsStore = this.transaction.objectStore("parts");
-	    partsStore.clear();
+	    var pStore = this.transaction.objectStore("parts");
+	    pStore.clear();
+	    var iStore = this.transaction.objectStore("instructions");
+	    iStore.clear();
 	}
     };
 
