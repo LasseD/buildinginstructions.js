@@ -415,19 +415,20 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
                 console.warn('Inline texmap file encountered - standard not yet finalized, so errors might occur!');
 
                 let detectMimetype = id => id.endsWith('jpg') || id.endsWith('jpeg') ? 'jpeg' : 'png'; // Only png supported according to the spec.
-                let mimetype = detectMimetype(part.ID);
+		let pid = part.ID;
+                let mimetype = detectMimetype(pid);
                 let dataurl = 'data:image/' + mimetype + ';base64,' + encodedContent;
-                self.texmapDataurls.push({id:part.ID, mimetype:mimetype, content:encodedContent});
+                self.texmapDataurls.push({id:pid, mimetype:mimetype, content:encodedContent});
 
-                self.texmaps[part.ID] = true;
-                self.texmapListeners[part.ID] = [];
+                self.texmaps[pid] = true;
+                self.texmapListeners[pid] = [];
                 let image = new Image();
                 image.onload = function(e) {
                     let texture = new THREE.Texture(this);
                     texture.needsUpdate = true;
-                    self.texmaps[part.ID] = texture;
-                    self.texmapListeners[part.ID].forEach(l => l(texture));
-                    self.onProgress(part.ID);
+                    self.texmaps[pid] = texture;
+                    self.texmapListeners[pid].forEach(l => l(texture));
+                    self.onProgress(pid);
                 };
                 image.src = dataurl;
 
@@ -2363,12 +2364,12 @@ LDR.TexmapPlacement.prototype.getUVCylindrical = function(p, pCtx1, pCtx2) {
         return U;
     }
     let U = getU(p);
-    if(-1e-4 < U && U < 1e-4) { // Fix wraparound issue.
+    if(-1e-4 < U && U < 1e-4 || -1e-4 < U-1 && U-1 < 1e-4) { // Fix wraparound issue.
         let uCtx1 = getU(pCtx1), uCtx2 = getU(pCtx2);
-        if(uCtx2 > 0.75 || uCtx1 > 0.75) {
+        if(Math.abs(uCtx2-U) > 0.75 || Math.abs(uCtx1-U) > 0.75) {
             U = 1-U;
         }
-    }
+    }    
 
     let distToP1Disc = this.n.x*p.x + this.n.y*p.y + this.n.z*p.z + this.D;
     let V = -distToP1Disc / this.nLen;
