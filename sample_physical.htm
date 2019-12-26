@@ -3,12 +3,17 @@
  <head>
   <title>Sample Rendering with Physical Properties</title>
   <link href="css/index.css" rel="stylesheet" type="text/css">
+  <style>
+    #canvas_holder{position:relative;top:0}
+    #loading_text{display:block;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:white;}
+    .dg.main{position:absolute;top:0;right:0;text-align:left;}
+  </style>
   <meta name="viewport" content="width=device-width" />
  </head>
  <body>
-  <div id="canvas_holder" style="position:relative;top:0">
+  <div id="canvas_holder">
    <canvas id="canvas"></canvas>
-   <p id="loading_text" style="display:block;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:white;">Loading...</p>
+   <p id="loading_text">Loading...</p>
   </div>
   <script src="js/jquery.min.js"></script>
   <script src="js/three.min.js"></script>

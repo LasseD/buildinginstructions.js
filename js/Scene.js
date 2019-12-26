@@ -48,7 +48,7 @@ ENV.Scene = function(canvas, color) {
     this.scene.background = new THREE.Color(0xA0A0A2);
 }
 
-ENV.Scene.prototype.setUpGui = function() {
+ENV.Scene.prototype.setUpGui = function(setModelColorOriginal) {
     let self = this;
     let size = this.size;
     let r = () => {self.camera.updateProjectionMatrix(); self.render()};
@@ -70,7 +70,7 @@ ENV.Scene.prototype.setUpGui = function() {
         }
     };
 
-    let gui = new dat.GUI();    
+    let gui = new dat.GUI({autoPlace: false});    
     {
         let c = gui.addFolder('Camera');
         c.add(this.camera.position, 'x', -5*size.w, 5*size.w).listen().onChange(r);
@@ -116,7 +116,7 @@ ENV.Scene.prototype.setUpGui = function() {
                     }
                 }
             }
-            function setModelColor(idx) {
+            self.setModelColor = function(idx) {
                 // Copy material settings:
                 const m = LDR.Colors.buildStandardMaterial(idx);
                 const M = LDR.Colors[16].m;
@@ -128,8 +128,9 @@ ENV.Scene.prototype.setUpGui = function() {
                 M.opacity = m.opacity;
 
                 LDR.Colors.loadTextures(() => {M.normalMap = m.normalMap; M.needsUpdate = true; self.render();});
+		setModelColorOriginal && setModelColorOriginal(idx);
             }
-            c.add(options.model, 'color', choices).onChange(setModelColor);
+            c.add(options.model, 'color', choices).onChange(idx => self.setModelColor(idx));
             c.open(); // Open the folder by default if color can be set.
         }
     }
@@ -169,6 +170,8 @@ ENV.Scene.prototype.setUpGui = function() {
     }
 
     gui.close();
+
+    this.renderer.domElement.parentElement.appendChild(gui.domElement);
 }
 
 ENV.Scene.prototype.render = function() {
@@ -268,6 +271,7 @@ ENV.Scene.prototype.registerLight = function(light, folder) {
     c.addColor(options, 'color').onChange(setColor);
     c.add(h, 'visible').name('show helper').onChange(r);
     c.add(options, 'Remove');
+    c.open();
 }
 
 ENV.Scene.prototype.resetCamera = function() {
