@@ -3,38 +3,19 @@
  <head>
   <title>Sample Rendering with Physical Properties</title>
   <link href="css/index.css" rel="stylesheet" type="text/css">
-  <link href="css/preview.css" rel="stylesheet" type="text/css">
-  <link href="css/color_picker.css" rel="stylesheet" type="text/css">
   <meta name="viewport" content="width=device-width" />
  </head>
  <body>
-
   <div id="canvas_holder" style="position:relative;top:0">
    <canvas id="canvas"></canvas>
    <p id="loading_text" style="display:block;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:white;">Loading...</p>
-   <div id="color_button" onclick="$('#color_picker_background, #color_picker_holder').fadeIn(250)"></div>
-   <!--<div id="common_buttons">
-    <div id="setup_add_directional_light_button" onclick="scene.addDefaultDirectionalLight();">O</div>
-    <div id="setup_add_point_light_button" onclick="scene.addDefaultPointLight();">P</div>
-    <div id="setup_remove_right" onclick="scene.removeLight();">DEL</div>
-   </div>
-   <div id="setup_buttons">
-    <div id="setup_left_button" onclick="scene.moveControllersLeft();">L</div>
-    <div id="setup_control_buttons"></div>
-    <div id="setup_right_button" onclick="scene.moveControllersRight();">R</div>
-   </div>-->
   </div>
-
-  <div id="color_picker">
-   <div id="color_picker_background" class="background" onclick="$('#color_picker').hide();"></div>
-   <div id="color_picker_holder" class="holder"></div>
-  </div>
-
   <script src="js/jquery.min.js"></script>
   <script src="js/three.min.js"></script>
   <script src="js/OrbitControls.js"></script>
+  <script src="js/dat.gui.min.js"></script>
   <script src="js/colors.js"></script>
-  <script src="js/Scene.js"></script>    
+  <script src="js/Scene.js"></script>
   <script src="js/ClientStorage.js"></script>
   <script src="js/LDROptions.js"></script>
   <script src="js/LDRShaders.js"></script>
@@ -43,20 +24,16 @@
   <script src="js/LDRGeometries.js"></script>
   <script src="js/LDRLoader.js"></script>
   <script src="js/LDRStuds.js"></script>
-  <script src="js/LDRColorPicker.js"></script>
   <script>
       let startTime = new Date();
+      let color = 16;
 
       // Test models:
-      //let model = 'models/corvette_full.mpd';
+      let model = 'models/corvette_full.mpd';
       //let model = '6091.dat'; // Has overlap of line and conditional line causing trouble for the normal calculation.
       //let model = '85080.dat'; // Has conditional lines partially overlapping with hard corners, also causing issues for normal calculation.
       //let model = 'models/mf.mpd';
-      //let model = '3067.dat';
-      //let model = 'balloons.dat';
-      //let model = 'models/inline_texmap.mpd';
-      //let model = 'models/textest3.mpd';
-      let model = 'models/texmap_dish.ldr';
+      //let model = 'models/texmap_dish.ldr';
 
       // Materials:
       //let model = 'models/luminance.ldr';
@@ -69,7 +46,7 @@
       //let model = 'models/trans.ldr';
 
       let canvas = document.getElementById('canvas');
-      let scene = new ENV.Scene(canvas);
+      let scene = new ENV.Scene(canvas, color);
 
       let onWindowResize = () => scene.onChange(window.innerWidth, window.innerHeight);
       window.addEventListener('resize', onWindowResize, false);
@@ -78,12 +55,13 @@
       let onLoad = function() {
         document.getElementById('loading_text').style.display = 'none';
         console.log("Data loaded after " + (new Date()-startTime) + "ms.");
-        let inv = new THREE.Matrix3(); inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
 
         let taskList = [];
-        ldrLoader.getMainModel().generateThreePart(ldrLoader, 16, new THREE.Vector3(), inv, true, false, scene.mc, null, taskList);
+        ldrLoader.generate(color, scene.mc, null, taskList);
         console.log("Animation info constructed after " + (new Date()-startTime) + "ms.");
-        scene.buildStandardScene();
+
+        scene.build();
+        scene.buildFloor();
         console.log("Scene built after " + (new Date()-startTime) + "ms.");
 
         let taskListIdx = 0;
@@ -91,11 +69,10 @@
           animationID = requestAnimationFrame(animateConstruction);
           if(taskListIdx >= taskList.length) {
             scene.mc.updateMeshVisibility(); // Hide lines
-            LDR.Colors.loadTextures(() => scene.render());
-            if(LDR.Colors[16].m) { // Hide if nothing can change.
-              document.getElementById('color_button').style.display = 'block';
-            }
+            LDR.Colors.loadTextures(() => scene.render()); // Ensure that we repaint when textures are loaded.
             cancelAnimationFrame(animationID);
+            scene.setUpGui();
+            console.log("Model rendered after " + (new Date()-startTime) + "ms.");
             return; // Done.
           }
 
@@ -115,7 +92,7 @@
       ldrOptions.lineContrast = 2; // No lines.
       ldrOptions.studs = 2; // Logos are made using textures
 
-      let storage;
+      let storage; // Make custom storage that attempts to generate parts before fetching them.
       LDR.Studs.makeGenerators('', 0, 2);
       storage = {
         retrievePartsFromStorage: (loader, toBeFetched, onDone) => {
@@ -138,36 +115,6 @@
 
       ldrLoader = new THREE.LDRLoader(onLoad, storage, {physicalRenderingAge:20});
       ldrLoader.load(model);
-
-      // Color setup:
-      let colorPicker = new LDR.ColorPicker(setColor);
-    
-      function setColor(idx) {
-        if(idx === undefined) {
-	  return;
-	}
-        let color = LDR.Colors[idx];
-
-        let buttonEle = document.getElementById('color_picker_button');
-        colorPicker.decorateEle(buttonEle, color, idx);
-
-        console.log('setting color ' + idx);
-
-        // Copy material settings:
-        const m = LDR.Colors.buildStandardMaterial(idx);
-        const M = LDR.Colors[16].m;
-        M.color = m.color;
-        M.roughness = m.roughness;
-        M.metalness = m.metalness;
-        M.envMapIntensity = m.envMapIntensity;
-        M.transparent = m.transparent;
-        M.opacity = m.opacity;
-
-        LDR.Colors.loadTextures(() => {M.normalMap = m.normalMap; M.needsUpdate = true; scene.render();});
-      }
-
-      let colorButton = colorPicker.createButton();
-      document.getElementById('color_button').append(colorButton);
   </script>
  </body>
 </html>

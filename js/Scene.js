@@ -4,12 +4,12 @@ var ENV = {};
 
 ENV.DEFAULT_FOV = 20; // Camera frustrum vertical field of view.
 
-ENV.Scene = function(canvas) {
+ENV.Scene = function(canvas, color) {
     let self = this;
+    this.modelColor = color || 16;
 
-    this.controllers = [];
-    this.activeControllerIndex = 0;
-
+    this.pointLights = [];
+    this.directionalLights = [];
     this.hemisphereLight;
 
     this.scene = new THREE.Scene();
@@ -21,8 +21,6 @@ ENV.Scene = function(canvas) {
     // Set up renderer:
     this.renderer = new THREE.WebGLRenderer({canvas:canvas, antialias: true});
     this.renderer.setPixelRatio(window.devicePixelRatio);
-    //this.renderer.gammaInput = true; // Use gamma correction if the intersection of lights bothers you.
-    //this.renderer.gammaOutput = true;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Default is PCFShadowMap
     this.renderer.shadowMapSoft = true;
@@ -33,7 +31,6 @@ ENV.Scene = function(canvas) {
     this.orbitControls.addEventListener('change', () => self.onCameraMoved());
     this.orbitControls.handleKeys = false;
     this.orbitControls.screenSpacePanning = true;
-    this.controllers.push(new ENV.CameraController(this));
     
     // Rendering elements:
     this.baseObject = new THREE.Group();
@@ -44,57 +41,134 @@ ENV.Scene = function(canvas) {
     this.scene.add(this.baseObject);
     this.mc = new LDR.MeshCollector(opaqueObject, transObject);
 
-    // Buttons:
-    this.moveControllersLeft = function() {
-        let c = self.controllers[self.activeControllerIndex];
-        c.deactivate();
-        self.activeControllerIndex--;
-        if(self.activeControllerIndex < 0) {
-            self.activeControllerIndex = self.controllers.length-1;
+    // Light and background:
+    let hl = new THREE.HemisphereLight(0xF4F4FB, 0x30302B, 0.65);
+    this.hemisphereLight = hl;
+    this.scene.add(hl);
+    this.scene.background = new THREE.Color(0xA0A0A2);
+}
+
+ENV.Scene.prototype.setUpGui = function() {
+    let self = this;
+    let size = this.size;
+    let r = () => {self.camera.updateProjectionMatrix(); self.render()};
+
+    // dat.GUI setup:
+    let options = {
+        scene: {
+            background: '#A0A0A2',
+            floor: {
+                color: '#FFFFFF',
+            }
+        },
+        model: {
+            color: self.modelColor,
+        },
+        hemisphereLight: {
+            color: "#F4F4FB",
+            groundColor: "#30302B",
         }
-        c = self.controllers[self.activeControllerIndex];
-        c.activate();
+    };
+
+    let gui = new dat.GUI();    
+    {
+        let c = gui.addFolder('Camera');
+        c.add(this.camera.position, 'x', -5*size.w, 5*size.w).listen().onChange(r);
+        c.add(this.camera.position, 'y', -5*size.h, 5*size.h).listen().onChange(r);
+        c.add(this.camera.position, 'z', -5*size.l, 5*size.l).listen().onChange(r);
+        c.add(this.camera, 'fov', 1, 150).listen().onChange(r);
+        c.add(self, 'resetCamera').name('Reset');
     }
-    this.moveControllersRight = function() {
-        let c = self.controllers[self.activeControllerIndex];
-        c.deactivate();
-        self.activeControllerIndex++;
-        if(self.activeControllerIndex === self.controllers.length) {
-            self.activeControllerIndex = 0;
+    {
+        let c = gui.addFolder('Scene');
+        //this.scene
+        function setBGColor(v) {
+            self.scene.background = new THREE.Color(v);
+            self.render();
         }
-        c = self.controllers[self.activeControllerIndex];
-        c.activate();        
+        c.addColor(options.scene, 'background').onChange(setBGColor);
+        if(this.floor) {
+            c.add(this.floor.material, 'visible').name('floor').listen().onChange(r);
+            function setFloorColor(v) {
+                self.floor.material.color = new THREE.Color(v);
+                self.render();
+            }
+            c.addColor(options.scene.floor, 'color').name('floor color').onChange(setFloorColor);
+        }
+    }
+    {
+        let c = gui.addFolder('Model');
+        let c1 = c.addFolder('Position');
+        c1.add(this.baseObject.position, 'x', -size.w, size.w).listen().onChange(r);
+        c1.add(this.baseObject.position, 'y', -size.h, size.h).listen().onChange(r);
+        c1.add(this.baseObject.position, 'z', -size.l, size.l).listen().onChange(r);
+        let c2 = c.addFolder('Rotation');
+        c2.add(this.baseObject.rotation, 'x', -Math.PI, Math.PI).listen().onChange(r);
+        c2.add(this.baseObject.rotation, 'y', -Math.PI, Math.PI).listen().onChange(r);
+        c2.add(this.baseObject.rotation, 'z', -Math.PI, Math.PI).listen().onChange(r);
+        if(LDR.Colors[16].m) { // Be able to set color:
+            let choices = {};
+            for(let idx in LDR.Colors) {
+                if(LDR.Colors.hasOwnProperty(idx)) {
+                    let color = LDR.Colors[idx];
+                    if(color.hasOwnProperty('edge') && !color.hasOwnProperty('material')) { // No special materials - only ABS and normal trans:
+                        choices[idx + ' ' + color.name.replace(/\_/gi, ' ')] = idx;
+                    }
+                }
+            }
+            function setModelColor(idx) {
+                // Copy material settings:
+                const m = LDR.Colors.buildStandardMaterial(idx);
+                const M = LDR.Colors[16].m;
+                M.color = m.color;
+                M.roughness = m.roughness;
+                M.metalness = m.metalness;
+                M.envMapIntensity = m.envMapIntensity;
+                M.transparent = m.transparent;
+                M.opacity = m.opacity;
+
+                LDR.Colors.loadTextures(() => {M.normalMap = m.normalMap; M.needsUpdate = true; self.render();});
+            }
+            c.add(options.model, 'color', choices).onChange(setModelColor);
+            c.open(); // Open the folder by default if color can be set.
+        }
+    }
+    {
+        let c = gui.addFolder('Hemisphere Light');
+        c.add(self.hemisphereLight, 'intensity', 0.0, 1.0).listen().onChange(r);
+        function setColor(v) {
+            self.hemisphereLight.color = new THREE.Color(v);
+            self.render();
+        }
+        c.addColor(options.hemisphereLight, 'color').onChange(setColor);
+        function setGroundColor(v) {
+            self.hemisphereLight.groundColor = new THREE.Color(v);
+            self.render();
+        }
+        c.addColor(options.hemisphereLight, 'groundColor').name('ground color').onChange(setGroundColor);
+    }
+    {
+        let c = gui.addFolder('Point Lights');
+        this.addPL = function() {
+            let light = self.addPointLight();
+            self.registerLight(light, c);
+            self.render();
+        }
+        c.add(self, 'addPL').name('Add Point Light');
+        this.pointLights.forEach(light => self.registerLight(light, c));
+    }
+    {
+        let c = gui.addFolder('Directional Lights');
+        this.addDL = function() {
+            let light = self.addDirectionalLight();
+            self.registerLight(light, c);
+            self.render();
+        }
+        c.add(self, 'addDL').name('Add Dir. Light');
+        this.directionalLights.forEach(light => self.registerLight(light, c));
     }
 
-    // Keys:
-    function handleKeyDown(e) {
-        e = e || window.event;
-        if(e.altKey) {
-	    // Don't handle key events when ALT is pressed, as they browser-level overwrites!
-	    return;
-        }
-        //console.dir(e);
-        if(e.keyCode === 37) { // Left:
-            self.moveControllersLeft();
-        }
-        else if (e.keyCode === 39) { // Right:
-            self.moveControllersRight();
-        }
-        else if(e.keyCode === 8 || e.keyCode === 46) { // DELETE
-            self.removeLight();
-        }
-        else if(e.keyCode === 79) { // O
-            self.addDirectionalLight(0xFFFFFF, 1, 0, self.size.w+self.size.l, self.size.h);
-        }
-        else if(e.keyCode === 80) { // P
-            self.addPointLight(0xFFFFFF, 1, 0, self.size.w+self.size.l, self.size.h);
-        }
-        else {
-            self.controllers[self.activeControllerIndex].handleKey(e.keyCode, e.shiftKey);
-        }
-        self.render();
-    }
-    document.onkeydown = handleKeyDown;
+    gui.close();
 }
 
 ENV.Scene.prototype.render = function() {
@@ -116,7 +190,11 @@ ENV.Scene.prototype.onChange = function(eleW, eleH) {
     this.onCameraMoved();
 }
 
-ENV.Scene.prototype.addPointLight = function(color, intensity, angle, dist, y) {
+ENV.Scene.prototype.addPointLight = function() {
+    const color = 0xF6E3FF;
+    const intensity = 0.7;
+    const dist = this.size.w*1.5;
+    const y = this.size.h*2;
     let light = new THREE.PointLight(color, intensity, 2*(dist+y));
     
     light.castShadow = true;
@@ -125,16 +203,20 @@ ENV.Scene.prototype.addPointLight = function(color, intensity, angle, dist, y) {
     light.shadow.camera.near = 0.5;
     light.shadow.camera.far = 2*(dist+y);
     light.shadow.radius = 8; // Soft shadow
+    light.position.set(dist, y, dist);
 
-    let h = new THREE.PointLightHelper(light, 5, 0xFF0000);
-
-    let c = new ENV.LightController(this, light, h, angle, dist, y);
-    this.controllers.push(c);
-    this.activeControllerIndex = this.controllers.length-1;
+    this.scene.add(light);
+    this.pointLights.push(light);
+    return light;
 }
 
-ENV.Scene.prototype.addDirectionalLight = function(color, intensity, angle, dist, y) {
+ENV.Scene.prototype.addDirectionalLight = function() {
+    const color = 0xF6E3FF;
+    const intensity = 0.7;
+    const dist = this.size.w*1.5;
+    const y = this.size.h*2;
     let light = new THREE.DirectionalLight(color, intensity, 2*(dist+y));
+    light.lookAt(0,0,0);
     
     light.castShadow = true;
     let diam = this.size.diam;
@@ -146,51 +228,55 @@ ENV.Scene.prototype.addDirectionalLight = function(color, intensity, angle, dist
     light.shadow.camera.right = diam;
     light.shadow.camera.top = diam;
     light.shadow.camera.bottom = -diam;
+    light.shadow.radius = 8; // Soft shadow
 
-    let h = new THREE.DirectionalLightHelper(light, 5, 0x0000FF);
-
-    let c = new ENV.LightController(this, light, h, angle, dist, y);
-    this.controllers.push(c);
-    this.activeControllerIndex = this.controllers.length-1;
-}
-
-ENV.Scene.prototype.removeLight = function() {
-    let c = this.controllers[this.activeControllerIndex];
-    if(!c.isLightController) {
-        console.warn('Not a light!');
-        return;
-    }
-
-    c.kill();
-
-    this.controllers = this.controllers.filter(cc => cc !== c);
-    if(this.activeControllerIndex === this.controllers.length) {
-        this.activeControllerIndex = this.controllers.length-1;
-    }
-    this.render();
-}
-
-ENV.Scene.prototype.setHemisphereLight = function(sky, ground, intensity) {
-    let light = new THREE.HemisphereLight(sky, ground, intensity);
-    if(this.hemisphereLight) {
-        this.scene.remove(this.hemisphereLight);
-    }
-    this.hemisphereLight = light;
     this.scene.add(light);
+    this.directionalLights.push(light);
+    return light;
+}
+
+ENV.LightIdx = 1;
+ENV.Scene.prototype.registerLight = function(light, folder) {
+    let self = this;
+    let h = light.type === "PointLight" ?
+      new THREE.PointLightHelper(light, 5, 0xFF0000) :
+      new THREE.DirectionalLightHelper(light, 5, 0x0000FF);
+    h.visible = false;
+    this.scene.add(h);
+
+    let size = this.size;
+
+    function r() {
+        light.lookAt(0,0,0);
+        self.render();
+    }
+
+    let c = folder.addFolder('Light ' + ENV.LightIdx++);
+    c.add(light.position, 'x', -10*size.w, 10*size.w).onChange(r);
+    c.add(light.position, 'y', -size.h, 5*size.h).onChange(r);
+    c.add(light.position, 'z', -10*size.l, 10*size.l).onChange(r);
+    c.add(light, 'intensity', 0.0, 1.0).onChange(r);
+    function setColor(v) {
+        light.color = new THREE.Color(v);
+        h.update();
+        r();
+    }
+    let options = {
+        color: '#FFFFFF',
+        Remove: function(){self.scene.remove(light); self.scene.remove(h); folder.removeFolder(c); r();},
+    };
+    c.addColor(options, 'color').onChange(setColor);
+    c.add(h, 'visible').name('show helper').onChange(r);
+    c.add(options, 'Remove');
 }
 
 ENV.Scene.prototype.resetCamera = function() {
-/*    let cameraDist = 2*this.size.diam;
-    this.camera.position.set(cameraDist, 0.7*cameraDist, cameraDist);
-
-    let b = this.mc.boundingBox;
-    this.camera.lookAt(new THREE.Vector3(0, 0.5*(b.max.y-b.min.y), 0));
-    this.orbitControls.update();*/
-
     let cameraDist = 1.4*this.size.diam;
     this.camera.position.set(cameraDist, 0.65*cameraDist, cameraDist);
     this.camera.lookAt(new THREE.Vector3());
-    //this.orbitControls.update();
+    this.camera.fov = ENV.DEFAULT_FOV;
+    this.camera.updateProjectionMatrix();
+    this.render();
 }
 
 ENV.Scene.prototype.repositionFloor = function(dist) {
@@ -211,18 +297,22 @@ ENV.Scene.prototype.setSize = function(b) {
     this.size = {w:w, l:l, h:h, diam:Math.sqrt(w*w + l*l + h*h)};
 }
 
-ENV.Scene.prototype.buildStandardScene = function() {
-    let self = this;
+ENV.Scene.prototype.build = function() {
     let b = this.mc.boundingBox || new THREE.Box3(new THREE.Vector3(), new THREE.Vector3(1,1,1)); // To build scene around.
     this.setSize(b);
 
-    // Subject:
+    // Model:
     var elementCenter = new THREE.Vector3();
     b.getCenter(elementCenter);
     this.baseObject.position.set(-elementCenter.x, elementCenter.y, -elementCenter.z);
-    //this.baseObject.add(new THREE.Box3Helper(b, 0xFF00FF));
 
-    // Floor and sides:
+    // Lights:
+    this.addPointLight(0xF6E3FF, 0.70,  1.1, this.size.w*1.5, this.size.h*2.0);
+    //this.addDirectionalLight(0xF6E3FF, 0.35,  -0.1, this.size.w*1.5, this.size.h*2.0);
+}
+ENV.Scene.prototype.buildOMRScene = ENV.Scene.prototype.buildStandardScene = ENV.Scene.prototype.build; // Backward compatibility
+
+ENV.Scene.prototype.buildFloor = function() {
     let R = this.R = 6 * this.size.diam;
     var floorGeometry = new THREE.PlaneBufferGeometry(2*R, 2*R);
     var floorMaterial = new THREE.MeshStandardMaterial({
@@ -234,163 +324,8 @@ ENV.Scene.prototype.buildStandardScene = function() {
     this.floor = new THREE.Mesh(floorGeometry, floorMaterial);
     this.floor.receiveShadow = true;
     this.roomObject.add(this.floor);
-
-    // Floor:
     this.floor.rotation.x = -Math.PI/2;
     this.repositionFloor(0.001); // -0.001 to avoid floor clipping issues on large models.
-
-    // Lights:
-    this.addPointLight(0xF6E3FF, 0.70,  1.1, this.size.w*1.5, this.size.h*2.0);
-    //this.addPointLight(0xF7E5FD, 0.65,  0.8, this.size.w*1.3, this.size.h*1.7);
-    //this.addDirectionalLight(0xF6E3FF, 0.35,  -0.1, this.size.w*1.5, this.size.h*2.0);
-
-    this.activeControllerIndex = 0; // Since adding point lights changes this.
-
-    this.setHemisphereLight(0xF4F4FB, 0x30302B, 0.65);
-
-    // Background:
-    this.scene.background = new THREE.Color(0xA0A0A2);
-}
-
-ENV.Scene.prototype.buildOMRScene = function() {
-    let self = this;
-    let b = this.mc.boundingBox || new THREE.Box3(new THREE.Vector3(), new THREE.Vector3(1,1,1)); // To build scene around.
-    this.setSize(b);
-
-    // Set up camera:
-    this.resetCamera();
-    
-    // Subject:
-    var elementCenter = new THREE.Vector3();
-    b.getCenter(elementCenter);
-    this.baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
-
-    // Background:
-    this.scene.background = new THREE.Color(0xF4F4F4);
-
-    // Lights:
-    this.addPointLight(0xF6E3FF, 0.70,  1.1, this.size.w*1.5, this.size.h*2.0);
-
-    this.setHemisphereLight(0xF4F4FB, 0x30302B, 0.65);
-}
-
-ENV.CameraController = function(scene) {
-    this.isCameraController = true;
-    
-    const PAN_SPEED = 20;
-
-    this.handleKey = (key,shift) => {
-        switch(key) {
-        case 27: // ESC
-          scene.resetCamera();
-          break;
-        case 65: // A
-          scene.baseObject.rotation.y += 0.1;
-          scene.render();
-          break;
-        case 68: // D
-          scene.baseObject.rotation.y -= 0.1;
-          scene.render();
-          break;
-        case 69: // E
-          scene.orbitControls.dollyOut(1.1);
-          scene.orbitControls.update();
-          break;
-        case 70: // F
-          scene.camera.fov += (shift ? 5 : -5);
-          scene.camera.updateProjectionMatrix();
-          scene.render();
-          break;
-        case 81: // Q
-          scene.orbitControls.dollyIn(1.1);
-          scene.orbitControls.update();
-          break;
-        case 82: // R
-          scene.hemisphereLight.intensity += (shift ? 0.05 : -0.05);
-          scene.render();
-          break;
-        case 83: // S
-          scene.baseObject.position.y -= scene.size.h * 0.1;
-          scene.render();
-          break;
-        case 87: // W
-          scene.baseObject.position.y += scene.size.h * 0.1;
-          scene.render();
-          break;
-        }
-    }
-
-    this.activate = () => {};
-    this.deactivate = () => {};
-}
-
-ENV.LightController = function(scene, light, h, angle, dist, y) {
-    let self = this;
-    this.isLightController = true;
-
-    const origAngle = angle;
-    const origDist = dist;
-    const origY = y;
-    h.visible = false;
-    scene.scene.add(light);
-    scene.scene.add(h);
-
-    this.kill = function() {
-        let self = this;
-        self.deactivate();
-        scene.scene.remove(h);
-        scene.scene.remove(light);
-    }
-
-    this.update = function() {
-        light.position.set(Math.cos(angle)*dist, 
-                           y, 
-                           Math.sin(angle)*dist);
-        light.lookAt(0,0,0);
-        h.update();
-        //console.log('Light at angle=' + (angle/origAngle) + ', dist=' + (dist/origDist) + ', y=' + (y/origY)) + ' (In comparison to original position)';
-    }
-    this.update();
-
-    this.reset = function() {
-        y = origY;
-        dist = origDist;
-        angle = origAngle;
-    }
-
-    this.handleKey = (key,shift) => {
-        switch(key) {
-        case 65: // A
-        angle += 0.1;
-        break;
-        case 68: // D
-        angle -= 0.1;
-        break;
-        case 87: // W
-        y += origY*0.1;
-        break;
-        case 83: // S
-        y -= origY*0.1;
-        break;
-        case 81: // Q
-        dist += origDist*0.1;
-        break;
-        case 82: // R
-        light.intensity += (shift ? 0.05 : -0.05);
-        break;
-        case 69: // E
-        dist -= origDist*0.1;
-        break;
-        case 27: // ESC
-        self.resetLight();
-        break;
-        }
-        self.update();
-        scene.render();
-    }
-
-    this.activate = () => h.visible = true;
-    this.deactivate = () => h.visible = false;
 }
 
 ENV.createFloorTexture = function(size, repeats) {
