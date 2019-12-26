@@ -649,7 +649,7 @@ THREE.LDRLoader.prototype.loadTexmaps = function() {
     }
 }
 
-THREE.LDRLoader.prototype.generate = function(colorID, mc) {
+THREE.LDRLoader.prototype.generate = function(colorID, mc, taskList) {
     this.loadTexmaps();
 
     let mainModel = this.getMainModel();
@@ -660,7 +660,7 @@ THREE.LDRLoader.prototype.generate = function(colorID, mc) {
     inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
     
     // Generate the meshes:
-    mainModel.generateThreePart(this, colorID, origo, inv, true, false, mc);
+    mainModel.generateThreePart(this, colorID, origo, inv, true, false, mc, taskList);
 }
 
 THREE.LDRLoader.prototype.onPartsLoaded = function(loadedParts) {

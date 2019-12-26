@@ -100,13 +100,14 @@
     <div id="options" /></div>
     <script>
       var model = 'models/corvette_full.mpd';
+      //var model = 'models/textest3.mpd';
 
       var baseURL = 'sample_instructions.htm?step='; // Change this line so it fits the page that renders instructions for you (probably not 'sample_instructions.htm')
       var manager;
       var ldrOptions = new LDR.Options(); // Global scope for options.
 
       $(function() {
-        var options = {canEdit:false, saveFileLines:true, buildAssemblies:true};
+        var options = {canEdit:false, saveFileLines:true, buildAssemblies:true, key:model, timestamp:'1970-01-01 00:00:00'};
         manager = new LDR.InstructionsManager(model, '?', 16, null, ()=>{}, baseURL, 1, options);
       });
     </script>

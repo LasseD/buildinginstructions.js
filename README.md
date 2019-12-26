@@ -68,3 +68,5 @@ buildinginstructions.js is in the Public Domain.
 The LDraw library is redistributable under CCAL version 2.0 : see CAreadme.txt.
 
 Three.js and OrbitControls.js use the MIT license.
+
+dat.GUI is licensed under Apache License 2.0
