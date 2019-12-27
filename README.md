@@ -12,9 +12,9 @@ After copying the files in this repository, you can view:
 
 sample_view.htm for how to set up a render. This sample is less than 100 lines and provides a good starting point that is easy to grasp.
 
-sample_instructions.htm for how to set up building instructions, including options for personalization. This is a very involved sample file reflecting the instructions on BrickHub.org.
+sample_instructions.htm for how to set up building instructions, including options for personalization and step editing. This is how instructions appear on BrickHub.org.
 
-sample_editing.htm is similar to sample_instructions.htm, but allows you to edit the shown model (change steps, rotations, color, remove parts, etc.)
+sample_physical.htm shows the 'physical' renderer where StandardMaterial from three.js is used for a more realistic look.
 
 sample_partslist.htm demonstrates how to display parts lists. The example has two modes (list and grid) with additional part information when in list view and clicking small images result in larger previews with additional information. This example follows how parts lists are displayed on BrickHub.org.
 

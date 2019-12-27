@@ -105,8 +105,9 @@ LDR.Buttons.prototype.addTopButtonElements = function(actions, element, homeLink
 
     // Edit:
     if(canEdit) {
-        let editButton = this.createDiv('editButton', actions.toggleEditor);
+        let editButton = this.createDiv('editButton');
         editButton.appendChild(LDR.SVG.makeEdit());
+        editButton.addEventListener('click', actions.toggleEditor);
         this.topButtons.appendChild(editButton);        
     }
 
