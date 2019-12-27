@@ -129,6 +129,15 @@ LDR.SVG.makeHome = function () {
     return ret;
 }
 
+// Up-and-back button:
+LDR.SVG.makeUpAndBack = function () {
+    let ret = document.createElementNS(LDR.SVG.NS, 'svg');
+    ret.setAttribute("viewBox", "0 0 100 100");
+    let edgePoints = "30,37.5 45,20 45,30 80,30 80,80 65,80 65,45 45,45 45,55";
+    ret.appendChild(LDR.SVG.makePolygon(edgePoints));
+    return ret;
+}
+
 // List view:
 LDR.SVG.makeListIcon = function () {
     let ret = document.createElementNS(LDR.SVG.NS, 'svg');

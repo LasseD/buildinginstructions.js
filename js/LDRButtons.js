@@ -5,11 +5,6 @@ LDR.Buttons = function(actions, element, addTopButtons, homeLink, mainImage, can
     // Add buttons to element:
     
     // Lower buttons:
-    if(actions.prevStep) {
-	this.backButton = this.createDiv('prev_button', actions.prevStep);
-	this.backButton.appendChild(LDR.SVG.makeLeftArrow(!addTopButtons));
-    }
-
     this.cameraButtons = this.createDiv('camera_buttons');
     this.zoomOutButtonLarge = this.createDiv('zoom_out_button_large', actions.zoomOut);
     this.zoomOutButtonLarge.appendChild(LDR.SVG.makeZoom(false, 2));
@@ -28,8 +23,11 @@ LDR.Buttons = function(actions, element, addTopButtons, homeLink, mainImage, can
     this.cameraButtons.appendChild(this.zoomInButtonLarge);
     element.appendChild(this.cameraButtons);
 
-    if(!addTopButtons && actions.prevStep) {
-        element.appendChild(this.backButton); // Add back button to row with camera buttons.
+    this.backButton = this.createDiv('prev_button', actions.prevStep);
+    this.backButton.appendChild(LDR.SVG.makeLeftArrow(!addTopButtons));
+
+    if(!addTopButtons) { // In case back should be shown as a lower button:
+        element.appendChild(this.backButton); // Add back button to row with camera buttons
     }
 
     // Right lower corner buttons:
@@ -77,6 +75,7 @@ LDR.Buttons = function(actions, element, addTopButtons, homeLink, mainImage, can
 	$('#camera_buttons').fadeTo(1000, 1, onFadeInComplete);
     };
     $("canvas, #camera_buttons").mousemove(runCameraFading);
+    $("canvas, #camera_buttons").on('tap', runCameraFading);
     $("#camera_buttons").click(runCameraFading);
     onFadeInComplete();
 }
@@ -85,38 +84,29 @@ LDR.Buttons.prototype.addTopButtonElements = function(actions, element, homeLink
     // Upper row of buttons (added last due to their absolute position):    
     this.topButtons = this.createDiv('top_buttons');
 
-    if(this.backButton) {
-	this.topButtons.appendChild(this.backButton);
-    }
-
-    this.homeButton = this.createDiv('homeButton');
-    if(mainImage) {
-	this.homeButton.setAttribute('class', 'image');
-    }
+    this.backButton.setAttribute('class', 'top_button');
+    this.topButtons.appendChild(this.backButton);
 
     this.stepToButton = this.createDiv('stepToContainer');
     this.stepToButton.appendChild(this.makeStepTo());
     this.topButtons.appendChild(this.stepToButton);
 
-    let homeA = document.createElement('a');
-    homeA.setAttribute('href', homeLink);
-    homeA.setAttribute('class', 'homeAnchor');
-    homeA.appendChild(this.homeButton);
+    this.homeButton = this.create('a', 'home_button', null, 'top_button');
+    this.homeButton.setAttribute('href', homeLink);
     if(mainImage) {
 	let img = document.createElement('img');
 	img.setAttribute('src', mainImage);
 	this.homeButton.appendChild(img);
     }
     else {
-	this.homeButton.appendChild(LDR.SVG.makeHome());
+	this.homeButton.appendChild(LDR.SVG.makeUpAndBack());
     }
-    this.topButtons.appendChild(homeA);
+    this.topButtons.appendChild(this.homeButton);
 
     // Edit:
     if(canEdit) {
-        let editButton = this.createDiv('editButton');
+        let editButton = this.createDiv('editButton', actions.toggleEditor);
         editButton.appendChild(LDR.SVG.makeEdit());
-        editButton.addEventListener('click', actions.toggleEditor);
         this.topButtons.appendChild(editButton);        
     }
 
@@ -181,11 +171,17 @@ LDR.Buttons.prototype.makeStepTo = function() {
 }
 
 // Primitive helper methods for creating elements for buttons:
-LDR.Buttons.prototype.createDiv = function(id, onclick) {
-    let ret = document.createElement('div');
+LDR.Buttons.prototype.createDiv = function(id, onclick, classA) {
+    return this.create('div', id, onclick, classA);
+}
+LDR.Buttons.prototype.create = function(type, id, onclick, classA) {
+    let ret = document.createElement(type);
     ret.setAttribute('id', id);
     if(onclick) {
         ret.addEventListener('click', onclick);
+    }
+    if(classA) {
+        ret.setAttribute('class', classA);
     }
     return ret;
 }
