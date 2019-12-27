@@ -449,7 +449,7 @@ LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
         let isThisAndNextWithSameSubModels = isNextASubModel && !empty && anyNonPartSubModels && 
             self.step.subModels[0].ID === self.part.steps[self.stepIndex+1].subModels[0].ID;
 
-        let display = show => show ? 'inline' : 'none';
+        let display = show => show ? 'inline-block' : 'none';
 
         colorButton.style.display = display(anyGhosted);
         removeButton.style.display = display(!(last && (!anyGhosted || allGhosted) && isMainModel));

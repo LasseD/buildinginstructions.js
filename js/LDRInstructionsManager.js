@@ -775,7 +775,9 @@ LDR.InstructionsManager.prototype.onPLIMove = function(e) {
         });
 
     if(icon.part.original !== self.hovered || e === true) {
-	self.hovered.hover = false; // Unhover old part.
+        if(self.hovered) {
+            self.hovered.hover = false; // Unhover old part.
+        }
 	self.hovered = icon.part.original;
 	self.hovered.hover = true; // Hover new part.
 	update();
