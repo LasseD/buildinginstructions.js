@@ -147,7 +147,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
         }
 
 	// Register location changes:
-	window.addEventListener('popstate', function(e) {
+	/*window.addEventListener('popstate', function(e) {
                 let step = e.state;
                 if(self.windowStepCauseByHistoryManipulation || step === null) {
                     //console.log("Ignoring history manipulating step to: " + step);
@@ -165,7 +165,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
                 else {
                     self.stepHandler.moveSteps(diff, () => self.handleStepsWalked());
                 }
-            });
+            });*/
 
 	// Enable pli preview:
         self.pliPreviewer.attachRenderer(document.getElementById('preview'));
@@ -276,7 +276,7 @@ LDR.InstructionsManager.prototype.setBackgroundColor = function(c) {
 LDR.InstructionsManager.prototype.onWindowResize = function(){
     this.topButtonsHeight = document.getElementById('top_buttons').offsetHeight;
 
-    console.log("Resizing to " + window.innerWidth + ", " + window.innerHeight + " top height: " + this.topButtonsHeight + " and device pixel ratio: " + window.devicePixelRatio);
+    //console.log("Resizing to " + window.innerWidth + ", " + window.innerHeight + " top height: " + this.topButtonsHeight + " and device pixel ratio: " + window.devicePixelRatio);
     let pixelRatio = window.devicePixelRatio;
     let w = (window.innerWidth-20);
     let h = (window.innerHeight-this.adPeek);
@@ -593,6 +593,7 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
 
     // Ensure mobile users can swipe right for next step:
 LDR.InstructionsManager.prototype.ensureSwipeForwardWorks = function() {
+    return; // Functionality disabled due to issues on iOS.
     window.history.replaceState(this.currentStep, null, this.baseURL + this.currentStep);
     if(!this.stepHandler.isAtLastStep()) {
         window.history.pushState(this.currentStep+1, null, this.baseURL + (this.currentStep+1));
