@@ -25,6 +25,7 @@
  * - physicalRenderingAge: Set to 0 for standard cell shaded rendering. Otherwise, this number indicates the age of physical materials to be rendered (older materials will appear yellowed for some colors)
  * - idToUrl(id) is used to translate an id into all potential file locations. Set this function to fit your own directory structure if needed. A normal LDraw directory has files both under /parts and /p and requires you to search for dat files. You can choose to combine the directories to reduce the need for searching, but this is not considered good practice.
  * - idToTextureUrl(id) is used to translate a texture file name into the position where the file can be fetched. By default the file name is made lower case and rpefixed 'textures/' to locate the texture file.
+ * - cleanUpPrimitivesAndSubParts can be set to true to perform cleanup of internal geometries to decrease the amount of memory required.
  */
 THREE.LDRLoader = function(onLoad, storage, options) {
     let self = this;
@@ -75,6 +76,8 @@ THREE.LDRLoader = function(onLoad, storage, options) {
         let lowerID = id.toLowerCase();
 	return "textures/"+lowerID;
     };
+
+    this.cleanUpPrimitivesAndSubParts = this.options.cleanUpPrimitivesAndSubParts || false;
 }
 
 /*
@@ -660,6 +663,9 @@ THREE.LDRLoader.prototype.generate = function(colorID, mc, taskList) {
     inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
     
     // Generate the meshes:
+    if(this.cleanUpPrimitivesAndSubParts) {
+	mainModel.setReferencedFrom(this);
+    }
     mainModel.generateThreePart(this, colorID, origo, inv, true, false, mc, taskList);
 }
 
@@ -1360,14 +1366,6 @@ THREE.LDRStep.prototype.getTexmapPlacements = function(seen) {
     return ret;
 }
 
-THREE.LDRStep.prototype.removePrimitivesAndSubParts = function() {
-    delete this.subModels;
-    delete this.lines;
-    delete this.conditionalLines;
-    delete this.triangles;
-    delete this.quads;
-}
-
 THREE.LDRStep.prototype.cloneColored = function(colorID) {
     if(this.hasPrimitives) {
         throw "Cannot clone step with primitives!";
@@ -1747,6 +1745,22 @@ THREE.LDRPartType = function() {
     this.certifiedBFC;
     this.CCW;
     this.consistentFileAndName;
+
+    // To support early cleanup:
+    this.referencedFrom = {};
+    this.references = 0;
+}
+
+THREE.LDRPartType.prototype.setReferencedFrom = function(ldrLoader) {
+    let self = this;
+    function handle(sm) {
+	let pt = ldrLoader.getPartType(sm.ID);
+	if(!pt.referencedFrom.hasOwnProperty(self.ID)) {
+	    pt.referencedFrom[self.ID] = true;
+	    pt.references++;
+	}
+    }
+    this.steps.forEach(step => step.subModels.forEach(handle));
 }
 
 THREE.LDRPartType.prototype.canBePacked = function() {
@@ -1883,8 +1897,37 @@ THREE.LDRPartType.prototype.ensureGeometry = function(loader) {
     }
     this.geometry = new LDR.LDRGeometry();
     this.geometry.fromPartType(loader, this);
-    // Clean up after data has moved to this.geometry:
-    //TODO this.steps.forEach(step => step.removePrimitivesAndSubParts());
+    if(loader.cleanUpPrimitivesAndSubParts) {
+	this.removePrimitivesAndSubParts(loader);
+    }
+}
+
+THREE.LDRPartType.prototype.removePrimitivesAndSubParts = function(loader, parentID) {
+    if(parentID) {
+	if(this.referencedFrom.hasOwnProperty(parentID)) {
+	    delete this.referencedFrom[parentID];
+	    this.references--;
+	}
+    }
+
+    // Propagate:
+    let ID = this.ID;
+    function handleSM(sm) {
+	let pt = loader.getPartType(sm.ID);
+	pt.removePrimitivesAndSubParts(loader, ID);
+    }
+    this.steps.forEach(step => step.subModels && step.subModels.forEach(handleSM));
+
+    // Perform cleanup only if no references left:
+    if(this.references === 0) {
+	this.steps.forEach(step => {
+	    delete step.subModels;
+	    delete step.lines;
+	    delete step.conditionalLines;
+	    delete step.triangles;
+	    delete step.quads;
+	});
+    }
 }
 
 THREE.LDRPartType.prototype.addStep = function(step) {

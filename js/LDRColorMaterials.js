@@ -114,7 +114,7 @@ LDR.Colors.buildLineMaterial = function(colorManager, color, conditional) {
 	uniforms: uniforms,
 	vertexShader: (conditional ? 
 	    LDR.Shader.createConditionalVertexShader(LDR.Colors.canBeOld, colors, true) : 
-                       LDR.Shader.createSimpleVertexShader(LDR.Colors.canBeOld, colors, true, true, false)),
+            LDR.Shader.createSimpleVertexShader(LDR.Colors.canBeOld, colors, true, true, false)),
 	fragmentShader: (conditional ? 
 	    LDR.Shader.AlphaTestFragmentShader :
 	    LDR.Shader.SimpleFragmentShader),

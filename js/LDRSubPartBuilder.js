@@ -105,7 +105,7 @@ LDR.buildThumbnail = function(ele) {
     return canvas;
 }
 
-THREE.LDRStep.prototype.removePrimitivesAndSubParts = () => {}; // Ensure primitives are not deleted.
+THREE.LDRPartType.prototype.removePrimitivesAndSubParts = () => {}; // Ensure primitives are not deleted.
 
 LDR.SubPartBuilder.prototype.setFileLineVisibility = function(v) {
     if(!this.linesBuilt) {

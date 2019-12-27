@@ -21,7 +21,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
     this.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000 ); // Orthographics for LEGO
     this.pliW = 0;
     this.pliH = 0;
-    // TODO: THIS DOES NOT WORKthis.maxSizePerPixel = 100000; // TODO: Update when clicking zoom and save using options.
+    // TODO: THIS DOES NOT WORK: this.maxSizePerPixel = 100000; // TODO: Update when clicking zoom and save using options.
     this.canvas = document.getElementById('main_canvas');
     this.renderer = new THREE.WebGLRenderer({antialias:true, canvas:this.canvas});
 
@@ -618,6 +618,9 @@ LDR.InstructionsManager.prototype.handleStepsWalked = function() {
     this.realignModel(0);
     this.onPLIMove(true);
     this.updateUIComponents(false);
+
+    // Update local storage:
+    localStorage.setItem('last_step_' + this.modelID, this.currentStep);
 };
 
 LDR.InstructionsManager.prototype.goToStep = function(step) {
