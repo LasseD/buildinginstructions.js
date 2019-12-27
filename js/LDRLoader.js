@@ -1903,6 +1903,9 @@ THREE.LDRPartType.prototype.ensureGeometry = function(loader) {
 }
 
 THREE.LDRPartType.prototype.removePrimitivesAndSubParts = function(loader, parentID) {
+    if(!this.steps) {
+	return; // When called multiple times from the final part.
+    }
     if(parentID) {
 	if(this.referencedFrom.hasOwnProperty(parentID)) {
 	    delete this.referencedFrom[parentID];
@@ -1920,13 +1923,7 @@ THREE.LDRPartType.prototype.removePrimitivesAndSubParts = function(loader, paren
 
     // Perform cleanup only if no references left:
     if(this.references === 0) {
-	this.steps.forEach(step => {
-	    delete step.subModels;
-	    delete step.lines;
-	    delete step.conditionalLines;
-	    delete step.triangles;
-	    delete step.quads;
-	});
+	delete this.steps;
     }
 }
 
