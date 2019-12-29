@@ -614,7 +614,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
     // Save loaded parts into IndexedDB:
     if(this.storage.db) {
 	if(this.options.hasOwnProperty('key') && this.options.hasOwnProperty('timestamp')) {
-            setTimeout(() => self.storage.saveInstructionsToStorage(self, self.options.key, self.options.timestamp), 1500); // Don't let this action delay rendering.
+            self.storage.saveInstructionsToStorage(self, self.options.key, self.options.timestamp);
 	}
         setTimeout(() => self.storage.savePartsToStorage(loadedParts, self), 2000); // Don't let this action delay rendering.
         // Do not call storage.db.close() as there might be other parts that should be saved.
@@ -623,8 +623,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
     // Load textures:
     this.loadTexmaps();
 
-    //let parseEndTime = new Date();
-    //console.log(loadedParts.length + " LDraw file(s) read in " + (parseEndTime-parseStartTime) + "ms.");
+    //console.log(loadedParts.length + " LDraw file(s) read in " + (new Date()-parseStartTime) + "ms.");
 };
 
 THREE.LDRLoader.prototype.loadTexmaps = function() {

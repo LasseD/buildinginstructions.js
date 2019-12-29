@@ -133,6 +133,9 @@ ENV.Scene.prototype.setUpGui = function(setModelColorOriginal) {
             c.add(options.model, 'color', choices).onChange(idx => self.setModelColor(idx));
             c.open(); // Open the folder by default if color can be set.
         }
+	else {
+	    self.setModelColor = () => {}; // No option to change color if no color 16 is present.
+	}
     }
     {
         let c = gui.addFolder('Hemisphere Light');
