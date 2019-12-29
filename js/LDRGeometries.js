@@ -335,7 +335,7 @@ LDR.LDRGeometry.prototype.buildTexmapGeometriesForColor = function(c) {
         let g = self.buildGeometry(indices, new THREE.Float32BufferAttribute(vertices, 3));
         g.computeVertexNormals(); // Also normalizes.
 
-        g.addAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+        g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
         if(!self.texmapGeometries.hasOwnProperty(texmapPlacement.idx)) {
             self.texmapGeometries[texmapPlacement.idx] = [];
         }
@@ -348,7 +348,7 @@ THREE.BufferGeometry.prototype.computeVertexNormals = function() {
     var attributes = this.attributes;
     var positions = attributes.position.array;
 
-    this.addAttribute('normal', new THREE.BufferAttribute(new Float32Array(positions.length), 3));
+    this.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(positions.length), 3));
     var normals = attributes.normal.array;
 
     var vA, vB, vC;
@@ -685,7 +685,7 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
             quads.forEach(q => setUVs([q.p1, q.p2, q.p3, q.p4]));
             quads2.forEach(q => setUVs([q.p1, q.p2, q.p3, q.p4]));
 
-            g.addAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+            g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
             //g.attributes.uv2 = g.attributes.uv; // Used by aoMap (not in use yet)
 
             self.triangleGeometries[c] = g;
@@ -715,7 +715,7 @@ LDR.LDRGeometry.prototype.buildGeometry = function(indices, vertexAttribute) {
     }
     let g = new THREE.BufferGeometry();
     g.setIndex(indices);
-    g.addAttribute('position', vertexAttribute);
+    g.setAttribute('position', vertexAttribute);
 
     return g;
 }
@@ -740,12 +740,12 @@ LDR.LDRGeometry.prototype.buildGeometryForConditionalLines = function(multiColor
 	    colorIndices.push(line.fc, line.fc); // 2 points.
         }
     }
-    this.conditionalLineGeometry.addAttribute('position', new THREE.Float32BufferAttribute(p1s, 3));
-    this.conditionalLineGeometry.addAttribute('p2', new THREE.Float32BufferAttribute(p2s, 3));
-    this.conditionalLineGeometry.addAttribute('p3', new THREE.Float32BufferAttribute(p3s, 3));
-    this.conditionalLineGeometry.addAttribute('p4', new THREE.Float32BufferAttribute(p4s, 3));
+    this.conditionalLineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(p1s, 3));
+    this.conditionalLineGeometry.setAttribute('p2', new THREE.Float32BufferAttribute(p2s, 3));
+    this.conditionalLineGeometry.setAttribute('p3', new THREE.Float32BufferAttribute(p3s, 3));
+    this.conditionalLineGeometry.setAttribute('p4', new THREE.Float32BufferAttribute(p4s, 3));
     if(multiColored) {
-	this.conditionalLineGeometry.addAttribute('colorIndex', new THREE.BufferAttribute(new Float32Array(colorIndices), 1));
+	this.conditionalLineGeometry.setAttribute('colorIndex', new THREE.BufferAttribute(new Float32Array(colorIndices), 1));
     }
 }
 
