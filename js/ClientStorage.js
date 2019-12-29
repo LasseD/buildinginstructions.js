@@ -55,7 +55,7 @@ LDR.STORAGE.prototype.retrievePartsFromStorage = function(loader, parts, onDone)
         onDone([]);
         return;
     }
-    console.warn('Attempting to retrieve ' + parts.length + ' part(s) from indexedDB: ' + parts.slice(0, 10).join('/') + '...');
+    //console.log('Attempting to retrieve ' + parts.length + ' part(s) from indexedDB: ' + parts.slice(0, 10).join('/') + '...');
     let stillToBeBuilt = [];
     let seen = {};
     parts.forEach(partID => seen[partID] = true);

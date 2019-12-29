@@ -276,10 +276,10 @@ LDR.InstructionsManager.prototype.setBackgroundColor = function(c) {
 LDR.InstructionsManager.prototype.onWindowResize = function(){
     this.topButtonsHeight = document.getElementById('top_buttons').offsetHeight;
 
-    //console.log("Resizing to " + window.innerWidth + ", " + window.innerHeight + " top height: " + this.topButtonsHeight + " and device pixel ratio: " + window.devicePixelRatio);
+    //console.log("Resizing to " + document.documentElement.clientWidth + ", " + document.documentElement.clientHeight + " top height: " + this.topButtonsHeight + " and device pixel ratio: " + window.devicePixelRatio);
     let pixelRatio = window.devicePixelRatio;
-    let w = (window.innerWidth-20);
-    let h = (window.innerHeight-this.adPeek);
+    let w = (document.documentElement.clientWidth-20);
+    let h = (document.documentElement.clientHeight-this.adPeek);
     this.renderer.setPixelRatio(pixelRatio);
     if(this.canvas.width !== w || this.canvas.height !== h) {
         this.renderer.setSize(w, h, true);
@@ -351,10 +351,10 @@ LDR.InstructionsManager.prototype.updatePLI = function(force) {
     }
     e.style.display = 'inline';
     
-    let maxWidth = window.innerWidth - e.offsetLeft - 18;
-    let maxHeight = (window.innerHeight - 130 - this.adPeek);
+    let maxWidth = document.documentElement.clientWidth - e.offsetLeft - 18;
+    let maxHeight = (document.documentElement.clientHeight - 130 - this.adPeek);
     
-    if(window.innerWidth > window.innerHeight) {
+    if(document.documentElement.clientWidth > document.documentElement.clientHeight) {
         this.pliBuilder.drawPLIForStep(true, step, maxWidth*0.4, maxHeight, this.maxSizePerPixel, force);
     }
     else {
@@ -413,8 +413,8 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
         };
     }
     
-    let viewPortWidth = window.innerWidth;
-    let viewPortHeight = window.innerHeight - this.adPeek;// - 100;
+    let viewPortWidth = document.documentElement.clientWidth;
+    let viewPortHeight = document.documentElement.clientHeight - this.adPeek;// - 100;
     if(this.pliH > 0) { // Adjust for pli.
         if(this.pliBuilder.fillHeight) {
             viewPortWidth *= 0.6;
@@ -466,16 +466,16 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
     oldPLIW !== newPLIW || oldPLIH !== newPLIH;
     
     let oldDefaultZoom = this.defaultZoom;
-    viewPortWidth = window.innerWidth;
-    viewPortHeight = window.innerHeight - this.adPeek - this.topButtonsHeight;
+    viewPortWidth = document.documentElement.clientWidth;
+    viewPortHeight = document.documentElement.clientHeight - this.adPeek - this.topButtonsHeight;
     if(this.pliBuilder.fillHeight) {
         viewPortWidth -= newPLIW;
     }
     else {
         viewPortHeight -= newPLIH;
     }
-    let scaleX = (window.innerWidth) / viewPortWidth * 1.1; // 1.1 to scale down a bit
-    let scaleY = (window.innerHeight - this.adPeek) / viewPortHeight * 1.1;
+    let scaleX = (document.documentElement.clientWidth) / viewPortWidth * 1.1; // 1.1 to scale down a bit
+    let scaleY = (document.documentElement.clientHeight - this.adPeek) / viewPortHeight * 1.1;
     if(dx*scaleX > dy*scaleY) {
         this.defaultZoom = 2*this.camera.zoom/(dx*scaleX);
     }

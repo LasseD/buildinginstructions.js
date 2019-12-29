@@ -33,8 +33,8 @@ LDR.PliPreviewer.prototype.onResize = function() {
     if(!this.canvas) {
 	return;
     }
-    let w = window.innerWidth*0.9;//this.canvas.clientWidth;
-    let h = window.innerHeight*0.7;//this.canvas.clientHeight;
+    let w = document.documentElement.clientWidth*0.9;//this.canvas.clientWidth;
+    let h = document.documentElement.clientHeight*0.7;//this.canvas.clientHeight;
     w = h = Math.min(w, h);
     this.renderer.setSize(w, h);
     this.camera.left   = -w;

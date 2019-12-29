@@ -191,90 +191,92 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
     this.pliElement.style.height = (H+12)+"px";
 
     let context = this.pliElement.getContext('2d');
+    if(!context) {
+	console.warn('2D context for PLI not yet ready.');
+	return;
+    }
 
     const scaleDown = 0.98; // To make icons not fill out the complete allocated cells.
     let self = this;
-    let delay = function() {
-	context.clearRect(0, 0, context.width, context.height);
-        context.translate(6, 6);
-	// Draw icon:
-	for(let i = 0; i < self.clickMap.length; i++) {
-	    let icon = self.clickMap[i];
-            let x = icon.x*DPR;
-            let y = icon.y*DPR;
-	    let w = parseInt(icon.DX*scaleDown);
-	    let h = parseInt(icon.DY*scaleDown);
-            self.renderIcon(icon.partID, icon.colorID, w, h);
-	    context.drawImage(self.renderer.domElement, x, y);
 
-            // Code below is to highlight PLI boundary lines:
-	}
-	// Draw multipliers:
-	context.fillStyle = "#000";
-	context.lineWidth = "1";
-        if(self.groupParts) {
-            context.font = parseInt(textHeight*1.1*DPR) + "px sans-serif";
-            context.fillStyle = "black";
-            function drawMultiplier(icon) {
-                let x = icon.x * DPR;
-                let y = (icon.y + icon.MULT_Y) * DPR;
-                let w = icon.MULT_DX * DPR;
-                let h = textHeight * DPR;
-                context.fillText(icon.mult + "x", x, y + h*0.9); // *0.9 to move a bit up from lower line.
-            }
-            self.clickMap.forEach(drawMultiplier);
-        }
-	// Draw Annotation:
-	context.font = parseInt(textHeight*0.9*DPR) + "px monospace";
-        self.clickMap.filter(icon => icon.annotation).forEach(icon => {
-	    let len = icon.annotation.length;
-	    let x = (icon.x+icon.FULL_DX+1)*DPR;
-	    let y = (icon.y+icon.ANNO_Y)*DPR;
-	    let w = (len*textHeight*0.54)*DPR;
-	    let h = textHeight*DPR;
-	    context.beginPath();
-	    context.fillStyle = "#CFF";
-	    if(icon.desc.startsWith('Technic Axle')) {
-		context.arc(x+w*0.5, y+h*0.5, w*0.55, 0, 2*Math.PI, false);
-            }
-	    else {
-		context.rect(x, y, w, h);
-            }
-	    context.fill();
-	    context.stroke();
-	    context.fillStyle = "#25E";
-	    y += textHeight*DPR*0.79;
-	    context.fillText(icon.annotation, x, y);
-        });
-        // Draw highlight for ghosted parts:
-        if(ldrOptions.showEditor) {
-            context.strokeStyle = "#5DD";
-            context.lineWidth = '4';
-	    let hoveredIcon = null;
-            self.clickMap.forEach(icon => {
-                if(icon.part.original.ghost) {
-                    let x = parseInt((icon.x)*DPR);
-                    let y = parseInt((icon.y)*DPR);
-                    let w = parseInt((icon.DX)*DPR);
-                    let h = parseInt((icon.DY)*DPR);
-                    context.strokeRect(x, y, w, h);
-                }
-		if(icon.part.original.hover) {
-		    hoveredIcon = icon;
-		}
-            });
-	    if(hoveredIcon) {
-		context.strokeStyle = "#000";
-		context.setLineDash([10, 10]);
-		self.clickMap.forEach(icon => {
-                    let x = parseInt((hoveredIcon.x)*DPR);
-                    let y = parseInt((hoveredIcon.y)*DPR);
-                    let w = parseInt((hoveredIcon.DX)*DPR);
-                    let h = parseInt((hoveredIcon.DY)*DPR);
-                    context.strokeRect(x, y, w, h);
-                });
-	    }
-        }
+    context.clearRect(0, 0, context.width, context.height);
+    context.translate(6, 6);
+    // Draw icon:
+    for(let i = 0; i < self.clickMap.length; i++) {
+	let icon = self.clickMap[i];
+        let x = icon.x*DPR;
+        let y = icon.y*DPR;
+	let w = parseInt(icon.DX*scaleDown);
+	let h = parseInt(icon.DY*scaleDown);
+        self.renderIcon(icon.partID, icon.colorID, w, h);
+	context.drawImage(self.renderer.domElement, x, y);
+	
+        // Code below is to highlight PLI boundary lines:
     }
-    delay(); //setTimeout(delay, 10); // Ensure not blocking
+    // Draw multipliers:
+    context.fillStyle = "#000";
+    context.lineWidth = "1";
+    if(self.groupParts) {
+        context.font = parseInt(textHeight*1.1*DPR) + "px sans-serif";
+        context.fillStyle = "black";
+        function drawMultiplier(icon) {
+            let x = icon.x * DPR;
+            let y = (icon.y + icon.MULT_Y) * DPR;
+            let w = icon.MULT_DX * DPR;
+            let h = textHeight * DPR;
+            context.fillText(icon.mult + "x", x, y + h*0.9); // *0.9 to move a bit up from lower line.
+        }
+        self.clickMap.forEach(drawMultiplier);
+    }
+    // Draw Annotation:
+    context.font = parseInt(textHeight*0.9*DPR) + "px monospace";
+    self.clickMap.filter(icon => icon.annotation).forEach(icon => {
+	let len = icon.annotation.length;
+	let x = (icon.x+icon.FULL_DX+1)*DPR;
+	let y = (icon.y+icon.ANNO_Y)*DPR;
+	let w = (len*textHeight*0.54)*DPR;
+	let h = textHeight*DPR;
+	context.beginPath();
+	context.fillStyle = "#CFF";
+	if(icon.desc.startsWith('Technic Axle')) {
+	    context.arc(x+w*0.5, y+h*0.5, w*0.55, 0, 2*Math.PI, false);
+        }
+	else {
+	    context.rect(x, y, w, h);
+        }
+	context.fill();
+	context.stroke();
+	context.fillStyle = "#25E";
+	y += textHeight*DPR*0.79;
+	context.fillText(icon.annotation, x, y);
+    });
+    // Draw highlight for ghosted parts:
+    if(ldrOptions.showEditor) {
+        context.strokeStyle = "#5DD";
+        context.lineWidth = '4';
+	let hoveredIcon = null;
+        self.clickMap.forEach(icon => {
+            if(icon.part.original.ghost) {
+                let x = parseInt((icon.x)*DPR);
+                let y = parseInt((icon.y)*DPR);
+                let w = parseInt((icon.DX)*DPR);
+                let h = parseInt((icon.DY)*DPR);
+                context.strokeRect(x, y, w, h);
+            }
+	    if(icon.part.original.hover) {
+		hoveredIcon = icon;
+	    }
+        });
+	if(hoveredIcon) {
+	    context.strokeStyle = "#000";
+	    context.setLineDash([10, 10]);
+	    self.clickMap.forEach(icon => {
+                let x = parseInt((hoveredIcon.x)*DPR);
+                let y = parseInt((hoveredIcon.y)*DPR);
+                let w = parseInt((hoveredIcon.DX)*DPR);
+                let h = parseInt((hoveredIcon.DY)*DPR);
+                context.strokeRect(x, y, w, h);
+            });
+	}
+    }
 }
