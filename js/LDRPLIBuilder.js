@@ -2,11 +2,11 @@
 
 LDR = LDR || {};
 
-LDR.PLIBuilder = function(loader, canEdit, mainModelID, pliElement, pliRenderElement) {
+LDR.PLIBuilder = function(loader, canEdit, mainModelID, canvas, renderer) {
     this.loader = loader;
     this.canEdit = canEdit;
-    this.pliElement = pliElement;
-    this.pliRenderElement = pliRenderElement;
+    this.canvas = canvas;
+    this.renderer = renderer;
     this.fillHeight = false;
     this.groupParts = true;
     this.clickMap;
@@ -25,12 +25,7 @@ LDR.PLIBuilder = function(loader, canEdit, mainModelID, pliElement, pliRenderEle
     this.camera.position.set(10000, 7000, 10000);
     this.camera.lookAt(new THREE.Vector3());
     this.measurer = new LDR.Measurer(this.camera);
-
     this.scene = new THREE.Scene(); // Will only contain one element at a time.
-
-    this.renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
-    this.renderer.setPixelRatio(window.devicePixelRatio);
-    pliRenderElement.appendChild(this.renderer.domElement);
 }
 
 LDR.PLIBuilder.prototype.getPartType = function(id) {
@@ -185,12 +180,12 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
     let textHeight = (!fillHeight ? maxHeight : maxWidth) / Math.sqrt(this.clickMap.length) * 0.19;
     let [W,H] = Algorithm.PackPlis(fillHeight, maxWidth, maxHeight, this.clickMap, textHeight);
     const DPR = window.devicePixelRatio;
-    this.pliElement.width = (12+W)*DPR;
-    this.pliElement.height = (12+H)*DPR;
-    this.pliElement.style.width = (W+12)+"px";
-    this.pliElement.style.height = (H+12)+"px";
+    this.canvas.width = (12+W)*DPR;
+    this.canvas.height = (12+H)*DPR;
+    this.canvas.style.width = (W+12)+"px";
+    this.canvas.style.height = (H+12)+"px";
 
-    let context = this.pliElement.getContext('2d');
+    let context = this.canvas.getContext('2d');
     if(!context) {
 	console.warn('2D context for PLI not yet ready.');
 	return;

@@ -121,22 +121,20 @@ LDR.Buttons.prototype.addTopButtonElements = function(actions, element, homeLink
 
 LDR.Buttons.prototype.hideElementsAccordingToOptions = function() {
     // LR Buttons:
-    if(this.backButton) {
-	if(ldrOptions.showLRButtons == 2) { // None:
-	    this.backButton.style.display = 
-		this.nextButton.style.display =
-		this.nextButtonLarge.style.display = 'none';
-	}
-	else if(ldrOptions.showLRButtons == 0) { // Large:
-	    this.backButton.style.display = 'inline-block'; 
-	    this.nextButtonLarge.style.display = 'block';
-	    this.nextButton.style.display = 'none';
-	}
-	else { // Normal:
-	    this.backButton.style.display = 'inline-block'; 
+    if(!this.topButtons || ldrOptions.showLRButtons == 1) { // Normal:
+	this.backButton.style.display = 'inline-block'; 
+	this.nextButtonLarge.style.display = 'none';
+	this.nextButton.style.display = 'block'; 
+    }
+    else if(ldrOptions.showLRButtons == 0) { // Large:
+	this.backButton.style.display = 'inline-block'; 
+	this.nextButtonLarge.style.display = 'block';
+	this.nextButton.style.display = 'none';
+    }
+    else { // Normal:
+	this.backButton.style.display = 
+	    this.nextButton.style.display =
 	    this.nextButtonLarge.style.display = 'none';
-	    this.nextButton.style.display = 'block'; 
-	}
     }
 
     // Camera Buttons:

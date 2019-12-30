@@ -1,41 +1,37 @@
 /*
   Icon: {x, y, width, height, mult, key, part, colorID, desc}
  */
-LDR.PliPreviewer = function(modelID) {
+LDR.PliPreviewer = function(modelID, canvas, renderer) {
+    if(!renderer || !canvas) {
+	throw "Missing canvas or renderer";
+    }
     this.modelID = modelID;
+    this.canvas = canvas;
+    this.renderer = renderer;
     this.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
-    this.resetCameraPosition();
-    this.subjectSize = 1;
-    
     this.scene = new THREE.Scene(); // To add stuff to
-    this.scene.background = new THREE.Color( 0xffffff );
+    this.scene.background = new THREE.Color(0xFFFFFF);
 
-    this.canvas;
+    this.resetCameraPosition();
+    this.subjectSize = 1;    
     this.controls;
 }
 
-LDR.PliPreviewer.prototype.attachRenderer = function(canvas) { 
-    this.renderer = new THREE.WebGLRenderer({antialias: true, canvas: canvas});
-    this.renderer.setPixelRatio(window.devicePixelRatio);
-    this.canvas = canvas;
+LDR.PliPreviewer.prototype.enableControls = function() { 
     this.controls = new THREE.OrbitControls(this.camera, this.canvas);
     let self = this;
     this.controls.addEventListener('change',function(){self.render();});
 }
 
 LDR.PliPreviewer.prototype.render = function() {
-    if(this.renderer) {
-	this.renderer.render(this.scene, this.camera);
-    }
+    this.renderer.render(this.scene, this.camera);
 }
 
 LDR.PliPreviewer.prototype.onResize = function() {
-    if(!this.canvas) {
-	return;
-    }
-    let w = document.documentElement.clientWidth*0.9;//this.canvas.clientWidth;
-    let h = document.documentElement.clientHeight*0.7;//this.canvas.clientHeight;
-    w = h = Math.min(w, h);
+    let w = window.innerWidth*0.8;
+    let h = window.innerHeight*0.7;
+    w = h = Math.min(w, h);// / window.devicePixelRatio;
+    console.log('Setting preview size ' + w);
     this.renderer.setSize(w, h);
     this.camera.left   = -w;
     this.camera.right  =  w;
@@ -47,32 +43,30 @@ LDR.PliPreviewer.prototype.onResize = function() {
 }
 
 LDR.PliPreviewer.prototype.resetCameraZoom = function() {
-    if(this.canvas) {
-        let sizeMin = Math.min(this.canvas.clientWidth, this.canvas.clientHeight);
-	this.camera.zoom = sizeMin / this.subjectSize;
-	this.camera.updateProjectionMatrix();
-    }
+    let sizeMin = Math.min(this.canvas.clientWidth, this.canvas.clientHeight);
+    this.camera.zoom = sizeMin / this.subjectSize;
+    this.camera.updateProjectionMatrix();
 }
 
 LDR.PliPreviewer.prototype.resetCameraPosition = function() {
     this.camera.position.set(10000, 7000, 10000);
     this.camera.lookAt(new THREE.Vector3());
-    if(this.canvas) {
-	this.resetCameraZoom();
-	this.render();
-    }
+    this.resetCameraZoom();
+    this.render();
 }
 
 LDR.PliPreviewer.prototype.zoomIn = function() {
-    if(!this.controls)
+    if(!this.controls) {
 	return;
+    }
     this.controls.dollyIn(1.2);
     this.render();
 }
 
 LDR.PliPreviewer.prototype.zoomOut = function() {
-    if(!this.controls)
+    if(!this.controls) {
 	return;
+    }
     this.controls.dollyOut(1.2);
     this.render();    
 }

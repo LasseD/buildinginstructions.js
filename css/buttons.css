@@ -82,6 +82,21 @@
 #optionsButton a, #editButton a {
     display: block;
 }
+#stepToContainer {
+    display: inline-block;
+    position: relative;
+    top: -25px;
+}
+#stepToContainer input {
+    font-family: sans-serif;
+    font-weight: bold;
+    font-size: 60px;
+    text-align: center;
+    width: 150px;
+    border: none;
+    background: none;
+}
+
 #to_top {
   display: none;
   position: fixed;
@@ -156,19 +171,34 @@ line, polygon, rect, polyline, path, circle, ellipse {
     stroke: black;
 }
 
-@media screen and (max-width: 500px) {
+@media screen and (max-width: 570px) {
   #top_buttons {
-    height: 20vw;
+    height: 12vw;
   }
+  #prev_button svg, #top_buttons svg, #next_button svg, #optionsButton, #editButton, #top_buttons .top_button, #camera_buttons svg, #next_button, #reset_camera_button {
+    width: 12vw;
+    height: 12vw;
+  }
+  #stepToContainer {
+    top: -4vw;
+  }
+  #stepToContainer input {
+    font-size: 6vw;
+    width: 18vw;
+  }
+  #instructions_decorations {
+    top: 12vw;
+  }
+
   #lower_right_buttons, #next_button_large svg, #done_button svg, #next_button_large, #done_button {
-    width: 40vw;
-    height: 40vw;
-  }
-  #prev_button svg, #top_buttons svg, #camera_buttons svg, #next_button svg, #optionsButton, #editButton, #top_buttons #prev_button, #next_button, #reset_camera_button, #zoom_out_button_large, #zoom_in_button_large {
-    width: 20vw;
-    height: 20vw;
+    width: 30vw;
+    height: 30vw;
   }
   #camera_buttons {
+    height: 20vw;
+  }
+  #zoom_out_button_large, #zoom_in_button_large {
+    width: 20vw;
     height: 20vw;
   }
   #zoom_in_button svg, #zoom_out_button svg, #zoom_in_button, #zoom_out_button {
@@ -180,16 +210,6 @@ line, polygon, rect, polyline, path, circle, ellipse {
   }
   #zoom_out_button {
     left: -10vw;
-  }
-  #home_button {
-    height: 16vw;
-    width: 16vw;
-    border-radius: 9vw;
-  }
-  #home_button svg {
-    border-radius: 8vw;
-    left: -3vw;
-    top: 2vw;
   }
   #to_top svg {
     width: 20vw;

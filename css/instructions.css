@@ -9,23 +9,8 @@ body {
   top: 0;
 }
 #main_canvas_holder {
-  height: calc(100vh - 120px);
-  width: calc(100vw - 20px);
-}
-
-#stepToContainer {
-    display: inline-block;
-    position: relative;
-    top: -25px;
-}
-#stepToContainer input {
-    font-family: sans-serif;
-    font-weight: bold;
-    font-size: 60px;
-    text-align: center;
-    width: 150px;
-    border: none;
-    background: none;
+/*  height: calc(100vh - 120px);
+  width: calc(100vw - 20px);*/
 }
 
 /* Green */
@@ -120,19 +105,6 @@ body {
 */
 #generated {
     display: none;
-}
-
-@media screen and (max-width: 500px) {
-  #stepToContainer {
-    top: -4vw;
-  }
-  #stepToContainer input {
-    font-size: 14vw; /*60px;*/
-    width: 30vw;
-  }
-  #instructions_decorations {
-    top: 20vw;
-  }
 }
 
 /*

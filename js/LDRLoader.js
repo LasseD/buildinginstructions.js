@@ -616,7 +616,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 	if(this.options.hasOwnProperty('key') && this.options.hasOwnProperty('timestamp')) {
             self.storage.saveInstructionsToStorage(self, self.options.key, self.options.timestamp);
 	}
-        setTimeout(() => self.storage.savePartsToStorage(loadedParts, self), 2000); // Don't let this action delay rendering.
+        self.storage.savePartsToStorage(loadedParts, self);
         // Do not call storage.db.close() as there might be other parts that should be saved.
     }
 

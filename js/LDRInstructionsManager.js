@@ -22,8 +22,14 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
     this.pliW = 0;
     this.pliH = 0;
     // TODO: THIS DOES NOT WORK: this.maxSizePerPixel = 100000; // TODO: Update when clicking zoom and save using options.
+
+    let pixelRatio = window.devicePixelRatio;
     this.canvas = document.getElementById('main_canvas');
     this.renderer = new THREE.WebGLRenderer({antialias:true, canvas:this.canvas});
+    this.renderer.setPixelRatio(pixelRatio);
+    this.secondaryCanvas = document.getElementById('secondary_canvas');
+    this.secondaryRenderer = new THREE.WebGLRenderer({antialias:true, canvas:this.secondaryCanvas, alpha:true});
+    this.secondaryRenderer.setPixelRatio(pixelRatio);
 
     let canvasHolder = document.getElementById('main_canvas_holder');
     let actions = {
@@ -67,7 +73,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
     this.baseObject.add(this.opaqueObject); // Draw non-trans before trans.
     this.baseObject.add(this.transObject);
     this.scene.add(this.baseObject);
-    this.pliPreviewer = new LDR.PliPreviewer(modelID);
+    this.pliPreviewer = new LDR.PliPreviewer(modelID, this.secondaryCanvas, this.secondaryRenderer);
 
     this.showPLI = false;
     this.hovered = false;
@@ -124,11 +130,8 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
         
         let pd = new THREE.LDRPartDescription(self.modelColor, origo, inv, mainModel, false);
         
-        self.pliBuilder = new LDR.PLIBuilder(self.ldrLoader,
-                                             self.canEdit,
-                                             mainModel,
-                                             self.pliElement,
-                                             document.getElementById('pli_render_canvas'));
+        self.pliBuilder = new LDR.PLIBuilder(self.ldrLoader, self.canEdit, mainModel,
+                                             document.getElementById('pli'), self.secondaryRenderer);
         self.stepHandler = new LDR.StepHandler(self.opaqueObject, self.transObject, self.ldrLoader, [pd], true, self.storage);
         self.stepHandler.nextStep(false);
 
@@ -147,7 +150,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
         }
 
 	// Register location changes:
-	/*window.addEventListener('popstate', function(e) {
+	window.addEventListener('popstate', function(e) {
                 let step = e.state;
                 if(self.windowStepCauseByHistoryManipulation || step === null) {
                     //console.log("Ignoring history manipulating step to: " + step);
@@ -165,10 +168,10 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
                 else {
                     self.stepHandler.moveSteps(diff, () => self.handleStepsWalked());
                 }
-            });*/
+            });
 
 	// Enable pli preview:
-        self.pliPreviewer.attachRenderer(document.getElementById('preview'));
+        self.pliPreviewer.enableControls();
 
         // Enable editor:
         if(self.canEdit) {
@@ -276,11 +279,8 @@ LDR.InstructionsManager.prototype.setBackgroundColor = function(c) {
 LDR.InstructionsManager.prototype.onWindowResize = function(){
     this.topButtonsHeight = document.getElementById('top_buttons').offsetHeight;
 
-    //console.log("Resizing to " + document.documentElement.clientWidth + ", " + document.documentElement.clientHeight + " top height: " + this.topButtonsHeight + " and device pixel ratio: " + window.devicePixelRatio);
-    let pixelRatio = window.devicePixelRatio;
-    let w = (document.documentElement.clientWidth-20);
-    let h = (document.documentElement.clientHeight-this.adPeek);
-    this.renderer.setPixelRatio(pixelRatio);
+    let w = (window.innerWidth-20);
+    let h = (window.innerHeight-this.adPeek);
     if(this.canvas.width !== w || this.canvas.height !== h) {
         this.renderer.setSize(w, h, true);
     }
@@ -351,10 +351,10 @@ LDR.InstructionsManager.prototype.updatePLI = function(force) {
     }
     e.style.display = 'inline';
     
-    let maxWidth = document.documentElement.clientWidth - e.offsetLeft - 18;
-    let maxHeight = (document.documentElement.clientHeight - 130 - this.adPeek);
+    let maxWidth = window.innerWidth - e.offsetLeft - 18;
+    let maxHeight = (window.innerHeight - 130 - this.adPeek);
     
-    if(document.documentElement.clientWidth > document.documentElement.clientHeight) {
+    if(window.innerWidth > window.innerHeight) {
         this.pliBuilder.drawPLIForStep(true, step, maxWidth*0.4, maxHeight, this.maxSizePerPixel, force);
     }
     else {
@@ -413,8 +413,8 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
         };
     }
     
-    let viewPortWidth = document.documentElement.clientWidth;
-    let viewPortHeight = document.documentElement.clientHeight - this.adPeek;// - 100;
+    let viewPortWidth = window.innerWidth;
+    let viewPortHeight = window.innerHeight - this.adPeek;// - 100;
     if(this.pliH > 0) { // Adjust for pli.
         if(this.pliBuilder.fillHeight) {
             viewPortWidth *= 0.6;
@@ -466,16 +466,16 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
     oldPLIW !== newPLIW || oldPLIH !== newPLIH;
     
     let oldDefaultZoom = this.defaultZoom;
-    viewPortWidth = document.documentElement.clientWidth;
-    viewPortHeight = document.documentElement.clientHeight - this.adPeek - this.topButtonsHeight;
+    viewPortWidth = window.innerWidth;
+    viewPortHeight = window.innerHeight - this.adPeek - this.topButtonsHeight;
     if(this.pliBuilder.fillHeight) {
         viewPortWidth -= newPLIW;
     }
     else {
         viewPortHeight -= newPLIH;
     }
-    let scaleX = (document.documentElement.clientWidth) / viewPortWidth * 1.1; // 1.1 to scale down a bit
-    let scaleY = (document.documentElement.clientHeight - this.adPeek) / viewPortHeight * 1.1;
+    let scaleX = (window.innerWidth) / viewPortWidth * 1.1; // 1.1 to scale down a bit
+    let scaleY = (window.innerHeight - this.adPeek) / viewPortHeight * 1.1;
     if(dx*scaleX > dy*scaleY) {
         this.defaultZoom = 2*this.camera.zoom/(dx*scaleX);
     }
@@ -593,7 +593,6 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
 
     // Ensure mobile users can swipe right for next step:
 LDR.InstructionsManager.prototype.ensureSwipeForwardWorks = function() {
-    return; // Functionality disabled due to issues on iOS.
     window.history.replaceState(this.currentStep, null, this.baseURL + this.currentStep);
     if(!this.stepHandler.isAtLastStep()) {
         window.history.pushState(this.currentStep+1, null, this.baseURL + (this.currentStep+1));
