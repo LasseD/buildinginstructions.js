@@ -665,7 +665,7 @@ THREE.LDRLoader.prototype.generate = function(colorID, mc, taskList) {
     if(this.cleanUpPrimitivesAndSubParts) {
 	mainModel.setReferencedFrom(this);
     }
-    mainModel.generateThreePart(this, colorID, origo, inv, true, false, mc, taskList);
+    mainModel.generateThreePart(this, colorID, origo, inv, true, false, mc, null, taskList);
 }
 
 THREE.LDRLoader.prototype.onPartsLoaded = function(loadedParts) {

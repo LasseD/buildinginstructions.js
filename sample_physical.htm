@@ -62,7 +62,7 @@
         console.log("Data loaded after " + (new Date()-startTime) + "ms.");
 
         let taskList = [];
-        ldrLoader.generate(color, scene.mc, null, taskList);
+        ldrLoader.generate(color, scene.mc, taskList);
         console.log("Animation info constructed after " + (new Date()-startTime) + "ms.");
 
         scene.build();
