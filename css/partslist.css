@@ -18,8 +18,6 @@ html, body {
 }
 .toggle, .toggle_selected {
   display: inline-block;
-  height: 100px;
-  width: 100px;
   margin: 0.5em;
   vertical-align: top;
 }
@@ -40,9 +38,11 @@ html, body {
 }
 #list_parts {
   display: block;
-  margin: 2em;
+  margin-top: 2em;
+  margin-bottom: 2em;
   color: black;
-  background-color: white;
+  background-color: #4BB;
+  /*background-color: white;*/
 }
 #list_parts a {
     color: black;
@@ -53,7 +53,7 @@ html, body {
 table th {
     background-color: #4BB;
     color: white;
-    font-size: 32px;
+    font-size: 2em;
     padding: 0.5em;
 }
 table th .sorter {
@@ -79,17 +79,16 @@ tr.partline td:first-child, tr.checked_partline td:first-child {
 }
 td {
   text-align: center;
-  font-size: 32px;
+  font-size: 2em;
 }
 td.list_description {
   text-align: left;
   padding-left: 0.5em;
 }
 td.list_image {
-  padding-top: 8px;
-  padding-left: 8px;
-  padding-right: 8px;
+  padding: 0;
   cursor: pointer;
+  background-color: white;
 }
 
 .scene {
@@ -97,29 +96,25 @@ td.list_image {
 }
 .part {
     display: inline-block;
+    position: relative;
+    top: 0;
     border: 2px solid black;
-    border-radius: 0.5em;
-    padding: 0.5em;
+    border-radius: 7px;
+    padding: 4px;
     margin-right: 0;
-    margin-bottom: 1em;
-    margin-left: 1em;
+    margin-bottom: 10px;
+    margin-left: 10px;
     margin-top: 0;
-    width: 200px;
-    height: 200px;
     cursor: pointer;
     background-color: white;
     color: black;
 }
 .mult {
-    display: block;
-    float: left;
-    position: relative;
-    left: 0.125em;
-    margin-right: -100%;
-    margin-bottom: 0;
+    position: absolute;
+    left: 5px;
+    top: 3px;
     font-family: sans-serif;
     font-weight: bold;
-    font-size: 2em;
 }
 .annotation, .annotation_round {
     display: block;
@@ -161,7 +156,6 @@ td.list_image {
   top: 0;
 }
 
-
 /*
   Title bar
  */
@@ -172,7 +166,7 @@ td.list_image {
     border-radius: 54px;
     color: white;
     padding: 4px;
-    font-size: 2em;
+    font-size: 4vw;
     text-align: center;
     min-height: 104px;
 }
@@ -185,7 +179,6 @@ td.list_image {
 }
 .bar_text {
     display: block;
-    margin-top: 0.5em;
     margin-right: 100px;
 }
 #continuebar .bar_text {
@@ -195,8 +188,8 @@ td.list_image {
 #icon_toggles svg {
   stroke: white;
   stroke-width: 2;
-  width: 100px;
-  height: 100px;
+  width: 6em;
+  height: 6em;
 }
 #icon_toggles svg line {
   display: inline-block;
@@ -357,4 +350,19 @@ input {
   padding: 0.3em;
   border: 0.2em solid #2BB;
   vertical-align: middle;
+}
+
+@media screen and (max-width: 570px) {
+  .cb {
+      font-size: 4vw;
+  }
+  #icon_toggles {
+      font-size: 2vw;
+  }
+  #list_table {
+      font-size: 1.5vw;
+  }
+  .note_input {
+      width: 15vw;
+  }
 }

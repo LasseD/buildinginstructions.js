@@ -28,11 +28,11 @@ LDR.PliPreviewer.prototype.render = function() {
 }
 
 LDR.PliPreviewer.prototype.onResize = function() {
-    let w = window.innerWidth*0.8;
-    let h = window.innerHeight*0.7;
-    w = h = Math.min(w, h);// / window.devicePixelRatio;
-    console.log('Setting preview size ' + w);
+    let w = window.innerWidth*0.80;
+    let h = (window.innerHeight-180);
     this.renderer.setSize(w, h);
+    this.renderer.domElement.parentElement.style.width = w + "px";
+    this.renderer.domElement.parentElement.style.height = h + "px";
     this.camera.left   = -w;
     this.camera.right  =  w;
     this.camera.top    =  h;

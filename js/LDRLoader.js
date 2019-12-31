@@ -907,6 +907,9 @@ THREE.LDRLoader.prototype.pack = function() {
 	nameMap[id] = names.length;
 	names.push(id);
 	let pt = self.getPartType(id);
+	if(!pt) {
+	    throw 'Unknown part type ' + id;
+	}
 	if(!pt.canBePacked()) { // Only parts are packed.
 	    scanNames(pt);
 	}

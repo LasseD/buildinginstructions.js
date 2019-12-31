@@ -141,6 +141,7 @@ LDR.SVG.makeUpAndBack = function () {
 // List view:
 LDR.SVG.makeListIcon = function () {
     let ret = document.createElementNS(LDR.SVG.NS, 'svg');
+    ret.setAttribute('viewBox', '0 0 100 100');
     let startY = 19;
     for(let i = 0; i < 5; i++) {
 	let line = LDR.SVG.makeLine(10, startY+i*16, 90, startY+i*16);
@@ -151,6 +152,7 @@ LDR.SVG.makeListIcon = function () {
 // Icon view:
 LDR.SVG.makeBigIconsIcon = function () {
     let ret = document.createElementNS(LDR.SVG.NS, 'svg');
+    ret.setAttribute('viewBox', '0 0 100 100');
     for(let x = 0; x < 2; x++) {
       for(let y = 0; y < 2; y++) {
 	  let rect = LDR.SVG.makeRect(x*46 + 7, y*46 + 7, 40, 40);
