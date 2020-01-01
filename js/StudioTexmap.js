@@ -25,6 +25,16 @@ LDR.STUDIO.handlePart = function(loader, pt) {
     if(!pt.studioTexmap || pt.steps.length !== 1) {
 	return; // Not relevant for Studio 2.0 texmaps or not with a single step.
     }
+    let step = pt.steps[0];
+    if(!step.subModels.length === 1 || step.quads.length > 0 || step.triangles.length === 0) {
+	return; // Only a single sub model, no quads and some triangles supported.
+    }
+    let sm = step.subModels[0];
+    
+    // Fix the y-positioning issue: All Custom LDraw parts seem to be placed too high:
+    let misalignment = sm.position;
+    step.triangles.forEach(t => {t.p1.sub(misalignment); t.p2.sub(misalignment); t.p3.sub(misalignment);});
+    sm.position.set(0, 0, 0);
 
     // Set up dataurl:
     let pid = pt.ID + '.png';
@@ -60,8 +70,6 @@ LDR.STUDIO.handlePart = function(loader, pt) {
     }
 
     // Set up points based on primitives:
-    let step = pt.steps[0];
-
     function getSize(triangles) {
 	let b = new THREE.Box3();
 	function expand(t) {

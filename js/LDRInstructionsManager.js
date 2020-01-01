@@ -316,6 +316,9 @@ LDR.InstructionsManager.prototype.zoomOut = function() {
 }
 
 LDR.InstructionsManager.prototype.updateUIComponents = function(force) {
+    if(!this.stepHandler) {
+	return; // Not ready.
+    }
     this.currentMultiplier = this.stepHandler.getMultiplierOfCurrentStep();
     this.updateMultiplier();
     this.updateRotator();
