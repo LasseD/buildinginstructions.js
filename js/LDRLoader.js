@@ -272,8 +272,11 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
                     closeStep(false);
                     
                     if(!part.ID) { // No ID in main model: 
-                        console.warn('No ID in main model - setting default ID.');
-                        self.mainModel = part.ID = defaultID;
+                        console.warn('No ID in main model - setting default ID "' + defaultID + '"');
+                        part.ID = defaultID;
+			if(!self.mainModel) {
+			    self.mainModel = defaultID;
+			}
                     }
                     if(!skipPart) {
                         self.partTypes[part.ID] = part;
