@@ -437,6 +437,9 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 
                 saveThisCommentLine = false;
 	    }
+	    else if(LDR.STUDIO && LDR.STUDIO.handleLine(part, parts)) {
+                saveThisCommentLine = false;
+	    }
 	    else if(parts[1][0] === "!") {
 		if(is("!THEME") ||
 		   is("!HELP") ||
@@ -608,6 +611,10 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
         this.partTypes[part.ID] = part;
     }
     loadedParts.push(part);
+
+    if(LDR.STUDIO) {
+	loadedParts.forEach(part => LDR.STUDIO.handlePart(self, part));
+    }
 
     this.onPartsLoaded(loadedParts);
 

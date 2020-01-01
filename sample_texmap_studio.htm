@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <meta charset=utf-8>
+  <title>Sample Texmap using Studio 2.0 Format</title>
+  <meta name="viewport" content="width=device-width" />
+ </head>
+ <body>
+    <script src="js/three.min.js"></script>
+    <script src="js/OrbitControls.js"></script>
+    <script src="js/colors.js"></script>
+    <script src="js/ClientStorage.js"></script>
+    <script src="js/LDROptions.js"></script>
+    <script src="js/LDRShaders.js"></script>
+    <script src="js/LDRColorMaterials.js"></script>
+    <script src="js/LDRGeometries.js"></script>
+    <script src="js/LDRLoader.js"></script>
+    <script src="js/LDRGenerator.js"></script>
+    <script src="js/LDRStuds.js"></script>
+    <script src="js/StudioTexmap.js"></script>
+    <script>
+      // The model to be rendered:
+      //let model = '../models/studio_test_tile_1_1_top.dat';
+      //let model = '../models/studio_test_dish_8_8_top.dat';
+      //let model = '../models/studio_test_patreon.dat';
+      //let model = '../models/studio_test_patreon_moved_to_top_half.dat';
+      //let model = 'studio_test_1_1_checker.dat';
+      //let model = 'studio_test_1_2_checker.dat';
+      //let model = 'studio_test_1_8_checker.dat';
+      let model = 'studio_test_2_4_checker_dual.dat';
+
+      // Set up camera:
+      let camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
+      camera.position.set(10000, 7000, 10000);
+      camera.lookAt(new THREE.Vector3());
+
+      // Set up scene:
+      let scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xFFFFFF);
+
+      let baseObject = new THREE.Group(), opaqueObject = new THREE.Group(), transObject = new THREE.Group();
+      baseObject.add(opaqueObject); // Draw non-trans before trans.
+      baseObject.add(transObject);
+      scene.add(baseObject);
+      let mc = new LDR.MeshCollector(opaqueObject, transObject);
+
+      // Set up renderer:
+      let renderer = new THREE.WebGLRenderer({antialias: true});
+      renderer.setPixelRatio(window.devicePixelRatio);
+      function render() {
+        renderer.render(scene, camera);
+      }
+      document.body.appendChild(renderer.domElement);
+
+      function onWindowResize(){
+        camera.left = -window.innerWidth;
+        camera.right = window.innerWidth;
+        camera.top = window.innerHeight;
+        camera.bottom = -window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        render();
+      }
+
+      // React to user input:
+      let controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.addEventListener('change', render);
+      window.addEventListener('resize', onWindowResize, false);
+
+      // Three.js loader for LDraw models:
+      let ldrLoader;
+
+      let onLoad = function() {
+        let mainModel = ldrLoader.getMainModel(); // Main model from the LDraw file (first model encountered)
+
+        // Place model in scene:
+        let origo = new THREE.Vector3();
+        let inv = new THREE.Matrix3(); 
+        inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
+
+        // Generate the mesh:
+        mainModel.generateThreePart(ldrLoader, 15, origo, inv, true, false, mc);
+
+        // Find center of drawn model:
+        let b = mc.boundingBox;
+        let elementCenter = new THREE.Vector3();
+        b.getCenter(elementCenter);
+        baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
+
+	camera.zoom = window.innerWidth/b.min.distanceTo(b.max);
+        onWindowResize();
+      }
+
+      let ldrOptions = new LDR.Options(); // Determine how to show lines, studs, and logos. Change options using sample_instruction.htm
+      ldrLoader = new THREE.LDRLoader(onLoad, false, {onProgress:render});
+      ldrLoader.load(model);
+ </script>
+ </body>
+</html>
