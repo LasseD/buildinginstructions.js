@@ -818,7 +818,7 @@ LDR.LDRGeometry.prototype.replaceWithDeep = function(g) {
 /*
   Build this from the 4 types of primitives.
 */
-LDR.LDRGeometry.prototype.fromPrimitives = function(cull, lines, conditionalLines, triangles, quads) {
+LDR.LDRGeometry.prototype.fromPrimitives = function(lines, conditionalLines, triangles, quads) {
     let geometries = [];
 
     if(lines.length > 0) {
@@ -831,14 +831,28 @@ LDR.LDRGeometry.prototype.fromPrimitives = function(cull, lines, conditionalLine
 	g.fromConditionalLines(conditionalLines);
 	geometries.push(g);
     }
-    if(triangles.length > 0) {
+    let culledTriangles = triangles.filter(t => t.cull);
+    if(culledTriangles.length > 0) {
 	let g = new LDR.LDRGeometry(); 
-	g.fromTriangles(cull, triangles);
+	g.fromTriangles(true, culledTriangles);
 	geometries.push(g);
     }
-    if(quads.length > 0) {
+    let unculledTriangles = triangles.filter(t => !t.cull);
+    if(unculledTriangles.length > 0) {
 	let g = new LDR.LDRGeometry(); 
-	g.fromQuads(cull, quads);
+	g.fromTriangles(false, unculledTriangles);
+	geometries.push(g);
+    }
+    let culledQuads = quads.filter(q => q.cull);
+    if(culledQuads.length > 0) {
+	let g = new LDR.LDRGeometry(); 
+	g.fromQuads(true, culledQuads);
+	geometries.push(g);
+    }
+    let unculledQuads = quads.filter(q => q.cull);
+    if(unculledQuads.length > 0) {
+	let g = new LDR.LDRGeometry(); 
+	g.fromQuads(false, unculledQuads);
 	geometries.push(g);
     }
     this.replaceWith(LDR.mergeGeometries(geometries));
@@ -983,7 +997,7 @@ LDR.LDRGeometry.prototype.fromStep = function(loader, step) {
     let geometries = [];
     if(step.hasPrimitives) {
         let g = new LDR.LDRGeometry();
-	g.fromPrimitives(step.cull, step.lines, step.conditionalLines, step.triangles, step.quads);
+	g.fromPrimitives(step.lines, step.conditionalLines, step.triangles, step.quads);
         geometries.push(g);
     }
 

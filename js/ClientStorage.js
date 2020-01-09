@@ -25,6 +25,7 @@ LDR.STORAGE = function(onReady) {
 	}
 	if(event.oldVersion < 7) {
 	    // Bug fix for when partType.cleanUp is called
+	    // step culling moved to lines
 	    var pStore = this.transaction.objectStore("parts");
 	    pStore.clear();
 	    var iStore = this.transaction.objectStore("instructions");

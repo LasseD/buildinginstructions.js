@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+ <head>
+    <meta charset=utf-8>
+    <title>Studio 2 LDraw - Convert your Studio 2.0 custom parts to LDraw</title>
+    <meta name="viewport" content="width=device-width" />
+    <style>
+      body {
+        font-family: "Arial","Helvetica",sans-serif;
+        padding: 0;
+        margin: 0;
+        background-color: #EEE;
+      }
+      h1, h3 {
+        text-transform: uppercase;
+        display: block;
+        text-align: center;
+        margin: 0;
+        padding: 0.5em;
+        font-size: 2em;
+      }
+      h1 {
+        background-color: #000;
+        color: white;
+      }
+      h3 {
+        background-color: #D99;
+      }
+      .section {
+        display: block;
+        margin: 0.5em;
+      }
+      .desc {
+        margin: 0.5em;
+      }
+      .choice {
+        display: table;
+        margin: 0.5em;
+      }
+      .choice, textarea, button {
+        display: block;
+        width: 95%;
+      }
+      button {
+        height: 4em;
+      }
+      #contact {
+        margin: 2em;
+        text-align: center;
+      }
+      .error, .warning {
+        display: block;
+        margin: 1em;
+        padding: 0.5em;
+        font-weight: bold;
+      }
+      .error {
+        border: 0.2em solid red;
+      }
+      .warning {
+        border: 0.2em solid orange;
+      }
+      canvas {
+        display: block;
+        margin: auto;
+      }
+    </style>
+ </head>
+ <body>
+    <script src="js/jquery.min.js"></script>
+    <script src="js/three.min.js"></script>
+    <script src="js/OrbitControls.js"></script>
+    <script src="js/colors.js"></script>
+    <script src="js/ClientStorage.js"></script>
+    <script src="js/LDROptions.js"></script>
+    <script src="js/LDRShaders.js"></script>
+    <script src="js/LDRColorMaterials.js"></script>
+    <script src="js/LDRGeometries.js"></script>
+    <script src="js/LDRLoader.js"></script>
+    <script src="js/LDRGenerator.js"></script>
+    <script src="js/LDRStuds.js"></script>
+    <script src="js/StudioTexmap.js"></script>
+  
+    <h1>Studio2LDraw - Convert your textured custom parts from Studio 2.0 to LDraw</h1>
+
+    <h3>step 1 - Select the file from Studio or Part Designer</h3>
+  <div class="section">
+   <span class="desc">
+     After exporting to LDraw from Studio 2.0 or Part Designer, you can either select the file or paste the content below.
+   </span>
+   <span class="choice">
+    <label for="file">.ldr file exported from <b>Studio 2.0</b> or <b>Part Designer</b></label>
+    <input id="file" name="file" type="file" onchange="readFromFile(event);" />
+   </span>
+   <span class="choice">
+    <textarea id="file_content" onkeyup="convert(null)" rows="8">0 Or paste the content here
+0 FILE sample_file.dat
+0 Sample file with a 'Brick 1 x 1' and a simple texture
+0 Name:  sample_file.dat
+0 Author:  
+0 BFC CERTIFY CCW
+0 PE_TEX_PATH -1
+0 PE_TEX_INFO iVBORw0KGgoAAAANSUhEUgAAAWAAAAGmCAYAAABC0F7lAAAWTUlEQVR4Ae3XsW5cSXYG4JpmL9wBvSMQY6/RWjgQJlIzESbmAwhYAs7kgIGdMxxHjAUsMA4Fw6GBlQI5lQE9gNIBFDWjBZ0MaWuwpoVdBj07ZNO87SeoW3WBg4PvYgQmVWdOfaf438tSPAQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgAABAgQIECBAgACBUu4f/ov473e71ob2Yv7b29u7//777+8jP999911Yv2Gujx8/vv/hhx8iE95/++23oQ2/+eab+9vb29CGJycnkQ2bXgOzpt02EyBAgMBoAQE8ms5GAgQItAkI4DY/uwkQIDBaQACPprORAAECbQICuM3PbgIECIwWEMCj6WwkQIBAm4AAbvOzmwABAqMFBPBoOhsJECDQJiCA2/zsJkCAwGgBATyazkYCBAi0CQjgNj+7CRAgMFpAAI+ms5EAAQJtAgK4zc9uAgQIjBYQwKPpbCRAgECbgABu87ObAAECowUE8Gg6GwkQINAmIIDb/OwmQIDAaAEBPJrORgIECLQJCOA2P7sJECAwWkAAj6azkQABAm0CArjNz24CBAiMFhDAo+lsJECAQJuAAG7zs5sAAQKjBQTwaDobCRAg0CYggNv87CZAgMBoAQE8ms5GAgQItAkI4DY/uwkQIDBaQACPprORAAECbQICuM3PbgIECIwWEMCj6WwkQIBAm4AAbvOzmwABAqMFBPBoOhsJECDQJiCA2/zsJkCAwGgBATyazkYCBAi0CQjgNj+7CRAgMFpAAI+ms5EAAQJtAgK4zc9uAgQIjBYQwKPpbCRAgECbgABu87ObAAECowUE8Gg6GwkQINAmIIDb/OwmQIDAaAEBPJrORgIECLQJCOA2P7sJECAwWkAAj6azkQABAm0CArjNz24CBAiMFhDAo+lsJECAQJvAvG17KevWAhPtv/nyy7L69a8nqt5edjablaurq7JYLNqLTVTh9va2rFariaq3lz04OCgXFxfl8+fP7cUmqjCfz0MbLpfLcn5+Xob7GPXZ398Pa7hetyXgF63oD7+e9601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
+1 16 0.0000 -24.0000 0.0000 1.0000 0.0000 0.0000 0.0000 1.0000 0.0000 0.0000 0.0000 1.0000 s/3005s01.dat
+3 16 -10.000 -24.000 -10.000 -10.000 0.000 -10.000 10.000 0.000 -10.000 0.045 0.955 0.045 0.045 0.955 0.045
+3 16 -10.000 -24.000 -10.000 10.000 0.000 -10.000 10.000 -24.000 -10.000 0.045 0.955 0.955 0.045 0.955 0.955
+</textarea>
+   </span>
+
+   <div id="warnings">
+   </div>
+   <div id="errors">
+   </div>
+
+   <canvas id="preview"></canvas>
+  </div>
+
+  <h3>Step 2 - Inline or Separate Image File</h3>
+  <div class="section">
+   <span class="desc">
+     LDraw supports two ways of storing texture files: Either as separate PNG files in the 'textures' folder, or inlined in the LDraw file.
+   </span>
+   <span class="choice">
+    <label for="inline">Check this box for inlining the PNG file: </label>
+    <input id="inline" name="inline" type="checkbox" checked="checked" onchange="convert(null);" />
+   </span>
+  </div>
+
+  <h3>Step 3 - Get the Standardized LDraw File</h3>
+  <div class="section">
+   <div id="preview2"></div>
+   <span class="choice">
+     <textarea id="ldr_result" rows="10"></textarea>
+     <button onclick="copyToClipboard();">Copy LDraw File to Clipboard</button>
+   </span>
+  </div>
+
+  <div id="contact">
+    <a href="https://github.com/LasseD/buildinginstructions.js">Studio 2 LDraw is part of buildinginstructions.js</a> which is in the public domain and may be freely distributed.
+    <a href="https://github.com/mrdoob/three.js">three.js and OrbitControls.js</a> use the MIT license.
+    Contact: Lasse Deleuran on <a href="mailto:lasse.deleuran@gmail.com">lasse.deleuran@gmail.com</a>.
+  </div>
+
+  <script>
+/*
+  Warnings and errors:
+ */
+function resetWarningsAndErrors() {
+  $('#warnings').empty();
+  $('#errors').empty();
+}
+function onWarning(obj) {
+  let message = obj.message + ' on line ' + obj.line;
+
+  console.dir(obj);
+
+  message = message.replace('<', '&lt;');
+
+  var span = document.createElement('span');
+  span.setAttribute('class', 'warning');
+  span.innerHTML = message;
+  $('#warnings').append(span);
+}
+function onError(obj) {
+  var span = document.createElement('span');
+  span.setAttribute('class', 'error');
+  span.innerHTML = obj.message;
+  $('#errors').empty().append(span);
+}
+
+/*
+  three.js rendering:
+ */
+var ldrOptions = new LDR.Options(); // Determine how to show lines. Change this in sample_instruction.htm
+
+// Set up camera:
+var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
+camera.position.set(10000, 7000, 10000);
+camera.lookAt(new THREE.Vector3());
+
+// Set up scene:
+var scene = new THREE.Scene();
+scene.background = new THREE.Color(0xFFFFFF);
+var baseObject;
+
+// Set up renderer:
+let canvas = document.getElementById('preview');
+var renderer = new THREE.WebGLRenderer({antialias:true, canvas:canvas});
+renderer.setPixelRatio(window.devicePixelRatio);
+
+function render() {
+  renderer.render(scene, camera);
+}
+
+var w, h;
+function onWindowResize(){
+  w = window.innerHeight * 0.4;
+  h = window.innerWidth * 0.4;
+  w = h = Math.min(w, h);
+  camera.left = -w;
+  camera.right = w;
+  camera.top = h;
+  camera.bottom = -h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+  render();
+}
+window.addEventListener('resize', onWindowResize, false);
+onWindowResize();
+
+// React to user input:
+let controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.addEventListener('change', render);
+
+let ldrLoader, storage;
+
+function onLoad() {
+    if(!ldrLoader.mainModel) {
+      console.log('A valid model was not parsed. Nothing will be shown');
+      return;
+    }
+    if(baseObject) {
+      scene.remove(baseObject);
+    }
+    baseObject = new THREE.Group();
+    scene.add(baseObject);
+
+    var mc = new LDR.MeshCollector(baseObject, baseObject);
+    ldrLoader.generate(16, mc);
+
+    // Find center of drawn model:
+    var b = mc.boundingBox;
+    var elementCenter = new THREE.Vector3();
+    b.getCenter(elementCenter);
+    baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
+
+    camera.zoom = w/b.min.distanceTo(b.max)*2;
+    onWindowResize();
+
+    // LDraw content:
+    var lDrawContent = ldrLoader.toLDR();
+    $('#ldr_result').val(lDrawContent);
+}
+
+function show(ldr) {
+    ldrLoader = new THREE.LDRLoader(onLoad, storage, {onError:onError, onWarning:onWarning, saveFileLines:true});
+    ldrLoader.parse(ldr, 'main.dat');
+}
+
+/*
+  Converting
+ */
+function convert(ldr) {
+  resetWarningsAndErrors();
+
+  if(!ldr) { // Fetch from text area:
+    ldr = $('#file_content')[0].value;
+  }
+  else { // Update text area:
+    $('#file_content').val(ldr);
+  }
+  show(ldr);
+}
+
+function readFromFile(event) {
+  var reader = new FileReader();
+  reader.onload = function(){
+    convert(reader.result);
+  };
+  reader.readAsText(event.target.files[0]);
+}
+
+function copyToClipboard() {
+  $('#ldr_result')[0].select();
+  document.execCommand('copy');
+}
+
+$(document).ready(function() {
+  convert();
+});
+  </script>
+ </body>
+</html>
