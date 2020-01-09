@@ -57,8 +57,8 @@ THREE.LDRLoader = function(onLoad, storage, options) {
 
     this.options = options || {};
     this.onProgress = this.options.onProgress || function(){};
-    this.onWarning = this.options.onWarning || function(msg){ console.warn(msg); };
-    this.onError = this.options.onError || function(msgObj){ console.dir(msgObj); };
+    this.onWarning = this.options.onWarning || function(obj){console.dir(obj);};
+    this.onError = this.options.onError || function(obj){console.dir(obj);};
     this.loader = new THREE.FileLoader(this.options.manager || THREE.DefaultLoadingManager);
     this.saveFileLines = this.options.saveFileLines || false;
     this.physicalRenderingAge = this.options.physicalRenderingAge || 0;
@@ -168,7 +168,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 
     // BFC Parameters:
     let CCW = true; // Assume CCW as default
-    let localCull = false; // Do not cull by default - wait for BFC CERTIFY
+    let localCull = true;
     let invertNext = false; // Don't assume that first line needs inverted.
 
     // Start parsing:
@@ -257,7 +257,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 
             function handleFileLine(originalFileName) {
                 let fileName = originalFileName.toLowerCase().replace('\\', '/'); // Normalize the name by bringing to lower case and replacing backslashes:
-                localCull = false; // BFC Statements come after the FILE or Name: - directives.
+                localCull = true;
                 saveThisCommentLine = false;
                 let isEmpty = part.steps.length === 0 && step.isEmpty();
                 
@@ -331,13 +331,11 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 		case "CERTIFY":
 		    part.certifiedBFC = true;
 		    part.CCW = CCW = true;
-                    localCull = true;
                     saveThisCommentLine = false;
 		    break;
 		case "NOCERTIFY":
 		    part.certifiedBFC = false;
 		    part.CCW = CCW = true; // Doens't matter since there is no culling.
-                    localCull = false;
                     saveThisCommentLine = false;
 		    break;
 		case "INVERTNEXT":
@@ -488,7 +486,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 			 parts[8],  parts[9],  parts[10], 
 			 parts[11], parts[12], parts[13]);
 	    let subModelID = parts.slice(14).join(" ").toLowerCase().replace('\\', '/');
-	    let subModel = new THREE.LDRPartDescription(colorID, position, rotation, subModelID, localCull, invertNext, texmapPlacement);
+	    let subModel = new THREE.LDRPartDescription(colorID, position, rotation, subModelID, part.certifiedBFC && localCull, invertNext, texmapPlacement);
 
             if(!inTexmapFallback) {
                 step.addSubModel(subModel); // Adding the line to the step.
@@ -522,27 +520,24 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 	    p1 = new THREE.Vector3(parseFloat(parts[2]), parseFloat(parts[3]), parseFloat(parts[4]));
 	    p2 = new THREE.Vector3(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
 	    p3 = new THREE.Vector3(parseFloat(parts[8]), parseFloat(parts[9]), parseFloat(parts[10]));
-	    if(!part.certifiedBFC || !localCull) {
-		step.cull = false; // Ensure no culling when step is handled.
-            }
 
             if(!inTexmapFallback) {
                 if(CCW === invertNext) {
-                    step.addTrianglePoints(colorID, p3, p2, p1, texmapPlacement);
+                    step.addTrianglePoints(colorID, p3, p2, p1, part.certifiedBFC && localCull, texmapPlacement);
                 }
                 else {
-                    step.addTrianglePoints(colorID, p1, p2, p3, texmapPlacement);
+                    step.addTrianglePoints(colorID, p1, p2, p3, part.certifiedBFC && localCull, texmapPlacement);
                 }
                 if(this.saveFileLines) {
-                    step.fileLines.push(new LDR.Line3(colorID, p1, p2, p3, localCull, CCW !== invertNext, texmapPlacement));
+                    step.fileLines.push(new LDR.Line3(colorID, p1, p2, p3, localCull, invertNext, texmapPlacement));
                 }
             }
             else {
                 if(CCW === invertNext) {
-                    texmapPlacement.fallback.addTrianglePoints(colorID, p3, p2, p1, texmapPlacement);
+                    texmapPlacement.fallback.addTrianglePoints(colorID, p3, p2, p1, part.certifiedBFC && localCull, texmapPlacement);
                 }
                 else {
-                    texmapPlacement.fallback.addTrianglePoints(colorID, p1, p2, p3, texmapPlacement);
+                    texmapPlacement.fallback.addTrianglePoints(colorID, p1, p2, p3, part.certifiedBFC && localCull, texmapPlacement);
                 }
             }
 
@@ -559,21 +554,21 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
             }
             if(!inTexmapFallback) {
                 if(CCW === invertNext) {
-                    step.addQuadPoints(colorID, p4, p3, p2, p1, texmapPlacement);
+                    step.addQuadPoints(colorID, p4, p3, p2, p1, part.certifiedBFC && localCull, texmapPlacement);
                 }
                 else {
-                    step.addQuadPoints(colorID, p1, p2, p3, p4, texmapPlacement);
+                    step.addQuadPoints(colorID, p1, p2, p3, p4, part.certifiedBFC && localCull, texmapPlacement);
                 }
                 if(this.saveFileLines) {
-                    step.fileLines.push(new LDR.Line4(colorID, p1, p2, p3, p4, localCull, CCW !== invertNext, texmapPlacement));
+                    step.fileLines.push(new LDR.Line4(colorID, p1, p2, p3, p4, localCull, invertNext, texmapPlacement));
                 }
             }
             else {
                 if(CCW === invertNext) {
-                    texmapPlacement.fallback.addQuadPoints(colorID, p4, p3, p2, p1, texmapPlacement);
+                    texmapPlacement.fallback.addQuadPoints(colorID, p4, p3, p2, p1, part.certifiedBFC && localCull, texmapPlacement);
                 }
                 else {
-                    texmapPlacement.fallback.addQuadPoints(colorID, p1, p2, p3, p4, texmapPlacement);
+                    texmapPlacement.fallback.addQuadPoints(colorID, p1, p2, p3, p4, part.certifiedBFC && localCull, texmapPlacement);
                 }
             }
             inHeader = false;
@@ -1037,7 +1032,7 @@ THREE.LDRPartDescription.prototype.placedColor = function(pdColorID) {
 }
 
 THREE.LDRPartDescription.prototype.toLDR = function(loader) {
-    let pt = loader.getPartType(this.ID);
+    let pt = loader.getPartType(this.ID);    
     return '1 ' + this.colorID + ' ' + this.position.toLDR() + ' ' + this.rotation.toLDR() + ' ' + pt.ID + '\r\n';
 }
 
@@ -1163,7 +1158,6 @@ THREE.LDRStep = function() {
     this.triangles = []; // {colorID, p1, p2, p3, texmapPlacement}
     this.quads = []; // {colorID, p1, p2, p3, p4, texmapPlacement}
     this.rotation = null;
-    this.cull = true;
     this.cnt = -1;
     this.fileLines = [];
     this.original;
@@ -1222,8 +1216,6 @@ THREE.LDRStep.prototype.pack = function(obj) {
 }
 
 THREE.LDRStep.prototype.packInto = function(arrayF, arrayI, subModelMap) {
-    arrayI.push(this.cull ? 1 : 0);
-
     arrayI.push(this.subModels.length);
     function handleSubModel(sm) {
         if(!subModelMap.hasOwnProperty(sm.ID)) {
@@ -1247,10 +1239,13 @@ THREE.LDRStep.prototype.packInto = function(arrayF, arrayI, subModelMap) {
     this.subModels.forEach(handleSubModel);
 
     // Primitives:
-    function handle(primitives, size) {
+    function handle(primitives, size, cullInfo) {
         arrayI.push(primitives.length);
         primitives.forEach(x => {
                 arrayI.push(x.colorID);
+                if(cullInfo) {
+                    arrayI.push(x.cull ? 1 : 0);
+                }
                 arrayI.push(x.texmapPlacement ? x.texmapPlacement.idx : -1);
                 arrayF.push(x.p1.x, x.p1.y, x.p1.z, 
                             x.p2.x, x.p2.y, x.p2.z);
@@ -1262,10 +1257,10 @@ THREE.LDRStep.prototype.packInto = function(arrayF, arrayI, subModelMap) {
                 }
             });
     }
-    handle(this.lines, 2);
-    handle(this.triangles, 3);
-    handle(this.quads, 4);
-    handle(this.conditionalLines, 4);
+    handle(this.lines, 2, false);
+    handle(this.triangles, 3, true);
+    handle(this.quads, 4, true);
+    handle(this.conditionalLines, 4, false);
 }
 
 THREE.LDRStep.prototype.unpack = function(obj, saveFileLines) {
@@ -1293,7 +1288,6 @@ THREE.LDRStep.prototype.unpack = function(obj, saveFileLines) {
 
 THREE.LDRStep.prototype.unpackFrom = function(arrayI, arrayF, idxI, idxF, subModelList, texmapPlacementMap, saveFileLines) {
     let self = this;
-    this.cull = arrayI[idxI++] === 1;
 
     // Sub Models:
     let numSubModels = arrayI[idxI++];
@@ -1321,11 +1315,14 @@ THREE.LDRStep.prototype.unpackFrom = function(arrayI, arrayF, idxI, idxF, subMod
     }
 
     // Primitives:
-    function handle(size, makeLine) {
+    function handle(size, cullInfo, makeLine) {
         let ret = [];
         let numPrimitives = arrayI[idxI++];
         for(let i = 0; i < numPrimitives; i++) {
-            let p = {colorID: arrayI[idxI++]};
+            let p = {colorID:arrayI[idxI++]};
+            if(cullInfo) {
+                p.cull = arrayI[idxI++]===1;
+            }
 
             let texmapIdx = arrayI[idxI++];
             if(texmapIdx >= 0) {
@@ -1342,15 +1339,15 @@ THREE.LDRStep.prototype.unpackFrom = function(arrayI, arrayF, idxI, idxF, subMod
             }
             ret.push(p);
             if(saveFileLines) {
-                self.fileLines.push(makeLine(p.colorID, p.p1, p.p2, p.p3, p.p4, true, true, p.texmapPlacement));
+                self.fileLines.push(makeLine(p.colorID, p.p1, p.p2, p.p3, p.p4, p.cull, true, p.texmapPlacement));
             }
         }
         return ret;
     }
-    this.lines = handle(2, (c, p1, p2, p3, p4, cull, ccw, tmp) => new LDR.Line2(c, p1, p2, tmp));
-    this.triangles = handle(3, (c, p1, p2, p3, p4, cull, ccw, tmp) => new LDR.Line3(c, p1, p2, p3, cull, ccw, tmp));
-    this.quads = handle(4, (c, p1, p2, p3, p4, cull, ccw, tmp) => new LDR.Line4(c, p1, p2, p3, p4, cull, ccw, tmp));
-    this.conditionalLines = handle(4, (c, p1, p2, p3, p4, cull, ccw, tmp) => new LDR.Line5(c, p1, p2, p3, p4, tmp));
+    this.lines = handle(2, false, (c, p1, p2, p3, p4, cull, ccw, tmp) => new LDR.Line2(c, p1, p2, tmp));
+    this.triangles = handle(3, true, (c, p1, p2, p3, p4, cull, ccw, tmp) => new LDR.Line3(c, p1, p2, p3, cull, ccw, tmp));
+    this.quads = handle(4, true, (c, p1, p2, p3, p4, cull, ccw, tmp) => new LDR.Line4(c, p1, p2, p3, p4, cull, ccw, tmp));
+    this.conditionalLines = handle(4, false, (c, p1, p2, p3, p4, cull, ccw, tmp) => new LDR.Line5(c, p1, p2, p3, p4, tmp));
 
     this.hasPrimitives = this.lines.length > 0 || this.conditionalLines.length > 0 || this.triangles.length > 0 || this.quads.length > 0;
 
@@ -1387,7 +1384,6 @@ THREE.LDRStep.prototype.cloneColored = function(colorID) {
     ret.hasPrimitives = false;
     ret.subModels = this.subModels.map(subModel => subModel.cloneColored(colorID));
     ret.rotation = this.rotation;
-    ret.cull = true;
     ret.cnt = this.cnt;
     ret.fileLines = this.fileLines;
     ret.original = this;
@@ -1402,7 +1398,7 @@ THREE.LDRStep.prototype.toLDR = function(loader, prevStepRotation, isLastStep) {
     let tmpMap = {}; // idx -> lines.
     function check(line) {
         let tmp = line.line1 ? line.desc.texmapPlacement : line.tmp;
-        if(!tmp){
+        if(!tmp) {
             return;
         }
         let idx = tmp.idx;
@@ -1462,15 +1458,15 @@ THREE.LDRStep.prototype.addLine = function(c, p1, p2, texmapPlacement) {
     texmapPlacement && texmapPlacement.use();
 }
 
-THREE.LDRStep.prototype.addTrianglePoints = function(c, p1, p2, p3, texmapPlacement) {
+THREE.LDRStep.prototype.addTrianglePoints = function(c, p1, p2, p3, cull, texmapPlacement) {
     this.hasPrimitives = true;
-    this.triangles.push({colorID:c, p1:p1, p2:p2, p3:p3, texmapPlacement:texmapPlacement});
+    this.triangles.push({colorID:c, p1:p1, p2:p2, p3:p3, cull:cull, texmapPlacement:texmapPlacement});
     texmapPlacement && texmapPlacement.use();
 }
 
-THREE.LDRStep.prototype.addQuadPoints = function(c, p1, p2, p3, p4, texmapPlacement) {
+THREE.LDRStep.prototype.addQuadPoints = function(c, p1, p2, p3, p4, cull, texmapPlacement) {
     this.hasPrimitives = true;
-    this.quads.push({colorID:c, p1:p1, p2:p2, p3:p3, p4:p4, texmapPlacement:texmapPlacement});
+    this.quads.push({colorID:c, p1:p1, p2:p2, p3:p3, p4:p4, cull:cull, texmapPlacement:texmapPlacement});
     texmapPlacement && texmapPlacement.use();
 }
 
@@ -1587,7 +1583,6 @@ THREE.LDRStep.prototype.cleanUp = function(loader, newSteps) {
 THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, rotation, cull, invertCCW, mc, taskList) {
     //console.log("STEP: Creating three part for " + this.subModels.length + " sub models in color " + colorID + ", cull: " + cull + ", invertion: " + invertCCW);
     let ownInversion = (rotation.determinant() < 0) !== invertCCW; // Adjust for inversed matrix!
-    let ownCull = cull && this.cull;
     
     let transformColor = function(subColorID) {
 	if(subColorID === 16) {
@@ -1608,7 +1603,7 @@ THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, 
     
     function handleSubModel(subModelDesc) {
 	let subModelInversion = invertCCW !== subModelDesc.invertCCW;
-	let subModelCull = subModelDesc.cull && ownCull; // Cull only if both sub model, this step and the inherited cull info is true!
+	let subModelCull = subModelDesc.cull && cull; // Cull only if both sub model, this step and the inherited cull info is true!
 
 	let subModelColor = transformColor(subModelDesc.colorID);
 	
