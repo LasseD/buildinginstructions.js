@@ -949,6 +949,7 @@ THREE.LDRLoader.prototype.pack = function() {
 	pt.steps.forEach(step => step.subModels.forEach(sm => scanName(sm.ID)));
     }
     scanNames(mainModel);
+    LDR.TexmapPlacements.forEach(tmp => tmp.fallback.subModels.forEach(sm => scanName(sm.ID)));
 
     let ret = {names:names.join('¤')};
     let hash = LDR.hashCode(ret.names);
