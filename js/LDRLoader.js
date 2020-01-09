@@ -521,7 +521,6 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 	    if(LDR.STUDIO && parts.length === 17) { // Parse texmap UV's
 		LDR.STUDIO.handleTriangleLine(parts);
 	    }
-	    console.log(part.certifiedBFC + " " + localCull);
 
             if(!inTexmapFallback) {
                 if(CCW === invertNext) {
@@ -875,7 +874,6 @@ THREE.LDRLoader.prototype.unpack = function(obj) {
 	    parts.push(name);
 	    return; // Packable part to be loaded normally.
 	}
-	console.log('Unpacking ' + numSteps + ' step for ' + name);
 
 	let pt = new THREE.LDRPartType();
 	pt.ID = pt.name = name;
