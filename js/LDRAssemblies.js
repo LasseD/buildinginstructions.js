@@ -75,13 +75,14 @@ LDR.AssemblyManager = function(loader) {
 	
         // Torso part type:
         let torsoPT = new THREE.LDRPartType();
-	let pt = loader.getPartType(torso.ID);
+	/*let pt = loader.getPartType(torso.ID);
         if(!pt) {
-            console.warn('Missing torso part: ' + torso.ID);
+            console.warn('Missing torso part: ' + torso.ID + ' in loaded parts.');
+	    console.dir(loader.partTypes);
             return;
-        }
+        }*/
         torsoPT.name = torsoPT.ID = ID;
-        torsoPT.modelDescription = LDR.Colors[torso.colorID].name + ' ' + pt.modelDescription + ' / ';
+        torsoPT.modelDescription = LDR.Colors[torso.colorID].name + ' ' + 'Torso' + ' / '; // pt.modelDescription
 	if(armLeft.colorID === armRight.colorID) {
 	    torsoPT.modelDescription += LDR.Colors[armLeft.colorID].name + ' Arms';
 	}
@@ -104,7 +105,7 @@ LDR.AssemblyManager = function(loader) {
 		    hand.ID + '_' + hand.colorID,
 		    hand.ID + '_' + hand.colorID];
         let obj = {ID:ID,c:16,keys:keys};
-        addToMap(pt.ID, obj);
+        addToMap(torso.ID, obj);
     }
     loader.applyOnPartTypes(pt => pt.steps.forEach(handleTorsosInStep));
 }

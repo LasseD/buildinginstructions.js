@@ -1,7 +1,7 @@
 'use strict';
 
 LDR.STORAGE = function(onReady) {
-    this.req = indexedDB.open("ldraw", 6);
+    this.req = indexedDB.open("ldraw", 7);
     this.db;
 
     this.req.onupgradeneeded = function(event) {
@@ -22,6 +22,9 @@ LDR.STORAGE = function(onReady) {
 	}
 	if(event.oldVersion < 6) {
 	    // texmap added
+	}
+	if(event.oldVersion < 7) {
+	    // Bug fix for when partType.cleanUp is called
 	    var pStore = this.transaction.objectStore("parts");
 	    pStore.clear();
 	    var iStore = this.transaction.objectStore("instructions");
@@ -118,9 +121,15 @@ LDR.STORAGE.prototype.retrievePartsFromStorage = function(loader, parts, onDone)
 	    let result = request.result;
 	    if(result) {
 		//console.log("Fetched " + shortPartID + " from indexedDB");
-		let pt = new THREE.LDRPartType();
-                pt.unpack(result);
-		loader.partTypes[pt.ID] = pt;
+		try {
+		    let pt = new THREE.LDRPartType();
+                    pt.unpack(result);
+		    loader.partTypes[pt.ID] = pt;
+		}
+		catch(e) {
+		    console.warn(e);
+		    stillToBeBuilt.push(partID);		    
+		}
 	    }
 	    else {
 		stillToBeBuilt.push(partID);
@@ -153,8 +162,14 @@ LDR.STORAGE.prototype.retrieveInstructionsFromStorage = function(loader, onDone)
 	let result = request.result;
 	if(result && result.timestamp === timestamp) {
 	    //console.log("Fetched " + key + " from indexedDB");
-	    let parts = loader.unpack(result);
-	    onDone(true, parts);
+	    try {
+		let parts = loader.unpack(result);
+		onDone(true, parts);
+	    }
+	    catch(e) {
+		console.warn(e);
+		onDone(false);
+	    }
 	}
 	else {
 	    onDone(false);

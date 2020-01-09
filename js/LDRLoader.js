@@ -44,9 +44,7 @@ THREE.LDRLoader = function(onLoad, storage, options) {
                 if(partType === true) {
                     console.warn('Unloaded sub model during cleanup: ' + id);
                     unloaded.push(id);
-                    continue;
                 }
-                partType.cleanUp(self);
             }
         }
         unloaded.forEach(id => delete self.partTypes[id]);
@@ -518,10 +516,13 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
             inHeader = false;
 	    invertNext = false;
 	    break;
-	case 3: // 3 <colour> x1 y1 z1 x2 y2 z2 x3 y3 z3
+	case 3: // 3 <colour> x1 y1 z1 x2 y2 z2 x3 y3 z3 [u1 v1 u2 v2 u3 v3]
 	    p1 = new THREE.Vector3(parseFloat(parts[2]), parseFloat(parts[3]), parseFloat(parts[4]));
 	    p2 = new THREE.Vector3(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
 	    p3 = new THREE.Vector3(parseFloat(parts[8]), parseFloat(parts[9]), parseFloat(parts[10]));
+	    if(LDR.STUDIO && parts.length === 17) { // Parse texmap UV's
+		LDR.STUDIO.handleTriangleLine(parts);
+	    }
 	    if(!part.certifiedBFC || !localCull) {
 		step.cull = false; // Ensure no culling when step is handled.
             }
@@ -700,18 +701,21 @@ THREE.LDRLoader.prototype.onPartsLoaded = function(loadedParts) {
     // Set part info (part vs non-part):
     loadedParts.forEach(pt => pt.isPart = pt.computeIsPart(self));
 
+    // Clean up part:
+    loadedParts.forEach(pt => pt.cleanUp(self));
+
     // Handle assemblies:
-    if(this.options.buildAssemblies) {
-	if(!this.assemblyManager) {
-            this.assemblyManager = new LDR.AssemblyManager(this);
+    if(self.options.buildAssemblies) {
+	if(!self.assemblyManager) {
+            self.assemblyManager = new LDR.AssemblyManager(self);
 	}
-	const am = this.assemblyManager;
-	let handle = pt => { 
+	const am = self.assemblyManager;
+	let handleAssemblies = pt => { 
 	    if(!pt.isPart) {
 		pt.steps.forEach(s => am.handleStep(s).forEach(checkPart));
 	    }
 	};
-	loadedParts.forEach(handle);
+	loadedParts.forEach(handleAssemblies);
     }
 
     if(unloadedPartsList.length > 0) {
@@ -809,10 +813,23 @@ THREE.LDRLoader.prototype.substituteReplacementParts = function() {
     this.applyOnPartTypes(fixReplacedParts);
 }
 
+LDR.hashCode = function(s) {
+    let hash = 0;
+    for(let i = 0; i < s.length; i++) {
+        hash = Math.imul(31, hash) + s.charCodeAt(i) | 0;
+    }
+    return hash;
+}
+
 THREE.LDRLoader.prototype.unpack = function(obj) {
     let self = this;
 
+    if(!obj.hasOwnProperty('h')) {
+	throw "Missing hash!";
+    }
+
     let names = obj['names'].split('¤');
+    let hash = LDR.hashCode(obj.names);
 
     let parts = [];
     this.mainModel = names[0];
@@ -862,6 +879,7 @@ THREE.LDRLoader.prototype.unpack = function(obj) {
 	    parts.push(name);
 	    return; // Packable part to be loaded normally.
 	}
+	console.log('Unpacking ' + numSteps + ' step for ' + name);
 
 	let pt = new THREE.LDRPartType();
 	pt.ID = pt.name = name;
@@ -882,19 +900,28 @@ THREE.LDRLoader.prototype.unpack = function(obj) {
 
 	if(obj.hasOwnProperty('d'+i)) {
             pt.modelDescription = obj['d'+i];
+	    hash += LDR.hashCode(pt.modelDescription);
         }
 	if(obj.hasOwnProperty('n'+i)) {
 	    let inlined = obj['n'+i];
 	    pt.inlined = (inlined === -1) ? 'UNOFFICIAL' : inlined;
+	    hash += LDR.hashCode(pt.inlined);
 	}
-        if(obj.hasOwnProperty('e'+i)) {
+	if(obj.hasOwnProperty('e'+i)) {
             let encoded = obj['e' + i];
             pt.certifiedBFC = encoded % 2 === 1;
             pt.CCW = Math.floor(encoded/2) % 2 === 1;
-        }        
-
+	    hash = (23*hash + encoded) | 0;
+	}
 	self.partTypes[name] = pt;
     });
+
+    obj['i'].forEach(i => hash = (13*hash+i)|0);
+    obj['f'].forEach(f => hash = (17*hash+parseInt(f))|0);
+    hash += LDR.hashCode(obj['s']);
+    if(hash !== obj.h) {
+	throw "Hash check failure for instructions: Computed " + hash + " vs read " + obj.h;
+    }
 
     this.onPartsLoaded();
     this.loadTexmaps();
@@ -930,6 +957,7 @@ THREE.LDRLoader.prototype.pack = function() {
     scanNames(mainModel);
 
     let ret = {names:names.join('¤')};
+    let hash = LDR.hashCode(ret.names);
     let arrayF = [], arrayI = [], arrayS = [];
 
     // Pack texmaps:
@@ -943,7 +971,7 @@ THREE.LDRLoader.prototype.pack = function() {
     // Pack everything which could not be packed as parts:
     names.forEach((id, idx) => {
 	let pt = self.getPartType(id);
-	if(pt.canBePacked() || pt.inlined === 'GENERATED') {
+	if(pt.canBePacked() || pt.inlined === 'GENERATED' || pt.inlined === 'IDB') {
 	    arrayI.push(0); // 0 steps to indicate that it should be skipped.
 	    return;
 	}
@@ -965,14 +993,17 @@ THREE.LDRLoader.prototype.pack = function() {
 	});
 	
 	if(pt.isPart) {
-            console.dir(pt);
             if(pt.modelDescription) {
                 ret['d' + idx] = pt.modelDescription;
+		hash += LDR.hashCode(pt.modelDescription);
             }
             if(pt.inlined) {
                 ret['n' + idx] = (pt.inlined === 'UNOFFICIAL' ? -1 : pt.inlined);
+		hash += LDR.hashCode(pt.inlined);
             }
-            ret['e' + idx] = (pt.CCW ? 2 : 0) + (pt.certifiedBFC ? 1 : 0);
+	    let headerCode = (pt.CCW ? 2 : 0) + (pt.certifiedBFC ? 1 : 0);
+            ret['e' + idx] = headerCode;
+	    hash = (23*hash + headerCode) | 0;
 	}
     });
 
@@ -984,6 +1015,11 @@ THREE.LDRLoader.prototype.pack = function() {
     }
     ret['f'] = new Float32Array(arrayF);
     ret['s'] = arrayS.join('¤');
+
+    ret['i'].forEach(i => hash = (13*hash+i)|0);
+    ret['f'].forEach(f => hash = (17*hash+parseInt(f))|0);
+    hash += LDR.hashCode(ret.s);
+    ret['h'] = hash;
 
     return ret;
 }
@@ -1798,10 +1834,27 @@ THREE.LDRPartType.prototype.pack = function(loader) {
     ret.e = (this.CCW ? 2 : 0) + (this.certifiedBFC ? 1 : 0);
     ret.d = this.ldraw_org;
 
+    let hash = LDR.hashCode(ret.md);
+    hash = (23*hash + ret.e) | 0;
+    hash += LDR.hashCode(ret.d);
+    if(ret.sx) {
+	hash += LDR.hashCode(ret.sx);
+    }
+    if(ret.sp) {
+	hash += LDR.hashCode(ret.sp);
+    }
+    ret.ai.forEach(i => hash = (13*hash+i)|0);
+    ret.af.forEach(f => hash = (17*hash+parseInt(f))|0);
+    ret.h = hash;
+
     return ret;
 }
 
 THREE.LDRPartType.prototype.unpack = function(obj, saveFileLines) {
+    if(!obj.hasOwnProperty('h')) {
+	throw "Missing hash!";
+    }
+
     this.ID = this.name = obj.ID + '.dat';
     this.modelDescription = obj.md;
     let step = new THREE.LDRStep();
@@ -1812,6 +1865,21 @@ THREE.LDRPartType.prototype.unpack = function(obj, saveFileLines) {
     this.inlined = 'IDB';
     this.isPart = true;
     this.ldraw_org = obj.d;
+
+    let hash = LDR.hashCode(obj.md);
+    hash = (23*hash + obj.e) | 0;
+    hash += LDR.hashCode(obj.d);
+    if(obj.sx) {
+	hash += LDR.hashCode(obj.sx);
+    }
+    if(obj.sp) {
+	hash += LDR.hashCode(obj.sp);
+    }
+    obj.ai.forEach(i => hash = (13*hash+i)|0);
+    obj.af.forEach(f => hash = (17*hash+parseInt(f))|0);
+    if(hash !== obj.h) {
+	throw "Hash check failure for Part Type: " + hash + " vs " + obj.h;
+    }
 }
 
 THREE.LDRPartType.prototype.purgePart = function(loader, ID) {

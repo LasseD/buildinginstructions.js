@@ -29,12 +29,15 @@ LDR.STUDIO.handlePart = function(loader, pt) {
     if(!step.subModels.length === 1 || step.quads.length > 0 || step.triangles.length === 0) {
 	return; // Only a single sub model, no quads and some triangles supported.
     }
-    let sm = step.subModels[0];
-    
+
     // Fix the y-positioning issue: All Custom LDraw parts seem to be placed too high:
-    let misalignment = sm.position;
-    step.triangles.forEach(t => {t.p1.sub(misalignment); t.p2.sub(misalignment); t.p3.sub(misalignment);});
-    sm.position.set(0, 0, 0);
+    if(step.subModels.length === 1) {
+	let sm = step.subModels[0];
+    
+	let misalignment = sm.position;
+	step.triangles.forEach(t => {t.p1.sub(misalignment); t.p2.sub(misalignment); t.p3.sub(misalignment);});
+	sm.position.set(0, 0, 0);
+    }
 
     // Set up dataurl:
     let pid = pt.ID + '.png';
@@ -50,24 +53,9 @@ LDR.STUDIO.handlePart = function(loader, pt) {
         loader.texmaps[pid] = texture;
         loader.texmapListeners[pid].forEach(l => l(texture));
         loader.onProgress(pid);
+	//document.body.append(image);
     };
     image.src = dataurl;
-
-    // Set up texmap placements:
-    function buildTmp(p1, p2, p3, primitives) {
-	let tmp = new LDR.TexmapPlacement();
-	tmp.type = 0; // Always planar.
-	tmp.file = pid;
-	tmp.p = [p1, p2, p3];
-
-	primitives.forEach(prim => prim.texmapPlacement=tmp);
-
-	tmp.setPlanar();
-	tmp.idx = LDR.TexmapPlacements.length;
-	LDR.TexmapPlacements.push(tmp);
-
-	return tmp;
-    }
 
     // Set up points based on primitives:
     function getSize(triangles) {
@@ -92,7 +80,7 @@ LDR.STUDIO.handlePart = function(loader, pt) {
 	let p1 = new THREE.Vector3(x1, c.y-size.y, c.z);
 	let p2 = new THREE.Vector3(x2, c.y-size.y, c.z);
 	let p3 = new THREE.Vector3(x1, c.y+size.y, c.z);
-	buildTmp(p1, p2, p3, [step.triangles[0], step.triangles[1]]);
+	LDR.STUDIO.buildPlanarTmp(p1, p2, p3, [step.triangles[0], step.triangles[1]], pid);
 
 	// Flat side:
 	[c, size] = getSize([step.triangles[2], step.triangles[3]]);
@@ -100,7 +88,7 @@ LDR.STUDIO.handlePart = function(loader, pt) {
 	p1 = new THREE.Vector3(x2, c.y-size.y, c.z);
 	p2 = new THREE.Vector3(x1, c.y-size.y, c.z);
 	p3 = new THREE.Vector3(x2, c.y+size.y, c.z);
-	buildTmp(p1, p2, p3, [step.triangles[2], step.triangles[3]]);
+	LDR.STUDIO.buildPlanarTmp(p1, p2, p3, [step.triangles[2], step.triangles[3]], pid);
     }
     else if(step.triangles.length === 4 && step.subModels.find(sm => sm.ID === 's/3001s01.dat')) { // Dual-texture for 'Brick 2 x 4':
 	let y1 = c.y-size.y*1.085, y2 = c.y+2.95*size.y;
@@ -108,27 +96,79 @@ LDR.STUDIO.handlePart = function(loader, pt) {
 	let p1 = new THREE.Vector3(c.x-size.x, y1, c.z);
 	let p2 = new THREE.Vector3(c.x+size.x, y1, c.z);
 	let p3 = new THREE.Vector3(c.x-size.x, y2, c.z);
-	buildTmp(p1, p2, p3, [step.triangles[0], step.triangles[1]]);
+	LDR.STUDIO.buildPlanarTmp(p1, p2, p3, [step.triangles[0], step.triangles[1]], pid);
 
 	// Flat side:
 	y2 = c.y+size.y*1.085, y1 = c.y-2.95*size.y;
 	p1 = new THREE.Vector3(c.x+size.x, y1, c.z);
 	p2 = new THREE.Vector3(c.x-size.x, y1, c.z);
 	p3 = new THREE.Vector3(c.x+size.x, y2, c.z);
-	buildTmp(p1, p2, p3, [step.triangles[2], step.triangles[3]]);
+	LDR.STUDIO.buildPlanarTmp(p1, p2, p3, [step.triangles[2], step.triangles[3]], pid);
+    }
+    else if(step.triangles.length > 1000 && step.subModels.find(sm => sm.ID === 's/3626texpole.dat')) { // Minifig
+	LDR.STUDIO.handleMinifig(step, pid);
     }
     else if(2*size.y < size.x && 2*size.y < size.z) { // Decorate top:
 	let p1 = new THREE.Vector3(c.x-size.x, c.y, c.z+size.z);
 	let p2 = new THREE.Vector3(c.x+size.x, c.y, c.z+size.z);
 	let p3 = new THREE.Vector3(c.x-size.x, c.y, c.z-size.z);
-	buildTmp(p1, p2, p3, step.triangles);
+	LDR.STUDIO.buildPlanarTmp(p1, p2, p3, step.triangles, pid);
     }
     else { // Decorate sides:
 	let p1 = new THREE.Vector3(c.x-size.x, c.y-size.y, c.z);
 	let p2 = new THREE.Vector3(c.x+size.x, c.y-size.y, c.z);
-	let p3 = new THREE.Vector3(c.x-size.x, c.y+size.y, c.z);
-	buildTmp(p1, p2, p3, step.triangles);
+	let p3 = new THREE.Vector3(c.x-size.x, c.y+size.y, c.z);	
+	LDR.STUDIO.buildPlanarTmp(p1, p2, p3, step.triangles, pid);
     }
 
     delete pt.studioTexmap;
+}
+
+LDR.STUDIO.handleMinifig = function(step, pid) {
+    const triangles = step.triangles;
+
+    let idx = 0;
+    let getTriangles = num => triangles.slice(idx, idx+=num);
+
+    // Front on hips:
+    let frontHipTriangles = getTriangles(32);
+    //LDR.STUDIO.buildPlanarTmp(p1, p2, p3, frontHipTriangles, pid);
+}
+
+LDR.STUDIO.buildPlanarTmp = function(p1, p2, p3, triangles, pid) {
+    let tmp = new LDR.TexmapPlacement();
+    tmp.type = 0; // Always planar.
+    tmp.file = pid;
+
+    tmp.p = [p1, p2, p3];
+    console.dir(tmp.p);
+    // Compute tmp.p from first triangle:
+    let t = triangles[0];
+    
+    
+    triangles.forEach(t => t.texmapPlacement=tmp);
+    
+    tmp.setPlanar();
+    tmp.idx = LDR.TexmapPlacements.length;
+    LDR.TexmapPlacements.push(tmp);
+    
+    return tmp;
+}
+
+// Overwriting how triangles are handled:
+LDR.STUDIO.handleTriangleLine = function(parts) {
+    LDR.STUDIO.U1 = parseFloat(parts[11]);
+    LDR.STUDIO.V1 = parseFloat(parts[12]);
+    LDR.STUDIO.U2 = parseFloat(parts[13]);
+    LDR.STUDIO.V2 = parseFloat(parts[14]);
+    LDR.STUDIO.U3 = parseFloat(parts[15]);
+    LDR.STUDIO.V3 = parseFloat(parts[16]);
+}
+THREE.LDRStep.prototype.addTrianglePoints = function(c, p1, p2, p3, texmapPlacement) {
+    this.hasPrimitives = true;
+    let uv1 = {u:LDR.STUDIO.U1, v:LDR.STUDIO.V1};
+    let uv2 = {u:LDR.STUDIO.U2, v:LDR.STUDIO.V2};
+    let uv3 = {u:LDR.STUDIO.U3, v:LDR.STUDIO.V3};
+    this.triangles.push({colorID:c, p1:p1, p2:p2, p3:p3, uv1:uv1, uv2:uv2, uv3:uv3, texmapPlacement:texmapPlacement});
+    texmapPlacement && texmapPlacement.use();
 }

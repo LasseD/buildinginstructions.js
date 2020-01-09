@@ -297,8 +297,8 @@ LDR.SubPartBuilder.prototype.buildIcons = function(baseObject, linkPrefix) {
 	    let colorAttribute = new THREE.Float32BufferAttribute(colors, 3);
 
 	    let pointGeometry = new THREE.BufferGeometry();
-	    pointGeometry.addAttribute('color', colorAttribute);
-	    pointGeometry.addAttribute('position', vertexAttribute);
+	    pointGeometry.setAttribute('color', colorAttribute);
+	    pointGeometry.setAttribute('position', vertexAttribute);
 
 	    let pointMaterial = new THREE.PointsMaterial({size: 3.5, vertexColors: THREE.VertexColors});
 
