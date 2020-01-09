@@ -1,0 +1,7 @@
+#new_theme, #change_theme {
+    display: block;
+    margin: 0;
+    padding-bottom: 4em;
+    background-color: black;
+    text-align: center;
+}

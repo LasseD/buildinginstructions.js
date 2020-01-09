@@ -164,11 +164,11 @@ LDR.STUDIO.handleTriangleLine = function(parts) {
     LDR.STUDIO.U3 = parseFloat(parts[15]);
     LDR.STUDIO.V3 = parseFloat(parts[16]);
 }
-THREE.LDRStep.prototype.addTrianglePoints = function(c, p1, p2, p3, texmapPlacement) {
+THREE.LDRStep.prototype.addTrianglePoints = function(c, p1, p2, p3, cull, texmapPlacement) {
     this.hasPrimitives = true;
     let uv1 = {u:LDR.STUDIO.U1, v:LDR.STUDIO.V1};
     let uv2 = {u:LDR.STUDIO.U2, v:LDR.STUDIO.V2};
     let uv3 = {u:LDR.STUDIO.U3, v:LDR.STUDIO.V3};
-    this.triangles.push({colorID:c, p1:p1, p2:p2, p3:p3, uv1:uv1, uv2:uv2, uv3:uv3, texmapPlacement:texmapPlacement});
+    this.triangles.push({colorID:c, p1:p1, p2:p2, p3:p3, uv1:uv1, uv2:uv2, uv3:uv3, cull:cull, texmapPlacement:texmapPlacement});
     texmapPlacement && texmapPlacement.use();
 }

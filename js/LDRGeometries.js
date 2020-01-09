@@ -849,7 +849,7 @@ LDR.LDRGeometry.prototype.fromPrimitives = function(lines, conditionalLines, tri
 	g.fromQuads(true, culledQuads);
 	geometries.push(g);
     }
-    let unculledQuads = quads.filter(q => q.cull);
+    let unculledQuads = quads.filter(q => !q.cull);
     if(unculledQuads.length > 0) {
 	let g = new LDR.LDRGeometry(); 
 	g.fromQuads(false, unculledQuads);
