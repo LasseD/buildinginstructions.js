@@ -235,7 +235,7 @@ LDR.SubPartBuilder.prototype.buildIcons = function(baseObject, linkPrefix) {
 		p1 = transformPoint(line.p1);
 		p2 = transformPoint(line.p2);
 		p3 = transformPoint(line.p3);
-		step.addTrianglePoints(c, p1, p2, p3);
+		step.addTrianglePoints(c, p1, p2, p3, true);
 	    }
 	    else if(line.line4) {
 		LDR.makeEle(tr, 'td', 'line_type').innerHTML = 'Quad';
@@ -248,7 +248,7 @@ LDR.SubPartBuilder.prototype.buildIcons = function(baseObject, linkPrefix) {
 		p2 = transformPoint(line.p2);
 		p3 = transformPoint(line.p3);
 		p4 = transformPoint(line.p4);
-		step.addQuadPoints(c, p1, p2, p3, p4);
+		step.addQuadPoints(c, p1, p2, p3, p4, true);
 	    }
 	    else if(line.line5) {
 		LDR.makeEle(tr, 'td', 'line_type').innerHTML = 'Optional';

@@ -82,9 +82,9 @@ LDR.Generator.addConditionalLinesToStep = function(step, lines) {
 LDR.Generator.addTrianglesToStep = function(step, triangles, color = 16) {
     for(let i = 0; i < triangles.length; i+=9) {
 	step.addTrianglePoints(color,
-			       new THREE.Vector3(triangles[i], triangles[i+1], triangles[i+2]),
-			       new THREE.Vector3(triangles[i+3], triangles[i+4], triangles[i+5]),
-			       new THREE.Vector3(triangles[i+6], triangles[i+7], triangles[i+8]));
+			       new THREE.Vector3(triangles[i], triangles[i+1], triangles[i+2], true),
+			       new THREE.Vector3(triangles[i+3], triangles[i+4], triangles[i+5], true),
+			       new THREE.Vector3(triangles[i+6], triangles[i+7], triangles[i+8]), true);
     }
 }
 
@@ -94,7 +94,8 @@ LDR.Generator.addQuadsToStep = function(step, quads, color = 16) {
 			   new THREE.Vector3(quads[i], quads[i+1], quads[i+2]),
 			   new THREE.Vector3(quads[i+3], quads[i+4], quads[i+5]),
 			   new THREE.Vector3(quads[i+6], quads[i+7], quads[i+8]),
-			   new THREE.Vector3(quads[i+9], quads[i+10], quads[i+11]));
+			   new THREE.Vector3(quads[i+9], quads[i+10], quads[i+11]),
+			   true);
     }
 }
 
@@ -163,7 +164,7 @@ LDR.Generator.makeCylinder = function(cond, sections) {
         next0 = new THREE.Vector3(c, 0, s);
         next1 = new THREE.Vector3(c, 1, s);
 
-        step.addQuadPoints(16, prev1, p1, p0, prev0);
+        step.addQuadPoints(16, prev1, p1, p0, prev0, true);
         if(cond) {
             step.addConditionalLine(24, p0, p1, prev0, next0);
         }
@@ -194,13 +195,13 @@ LDR.Generator.makeCylinderSloped = function(sections) {
         next1 = new THREE.Vector3(c, 1-c, s);
 
         if(i === 2) {
-            step.addTrianglePoints(16, prev1, p1, p0);
+            step.addTrianglePoints(16, prev1, p1, p0, true);
         }
         else if(i === 17) {
-            step.addTrianglePoints(16, prev1, p1, prev0);
+            step.addTrianglePoints(16, prev1, p1, prev0, true);
         }
         else {
-            step.addQuadPoints(16, prev1, p1, p0, prev0);
+            step.addQuadPoints(16, prev1, p1, p0, prev0, true);
         }
         step.addConditionalLine(24, p0, p1, prev0, next0);
     }
@@ -218,7 +219,7 @@ LDR.Generator.makeDisc = function(sections) {
         let angle = i*Math.PI/8;
         let c = Math.cos(angle), s = Math.sin(angle);
         let p = new THREE.Vector3(c, 0, s);
-        step.addTrianglePoints(16, zero, prev, p);
+        step.addTrianglePoints(16, zero, prev, p, true);
         prev = p;
     }
     pt.steps.push(step); // No need to user 'addStep()' for primitives.
@@ -237,7 +238,7 @@ LDR.Generator.makeRing = function(sections, size) {
         let c = Math.cos(angle), s = Math.sin(angle);
         let p1 = new THREE.Vector3(SIZE*c, 0, SIZE*s);
         let p2 = new THREE.Vector3(size*c, 0, size*s);
-        step.addQuadPoints(16, p1, p2, prev1, prev2);
+        step.addQuadPoints(16, p1, p2, prev1, prev2, true);
         prev1 = p2;
         prev2 = p1;
     }

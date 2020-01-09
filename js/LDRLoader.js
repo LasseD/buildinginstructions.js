@@ -521,6 +521,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 	    if(LDR.STUDIO && parts.length === 17) { // Parse texmap UV's
 		LDR.STUDIO.handleTriangleLine(parts);
 	    }
+	    console.log(part.certifiedBFC + " " + localCull);
 
             if(!inTexmapFallback) {
                 if(CCW === invertNext) {
