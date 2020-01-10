@@ -178,7 +178,7 @@ LDR.Colors.createRandomTexture = function(damage, waves, waveSize, speckle) {
     canvas.width = canvas.height = size;
 
     size--; // -2*1 pixel for outer edges, +1 for having right/down calculations available when writing back.
-    var d = [];
+    let d = [];
     for(let i = size*size; i > 0; i--) {
         d.push(128);
     }
@@ -425,6 +425,7 @@ LDR.Colors.createRandomTexture = function(damage, waves, waveSize, speckle) {
 }
 
 LDR.Colors.envMapPrefix = 'textures/cube/';
+LDR.Colors.textureMaterialPrefix = 'textures/materials/';
 LDR.Colors.listeningMaterials = {trans:[], // Only one trans material.
                                  opaque:[], // -||-
                                  pearl:[],
@@ -456,10 +457,7 @@ LDR.Colors.loadEnvMapTextures = function(render) {
         updateEnvMaps(LDR.Colors.reflectionCube);
     }
     else {
-        var textureLoader = new THREE.TextureLoader();
-        textureLoader.setPath('textures/');
-        var sides = ['px', 'nx', 'py', 'ny', 'pz', 'nz'];
-
+        let sides = ['px', 'nx', 'py', 'ny', 'pz', 'nz'];
         new THREE.CubeTextureLoader().load(sides.map(x => LDR.Colors.envMapPrefix + x + '.jpg'), updateEnvMaps);
     }
 }
@@ -469,8 +467,8 @@ LDR.Colors.loadTextures = function(render) {
     LDR.Colors.loadEnvMapTextures(render);
 
     // Normal maps:
-    var textureLoader = new THREE.TextureLoader();
-    textureLoader.setPath('textures/materials/');
+    let textureLoader = new THREE.TextureLoader();
+    textureLoader.setPath(LDR.Colors.textureMaterialPrefix);
 
     function updateNormalMapsForList(t, list) {
         list.forEach(material => {material.normalMap = t; material.needsUpdate = true; render()});

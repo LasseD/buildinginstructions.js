@@ -1,26 +1,33 @@
 <!DOCTYPE html>
 <html>
  <head>
-  <link href="css/index.css" rel="stylesheet" type="text/css">
-  <link href="css/preview.css" rel="stylesheet" type="text/css">
+  <link href="../css/index.css" rel="stylesheet" type="text/css">
+  <link href="../css/preview.css" rel="stylesheet" type="text/css">
   <meta name="viewport" content="width=device-width" />
  </head>
  <body>
   <div id="canvas_holder" style="position:relative;top:0">
    <canvas id="canvas"></canvas>
   </div>
-  <script src="js/jquery.min.js"></script>
-  <script src="js/three.min.js"></script>
-  <script src="js/OrbitControls.js"></script>
-  <script src="js/colors.js"></script>
-  <script src="js/Scene.js"></script>    
-  <script src="js/LDRGenerator.js"></script>
-  <script src="js/LDRColorMaterials.js"></script>
-  <script src="js/LDRGeometries.js"></script>
-  <script src="js/LDRLoader.js"></script>
-  <script src="js/LDRStuds.js"></script>
+  <script src="../js/jquery.min.js"></script>
+  <script src="../js/three.min.js"></script>
+  <script src="../js/OrbitControls.js"></script>
+  <script src="../js/colors.js"></script>
+  <script src="../js/Scene.js"></script>    
+  <script src="../js/LDRGenerator.js"></script>
+  <script src="../js/LDRColorMaterials.js"></script>
+  <script src="../js/LDRGeometries.js"></script>
+  <script src="../js/LDRLoader.js"></script>
+  <script src="../js/LDRStuds.js"></script>
   <script>
-      let model = '4773a.dat';
+      let model = '4755.dat'; // El
+      //let model = 'stugp01-1x2.dat'; // p01
+      //let model = '6541.dat'; // 2
+      //let model = '4032a.dat'; // 6
+      //let model = 'stug10-2x2.dat'; // 10
+      //let model = '4773a.dat'; // 13
+      //let model = '92947.dat'; // 15
+      //let model = 's/6042s01.dat'; // 17
 
       let canvas = document.getElementById('canvas');
       let scene = new ENV.Scene(canvas);
@@ -31,7 +38,7 @@
       let onLoad = function() {
         let inv = new THREE.Matrix3(); inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
 
-        ldrLoader.getMainModel().generateThreePart(ldrLoader, 1, new THREE.Vector3(), inv, true, false, scene.mc);
+        ldrLoader.getMainModel().generateThreePart(ldrLoader, 15, new THREE.Vector3(), inv, true, false, scene.mc);
         scene.buildOMRScene();
 
         onWindowResize();
@@ -45,6 +52,10 @@
       var ldrOptions = {};
       ldrOptions.lineContrast = 2; // No lines.
       ldrOptions.studs = 2; // Logos are made using textures
+
+      let idToUrl = id => ['../ldraw_parts/' + id, '../ldraw_parts/' + id];
+      LDR.Colors.envMapPrefix = '../textures/cube/';
+      LDR.Colors.textureMaterialPrefix = '../textures/materials/';
 
       let storage;
       LDR.Studs.makeGenerators('', 0, 2);
@@ -67,7 +78,7 @@
         }
       };
 
-      ldrLoader = new THREE.LDRLoader(onLoad, storage, {physicalRenderingAge:20});
+      ldrLoader = new THREE.LDRLoader(onLoad, storage, {idToUrl:idToUrl, physicalRenderingAge:20});
       ldrLoader.load(model);
   </script>
  </body>

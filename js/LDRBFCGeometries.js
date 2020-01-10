@@ -10,7 +10,7 @@ LDR.BFCGeometry = function() {
     this.lineColorManager;
     this.lineGeometry;
     this.triangleColorManager;
-    this.triangleGeometry;
+    this.triangleGeometries;
     this.conditionalLineGeometry;
     this.geometriesBuilt = false;
     this.boundingBox = new THREE.Box3();
@@ -58,7 +58,7 @@ LDR.BFCGeometry.prototype.buildGeometriesAndColors = function() {
         });
 
     triangleVertexAttribute = new THREE.Float32BufferAttribute(triangleVertices, 4);
-    this.triangleGeometry = this.buildGeometry(triangleIndices, triangleVertexAttribute);
+    this.triangleGeometries = {16:this.buildGeometry(triangleIndices, triangleVertexAttribute)};
 
     this.geometriesBuilt = true;
 }
@@ -69,7 +69,7 @@ LDR.BFCGeometry.prototype.buildGeometry = function(indices, vertexAttribute) {
     }
     let g = new THREE.BufferGeometry();
     g.setIndex(indices);
-    g.addAttribute('position', vertexAttribute);
+    g.setAttribute('position', vertexAttribute);
     return g;
 }
 
@@ -98,10 +98,10 @@ LDR.BFCGeometry.prototype.buildGeometryForConditionalLines = function() {
             p3s.push(p3.x, p3.y, p3.z, p3.x, p3.y, p3.z); // p3's
             p4s.push(p4.x, p4.y, p4.z, p4.x, p4.y, p4.z); // p4's
         });
-    this.conditionalLineGeometry.addAttribute('position', new THREE.BufferAttribute(new Float32Array(p1s), 3));
-    this.conditionalLineGeometry.addAttribute('p2', new THREE.BufferAttribute(new Float32Array(p2s), 3));
-    this.conditionalLineGeometry.addAttribute('p3', new THREE.BufferAttribute(new Float32Array(p3s), 3));
-    this.conditionalLineGeometry.addAttribute('p4', new THREE.BufferAttribute(new Float32Array(p4s), 3));
+    this.conditionalLineGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(p1s), 3));
+    this.conditionalLineGeometry.setAttribute('p2', new THREE.BufferAttribute(new Float32Array(p2s), 3));
+    this.conditionalLineGeometry.setAttribute('p3', new THREE.BufferAttribute(new Float32Array(p3s), 3));
+    this.conditionalLineGeometry.setAttribute('p4', new THREE.BufferAttribute(new Float32Array(p4s), 3));
 }
 
 LDR.BFCGeometry.prototype.replaceWith = function(g) {
@@ -143,25 +143,25 @@ LDR.BFCGeometry.prototype.fromPrimitives = function(lines, conditionalLines, tri
     }
     let culledTriangles = triangles.filter(t => t.cull);
     if(culledTriangles.length > 0) {
-	let g = new LDR.LDRGeometry(); 
+	let g = new LDR.BFCGeometry(); 
 	g.fromTriangles(true, culledTriangles);
 	geometries.push(g);
     }
     let unculledTriangles = triangles.filter(t => !t.cull);
     if(unculledTriangles.length > 0) {
-	let g = new LDR.LDRGeometry(); 
+	let g = new LDR.BFCGeometry(); 
 	g.fromTriangles(false, unculledTriangles);
 	geometries.push(g);
     }
     let culledQuads = quads.filter(q => q.cull);
     if(culledQuads.length > 0) {
-	let g = new LDR.LDRGeometry(); 
+	let g = new LDR.BFCGeometry(); 
 	g.fromQuads(true, culledQuads);
 	geometries.push(g);
     }
     let unculledQuads = quads.filter(q => !q.cull);
     if(unculledQuads.length > 0) {
-	let g = new LDR.LDRGeometry(); 
+	let g = new LDR.BFCGeometry(); 
 	g.fromQuads(false, unculledQuads);
 	geometries.push(g);
     }
