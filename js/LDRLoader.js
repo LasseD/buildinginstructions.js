@@ -24,7 +24,7 @@
  * - saveFileLines: Set to 'true' if LDR.Line0, LDR.Line1, ... LDR.Line5-objects should be saved on part types. These are used to generate .ldr files.
  * - physicalRenderingAge: Set to 0 for standard cell shaded rendering. Otherwise, this number indicates the age of physical materials to be rendered (older materials will appear yellowed for some colors)
  * - idToUrl(id) is used to translate an id into all potential file locations. Set this function to fit your own directory structure if needed. A normal LDraw directory has files both under /parts and /p and requires you to search for dat files. You can choose to combine the directories to reduce the need for searching, but this is not considered good practice.
- * - idToTextureUrl(id) is used to translate a texture file name into the position where the file can be fetched. By default the file name is made lower case and rpefixed 'textures/' to locate the texture file.
+ * - idToTextureUrl(id) is used to translate a texture file name into the single position where the file can be fetched. By default the file name is made lower case and rpefixed 'textures/' to locate the texture file.
  * - cleanUpPrimitivesAndSubParts can be set to true to perform cleanup of internal geometries to decrease the amount of memory required.
  */
 THREE.LDRLoader = function(onLoad, storage, options) {
