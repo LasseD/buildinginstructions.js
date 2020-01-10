@@ -278,8 +278,8 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
                     }
                     if(!skipPart) {
                         self.partTypes[part.ID] = part;
-                        skipPart = false;
                     }
+                    skipPart = false;
                     self.onProgress(part.ID);
                     loadedParts.push(part);
                     
@@ -1877,6 +1877,9 @@ THREE.LDRPartType.prototype.unpack = function(obj, saveFileLines) {
     }
 }
 
+/*
+  Remove all empty steps.
+ */
 THREE.LDRPartType.prototype.purgePart = function(loader, ID) {
     if(this.isPart) {
         return;
@@ -1887,7 +1890,7 @@ THREE.LDRPartType.prototype.purgePart = function(loader, ID) {
             step.RM = true;
         }
         else {
-            step.subModels.forEach(sm => loader.getPartType(sm.ID).purgePart(loader, ID));
+	    step.subModels.forEach(sm => loader.getPartType(sm.ID).purgePart(loader, ID));
         }
     }
     this.steps.forEach(handleStep);
