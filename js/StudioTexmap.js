@@ -91,7 +91,6 @@ LDR.STUDIO.handleTriangleLine = function(pt, parts) {
     let a, b, c, d, e, f;
     let isZero = x => -1e-7 <= x && x <= 1e-7;
     if(isZero(gv)) {
-        console.log('gv=0');
         /*
           0 = U + agu + bhu, 0 = V + bhv =>
           b = -V / hv
@@ -101,13 +100,13 @@ LDR.STUDIO.handleTriangleLine = function(pt, parts) {
           c = (1-U-dhu) / gu
           0 = U + egu + fhu, 1 = V + fhv =>
           f = (1-V) / hv
-          e = -U / gu
+          e = (-U-fhu) / gu
          */
         b = d = -V / hv;
         a = (-U - b*hu) / gu;
         c = (1-U-d*hu) / gu;
         f = (1-V) / hv;
-        e = -U / gu;
+        e = (-U-f*hu) / gu;
     }
     else {
         let i = gu / gv; // Well-defined as gv != 0

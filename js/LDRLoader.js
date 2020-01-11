@@ -519,7 +519,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 	    p2 = new THREE.Vector3(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
 	    p3 = new THREE.Vector3(parseFloat(parts[8]), parseFloat(parts[9]), parseFloat(parts[10]));
 	    if(LDR.STUDIO && parts.length === 17) { // Parse texmap UV's
-                //localCull = false; // Double-side the texmaps on the triangles.
+                localCull = false; // Double-side the texmaps on the triangles.
 		texmapPlacement = LDR.STUDIO.handleTriangleLine(part, parts);
 	    }
 
@@ -2573,8 +2573,10 @@ LDR.TexmapPlacement.prototype.toLDR = function(lines, loader) {
     lines.forEach(line => ret += '0 !: ' + line.toLDR(loader)); // Remember the special formatting prefix here!
     
     if(!nextOnly) {
-        ret += '0 !TEXMAP FALLBACK\r\n';
-        ret += this.fallback.toLDR(loader);
+	if(!this.fallback.isEmpty()) {
+            ret += '0 !TEXMAP FALLBACK\r\n';
+            ret += this.fallback.toLDR(loader, null, true);
+	}
         ret += '0 !TEXMAP END\r\n';
     }
 

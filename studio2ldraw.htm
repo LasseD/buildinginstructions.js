@@ -243,6 +243,7 @@ function onLoad() {
 }
 
 function show(ldr) {
+    LDR.TexmapPlacements = [];
     ldrLoader = new THREE.LDRLoader(onLoad, storage, {onError:onError, onWarning:onWarning, saveFileLines:true});
     ldrLoader.parse(ldr, 'main.dat');
 }
