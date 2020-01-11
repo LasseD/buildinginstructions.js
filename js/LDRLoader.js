@@ -436,7 +436,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 
                 saveThisCommentLine = false;
 	    }
-	    else if(LDR.STUDIO && LDR.STUDIO.handleLine(part, parts)) {
+	    else if(LDR.STUDIO && LDR.STUDIO.handleCommentLine(part, parts)) {
                 saveThisCommentLine = false;
 	    }
 	    else if(parts[1][0] === "!") {
@@ -519,7 +519,8 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 	    p2 = new THREE.Vector3(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
 	    p3 = new THREE.Vector3(parseFloat(parts[8]), parseFloat(parts[9]), parseFloat(parts[10]));
 	    if(LDR.STUDIO && parts.length === 17) { // Parse texmap UV's
-		LDR.STUDIO.handleTriangleLine(parts);
+                //localCull = false; // Double-side the texmaps on the triangles.
+		texmapPlacement = LDR.STUDIO.handleTriangleLine(part, parts);
 	    }
 
             if(!inTexmapFallback) {
@@ -1444,10 +1445,11 @@ THREE.LDRStep.prototype.toLDR = function(loader, prevStepRotation, isLastStep) {
         tmpMap[idx].push(line);
     }
     this.fileLines.forEach(check);
+
     for(let idx in tmpMap) {
         if(tmpMap.hasOwnProperty(idx)) {
             let lines = tmpMap[idx];
-            ret += LDR.TexmapPlacements[idx].toLDR(lines, loader);        
+            ret += LDR.TexmapPlacements[idx].toLDR(lines, loader);
         }
     }
 
@@ -2268,7 +2270,7 @@ LDR.TexmapPlacement = function() { // Can be set either from parts when read fro
     //this.glossmapFile;
     this.fallback = new THREE.LDRStep();
 
-    //this.nextOnly;
+    this.nextOnly = false;
     //this.used = false; // If this texmap placement is of type 'NEXT' then it can only be used for one line below.
     //this.error; // Set if error during initialization.
     this.idx; // Index in LDR.TexmapPlacements
@@ -2555,7 +2557,7 @@ LDR.TexmapPlacement.prototype.toLDR = function(lines, loader) {
     let method = this.type === 0 ? 'PLANAR' : (this.type === 1 ? 'CYLINDRICAL' : 'SPHERICAL');
 
     let ret = '0 !TEXMAP ' + (nextOnly ? 'NEXT' : 'START') + ' ' + method + ' ';
-    this.p.forEach(pt => ret += pt.x + ' ' + pt.y + ' ' + pt.z + ' ');
+    this.p.forEach(pt => ret += pt.toLDR() + ' ');
     if(this.type > 0) {
         ret += parseFloat((this.a * 180 / Math.PI).toFixed(4)) + ' ';
     }

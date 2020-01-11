@@ -2,7 +2,7 @@
 
 LDR.STUDIO = {};
 
-LDR.STUDIO.handleLine = function(part, parts) {
+LDR.STUDIO.handleCommentLine = function(part, parts) {
     if(parts.length < 3) {
 	return false; // Not Studio 2.0 line - too short.
     }
@@ -26,12 +26,13 @@ LDR.STUDIO.handlePart = function(loader, pt) {
 	return; // Not relevant for Studio 2.0 texmaps or not with a single step.
     }
     let step = pt.steps[0];
-    if(!step.subModels.length === 1 || step.quads.length > 0 || step.triangles.length === 0) {
-	return; // Only a single sub model, no quads and some triangles supported.
+    if(step.quads.length > 0 || step.triangles.length === 0) {
+	return; // Quads not supported.
     }
 
-    // Fix the y-positioning issue: All Custom LDraw parts seem to be placed too high:
-    if(step.subModels.length === 1) {
+    // Fix positioning issue:
+    // Studio 2.0 custom LDraw parts are misaligned when they contain a single sub part!
+    if(step.subModels.length === 1 && step.triangles.length > 1 && step.lines.length === 0) {
 	let sm = step.subModels[0];
     
 	let misalignment = sm.position;
@@ -57,118 +58,91 @@ LDR.STUDIO.handlePart = function(loader, pt) {
     };
     image.src = dataurl;
 
-    // Set up points based on primitives:
-    function getSize(triangles) {
-	let b = new THREE.Box3();
-	function expand(t) {
-	    b.expandByPoint(t.p1);
-	    b.expandByPoint(t.p2);
-	    b.expandByPoint(t.p3);
-	}
-	triangles.forEach(expand);
-	let c = new THREE.Vector3(); b.getCenter(c);
-	let size = new THREE.Vector3(); b.getSize(size);
-	size.multiplyScalar(0.555); // This hack seems necessary, as Part Designer creates a transparent border on inlined textures.
-	return [c, size];
-    }
-    let [c, size] = getSize(step.triangles);
-
-    if(step.triangles.length === 4 && step.subModels.find(sm => sm.ID === 's/3678bs01.dat')) { // Dual-texture for 'Slope Brick 65 2 x 2 x 2':
-	[c, size] = getSize([step.triangles[0], step.triangles[1]]);
-	let x1 = c.x-size.x*1.085, x2 = c.x+2.95*size.x;
-	// Slope side:
-	let p1 = new THREE.Vector3(x1, c.y-size.y, c.z);
-	let p2 = new THREE.Vector3(x2, c.y-size.y, c.z);
-	let p3 = new THREE.Vector3(x1, c.y+size.y, c.z);
-	LDR.STUDIO.buildPlanarTmp(p1, p2, p3, [step.triangles[0], step.triangles[1]], pid);
-
-	// Flat side:
-	[c, size] = getSize([step.triangles[2], step.triangles[3]]);
-	x1 = c.x-size.x*1.085; x2 = c.x+2.95*size.x;
-	p1 = new THREE.Vector3(x2, c.y-size.y, c.z);
-	p2 = new THREE.Vector3(x1, c.y-size.y, c.z);
-	p3 = new THREE.Vector3(x2, c.y+size.y, c.z);
-	LDR.STUDIO.buildPlanarTmp(p1, p2, p3, [step.triangles[2], step.triangles[3]], pid);
-    }
-    else if(step.triangles.length === 4 && step.subModels.find(sm => sm.ID === 's/3001s01.dat')) { // Dual-texture for 'Brick 2 x 4':
-	let y1 = c.y-size.y*1.085, y2 = c.y+2.95*size.y;
-	// Slope side:
-	let p1 = new THREE.Vector3(c.x-size.x, y1, c.z);
-	let p2 = new THREE.Vector3(c.x+size.x, y1, c.z);
-	let p3 = new THREE.Vector3(c.x-size.x, y2, c.z);
-	LDR.STUDIO.buildPlanarTmp(p1, p2, p3, [step.triangles[0], step.triangles[1]], pid);
-
-	// Flat side:
-	y2 = c.y+size.y*1.085, y1 = c.y-2.95*size.y;
-	p1 = new THREE.Vector3(c.x+size.x, y1, c.z);
-	p2 = new THREE.Vector3(c.x-size.x, y1, c.z);
-	p3 = new THREE.Vector3(c.x+size.x, y2, c.z);
-	LDR.STUDIO.buildPlanarTmp(p1, p2, p3, [step.triangles[2], step.triangles[3]], pid);
-    }
-    else if(step.triangles.length > 1000 && step.subModels.find(sm => sm.ID === 's/3626texpole.dat')) { // Minifig
-	LDR.STUDIO.handleMinifig(step, pid);
-    }
-    else if(2*size.y < size.x && 2*size.y < size.z) { // Decorate top:
-	let p1 = new THREE.Vector3(c.x-size.x, c.y, c.z+size.z);
-	let p2 = new THREE.Vector3(c.x+size.x, c.y, c.z+size.z);
-	let p3 = new THREE.Vector3(c.x-size.x, c.y, c.z-size.z);
-	LDR.STUDIO.buildPlanarTmp(p1, p2, p3, step.triangles, pid);
-    }
-    else { // Decorate sides:
-	let p1 = new THREE.Vector3(c.x-size.x, c.y-size.y, c.z);
-	let p2 = new THREE.Vector3(c.x+size.x, c.y-size.y, c.z);
-	let p3 = new THREE.Vector3(c.x-size.x, c.y+size.y, c.z);	
-	LDR.STUDIO.buildPlanarTmp(p1, p2, p3, step.triangles, pid);
-    }
-
     delete pt.studioTexmap;
 }
 
-LDR.STUDIO.handleMinifig = function(step, pid) {
-    const triangles = step.triangles;
+/*
+  Create texmap placement by finding (0,0), (0,1), and (1,0) in UV space:
+  g=(UV2-UV1), h=(UV3-UV2), i=gu/gv
+  (0,0) = UV1 + ag + bh
+  (1,0) = UV1 + cg + dh
+  (0,1) = UV1 + eg + fh
+*/
+LDR.STUDIO.handleTriangleLine = function(pt, parts) {
+    let U  = parseFloat(parts[11]), V = 1-parseFloat(parts[12]);
+    let U2 = parseFloat(parts[13]), V2 = 1-parseFloat(parts[14]);
+    let U3 = parseFloat(parts[15]), V3 = 1-parseFloat(parts[16]);
+    let gu = U2-U, gv = V2-V;
+    let hu = U3-U, hv = V3-V;
 
-    let idx = 0;
-    let getTriangles = num => triangles.slice(idx, idx+=num);
+    let a, b, c, d, e, f;
+    let isZero = x => -1e-7 <= x && x <= 1e-7;
+    if(isZero(gv)) {
+        console.log('gv=0');
+        /*
+          0 = U + agu + bhu, 0 = V + bhv =>
+          b = -V / hv
+          a = (-U - bhu) / gu
+          1 = U + cgu + dhu, 0 = V + dhv =>
+          d = b
+          c = (1-U-dhu) / gu
+          0 = U + egu + fhu, 1 = V + fhv =>
+          f = (1-V) / hv
+          e = -U / gu
+         */
+        b = d = -V / hv;
+        a = (-U - b*hu) / gu;
+        c = (1-U-d*hu) / gu;
+        f = (1-V) / hv;
+        e = -U / gu;
+    }
+    else {
+        let i = gu / gv; // Well-defined as gv != 0
 
-    // Front on hips:
-    let frontHipTriangles = getTriangles(32);
-    //LDR.STUDIO.buildPlanarTmp(p1, p2, p3, frontHipTriangles, pid);
-}
+        /*
+          0 = U + agu + bhu, 0 = i(V + agv + bhv) =>
+          0 = U-i*V + bhu-i*bhv => 
+          -U+i*V = b(hu-i*hv) =>
+          b = (-U+i*V) / (hu-i*hv)
+          a = (-bhv-V) / gv
+        */
+        b = (-U + i*V) / (hu - i*hv);
+        a = (-b*hv - V) / gv;
+        /*
+          1 = U + cgu + dhu & 0 = i(V + cgv + dhv) =>
+          1 = U-iV + d(hu-ihv) =>
+          d = (1-U+iV) / (hu-ihv)
+          0 = V + cgv + dhv => c = (-V-dhv) / gv
+        */
+        d = (1 - U + i*V) / (hu - i*hv);
+        c = (-V - d*hv) / gv;
+        /*
+          0 = U + egu + fhu & 1 = V + egv + fhv =>
+          -i = U-iV + f(hu-ihv) =>
+          f = (-i-U+iV) / (hu-ihv)
+          e = (1-V-fhv) / gv
+        */
+        f = (-i - U + i*V) / (hu - i*hv);
+        e = (1 - V - f*hv) / gv;
+    }
+    
+    // Now move to local space (above is all in UV space):
+    let p1 = new THREE.Vector3(parseFloat(parts[2]), parseFloat(parts[3]), parseFloat(parts[4]));
+    let p2 = new THREE.Vector3(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
+    let p3 = new THREE.Vector3(parseFloat(parts[8]), parseFloat(parts[9]), parseFloat(parts[10]));
+    let PG = new THREE.Vector3(); PG.subVectors(p2, p1);
+    let PH = new THREE.Vector3(); PH.subVectors(p3, p1);
+    let P1 = new THREE.Vector3(p1.x + a*PG.x + b*PH.x, p1.y + a*PG.y + b*PH.y, p1.z + a*PG.z + b*PH.z);
+    let P2 = new THREE.Vector3(p1.x + c*PG.x + d*PH.x, p1.y + c*PG.y + d*PH.y, p1.z + c*PG.z + d*PH.z);
+    let P3 = new THREE.Vector3(p1.x + e*PG.x + f*PH.x, p1.y + e*PG.y + f*PH.y, p1.z + e*PG.z + f*PH.z);
 
-LDR.STUDIO.buildPlanarTmp = function(p1, p2, p3, triangles, pid) {
+    // Construct TMP:
     let tmp = new LDR.TexmapPlacement();
-    tmp.type = 0; // Always planar.
-    tmp.file = pid;
-
-    tmp.p = [p1, p2, p3];
-    console.dir(tmp.p);
-    // Compute tmp.p from first triangle:
-    let t = triangles[0];
-    
-    
-    triangles.forEach(t => t.texmapPlacement=tmp);
-    
+    tmp.nextOnly = true;
+    tmp.p = [P1, P2, P3];
     tmp.setPlanar();
+    tmp.file = pt.ID + '.png';
     tmp.idx = LDR.TexmapPlacements.length;
     LDR.TexmapPlacements.push(tmp);
-    
     return tmp;
-}
-
-// Overwriting how triangles are handled:
-LDR.STUDIO.handleTriangleLine = function(parts) {
-    LDR.STUDIO.U1 = parseFloat(parts[11]);
-    LDR.STUDIO.V1 = parseFloat(parts[12]);
-    LDR.STUDIO.U2 = parseFloat(parts[13]);
-    LDR.STUDIO.V2 = parseFloat(parts[14]);
-    LDR.STUDIO.U3 = parseFloat(parts[15]);
-    LDR.STUDIO.V3 = parseFloat(parts[16]);
-}
-THREE.LDRStep.prototype.addTrianglePoints = function(c, p1, p2, p3, cull, texmapPlacement) {
-    this.hasPrimitives = true;
-    let uv1 = {u:LDR.STUDIO.U1, v:LDR.STUDIO.V1};
-    let uv2 = {u:LDR.STUDIO.U2, v:LDR.STUDIO.V2};
-    let uv3 = {u:LDR.STUDIO.U3, v:LDR.STUDIO.V3};
-    this.triangles.push({colorID:c, p1:p1, p2:p2, p3:p3, uv1:uv1, uv2:uv2, uv3:uv3, cull:cull, texmapPlacement:texmapPlacement});
-    texmapPlacement && texmapPlacement.use();
 }
