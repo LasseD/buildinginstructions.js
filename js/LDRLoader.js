@@ -2336,7 +2336,7 @@ LDR.TexmapPlacement.prototype.setPlanar = function() {
     this.N1 = new THREE.Vector3(); this.N1.subVectors(this.p[1], this.p[0]);
     this.N1LenSq = this.N1.lengthSq();
     this.D1 = -this.N1.dot(this.p[1]);
-    
+
     // Normal and lenth squared for plane P2:
     this.N2 = new THREE.Vector3(); this.N2.subVectors(this.p[2], this.p[0]);
     this.N2LenSq = this.N2.lengthSq();
@@ -2449,7 +2449,7 @@ LDR.TexmapPlacement.prototype.projectPointToPlane = function(n, p0, p) {
 LDR.TexmapPlacement.prototype.getUVPlanar = function(p) {
     let toPlane = (n, D) => Math.abs(n.x*p.x + n.y*p.y + n.z*p.z + D);
 
-    let U = 1 - toPlane(this.N1, this.D1) / this.N1LenSq; // Inversion is required since textures by default have y flipped
+    let U = 1 - toPlane(this.N1, this.D1) / this.N1LenSq; // Inversion is required since textures by default are flipped
     let V = toPlane(this.N2, this.D2) / this.N2LenSq;
 
     return [U,V];

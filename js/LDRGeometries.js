@@ -299,10 +299,10 @@ LDR.LDRGeometry.prototype.buildTexmapGeometriesForColor = function(c) {
                 let idx = indexMap[a];
                 // Check UV:
                 let oldU = uvs[2*idx], oldV = uvs[2*idx+1];
-                if(false && oldU === u && oldV === v) {
+                /*if(oldU === u && oldV === v) {
                     indices.push(idx);
                     return;
-                }
+                    } TODO */
             }
 
             let idx = indices.length;

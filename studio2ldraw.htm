@@ -83,7 +83,7 @@
   
     <h1>Studio2LDraw - Convert your textured custom parts from Studio 2.0 to LDraw</h1>
 
-    <h3>step 1 - Select the file from Studio or Part Designer</h3>
+    <h3>step 1 - Select the file from Studio 2.0 or Part Designer</h3>
   <div class="section">
    <span class="desc">
      After exporting to LDraw from Studio 2.0 or Part Designer, you can either select the file or paste the content below.
@@ -93,7 +93,7 @@
     <input id="file" name="file" type="file" onchange="readFromFile(event);" />
    </span>
    <span class="choice">
-    <textarea id="file_content" onkeyup="convert(null)" rows="8">0 Or paste the content here
+    <textarea id="file_content" onkeyup="convert(null)" rows="8">
 0 FILE sample_file.dat
 0 Sample file with a 'Brick 1 x 1' and a simple texture
 0 Name:  sample_file.dat
@@ -115,7 +115,7 @@
    <canvas id="preview"></canvas>
   </div>
 
-  <h3>Step 2 - Inline or Separate Image File</h3>
+<!--  <h3>Step 2 - Inline or Separate Image File</h3>
   <div class="section">
    <span class="desc">
      LDraw supports two ways of storing texture files: Either as separate PNG files in the 'textures' folder, or inlined in the LDraw file.
@@ -125,8 +125,8 @@
     <input id="inline" name="inline" type="checkbox" checked="checked" onchange="convert(null);" />
    </span>
   </div>
-
-  <h3>Step 3 - Get the Standardized LDraw File</h3>
+-->
+  <h3>Step 2 - Get the Standardized LDraw File</h3>
   <div class="section">
    <div id="preview2"></div>
    <span class="choice">

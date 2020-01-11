@@ -32,11 +32,24 @@ LDR.STUDIO.handlePart = function(loader, pt) {
 
     // Fix positioning issue:
     // Studio 2.0 custom LDraw parts are misaligned when they contain a single sub part!
-    if(step.subModels.length === 1 && step.triangles.length > 1 && step.lines.length === 0) {
+    if(step.subModels.length === 1 && step.triangles.length > 0 && step.lines.length === 0) {
 	let sm = step.subModels[0];
     
 	let misalignment = sm.position;
 	step.triangles.forEach(t => {t.p1.sub(misalignment); t.p2.sub(misalignment); t.p3.sub(misalignment);});
+
+        let tmps = {};
+        step.triangles.forEach(t => tmps[t.texmapPlacement.idx] = t.texmapPlacement);
+        for(let idx in tmps) {
+            if(!tmps.hasOwnProperty(idx)) {
+                continue;
+            }
+            let tmp = tmps[idx];
+            tmp.p.forEach(p => p.sub(misalignment));
+            tmp.setPlanar();
+        }
+
+        // Finally set the position of the single sub model:
 	sm.position.set(0, 0, 0);
     }
 
@@ -135,6 +148,17 @@ LDR.STUDIO.handleTriangleLine = function(pt, parts) {
     let P1 = new THREE.Vector3(p1.x + a*PG.x + b*PH.x, p1.y + a*PG.y + b*PH.y, p1.z + a*PG.z + b*PH.z);
     let P2 = new THREE.Vector3(p1.x + c*PG.x + d*PH.x, p1.y + c*PG.y + d*PH.y, p1.z + c*PG.z + d*PH.z);
     let P3 = new THREE.Vector3(p1.x + e*PG.x + f*PH.x, p1.y + e*PG.y + f*PH.y, p1.z + e*PG.z + f*PH.z);
+
+    // See if we can reuse the previous TMP:
+    if(LDR.TexmapPlacements.length > 0) {
+        let lastTmp = LDR.TexmapPlacements[LDR.TexmapPlacements.length-1];
+        let lastP1 = lastTmp.p[0], lastP2 = lastTmp.p[1], lastP3 = lastTmp.p[2];
+        let eq = (a,b) => isZero(a.x-b.x) && isZero(a.y-b.y) && isZero(a.z-b.z);
+        if(eq(P1, lastP1) && eq(P2, lastP2) && eq(P3, lastP3)) {
+            lastTmp.used = false;
+            return lastTmp;
+        }
+    }
 
     // Construct TMP:
     let tmp = new LDR.TexmapPlacement();
