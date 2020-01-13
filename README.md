@@ -16,6 +16,8 @@ sample_instructions.htm for how to set up building instructions, including optio
 
 sample_physical.htm shows the 'physical' renderer where StandardMaterial from three.js is used for a more realistic look.
 
+![Sample image of a the physical renderer generated on the fly using buildinginstructions.js](https://brickhub.org/i/data/220/220.png)
+
 sample_partslist.htm demonstrates how to display parts lists. The example has two modes (list and grid) with additional part information when in list view and clicking small images result in larger previews with additional information. This example follows how parts lists are displayed on BrickHub.org.
 
 sample_part.htm provides a break down of a single part. Points highlight where lines, triangles and quads are positioned. This can be used to inspect new or existing LDraw parts.
