@@ -10,7 +10,6 @@
     <meta name="viewport" content="width=device-width" />
   </head>
   <body>
-    <div id="pli_render_canvas"></div>
     <script src="js/jquery.min.js"></script>
     <script src="js/three.min.js"></script>
     <script src="js/OrbitControls.js"></script>
@@ -35,12 +34,12 @@
     <script src="js/LDRStuds.js"></script>
     <script src="js/LDRAssemblies.js"></script>
     <script src="js/LDRInstructionsManager.js"></script>
+
     <div id="main_canvas_holder">
      <canvas id="main_canvas"></canvas>
      <div id="instructions_decorations">
       <span id="empty_step">EMPTY STEP</span>
-      <canvas id="pli">
-      </canvas>
+      <canvas id="pli"></canvas>
       <span class="decoration_holder">
        <div id="multiplier">x1</div>
       </span>
@@ -73,7 +72,7 @@
     <div id="pli_preview_section">
         <div id="preview_background" class="background" onclick="manager.hidePliPreview();"></div>
         <div id="preview_holder" class="holder">
-          <div id="preview_parent"><canvas id="preview"/></div>
+          <div id="preview_parent"><canvas id="secondary_canvas"/></div>
 	  <div id="preview_info">
 	    <span class="preview_info_line">
 	     <span id="preview_info_name">PART NAME</span>

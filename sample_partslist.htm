@@ -40,7 +40,7 @@
     <div id="generated">
       <div class="background" id="preview_background" onclick="pliPreviewer.hidePliPreview();"></div>
       <div class="holder" id="preview_holder">
-        <div id="preview_parent"><canvas id="preview" /></div>
+        <div id="preview_parent"><canvas id="preview"></canvas></div>
 
         <div id="preview_info">
          <span class="preview_info_line">
@@ -86,7 +86,8 @@
       var iconScene = new THREE.Scene();
       iconScene.background = new THREE.Color(0xFFFFFF);
 
-      var iconRenderer = new THREE.WebGLRenderer({antialias: true});
+      let canvas = document.getElementById('preview');
+      var iconRenderer = new THREE.WebGLRenderer({antialias:true, canvas:canvas});
       function render() {
         iconRenderer.render(iconScene, iconCamera);
       }
@@ -94,8 +95,7 @@
       iconRenderer.setSize(w, h);
       var lastPreview;
       var lastBaseObject;
-      var pliPreviewer = new LDR.PliPreviewer(); // Has own renderer, camera, and iconScene.
-      pliPreviewer.attachRenderer(document.getElementById('preview'));
+      var pliPreviewer = new LDR.PliPreviewer('?', canvas, iconRenderer); // Has own renderer, camera, and iconScene.
       var actions = {
           prevStep: () => prevStep(),
           nextStep: () => nextStep(),
@@ -410,6 +410,8 @@
               buildXmlDownload();
 	      return; // done.
 	    }
+            iconRenderer.setSize(w, h);
+
             var baseObject = setItemInScene(i, iconScene);
 	    iconCamera.zoom = 200 / baseObject.subjectSize;    
             iconCamera.updateProjectionMatrix();
@@ -431,7 +433,6 @@
           var mainModel = ldrLoader.mainModel;
 
           builder = new LDR.PartsBuilder(ldrLoader, mainModel, 0);
-          pliPreviewer.attachRenderer(document.getElementById('preview'));
 
           var sorter = function(a, b){
             var ca = a.getAttribute('color_id');
@@ -460,6 +461,8 @@
           basicSort($("tbody > tr.partline").get());
 
           buildItem(0);
+
+          pliPreviewer.enableControls();
         }
 
         let onInstructionsLoaded = function(ok, parts) {

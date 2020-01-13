@@ -19,7 +19,6 @@
   <script src="js/LDRStuds.js"></script>
   <script src="js/LDROMR.js"></script>
 
-  <!--<div id="select_model"><input id="input_model" value="omr_3_all_errors.mpd" /><button onclick="load()">LOAD</button></div>-->
   <div id="main_canvas_holder">
    <canvas id="main_canvas"></canvas>
   </div>
@@ -27,7 +26,8 @@
   <div id="file_content_holder"><textarea cols="80" rows="40" id="file_content" readonly="readonly"></textarea></div>
 
   <script>
-      var modelTypeUrl = 'models/omr_3_all_errors.mpd';
+      //var modelTypeUrl = 'models/omr_3_all_errors.mpd';
+      var modelTypeUrl = 'models/omr_1_ok.mpd';
 
       // Set up camera:
       var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
@@ -97,7 +97,7 @@
         var fileContent = mainModel.toLDR(ldrLoader);
         ldrLoader.applyOnPartTypes(pt =>{
           if(pt.ID !== ldrLoader.mainModel &&
-             (pt.isPart() ? pt.ldraw_org === 'Unofficial_Part' : true)) {
+             (pt.isPart ? pt.ldraw_org === 'Unofficial_Part' : true)) {
             fileContent += pt.toLDR(ldrLoader);
           }
         });
@@ -178,7 +178,7 @@
             console.log('Function valid due to part type ' + pt.ID);
 	    return ret;
           }
-	  if(pt.isPart())
+	  if(pt.isPart)
 	    return false; // Stop recursion on parts.
           return pt.steps.map(step => checkStep(step)).reduce((acc, curr) => acc ? acc : curr);
         }
@@ -191,19 +191,16 @@
         let button = ele('div', 'function', document.getElementById('functions'), desc);
 
         let handlePD = function(pd, state) {
-          //console.log('Handling part desc ' + pd.ID);
           handlers.handlePartDescription && handlers.handlePartDescription(pd, state);
           let pt = ldrLoader.getPartType(pd.ID);
           handlePT(pt, state);
         }
         let handleStep = function(step, state) {
-          //console.log('Handling step');
           handlers.handleStep && handlers.handleStep(step);
           if(step.subModels)
             step.subModels.forEach(pd => handlePD(pd, pd.placeAt(state)));
         }
         let handlePT = function(pt, state) {
-          //console.log('Handling part type ' + pt.ID);
           handlers.handlePartType && handlers.handlePartType(pt, state);
           pt.steps.forEach(step => handleStep(step, state));
         }
