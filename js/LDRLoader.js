@@ -939,10 +939,7 @@ THREE.LDRLoader.prototype.pack = function() {
 	nameMap[id] = names.length;
 	names.push(id);
 	let pt = self.getPartType(id);
-	if(!pt) {
-	    throw 'Unknown part type ' + id;
-	}
-	if(!pt.canBePacked()) { // Only parts are packed.
+	if(pt && !pt.canBePacked()) { // Only (loaded) parts are packed:
 	    scanNames(pt);
 	}
     }
@@ -967,7 +964,7 @@ THREE.LDRLoader.prototype.pack = function() {
     // Pack everything which could not be packed as parts:
     names.forEach((id, idx) => {
 	let pt = self.getPartType(id);
-	if(pt.canBePacked() || pt.inlined === 'GENERATED' || pt.inlined === 'IDB') {
+	if(!pt || pt.canBePacked() || pt.inlined === 'GENERATED' || pt.inlined === 'IDB') {
 	    arrayI.push(0); // 0 steps to indicate that it should be skipped.
 	    return;
 	}
@@ -2332,12 +2329,12 @@ LDR.TexmapPlacement.prototype.use = function() {
 LDR.TexmapPlacement.prototype.setPlanar = function() {
     this.type = 0; // 0 for planar.
 
-    // Normal and lenth squared for plane P1:
+    // Normal (N1) and D-value (D1) from plane formula N.p+D=0 for plane P1:
     this.N1 = new THREE.Vector3(); this.N1.subVectors(this.p[1], this.p[0]);
     this.N1LenSq = this.N1.lengthSq();
     this.D1 = -this.N1.dot(this.p[1]);
 
-    // Normal and lenth squared for plane P2:
+    // Normal (N2) and D-value (D2) from plane formula N.p+D=0 for plane P2:
     this.N2 = new THREE.Vector3(); this.N2.subVectors(this.p[2], this.p[0]);
     this.N2LenSq = this.N2.lengthSq();
     this.D2 = -this.N2.dot(this.p[2]);
@@ -2366,10 +2363,8 @@ LDR.TexmapPlacement.prototype.setSpherical = function() {
     this.n = new THREE.Vector3(); this.n.subVectors(this.p[1], this.p[0]);
     this.m = new THREE.Vector3(); this.m.subVectors(this.p[2], this.p[0]);
     // N1 = Normal of P1:
-    this.N1 = new THREE.Vector3(); this.N1.crossVectors(this.n, this.m); this.N1.normalize();
+    this.N1 = new THREE.Vector3(); this.N1.crossVectors(this.n, this.m).normalize();
     this.D = -this.N1.dot(this.p[0]);
-    // N2 = Normal of P2:
-    //this.N2 = new THREE.Vector3(); this.N2.crossVectors(this.n, this.N1); this.N2.normalize();
     
     this.getUV = this.getUVSpherical;
 }
@@ -2544,10 +2539,6 @@ LDR.TexmapPlacement.prototype.getUVSpherical = function(p, pCtx1, pCtx2) {
     let distToP1 = this.N1.x*p.x + this.N1.y*p.y + this.N1.z*p.z + this.D;
     let angle = Math.asin(distToP1 / distToP);
     let V = 0.5 + angle / this.b;
-
-    //let V = 0.5 + getAngle(q2, this.n, this.N2) / this.b; // Correct implementation according to specification, but not what others do!
-    //let qV = self.projectPointToPlane(this.N2, this.p[0], p);
-    //V = 0.5 + getAngle(qV, this.n, this.N2) / this.b;
 
     return [U,V];
 }
