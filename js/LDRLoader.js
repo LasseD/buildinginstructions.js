@@ -278,10 +278,10 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
                     }
                     if(!skipPart) {
                         self.partTypes[part.ID] = part;
+                        loadedParts.push(part);
                     }
                     skipPart = false;
                     self.onProgress(part.ID);
-                    loadedParts.push(part);
                     
                     part = new THREE.LDRPartType();
                     inHeader = true;
@@ -609,8 +609,8 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
     }
     if(!skipPart) {
         this.partTypes[part.ID] = part;
+        loadedParts.push(part);
     }
-    loadedParts.push(part);
 
     if(LDR.STUDIO) {
 	loadedParts.forEach(part => LDR.STUDIO.handlePart(self, part));
@@ -2446,7 +2446,7 @@ LDR.TexmapPlacement.prototype.getUVPlanar = function(p) {
 
     let U = 1 - toPlane(this.N1, this.D1) / this.N1LenSq; // Inversion is required since textures by default are flipped
     let V = toPlane(this.N2, this.D2) / this.N2LenSq;
-
+    
     return [U,V];
 }
 
