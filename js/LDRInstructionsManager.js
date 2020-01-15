@@ -132,7 +132,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
         
         self.pliBuilder = new LDR.PLIBuilder(self.ldrLoader, self.canEdit, mainModel,
                                              document.getElementById('pli'), self.secondaryRenderer);
-        self.stepHandler = new LDR.StepHandler(self.opaqueObject, self.transObject, self.ldrLoader, [pd], true, self.storage);
+        self.stepHandler = new LDR.StepHandler(self.opaqueObject, self.transObject, self.ldrLoader, [pd], true);
         self.stepHandler.nextStep(false);
 
 	self.realignModel(0);
@@ -214,7 +214,12 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
     let onStorageReady = function() {
         LDR.Studs.makeGenerators('', ldrOptions.studHighContrast, ldrOptions.studLogo);
         self.ldrLoader = new THREE.LDRLoader(onLoad, self.storage, options);
-        self.storage.retrieveInstructionsFromStorage(self.ldrLoader, onInstructionsLoaded);
+        if(self.storage) {
+            self.storage.retrieveInstructionsFromStorage(self.ldrLoader, onInstructionsLoaded);
+        }
+        else {
+            onInstructionsLoaded(false);
+        }
     }
 
     // Set up PLI interactions:
@@ -226,7 +231,12 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
 
     this.setUpOptions();
     this.onWindowResize();
-    this.storage = new LDR.STORAGE(onStorageReady);
+    if(LDR.STORAGE) {
+        this.storage = new LDR.STORAGE(onStorageReady);
+    }
+    else {
+        onStorageReady();
+    }
 }
 
 LDR.InstructionsManager.prototype.updateRotator = function(zoom) {

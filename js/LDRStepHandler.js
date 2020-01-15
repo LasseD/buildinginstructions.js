@@ -16,14 +16,13 @@ The builder supports the operations:
 - moveSteps: Go forward/back a specific number of steps.
 - Various methods for trieving information regarding the current step (depth, quantities, etc.)
 */
-LDR.StepHandler = function(opaqueObject, transObject, loader, partDescs, isForMainModel, storage) {
+LDR.StepHandler = function(opaqueObject, transObject, loader, partDescs, isForMainModel) {
     // Save parameters:
     this.opaqueObject = opaqueObject;
     this.transObject = transObject;
     this.loader = loader;
     this.partDescs = partDescs;
     this.isForMainModel = isForMainModel; // If true, then prevent stepping to current === -1.
-    this.storage = storage;
 
     // Build state:
     this.part = loader.getPartType(partDescs[0].ID);
@@ -49,7 +48,7 @@ LDR.StepHandler.prototype.rebuild = function() {
         if(step.containsNonPartSubModels(this.loader)) { // All are sub models (not parts):
             let subDescs = step.subModels.map(subModel => subModel.placeAt(partDesc));
             sh = new LDR.StepHandler(this.opaqueObject, this.transObject,
-				     this.loader, subDescs, false, this.storage);
+				     this.loader, subDescs, false);
         }
         this.steps.push(new LDR.StepInfo(sh, step.cloneColored(partDesc.colorID)));
     }
