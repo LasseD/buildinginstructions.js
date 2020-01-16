@@ -1,0 +1,30 @@
+0 FILE main.ldr
+0 Name: 1702 - main.ldr
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+1 0  0 0 0  1 0 0 0 1 0 0 0 1 nopurge.ldr
+1 1  1 0 0  1 0 0 0 1 0 0 0 1 purge1.ldr
+0 STEP
+
+0 FILE nopurge.ldr
+0 Name: nopurge.ldr
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+1 16  0  0 0  1 0 0 0 1 0 0 0 1 box.dat
+0 STEP
+1 16  0 -1 0  1 0 0 0 1 0 0 0 1 box.dat
+0 STEP
+
+0 FILE purge1.ldr
+0 Name: purge1.ldr
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+1 16  0 -1 0  1 0 0 0 1 0 0 0 1 purge2.ldr
+0 STEP
+
+0 FILE purge2.ldr
+0 Name: purge2.ldr
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+
+0 FILE unlinked.ldr
+0 Name: unlinked.ldr
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+3 16 -4.024 -2.829 -4.596 -2.942 -1.53 -6.005 -1.768 -4.066 -4.596
+
