@@ -15,12 +15,12 @@
  * storage should be an instance of LDR.STORAGE, or null. Unloaded files will be attempted to be read from storage before new file requests are attempted.
  * The optional options object has the following optional parameters:
  * - manager: Three.js loading manager. The default loading manager is used if none is present.
- * - onWarning(warningObj) is called when non-breaking errors are encountered, such as unknown colors and unsupported META commands.
  * - onProgress is called when a sub model or texture has been loaded and will also be used by the manager. A texture is detected by having the second parameter 'true'.
- * - onError(errorObj) is called on breaking errors. errorObj has the following properties:
+ * - onWarning(obj) is called when non-breaking errors are encountered, such as unknown colors and unsupported META commands.  obj has the same properties as for onError.
+ * - onError(obj) is called on breaking errors. obj has the following properties:
  *  - message: Human-readable error message.
- *  - line: Line number in the loaded file where the error occured.
- *  - subModel: THREE.LDRPartType in which the error occured.
+ *  - line: (Optional) Line number in the loaded file where the error occured.
+ *  - subModel: (Optional) THREE.LDRPartType in which the error occured.
  * - saveFileLines: Set to 'true' if LDR.Line0, LDR.Line1, ... LDR.Line5-objects should be saved on part types. These are used to generate .ldr files.
  * - physicalRenderingAge: Set to 0 for standard cell shaded rendering. Otherwise, this number indicates the age of physical materials to be rendered (older materials will appear yellowed for some colors)
  * - idToUrl(id) is used to translate an id into all potential file locations. Set this function to fit your own directory structure if needed. A normal LDraw directory has files both under /parts and /p and requires you to search for dat files. You can choose to combine the directories to reduce the need for searching, but this is not considered good practice.
@@ -42,7 +42,6 @@ THREE.LDRLoader = function(onLoad, storage, options) {
             if(self.partTypes.hasOwnProperty(id)) {
                 let partType = self.partTypes[id];
                 if(partType === true) {
-                    console.warn('Unloaded sub model during cleanup: ' + id);
                     unloaded.push(id);
                 }
             }
@@ -55,8 +54,8 @@ THREE.LDRLoader = function(onLoad, storage, options) {
 
     this.options = options || {};
     this.onProgress = this.options.onProgress || function(){};
-    this.onWarning = this.options.onWarning || function(obj){console.dir(obj);};
-    this.onError = this.options.onError || function(obj){console.dir(obj);};
+    this.onWarning = this.options.onWarning || console.dir;
+    this.onError = this.options.onError || console.dir;
     this.loader = new THREE.FileLoader(this.options.manager || THREE.DefaultLoadingManager);
     this.saveFileLines = this.options.saveFileLines || false;
     this.physicalRenderingAge = this.options.physicalRenderingAge || 0;
@@ -112,10 +111,9 @@ THREE.LDRLoader.prototype.load = function(id) {
             self.loader.load(urls[urlID], onFileLoaded, self.onProgress, onError);
         }
         else {
-	    console.warn('Failed to load ' + id);
             self.unloadedFiles--; // Can't load this.
   	    self.reportProgress(id);
-            self.onError(event);
+            self.onError({message:event.currentTarget?event.currentTarget.statusText:'Error during loading', subModel:id});
         }
     }
 
@@ -161,6 +159,7 @@ THREE.LDRLoader.prototype.reportProgress = function(id) {
  * data is the plain text file content.
  */
 THREE.LDRLoader.prototype.parse = function(data, defaultID) {
+    //console.log('Parsing',defaultID);
     let parseStartTime = new Date();
     let self = this;
 
@@ -652,7 +651,7 @@ THREE.LDRLoader.prototype.loadTexmaps = function() {
                     self.texmapLoader.load(self.idToTextureUrl(file),
                                            t => setTexture(t, file),
                                            undefined,
-                                           e => self.onError(e));
+                                           e => self.onError({message:e.message, subModel:file}));
                 }
             });
     }
@@ -697,8 +696,9 @@ THREE.LDRLoader.prototype.onPartsLoaded = function(loadedParts) {
     // Set part info (part vs non-part):
     loadedParts.forEach(pt => pt.isPart = pt.computeIsPart(self));
 
-    // Clean up part:
+    // Clean up parts and purge those that are empty:
     loadedParts.forEach(pt => pt.cleanUp(self));
+    loadedParts.forEach(pt => {if(pt.steps.length === 0)self.purgePart(pt.ID);});
 
     // Handle assemblies:
     if(self.options.buildAssemblies) {
@@ -1644,7 +1644,7 @@ THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, 
 	
 	let subModel = loader.getPartType(subModelDesc.ID);
 	if(!subModel) {
-	    loader.onError("Unloaded sub model: " + subModelDesc.ID);
+	    loader.onError({message:"Unloaded sub model!", subModel:subModelDesc.ID});
 	    return;
 	}
 	if(subModel.replacement) {
@@ -1876,24 +1876,45 @@ THREE.LDRPartType.prototype.unpack = function(obj, saveFileLines) {
     }
 }
 
+THREE.LDRLoader.prototype.purgePart = function(ID) {
+    let self = this;
+    let purged = {};
+    let toPurge = [ID];
+
+    while(toPurge.length > 0) {
+        let id = toPurge.pop();
+        if(purged.hasOwnProperty(id)) {
+            continue;
+        }
+        purged[id] = true;
+        
+        delete this.partTypes[id];
+
+        function handle(pt) {
+            pt.purgePart(id);
+            
+            if(pt.steps.length === 0) {
+                if(pt.ID === self.mainModel) {
+                    loader.onError({message:'The main model is empty after removal of empty parts!', subModel:pt.ID});
+                }
+                else if(!purged.hasOwnProperty(pt.ID)) {
+                    toPurge.push(pt.ID);
+                }
+            }
+        }
+        this.applyOnPartTypes(handle);
+    }
+}
+
 /*
-  Remove all empty steps.
+  Remove all sub models with part type 'ID' from this and everything within.
  */
-THREE.LDRPartType.prototype.purgePart = function(loader, ID) {
+THREE.LDRPartType.prototype.purgePart = function(ID) {
     if(this.isPart) {
-        return;
+        return; // Only purge non-parts.
     }
-    function handleStep(step) {
-        step.subModels = step.subModels.filter(sm => sm.ID !== ID);
-        if(step.subModels.length === 0) {
-            step.RM = true;
-        }
-        else {
-	    step.subModels.forEach(sm => loader.getPartType(sm.ID).purgePart(loader, ID));
-        }
-    }
-    this.steps.forEach(handleStep);
-    this.steps = this.steps.filter(step => !step.RM);
+    this.steps.forEach(step => step.subModels = step.subModels.filter(sm => sm.ID !== ID));
+    this.steps = this.steps.filter(step => step.subModels.length > 0);
 }
 
 /*
@@ -1904,6 +1925,7 @@ THREE.LDRPartType.prototype.cleanUp = function(loader) {
     if(this.cleanSteps) {
         return; // Already done.
     }
+    this.cleanSteps = true;
 
     if(this.isReplacedPart()) {
 	this.replacement = this.steps[0].subModels[0].ID;
@@ -1914,14 +1936,8 @@ THREE.LDRPartType.prototype.cleanUp = function(loader) {
     else {
 	let newSteps = [];
 	this.steps.forEach(step => step.cleanUp(loader, newSteps));
-	if(newSteps.length === 0) { // Empty!
-	    loader.getMainModel().purgePart(loader, this.ID);
-	    return;
-	}
 	this.steps = newSteps;
     }
-
-    this.cleanSteps = true;
 }
 
 THREE.LDRPartType.prototype.toLDR = function(loader) {
@@ -2332,12 +2348,12 @@ LDR.TexmapPlacement.prototype.setPlanar = function() {
     // Normal (N1) and D-value (D1) from plane formula N.p+D=0 for plane P1:
     this.N1 = new THREE.Vector3(); this.N1.subVectors(this.p[1], this.p[0]);
     this.N1LenSq = this.N1.lengthSq();
-    this.D1 = -this.N1.dot(this.p[1]);
+    this.D1 = -this.N1.dot(this.p[0]);
 
     // Normal (N2) and D-value (D2) from plane formula N.p+D=0 for plane P2:
     this.N2 = new THREE.Vector3(); this.N2.subVectors(this.p[2], this.p[0]);
     this.N2LenSq = this.N2.lengthSq();
-    this.D2 = -this.N2.dot(this.p[2]);
+    this.D2 = -this.N2.dot(this.p[0]);
     
     this.getUV = this.getUVPlanar;
 }
@@ -2444,8 +2460,8 @@ LDR.TexmapPlacement.prototype.projectPointToPlane = function(n, p0, p) {
 LDR.TexmapPlacement.prototype.getUVPlanar = function(p) {
     let toPlane = (n, D) => Math.abs(n.x*p.x + n.y*p.y + n.z*p.z + D);
 
-    let U = 1 - toPlane(this.N1, this.D1) / this.N1LenSq; // Inversion is required since textures by default are flipped
-    let V = toPlane(this.N2, this.D2) / this.N2LenSq;
+    let U = toPlane(this.N1, this.D1) / this.N1LenSq;
+    let V = 1 - toPlane(this.N2, this.D2) / this.N2LenSq; // Inversion is required since textures by default are flipped
     
     return [U,V];
 }

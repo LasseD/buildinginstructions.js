@@ -59,7 +59,6 @@ LDR.STORAGE.prototype.retrievePartsFromStorage = function(loader, parts, onDone)
         onDone([]);
         return;
     }
-    //console.log('Attempting to retrieve ' + parts.length + ' part(s) from indexedDB: ' + parts.slice(0, 10).join('/') + '...');
     let stillToBeBuilt = [];
     let seen = {};
     parts.forEach(partID => seen[partID] = true);
@@ -121,7 +120,6 @@ LDR.STORAGE.prototype.retrievePartsFromStorage = function(loader, parts, onDone)
 	request.onsuccess = function(event) {
 	    let result = request.result;
 	    if(result) {
-		//console.log("Fetched " + shortPartID + " from indexedDB");
 		try {
 		    let pt = new THREE.LDRPartType();
                     pt.unpack(result);
@@ -149,30 +147,30 @@ LDR.STORAGE.prototype.retrieveInstructionsFromStorage = function(loader, onDone)
     }
     let key = loader.options.key;
     let timestamp = loader.options.timestamp;
-    console.log('Attempting to retrieve instructions ' + key + ' from indexedDB!');    
     let transaction = this.db.transaction(["instructions"]);
     let objectStore = transaction.objectStore("instructions");
 
     let request = objectStore.get(key);
     request.onerror = function(event) {
-	console.warn(shortPartID + " retrieval error from indexedDB!");
+	console.warn(shortPartID + " retrieval error from indexedDB for key " + key);
 	console.dir(event);
 	onDone(false);
     };
     request.onsuccess = function(event) {
 	let result = request.result;
 	if(result && result.timestamp === timestamp) {
-	    //console.log("Fetched " + key + " from indexedDB");
 	    try {
 		let parts = loader.unpack(result);
 		onDone(true, parts);
+                console.log('Instructions with key ' + key + ' read and unpacked from indexedDB!');
 	    }
 	    catch(e) {
-		console.warn(e);
+		loader.onWarning({message:'Error during unpacking of instructions from indexedDB: ' + e, subModel:key});
 		onDone(false);
 	    }
 	}
 	else {
+            console.log('IndexedDB did not contain a current version of instructions with key "' + key + '" - new instructions will be fetched.');
 	    onDone(false);
 	}
     };
@@ -183,12 +181,7 @@ LDR.STORAGE.prototype.savePartsToStorage = function(parts, loader) {
     let transaction = this.db.transaction(["parts"], "readwrite");
     
     transaction.oncomplete = function(event) {
-        if(partsWritten === 0) {
-            console.log('No new parts were written to indexedDB');
-        }
-        else if(partsWritten > 1) {
-            console.log('Completed writing of ' + partsWritten + ' parts');
-        }
+        //console.log('Number of parts saved in indexedDB: ' + partsWritten);
     };
     transaction.onerror = function(event) {
         console.warn('Error while writing parts!');
@@ -207,15 +200,14 @@ LDR.STORAGE.prototype.savePartsToStorage = function(parts, loader) {
 }
 
 LDR.STORAGE.prototype.saveInstructionsToStorage = function(loader, key, timestamp) {
-    if(loader.hasOwnProperty('instructionsSaved')) {
-	console.warn('Attempting to save instructions more than once!');
-	return;
+    if(loader.instructionsSaved) {
+	return; // Already saved. Multiple calls can happen due to onLoad being called more than once on LDRLoader.
     }
     loader.instructionsSaved = true;
     let transaction = this.db.transaction(["instructions"], "readwrite");
     
     transaction.oncomplete = function(event) {
-        console.log('Instructions transaction for saving completed successfully!');
+        //console.log('Instructions transaction for saving completed successfully!');
     };
     transaction.onerror = function(event) {
         console.warn('Error while writing instructions!');
@@ -227,5 +219,5 @@ LDR.STORAGE.prototype.saveInstructionsToStorage = function(loader, key, timestam
     let packed = loader.pack();
     packed.key = key;
     packed.timestamp = timestamp;
-    objectStore.put(packed).onsuccess = () => console.log('Instructions saved!');
+    objectStore.put(packed).onsuccess = () => console.log('Instructions saved to indexedDB.');
 }

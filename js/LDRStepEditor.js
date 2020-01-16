@@ -691,7 +691,7 @@ LDR.StepHandler.prototype.remove = function(info) {
     }
 
     if(part.steps.length === 1 && part.steps[0].subModels.length === 0) {
-        this.loader.getMainModel().purgePart(this.loader, part.ID);
+        this.loader.purgePart(part.ID);
         part.steps = part.steps.slice(1);
         info.stepIndex -= this.countUsages(part.ID);
     }
@@ -894,7 +894,7 @@ LDR.StepHandler.prototype.moveUp = function(info, right) {
     // Update or remove old step:
     if(moveFullStep) { // Remove the step from the sub model:
         if(part.steps.length === 1) {
-            this.loader.getMainModel().purgePart(this.loader, part.ID);
+            this.loader.purgePart(part.ID);
         }
         else {
             part.steps.splice(info.current, 1);
