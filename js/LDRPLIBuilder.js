@@ -224,7 +224,7 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
         self.clickMap.forEach(drawMultiplier);
     }
     // Draw Annotation:
-    context.font = parseInt(textHeight*0.9*DPR) + "px monospace";
+    context.font = parseInt(textHeight*0.8*DPR) + "px monospace";
     self.clickMap.filter(icon => icon.annotation).forEach(icon => {
 	let len = icon.annotation.length;
 	let x = (icon.x+icon.FULL_DX+1)*DPR;
@@ -233,8 +233,8 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
 	let h = textHeight*DPR;
 	context.beginPath();
 	context.fillStyle = "#CFF";
-	if(icon.desc.startsWith('Technic Axle')) {
-	    context.arc(x+w*0.5, y+h*0.5, w*0.55, 0, 2*Math.PI, false);
+	if(icon.desc && icon.desc.startsWith('Technic Axle')) {
+	    context.arc(x+w*0.45, y+h*0.5, w*0.7, 0, 2*Math.PI, false);
         }
 	else {
 	    context.rect(x, y, w, h);

@@ -159,7 +159,7 @@ THREE.LDRLoader.prototype.reportProgress = function(id) {
  * data is the plain text file content.
  */
 THREE.LDRLoader.prototype.parse = function(data, defaultID) {
-    //console.log('Parsing',defaultID);
+    //console.log('Parsing', defaultID);
     let parseStartTime = new Date();
     let self = this;
 
@@ -239,7 +239,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 	let is = type => l3 && type === parts[1];
 
         // Set the model description once header is exited:
-        if(!inHeader && !part.modelDescription && previousComment) {
+        if(!part.modelDescription && previousComment) {
 	    part.modelDescription = previousComment;
 	    if(previousComment.startsWith("~Unknown part ")) {
 		self.onError({message:'Unknown part "' + part.ID + '" will be shown as a cube.', line:i, subModel:part});
@@ -810,6 +810,9 @@ THREE.LDRLoader.prototype.substituteReplacementParts = function() {
 }
 
 LDR.hashCode = function(s) {
+    if(!s) {
+        return 0;
+    }
     let hash = 0;
     for(let i = 0; i < s.length; i++) {
         hash = Math.imul(31, hash) + s.charCodeAt(i) | 0;

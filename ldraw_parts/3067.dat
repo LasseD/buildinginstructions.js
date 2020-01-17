@@ -11,11 +11,3 @@
 0 // Brick  1 x  6 without Centre Studs
 
 1 16 0 0 0 1 0 0 0 1 0 0 0 1 3067a.dat
-
-0 !TEXMAP START PLANAR -60 0 -10 60 24 -10 -60 24 -10 3067pb02.png
-4 16 -60 24 -10 60 24 -10 60 0 -10 -60 0 -10
-
-0 !TEXMAP FALLBACK
-4 16 -60 24 -10 60 24 -10 60 0 -10 -60 0 -10
-
-0 !TEXMAP END
