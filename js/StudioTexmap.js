@@ -75,149 +75,196 @@ LDR.STUDIO.handlePart = function(loader, pt) {
 }
 
 /*
-  Create texmap placement by finding (0,0), (0,1), and (1,0) in UV space:
-  g=(UV2-UV1), h=(UV3-UV2), i=gu/gv
-  (0,0) = UV1 + ag + bh
-  (1,0) = UV1 + cg + dh
-  (0,1) = UV1 + eg + fh
-*/
+Distances from P1 to q1,q2,q3:
+|P1q2|/U2 = |q1q2|/(U2-U1) => |P1q2| = |q1q2|/(U2-U1)*U2
+|P1q1| = d1, ... d3
+
+Use the solution by 'Mark' from: https://groups.google.com/forum/#!topic/sci.math/fABwsXJJrFw
+Let r, s, t be the points (instead of q1, q2, and q3) and R, S, T be radii (instead of d1, d2, d3):
+ */
 LDR.STUDIO.handleTriangleLine = function(pt, parts) {
-    let U  = parseFloat(parts[11]), V = parseFloat(parts[12]);
-    let U2 = parseFloat(parts[13]), V2 = parseFloat(parts[14]);
-    let U3 = parseFloat(parts[15]), V3 = parseFloat(parts[16]);
-    let gu = U2-U, gv = V2-V;
-    let hu = U3-U, hv = V3-V;
+    let q1 = new THREE.Vector3(parseFloat(parts[2]), parseFloat(parts[3]), parseFloat(parts[4]));
+    let q2 = new THREE.Vector3(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
+    let q3 = new THREE.Vector3(parseFloat(parts[8]), parseFloat(parts[9]), parseFloat(parts[10]));
+    let U1  = parseFloat(parts[11]), V1 = 1-parseFloat(parts[12]);
+    let U2 = parseFloat(parts[13]), V2 = 1-parseFloat(parts[14]);
+    let U3 = parseFloat(parts[15]), V3 = 1-parseFloat(parts[16]);
 
-    let a, b, c, d, e, f;
-    let isZero = x => -1e-7 <= x && x <= 1e-7;
-    if(isZero(gv)) {
-        console.log('GV 0');
-        /*
-          0 = U + agu + bhu, 0 = V + bhv =>
-          b = -V / hv
-          a = (-U - bhu) / gu
-          1 = U + cgu + dhu, 0 = V + dhv =>
-          d = b
-          c = (1-U-dhu) / gu
-          0 = U + egu + fhu, 1 = V + fhv =>
-          f = (1-V) / hv
-          e = (-U-fhu) / gu
-         */
-        b = d = -V / hv;
-        a = (-U - b*hu) / gu;
-        c = (1-U-d*hu) / gu;
-        f = (1-V) / hv;
-        e = (-U-f*hu) / gu;
-    }
-    else if(isZero(hv)) {
-        console.log('HV = 0');
-        /*
-          0 = U + agu + bhu, 0 = V + agv =>
-          a = -V / gv
-          b = (-U - agu) / hu
-          1 = U + cgu + dhu, 0 = V + cgv =>
-          c = a
-          d = (1-U - cgu) / hu
-          0 = U + egu + fhu, 1 = V + egv =>
-          e = (1-V) / gv
-          f = (-U - egu) / hu
-         */
-        a = c = -V / gv;
-        b = (-U - a*gu) / hu;
-        d = (1-U - c*gu) / hu;
-        e = (1-V) / gv;
-        f = (-U - e*gu) / hu;
-    }
-    else { // gv != 0 and hv != 0
-        console.log('GV and HV not 0');
-        let i = gu / gv; // Well-defined, since gv != 0
-        let j = hu / hv; // Also, since hv != 0
-
-        /*
-          0 = U + agu + bhu, 0 = V + agv + bhv =>
-          0 = U-i*V + bhu-i*bhv => 
-          -U+i*V = b(hu-i*hv) =>
-          b = (-U+i*V) / (hu-i*hv)
-          a = (-bhv-V) / gv
-          Alternate calculation of a:
-          0 = U-jV + a(gu-jgv) =>
-          a = (-U + jV) / (gu - jgv)
-        */
-        b = (-U + i*V) / (hu - i*hv);
-        //a = (-b*hv - V) / gv;
-        a = (-U + j*V) / (gu - j*gv);
-        /*
-          1 = U + cgu + dhu & 0 = V + cgv + dhv =>
-          1 = U-iV + d(hu-ihv) =>
-          d = (1-U+iV) / (hu-ihv)
-          0 = V + cgv + dhv => c = (-V-dhv) / gv
-          Alternate calculation of c:
-          1 = U-jV + cgu-jcgv + dhu-jdhv = U-jV + c(gu-jgv) =>
-          c = (1-U + jV) / (gu - jgv)
-        */
-        d = (1 - U + i*V) / (hu - i*hv);
-        //c = (-V - d*hv) / gv;
-        c = (1 - U + j*V) / (gu - j*gv);
-        /*
-          0 = U + egu + fhu & 1 = V + egv + fhv =>
-          -i = U-iV + f(hu-ihv) =>
-          f = (-i-U+iV) / (hu-ihv)
-          e = (1-V-fhv) / gv
-          Alternate calculation of e:
-          -j = U-jV + e(gu-jgv) =>
-          e = (-j-U+jV) / (gu - jgv)
-        */
-        f = (-i - U + i*V) / (hu - i*hv);
-        //e = (1 - V - f*hv) / gv;
-        e = (-j - U + j*V) / (gu - j*gv);
-    }
-    
-    // Now move to local space (above is all in UV space):
-    let p1 = new THREE.Vector3(parseFloat(parts[2]), parseFloat(parts[3]), parseFloat(parts[4]));
-    let p2 = new THREE.Vector3(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
-    let p3 = new THREE.Vector3(parseFloat(parts[8]), parseFloat(parts[9]), parseFloat(parts[10]));
-    let G = new THREE.Vector3(); G.subVectors(p2, p1);
-    let H = new THREE.Vector3(); H.subVectors(p3, p1);
-    let P1 = new THREE.Vector3(p1.x + a*G.x + b*H.x, p1.y + a*G.y + b*H.y, p1.z + a*G.z + b*H.z);
-    let P2 = new THREE.Vector3(p1.x + c*G.x + d*H.x, p1.y + c*G.y + d*H.y, p1.z + c*G.z + d*H.z);
-    let P3 = new THREE.Vector3(p1.x + e*G.x + f*H.x, p1.y + e*G.y + f*H.y, p1.z + e*G.z + f*H.z);
+    let isZero = x => -1e-6 <= x && x <= 1e-6;
 
     // See if we can reuse the previous TMP:
     if(LDR.TexmapPlacements.length > 0) {
         let lastTmp = LDR.TexmapPlacements[LDR.TexmapPlacements.length-1];
-        let lastP1 = lastTmp.p[0], lastP2 = lastTmp.p[1], lastP3 = lastTmp.p[2];
-        let eq = (a,b) => isZero(a.x-b.x) && isZero(a.y-b.y) && isZero(a.z-b.z);
-        if(eq(P1, lastP1) && eq(P2, lastP2) && eq(P3, lastP3)) {
+        let [u1,v1] = lastTmp.getUV(q1);
+        let [u2,v2] = lastTmp.getUV(q2);
+        let [u3,v3] = lastTmp.getUV(q3);
+        //console.log(U1,U2,U3,V1,V2,V3);
+        //console.log(u1,u2,u3,v1,v2,v3);
+        if(isZero(u1-U1) && isZero(u2-U2) && isZero(u3-U3) && isZero(1-v1-V1) && isZero(1-v2-V2) && isZero(1-v3-V3)) {
             lastTmp.used = false;
             return lastTmp;
         }
     }
+    
+    function getPlanes(r, s, t, R, S, T) { // Centers r, s, t. Radii R, S, T
+        let u = new THREE.Vector3(); u.crossVectors(s, t);
+        let v = new THREE.Vector3(); v.crossVectors(t, r);
+        let w = new THREE.Vector3(); w.crossVectors(r, s);
+
+        // Compute D = <r x s, t>
+        let D = w.dot(t);
+        if(isZero(D)) {
+            D = 1; // No need to scale by D. "r, s, t colinear" is incorrect.
+        }
+
+        // Calculate u = (s x t)/D, v = (t x r)/D, w = (r x s)/D
+        u.divideScalar(D);
+        v.divideScalar(D);
+        w.divideScalar(D);
+
+        // L = u + v + w
+        let L = new THREE.Vector3(); L.addVectors(u,v); L.add(w);
+        let LL = L.lengthSq();
+
+        // for each R' = +R or -R, S' = +S or -S, T' = +T or -T:
+        let solutions = [];
+        let s_t = new THREE.Vector3(); s_t.subVectors(s, t);
+        let t_r = new THREE.Vector3(); t_r.subVectors(t, r);
+        let r_s = new THREE.Vector3(); r_s.subVectors(r, s);
+        [-R,R].forEach(_R => {
+                [-S,S].forEach(_S => {
+                        [-T,T].forEach(_T => {
+                                // L x M = R'(s - t) + S'(t - r) + T'(r - s)
+                                let LxM = new THREE.Vector3(); LxM.addScaledVector(s_t, _R); LxM.addScaledVector(t_r, _S); LxM.addScaledVector(r_s, _T); LxM.divideScalar(D);
+                                let LxMLxM = LxM.lengthSq();
+                                // if |L x M| > |L| then this combination is not a solution.
+                                if(LxMLxM > LL) {
+                                    return; // Not a solution
+                                }
+                                // M = R'u + S'v + T'w
+                                let M = new THREE.Vector3(); M.addScaledVector(u, _R); M.addScaledVector(v, _S); M.addScaledVector(w, _T);
+                                // for each e = +1, -1: calculate solution <x, n> = A:
+                                [-1,1].forEach(e => {
+                                        // A = (<L,M> + e sqrt(|L|^2 - |L x M|^2) ) / |L|^2
+                                        let esqrt = e * Math.sqrt(LL-LxMLxM);
+                                        let A = (L.dot(M) + esqrt) / LL;
+                                        // n = ( Lx(LxM) + e L sqrt(|L|^2 - |L x M|^2) ) / |L|^2
+                                        let n = new THREE.Vector3(); n.crossVectors(L, LxM); n.addScaledVector(L, esqrt); n.divideScalar(LL);
+                                        solutions.push({n:n, A:A});
+                                    });
+                            });
+                    });
+            });
+        return solutions;
+    }
+
+    let d12 = q1.distanceTo(q2);
+    let d23 = q2.distanceTo(q3);
+    let d31 = q3.distanceTo(q1);
+    let toPlane = (n, A, p) => n.x*p.x + n.y*p.y + n.z*p.z + A;
+
+    function getPlaneFromUVs(q1, q2, q3, U1, U2, U3) {
+        let p1p2 = 1e12;
+
+        if(!isZero(U2-U1)) {
+            p1p2 = Math.min(p1p2, d12/Math.abs(U2-U1));
+        }
+        if(!isZero(U2-U3)) {
+            p1p2 = Math.min(p1p2, d23/Math.abs(U2-U3));
+        }
+        if(!isZero(U3-U1)) {
+            p1p2 = Math.min(p1p2, d31/Math.abs(U3-U1));
+        }
+
+        // Binary search for p1p2:
+        let ret = [false,0];
+        while(p1p2 > 1e-3) {
+            let d1 = p1p2*U1;
+            let d2 = p1p2*U2;
+            let d3 = p1p2*U3;
+            let solutions = getPlanes(q1, q2, q3, d1, d2, d3);
+
+            function checkSolution(solution) {
+                let u1 = toPlane(solution.n, -solution.A, q1)/p1p2;
+                let u2 = toPlane(solution.n, -solution.A, q2)/p1p2;
+                let u3 = toPlane(solution.n, -solution.A, q3)/p1p2;
+                if(u1 < 0 || u2 < 0 || u3 < 0) {
+                    return false; // Bad solution.
+                }
+                //console.log('p1p2',p1p2,'U1',u1,U1,'U2',u2,U2,'U3',u3,U3,'|n|',solution.n.length(),'A',solution.A); console.dir(solution.n);
+                ret = [solution,p1p2];
+                return true;
+            }
+            if(solutions.some(checkSolution)) {
+                return ret;
+            }
+            p1p2 *= 0.5;
+        }
+        return ret;
+    }
+    
+    // Now move to local space (above is all in UV space):
+    let [P1,p1p2] = getPlaneFromUVs(q1, q2, q3, U1, U2, U3);
+    if(!P1) {
+        return; // No solution for U
+    }
+    let [P2,p1p3] = getPlaneFromUVs(q1, q2, q3, V1, V2, V3);
+    if(!P2) {
+        return; // No solution for V
+    }
+
+    // p1=(x,y,z) is selected as a point that intersects both P1 and P2.
+    let p1 = new THREE.Vector3();
+    {
+        let A1 = P1.A, A2 = P2.A;
+        let n1 = P1.n, n2 = P2.n;
+
+        let u = new THREE.Vector3(); u.crossVectors(P1.n, P2.n);
+        //console.log('u');console.dir(u);
+        if(!isZero(u.z) && !((isZero(n2.x) && isZero(n1.x)) || (isZero(n2.y) && isZero(n1.y)))) { // Lock z=0 and find p1:
+            /* n1.p1 = A1, n2.p1 = A2, so:
+               
+               n1x*x + n1y*y = A1 AND
+               n2x*x + n2y*y = A2 =>
+               
+               (n1x-n2x(n1y/n2y))x = A1 - (n1y/n2y)A2 = 0 AND
+               (n1y-n2y(n1x/n2x))y = A1 - (n1x/n2x)A2 = 0 =>
+               
+               x = (A1 - (n1y/n2y)A2) / (n1x-n2x(n1y/n2y)) AND
+               y = (A1 - (n1x/n2x)A2) / (n1y-n2y(n1x/n2x))
+            */
+            let x = isZero(n2.y) ? (A2 - (n2.y/n1.y)*A1) / (n2.x-n1.x*(n2.y/n1.y)) : (A1 - (n1.y/n2.y)*A2) / (n1.x-n2.x*(n1.y/n2.y));
+            let y = isZero(n2.x) ? (A2 - (n2.x/n1.x)*A1) / (n2.y-n1.y*(n2.x/n1.x)) : (A1 - (n1.x/n2.x)*A2) / (n1.y-n2.y*(n1.x/n2.x));
+            p1.set(x, y, 0);
+            //console.log('Set z=0:',x,y,0,'checks:',toPlane(n1,-A1,p1),toPlane(n2,-A2,p1));
+        }
+        else if(!isZero(u.y) && !((isZero(n2.x) && isZero(n1.x)) || (isZero(n2.z) && isZero(n1.z)))) { // Same for y, so substitude z for y:
+            let x = isZero(n2.z) ? (A2 - (n2.z/n1.z)*A1) / (n2.x-n1.x*(n2.z/n1.z)) : (A1 - (n1.z/n2.z)*A2) / (n1.x-n2.x*(n1.z/n2.z));
+            let z = isZero(n2.x) ? (A2 - (n2.x/n1.x)*A1) / (n2.z-n1.z*(n2.x/n1.x)) : (A1 - (n1.x/n2.x)*A2) / (n1.z-n2.z*(n1.x/n2.x));
+            p1.set(x, 0, z);
+            //console.log('Set y=0:',x,0,z,'checks:',toPlane(n1,-A1,p1),toPlane(n2,-A2,p1));
+        }
+        else if(!isZero(u.x) && !((isZero(n2.y) && isZero(n1.y)) || (isZero(n2.z) && isZero(n1.z)))) { // Same for x:
+            let y = isZero(n2.z) ? (A2 - (n2.z/n1.z)*A1) / (n2.y-n1.y*(n2.z/n1.z)) : (A1 - (n1.z/n2.z)*A2) / (n1.y-n2.y*(n1.z/n2.z));
+            let z = isZero(n2.y) ? (A2 - (n2.y/n1.y)*A1) / (n2.z-n1.z*(n2.y/n1.y)) : (A1 - (n1.y/n2.y)*A2) / (n1.z-n2.z*(n1.y/n2.y));
+            p1.set(0, y, z);
+            //console.log('Set x=0:',0,y,z,'checks:',toPlane(n1,-A1,p1),toPlane(n2,-A2,p1));
+        }
+        else {
+            return; // Bail!
+        }
+    }
+    let p2 = new THREE.Vector3(); p2.copy(p1); p2.addScaledVector(P1.n, p1p2);
+    let p3 = new THREE.Vector3(); p3.copy(p1); p3.addScaledVector(P2.n, p1p3);
 
     // Construct TMP:
     let tmp = new LDR.TexmapPlacement();
     tmp.nextOnly = true;
-    tmp.p = [P1, P2, P3];
+    tmp.p = [p1, p2, p3];
     tmp.setPlanar();
     tmp.file = pt.ID + '.png';
     tmp.idx = LDR.TexmapPlacements.length;
     LDR.TexmapPlacements.push(tmp);
-
-    // Test the positions:
-    let [u1,v1] = tmp.getUV(p1);
-    let [u2,v2] = tmp.getUV(p2);
-    let [u3,v3] = tmp.getUV(p3);
-    if(!isZero(U-u1) || !isZero(1-V-v1)) {
-        console.dir(parts);
-        console.log('Original UVs', U, V, U2, V2, U3, V3);
-        console.log('g/h', gu, gv, hu, hv);
-        console.log('abcdef', a, b, c, d, e, f);
-        console.dir(tmp);
-        console.log('Computed UV1:', u1, v1);
-        console.log('Computed UV2:', u2, v2);
-        console.log('Computed UV3:', u3, v3);
-        //throw "UV computation error!";
-    }
-    console.log('UV1 OK');
 
     return tmp;
 }
