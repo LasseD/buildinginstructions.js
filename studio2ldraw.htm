@@ -64,6 +64,11 @@
         display: block;
         margin: auto;
       }
+      img {
+        display: block;
+        width: 50%;
+        margin: auto;
+      }
     </style>
  </head>
  <body>
@@ -81,15 +86,16 @@
     <script src="js/LDRStuds.js"></script>
     <script src="js/StudioTexmap.js"></script>
   
-    <h1>Studio2LDraw - Convert your textured custom parts from Studio 2.0 to LDraw</h1>
+    <h1>Studio2LDraw - Convert custom parts from Studio 2.0 to LDraw</h1>
 
-    <h3>step 1 - Select the file from Studio 2.0 or Part Designer</h3>
+    <h3>step 1 - Select the file to convert</h3>
   <div class="section">
    <span class="desc">
-     After exporting to LDraw from Studio 2.0 or Part Designer, you can either select the file or paste the content below.
+     Export your custom textured part to LDraw from <b>Studio 2.0</b> or <b>Part Designer</b>.
+     The exported .ldr file can either be uploaded or its content be pasted directly below.
    </span>
    <span class="choice">
-    <label for="file">.ldr file exported from <b>Studio 2.0</b> or <b>Part Designer</b></label>
+    <label for="file">Upload the file here:</label>
     <input id="file" name="file" type="file" onchange="readFromFile(event);" />
    </span>
    <span class="choice">
@@ -97,10 +103,9 @@
 0 FILE sample_file.dat
 0 BFC NOCERTIFY CCW
 0 PE_TEX_INFO iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH5AEYChQ1nEYzVAAAAB1pVFh0Q29tbWVudAAAAAAAQ3JlYXRlZCB3aXRoIEdJTVBkLmUHAAAAFklEQVQI12N4KqUh5fWUQcrr6VMpDQAiEgThLKLB4AAAAABJRU5ErkJggg==
-
 1 16 0 -24 0 1 0 0 0 1 0 0 0 1 s/3005s01.dat
-3 16 -10 -24 -10 -10 0 -10 10   0 -10  0.1 0.8   0.1 0.2  0.99 0.2
-3 16 -10 -24 -10  10 0 -10 10 -24 -10  0.1 0.8  0.99 0.2  0.99 0.8
+3 16 -10 -24 -10 -10 0 -10 10   0 -10 0 1 0 0 1 0
+3 16 -10 -24 -10  10 0 -10 10 -24 -10 0 1 1 0 1 1
 </textarea>
    </span>
 
@@ -110,7 +115,7 @@
    <canvas id="preview"></canvas>
   </div>
 
-<!--  <h3>Step 2 - Inline or Separate Image File</h3>
+  <h3>Step 2 - Inline or Separate Texture File</h3>
   <div class="section">
    <span class="desc">
      LDraw supports two ways of storing texture files: Either as separate PNG files in the 'textures' folder, or inlined in the LDraw file.
@@ -120,14 +125,26 @@
     <input id="inline" name="inline" type="checkbox" checked="checked" onchange="convert(null);" />
    </span>
   </div>
--->
-  <h3>Step 2 - Get the Standardized LDraw File</h3>
+
+  <h3>Step 3 - Get the Standardized LDraw File</h3>
   <div class="section">
-   <div id="preview2"></div>
+   <span class="desc">
+     Copy or download the LDraw file below.
+     This file follows the LDraw standard and can be viewed in any LDraw-compatible viewer that supports textures.
+   </span>
    <span class="choice">
      <textarea id="ldr_result" rows="10"></textarea>
      <button onclick="copyToClipboard();">Copy LDraw File to Clipboard</button>
    </span>
+  </div>
+
+  <div id="texture">
+   <h3>Step 4 - Download the Texture File</h3>
+   <div class="section">
+     Please save the image below in the <b>textures</b> folder next to your LDraw files folders.
+     The fie name should be <b id="filename"></b>
+   </div>
+   <img id="png" />
   </div>
 
   <div id="contact">
@@ -166,7 +183,7 @@ function onError(obj) {
 /*
   three.js rendering:
  */
-var ldrOptions = new LDR.Options(); // Determine how to show lines. Change this in sample_instruction.htm
+var ldrOptions = new LDR.Options(); ldrOptions.studLogo = 1; LDR.Studs.makeGenerators('', ldrOptions.studHighContrast, ldrOptions.studLogo);  // Determine how to show parts.
 
 // Set up camera:
 var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
@@ -214,6 +231,7 @@ function onLoad() {
       console.log('A valid model was not parsed. Nothing will be shown');
       return;
     }
+
     if(baseObject) {
       scene.remove(baseObject);
     }
@@ -232,15 +250,27 @@ function onLoad() {
     camera.zoom = w/b.min.distanceTo(b.max)*2;
     onWindowResize();
 
+    // Extract textures if requested
+    if(document.getElementById('inline').checked) {
+      document.getElementById('texture').style.display = 'none';
+    }
+    else {
+      document.getElementById('texture').style.display = 'block';
+      function extractTexture(obj) {
+        let mimetype = obj.minetype || 'png';
+        let content = obj.content;
+        let png = document.getElementById('png');
+        png.setAttribute('src', 'data:image/' + mimetype + ';base64,' + content);
+
+        document.getElementById('filename').innerHTML = obj.id;
+      }
+      ldrLoader.texmapDataurls.forEach(extractTexture);
+      ldrLoader.texmapDataurls = [];
+    }
+
     // LDraw content:
     var lDrawContent = ldrLoader.toLDR();
     $('#ldr_result').val(lDrawContent);
-}
-
-function show(ldr) {
-    LDR.TexmapPlacements = [];
-    ldrLoader = new THREE.LDRLoader(onLoad, storage, {onError:onError, onWarning:onWarning, onProgress:render, saveFileLines:true});
-    ldrLoader.parse(ldr, 'main.dat');
 }
 
 /*
@@ -255,7 +285,10 @@ function convert(ldr) {
   else { // Update text area:
     $('#file_content').val(ldr);
   }
-  show(ldr);
+
+  LDR.TexmapPlacements = [];
+  ldrLoader = new THREE.LDRLoader(onLoad, storage, {onError:onError, onWarning:onWarning, onProgress:render, saveFileLines:true});
+  ldrLoader.parse(ldr, 'main.dat');
 }
 
 function readFromFile(event) {

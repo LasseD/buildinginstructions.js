@@ -50,8 +50,25 @@ THREE.LDRLoader = function(onLoad, storage, options) {
 
         onLoad();
     };
-    this.storage = storage || {retrievePartsFromStorage: (loader, toBeFetched, onDone) => onDone(toBeFetched)}; // If there is no storage, simply act as if the storage is not able to fetch anything.
-
+    function backupRetrievePartsFromStorage(loader, toBeFetched, onDone) {
+        if(!LDR.Generator) {
+            onDone(toBeFetched); // Can't do anything, so just pass on the list of parts to be fetched.
+            return;
+        }
+        // Try to fetch those that can be generated:
+        let stillToBeFetched = [];
+        toBeFetched.forEach(id => {
+                let subModel = LDR.Generator.make(id)
+                if(subModel) {
+                    loader.partTypes[id] = subModel;
+                }
+                else {
+                    stillToBeFetched.push(id);
+                }
+            });
+        onDone(stillToBeFetched);
+    }
+    this.storage = storage || {retrievePartsFromStorage:backupRetrievePartsFromStorage};
     this.options = options || {};
     this.onProgress = this.options.onProgress || function(){};
     this.onWarning = this.options.onWarning || console.dir;
