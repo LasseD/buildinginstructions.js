@@ -242,7 +242,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
         if(!part.modelDescription && previousComment) {
 	    part.modelDescription = previousComment;
 	    if(previousComment.startsWith("~Unknown part ")) {
-		self.onError({message:'Unknown part "' + part.ID + '" will be shown as a cube.', line:i, subModel:part});
+		self.onError({message:'Unknown part "' + part.ID + '". Please <a href="../upload.php">upload</a> this part for it to be shown correctly in this model. If you do not have it, perhaps you can find it <a href="https://www.ldraw.org/cgi-bin/ptscan.cgi?q=' + part.ID + '">here on LDraw.org</a>. For now it will be shown as a cube.', line:i, subModel:part});
 	    }
 	    previousComment = undefined; // Ready for next part.
         }
@@ -2111,7 +2111,7 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
             let material = new LDR.Colors.buildTriangleMaterial(this.geometry.triangleColorManager, c, false);
             let mesh = new THREE.Mesh(this.geometry.triangleGeometries[16].clone(), material); // Using clone to ensure matrix in next line doesn't affect other usages of the geometry..
             mesh.geometry.applyMatrix(m4);
-            //mesh.applyMatrix(m4); // Doesn't work for LDraw library as the matrix needs to be decomposable to position, quaternion and scale.
+            //mesh.applyMatrix(m4); // Doesn't work for all LDraw parts as the matrix needs to be decomposable to position, quaternion and scale. Some rotation matrices in LDraw parts are not decomposable.
             if(LDR.Colors.isTrans(c)) {
                 mc.addTrans(mesh, pd);
             }
