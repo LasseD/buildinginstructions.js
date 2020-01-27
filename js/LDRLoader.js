@@ -1785,7 +1785,7 @@ LDR.Line5 = function(c, p1, p2, p3, p4, tmp) {
 }
 
 LDR.Line5.prototype.toLDR = function() {
-    return '4 ' + this.c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + ' ' + this.p3.toLDR() + ' ' + this.p4.toLDR() + '\r\n';
+    return '5 ' + this.c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + ' ' + this.p3.toLDR() + ' ' + this.p4.toLDR() + '\r\n';
 }
 
 THREE.LDRPartType = function() {
