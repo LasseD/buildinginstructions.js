@@ -17,10 +17,6 @@ LDR.PartsBuilder = function(loader, mainModelID, mainModelColor, onBuiltPart) {
     loader.substituteReplacementParts();
 
     function build(multiplier, partID, colorID) {
-	//console.log('Building ' + multiplier + " x '" + partID + "' in color " + colorID);
-	if(colorID == 16) {
-	    throw "Building with default color not allowed! Part ID: " + partID;
-        }
 	let model = loader.getPartType(partID);
 
         function handleStep(step, idx) {
