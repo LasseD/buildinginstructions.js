@@ -117,7 +117,7 @@
   stroke-width: 4;
 }
 #editButton svg {
-  stroke: 1;
+  stroke-width: 1;
   fill: none;
 }
 

@@ -1,8 +1,8 @@
 'use strict';
 
 LDR.STORAGE = function(onReady) {
+    let self = this;
     this.req = indexedDB.open("ldraw", 7);
-    this.db;
 
     this.req.onupgradeneeded = function(event) {
 	const db = event.target.result;
@@ -33,7 +33,6 @@ LDR.STORAGE = function(onReady) {
 	}
     };
 
-    let self = this;
     this.req.onerror = function(event) {
 	console.warn('DB Error: ' + event.target.errorCode);
 	console.dir(event);
@@ -55,7 +54,7 @@ LDR.STORAGE = function(onReady) {
   Attempts to fetch all in array 'parts' and calls onDone(stillToBeBuilt) on completion.
  */
 LDR.STORAGE.prototype.retrievePartsFromStorage = function(loader, parts, onDone) {
-    if(parts.length === 0) { // Ensure onDone is called when nothing is fetched.
+    if(parts.length === 0 || !this.db) { // Ensure onDone is called when nothing is fetched or can be fetched.
         onDone([]);
         return;
     }
@@ -141,7 +140,7 @@ LDR.STORAGE.prototype.retrievePartsFromStorage = function(loader, parts, onDone)
 }
 
 LDR.STORAGE.prototype.retrieveInstructionsFromStorage = function(loader, onDone) {
-    if(!loader.options.hasOwnProperty('key') || !loader.options.hasOwnProperty('timestamp')) {
+    if(!loader.options.hasOwnProperty('key') || !loader.options.hasOwnProperty('timestamp') || !this.db) {
 	onDone(false);
 	return;
     }
@@ -177,6 +176,9 @@ LDR.STORAGE.prototype.retrieveInstructionsFromStorage = function(loader, onDone)
 }
 
 LDR.STORAGE.prototype.savePartsToStorage = function(parts, loader) {
+    if(!this.db) {
+	return; // No db to save to.
+    }
     let partsWritten = 0;
     let transaction = this.db.transaction(["parts"], "readwrite");
     
@@ -200,8 +202,8 @@ LDR.STORAGE.prototype.savePartsToStorage = function(parts, loader) {
 }
 
 LDR.STORAGE.prototype.saveInstructionsToStorage = function(loader, key, timestamp) {
-    if(loader.instructionsSaved) {
-	return; // Already saved. Multiple calls can happen due to onLoad being called more than once on LDRLoader.
+    if(loader.instructionsSaved || !this.db) {
+	return; // Already saved or no db.
     }
     loader.instructionsSaved = true;
     let transaction = this.db.transaction(["instructions"], "readwrite");
