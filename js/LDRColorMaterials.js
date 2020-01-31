@@ -144,11 +144,13 @@ LDR.Colors.buildTriangleMaterial = function(colorManager, color, texmap) {
     if(texmap && texmap !== true) {
         uniforms['map'] = {type: 't', value: texmap};
     }
+    let isTrans = colorManager.containsTransparentColors() || texmap !== false;
     let ret = new THREE.RawShaderMaterial({
 	uniforms: uniforms,
 	vertexShader: LDR.Shader.createSimpleVertexShader(LDR.Colors.canBeOld, colors, false, false, texmap),
 	fragmentShader: texmap ? LDR.Shader.TextureFragmentShader : LDR.Shader.SimpleFragmentShader,
-	transparent: colorManager.containsTransparentColors() || texmap !== false
+	transparent: isTrans,
+        depthWrite: !isTrans
     });
     ret.colorManager = colorManager;
     return ret;
@@ -641,6 +643,7 @@ LDR.Colors.buildStandardMaterial = function(colorID, texmap) {
     let m = createMaterial(params);
     if(texmap) {
         m.transparent = true; // We do not know if texture is transparent.
+        m.depthWrite = false;
     }
     else {
         registerTextureListener(m); // Texture does not work with map since they both use UV's, but for different purposes!
@@ -648,6 +651,7 @@ LDR.Colors.buildStandardMaterial = function(colorID, texmap) {
 
     if(color.alpha > 0) {
         m.transparent = true;
+        m.depthWrite = false;
         m.opacity = color.alpha/255;
         // TODO: Use alphaMap or volume shader instead. 
         // https://stackoverflow.com/questions/26588568/volume-rendering-in-webgl and https://threejs.org/examples/webgl2_materials_texture3d.html
