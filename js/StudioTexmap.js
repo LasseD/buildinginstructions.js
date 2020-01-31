@@ -32,26 +32,30 @@ LDR.STUDIO.handlePart = function(loader, pt) {
 
     // Fix positioning issue:
     // Studio 2.0 custom LDraw parts are misaligned when they contain a single sub part!
-    /*if(step.subModels.length === 1 && step.triangles.length > 0 && step.lines.length === 0) {
-	let sm = step.subModels[0];
-    
-	let misalignment = sm.position;
-	step.triangles.forEach(t => {t.p1.sub(misalignment); t.p2.sub(misalignment); t.p3.sub(misalignment);});
+    if(step.subModels.length > 0 && step.triangles.length > 0 && step.lines.length === 0) {
+	let misalignment = step.subModels[0].position;
 
-        let tmps = {};
-        step.triangles.forEach(t => tmps[t.texmapPlacement.idx] = t.texmapPlacement);
-        for(let idx in tmps) {
-            if(!tmps.hasOwnProperty(idx)) {
-                continue;
+        // Check that all misalignments are... aligned:
+        let ok = true;
+        step.subModels.forEach(sm => ok = ok && sm.position.equals(misalignment));
+        if(ok) {
+            step.triangles.forEach(t => {t.p1.sub(misalignment); t.p2.sub(misalignment); t.p3.sub(misalignment);});
+
+            let tmps = {};
+            step.triangles.forEach(t => tmps[t.texmapPlacement.idx] = t.texmapPlacement);
+            for(let idx in tmps) {
+                if(!tmps.hasOwnProperty(idx)) {
+                    continue;
+                }
+                let tmp = tmps[idx];
+                tmp.p.forEach(p => p.sub(misalignment));
+                tmp.setPlanar();
             }
-            let tmp = tmps[idx];
-            tmp.p.forEach(p => p.sub(misalignment));
-            tmp.setPlanar();
-        }
 
-        // Finally set the position of the single sub model:
-	sm.position.set(0, 0, 0);
-        }*/
+            // Finally set the position of the single sub model:
+            step.subModels.forEach(sm => sm.position.set(0, 0, 0));
+        }
+    }
 
     // Set up dataurl:
     let pid = pt.ID + '.png';
@@ -59,7 +63,9 @@ LDR.STUDIO.handlePart = function(loader, pt) {
     loader.texmapDataurls.push({id:pid, mimetype:'png', content:pt.studioTexmap});
 
     loader.texmaps[pid] = true;
-    loader.texmapListeners[pid] = [];
+    if(!loader.texmapListeners.hasOwnProperty(pid)) {
+        loader.texmapListeners[pid] = [];
+    }
     let image = new Image();
     image.onload = function(e) {
         let texture = new THREE.Texture(this);
@@ -71,7 +77,7 @@ LDR.STUDIO.handlePart = function(loader, pt) {
     };
     image.src = dataurl;
 
-    delete pt.studioTexmap;
+    delete pt.studioTexmap; // Ensure this is only called once.
 }
 
 /*

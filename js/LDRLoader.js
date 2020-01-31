@@ -286,7 +286,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
                     closeStep(false);
                     
                     if(!part.ID) { // No ID in main model: 
-                        console.warn('No ID in main model - setting default ID "' + defaultID + '"');
+                        console.warn('No ID in main model - setting default ID', defaultID);
                         part.ID = defaultID;
 			if(!self.mainModel) {
 			    self.mainModel = defaultID;
@@ -294,7 +294,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
                     }
                     if(!skipPart) {
                         self.partTypes[part.ID] = part;
-                        loadedParts.push(part);
+                        loadedParts.push(part.ID);
                     }
                     skipPart = false;
                     self.onProgress(part.ID);
@@ -625,8 +625,10 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
     }
     if(!skipPart) {
         this.partTypes[part.ID] = part;
-        loadedParts.push(part);
+        loadedParts.push(part.ID);
     }
+
+    loadedParts = loadedParts.map(id => self.partTypes[id]); // Map from ID to part type.
 
     if(LDR.STUDIO) {
 	loadedParts.forEach(part => LDR.STUDIO.handlePart(self, part));
@@ -642,9 +644,6 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
         self.storage.savePartsToStorage(loadedParts, self);
         // Do not call storage.db.close() as there might be other parts that should be saved.
     }
-
-    // Load textures:
-    this.loadTexmaps();
 
     //console.log(loadedParts.length + " LDraw file(s) read in " + (new Date()-parseStartTime) + "ms.");
 };
@@ -939,7 +938,6 @@ THREE.LDRLoader.prototype.unpack = function(obj) {
     }
 
     this.onPartsLoaded();
-    this.loadTexmaps();
 
     return parts;
 }
@@ -1785,7 +1783,7 @@ LDR.Line5 = function(c, p1, p2, p3, p4, tmp) {
 }
 
 LDR.Line5.prototype.toLDR = function() {
-    return '4 ' + this.c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + ' ' + this.p3.toLDR() + ' ' + this.p4.toLDR() + '\r\n';
+    return '5 ' + this.c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + ' ' + this.p3.toLDR() + ' ' + this.p4.toLDR() + '\r\n';
 }
 
 THREE.LDRPartType = function() {
