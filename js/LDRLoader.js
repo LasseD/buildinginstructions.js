@@ -1915,7 +1915,7 @@ THREE.LDRLoader.prototype.purgePart = function(ID) {
             
             if(pt.steps.length === 0) {
                 if(pt.ID === self.mainModel) {
-                    loader.onError({message:'The main model is empty after removal of empty parts!', subModel:pt.ID});
+                    self.onError({message:'The main model is empty after removal of empty parts!', subModel:pt.ID});
                 }
                 else if(!purged.hasOwnProperty(pt.ID)) {
                     toPurge.push(pt.ID);
