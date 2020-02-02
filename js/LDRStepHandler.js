@@ -555,7 +555,7 @@ LDR.StepHandler.prototype.isAtPreStep = function() {
 }
 
 LDR.StepHandler.prototype.isAtFirstStep = function() {
-    if(!this.current !== 0) {
+    if(this.current !== 0) {
         return false;
     }
     let subStepHandler = this.steps[0].stepHandler;
