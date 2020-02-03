@@ -49,11 +49,17 @@ Files are fetched asynchroneously, so opening the sample files in your browser m
  --disable-web-security --user-data-dir=some_directory_where_it_is_ok_that_chrome_saves_a_lot_of_files
 ```
 
+Alternatively, if you have Python installed, then you can fire up a local HTTP server on 0.0.0.0 by running:
+
+```
+  python -m SimpleHTTPServer
+```
+
 Feel free to raise issues or make pull requests. The project is in active development.
 
 ## Vision
 
-- Generate LEGO building instructions quickly in any web browser.
+- Generate LEGO building instructions, parts lists, and 3D models directly in the web browser.
 
 - Automatically modify LEGO building instructions to make the LEGO models easier to build.
 
