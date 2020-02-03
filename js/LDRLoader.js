@@ -33,7 +33,7 @@ THREE.LDRLoader = function(onLoad, storage, options) {
     this.partTypes = {}; // id => true or part. id is typically something like "parts/3001.dat", and "model.mpd".
     this.texmaps = {}; // fileName => true or THREE.Texture. fileName is typically something like wall_deco123.png
     this.texmapListeners = {}; // fileName => list of functions to be called.
-    this.texmapDataurls = []; // [id,dataurl] for sotring inline texmaps.
+    this.texmapDataurls = []; // [id,mimetype,content] for sorting inline texmaps.
     this.unloadedFiles = 0;
 
     this.onLoad = function() {

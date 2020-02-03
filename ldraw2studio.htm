@@ -101,8 +101,9 @@
     <h3>step 1 - Select the file to convert</h3>
   <div class="section">
    <span class="desc">
-     Select your textured LDraw part which you would like to see converted to the format that <b>Studio 2.0</b> works with <b>Part Designer</b>.
+     Select your textured LDraw part which you would like to see converted to the format that works with <b>Studio 2.0</b>.
      The .dat file can either be uploaded or its content be pasted directly below.
+     There should be a single texture. This texture should either be inlined, or be placed in the <b>textures</b> folder.
    </span>
    <span class="choice">
     <label for="file">Upload the file here:</label>
@@ -110,21 +111,13 @@
    </span>
    <span class="choice">
     <textarea id="file_content" onkeyup="convert(null)" rows="8">
-0 FILE sample_file.dat
-0 Sample file. Insert or upload your own in the place of this.
+0 Sample file. Insert or upload your own in the place of this. Note how the texture file 'ab.png' is placed in the 'textures' folder.
 0 Name: sample_file.dat
 0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
 0 BFC CERTIFY CCW
-0 !TEXMAP NEXT PLANAR -10 -24 0    10 -24 0   -10 0 0 texture.png
-0 !: 4 16     -10 -24 -10     -10 0 -10     10 0 -10    10 -24 -10
+0 !TEXMAP NEXT PLANAR -10 -24 0 10 -24 0 -10 0 0 ab.png
+0 !: 4 16 -10 -24 -10 -10 0 -10 10 0 -10 10 -24 -10
 1 16 0 -24 0 1 0 0 0 1 0 0 0 1 s/3005s01.dat
-
-0 FILE texture.png
-0 !DATA START
-0 !:iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAACXBIWXMAAAsTAAALEwEAmpwYAAAA
-0 !:B3RJTUUH5AEYChQ1nEYzVAAAAB1pVFh0Q29tbWVudAAAAAAAQ3JlYXRlZCB3aXRoIEdJTVBkLmUH
-0 !:AAAAFklEQVQI12N4KqUh5fWUQcrr6VMpDQAiEgThLKLB4AAAAABJRU5ErkJggg==
-0 !DATA END
 </textarea>
    </span>
 
@@ -223,16 +216,16 @@ onWindowResize();
 let controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.addEventListener('change', render);
 
-let ldrLoader, storage;
+let ldrLoader, storage, dataurl;
 
 function onLoad() {
     if(!ldrLoader.mainModel) {
       onError({message:'A valid model was not parsed. Nothing will be shown'});
       return;
     }
-    if(ldrLoader.texmapDataurls.length !== 1) {
-      onError({message:'Exptected exactly one inline texture file. Found ' + ldrLoader.texmapDataurls.length});
-      return;
+
+    if(ldrLoader.texmapDataurls.length === 1) {
+      dataurl = ldrLoader.texmapDataurls[0].content;
     }
 
     if(baseObject) {
@@ -261,7 +254,7 @@ function onLoad() {
       '\r\n0 Author:  ' + (m.author ? m.author : '') + 
       '\r\n0 BFC ' + (m.certifiedBFC?'':'NO') + 'CERTIFY ' + (m.CCW ? '' : 'CW') +
       '\r\n0 PE_TEX_PATH -1' +
-      '\r\n0 PE_TEX_INFO ' + ldrLoader.texmapDataurls[0].content + '\r\n';
+      '\r\n0 PE_TEX_INFO ' + dataurl + '\r\n';
     m.steps.forEach(step => {
       step.subModels.forEach(x => ret += x.toLDR(ldrLoader));
       step.lines.forEach(x => ret += new LDR.Line2(x.colorID, x.p1, x.p2).toLDR());
@@ -303,6 +296,41 @@ function onLoad() {
     e.innerHTML = 'Click here to download ' + ldrLoader.mainModel;
 }
 
+THREE.LDRLoader.prototype.loadTexmaps = function() {
+    let self = this;
+    if(LDR.TexmapPlacements.length > 0) {
+        if(!this.texmapLoader) {
+            this.texmapLoader = new THREE.TextureLoader();
+        }
+
+        function setTexture(texture, file) {
+            self.texmaps[file] = texture;
+            self.texmapListeners[file].forEach(listener => listener(texture));
+            let image = texture.image;
+
+            var canvas = document.createElement("canvas");
+            canvas.width = image.width;
+            canvas.height = image.height;
+            var ctx = canvas.getContext("2d");
+            ctx.drawImage(image, 0, 0);
+            let mimetype = 'image/png';
+            dataurl = canvas.toDataURL(mimetype).replace('data:image/png;base64,','');
+            onLoad();
+        }
+        LDR.TexmapPlacements.forEach(tmp => {
+                let file = tmp.file; // TODO: Can't currently handle glossmaps.
+                if(!self.texmaps.hasOwnProperty(file)) {
+                    self.texmaps[file] = true;
+                    self.texmapListeners[file] = [];
+                    self.texmapLoader.load(self.idToTextureUrl(file),
+                                           t => setTexture(t, file),
+                                           undefined,
+                                           e => self.onError({message:e.message, subModel:file}));
+                }
+            });
+    }
+}
+
 /*
   Converting
  */
@@ -316,9 +344,28 @@ function convert(ldr) {
     $('#file_content').val(ldr);
   }
 
+  // Find file name:
+  let dataLines = ldr.split(/(\r\n)|\n/);
+  let fileName = 'main.dat';
+  for(let i = 0; i < dataLines.length; i++) {
+    let line = dataLines[i];
+    if(!line) {
+      continue; // Empty line, or 'undefined' due to '\r\n' split.
+    }
+
+    let parts = line.split(' ').filter(x => x !== ''); // Remove empty strings.
+    if(parts.length <= 1 || parts[0] !== '0') {
+      continue; // Empty/ empty comment line
+    }
+    if(parts[1] === 'FILE' || parts[1] === 'Name:') {
+      fileName = parts.slice(2).join(' ');
+      break;
+    }
+  }
+
   LDR.TexmapPlacements = [];
   ldrLoader = new THREE.LDRLoader(onLoad, storage, {onError:onError, onWarning:onWarning, onProgress:render, saveFileLines:true});
-  ldrLoader.parse(ldr, 'main.dat');
+  ldrLoader.parse(ldr, fileName);
 }
 
 function readFromFile(event) {
