@@ -85,7 +85,7 @@ LDR.Colors.desaturateColor = function(hex) {
 }
 
 LDR.Colors.isTrans = function(colorID) {
-    return colorID == 16 || LDR.Colors[colorID < 0 ? -colorID-1 : colorID].alpha > 0;
+    return LDR.Colors[colorID < 0 ? -colorID-1 : colorID].alpha > 0;
 }
 
 LDR.Colors.canBeOld = false;

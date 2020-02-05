@@ -1,5 +1,59 @@
 'use strict';
 
+LDR.EPS = 1e-5;
+
+/*
+  Binary merge of the geometry streams.
+ */
+LDR.mergeGeometries = function(geometries) {
+    if(geometries.length === 0) {
+        return new LDR.LDRGeometry();
+    }
+    while(geometries.length > 1) { // Repeat rounds until only 1 left:
+	let nextGeometries = []; // Result of round.
+
+	if(geometries.length % 2 === 1) {
+	    nextGeometries.push(geometries[geometries.length-1]); // Take last geometry without merging it.
+	}
+
+	for(let i = 0; i < geometries.length-1; i+=2) {
+	    geometries[i].merge(geometries[i+1]);
+	    nextGeometries.push(geometries[i]);
+	}
+	geometries = nextGeometries;
+    }
+    return geometries[0];
+}
+
+/*
+  A vertex is sorted by {x,y,z,c}.
+ */
+LDR.vertexSorter = function(a, b) {
+    if(a.x !== b.x) {
+	return a.x - b.x;
+    }
+    if(a.y !== b.y) {
+	return a.y - b.y;
+    }
+    return a.z - b.z;
+}
+
+LDR.vertexLessThan = function(a, b) {
+    if(a.x !== b.x) {
+	return a.x < b.x;
+    }
+    if(a.y !== b.y) {
+	return a.y < b.y;
+    }
+    return a.z < b.z;
+}
+
+LDR.vertexEqual = function(a, b) {
+    return Math.abs(a.x-b.x) < LDR.EPS && 
+           Math.abs(a.y-b.y) < LDR.EPS && 
+           Math.abs(a.z-b.z) < LDR.EPS;
+}
+
 LDR.BFCGeometry = function() {
     this.vertices = []; // sorted (x,y,z)
     this.lines = []; // [{p1,p2},...] (indices)
@@ -10,10 +64,20 @@ LDR.BFCGeometry = function() {
     this.lineColorManager;
     this.lineGeometry;
     this.triangleColorManager;
-    this.triangleGeometries;
+    this.triangleGeometries = {};
     this.conditionalLineGeometry;
     this.geometriesBuilt = false;
     this.boundingBox = new THREE.Box3();
+}
+
+LDR.BFCGeometry.prototype.buildVertexAttribute = function(rotation) {
+    let vertices = [];
+    this.vertices.forEach(v => {
+            let position = new THREE.Vector3(v.x, v.y, v.z);
+            position.applyMatrix3(rotation);
+            vertices.push(position.x, position.y, position.z);
+        });
+    return new THREE.Float32BufferAttribute(vertices, 3);
 }
 
 /*
@@ -58,7 +122,11 @@ LDR.BFCGeometry.prototype.buildGeometriesAndColors = function() {
         });
 
     triangleVertexAttribute = new THREE.Float32BufferAttribute(triangleVertices, 4);
-    this.triangleGeometries = {16:this.buildGeometry(triangleIndices, triangleVertexAttribute)};
+
+    let triangleGeometry = this.buildGeometry(triangleIndices, triangleVertexAttribute);
+    if(triangleGeometry) {
+        this.triangleGeometries[16] = triangleGeometry; // All colors = 16
+    }
 
     this.geometriesBuilt = true;
 }
