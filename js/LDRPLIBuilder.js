@@ -63,7 +63,7 @@ LDR.PLIBuilder.prototype.updateCamera = function(w, h) {
     this.camera.updateProjectionMatrix();
 }
 
- LDR.PLIBuilder.prototype.renderIcon = function(partID, colorID, w, h) {
+LDR.PLIBuilder.prototype.renderIcon = function(partID, colorID, w, h) {
     let pt = this.getPartType(partID);
 
     pt.pliMC.overwriteColor(colorID);

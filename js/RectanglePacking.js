@@ -12,6 +12,9 @@ var Algorithm = Algorithm || {};
    'scale' is pliWidth / maxPliSideLength.
  */
 Algorithm.PackPlis = function(fillHeight, maxWidth, maxHeight, plis, textHeight) {
+    if(plis.length === 0) {
+	return [0,0]; // Nothing to pack.
+    }
     const WIDTH_ADD = 4; // Spacing between columns.
     const TEXT_WIDTH_TO_HEIGHT_RATIO = 0.6;
 

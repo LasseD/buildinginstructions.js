@@ -2127,7 +2127,7 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
             let mesh = new THREE.Mesh(this.geometry.triangleGeometries[16].clone(), material); // Using clone to ensure matrix in next line doesn't affect other usages of the geometry..
             mesh.geometry.applyMatrix(m4);
             //mesh.applyMatrix(m4); // Doesn't work for all LDraw parts as the matrix needs to be decomposable to position, quaternion and scale. Some rotation matrices in LDraw parts are not decomposable.
-            if(colorID == 16 || LDR.Colors.isTrans(c)) {
+            if(c == 16 || LDR.Colors.isTrans(c)) {
                 mc.addTrans(mesh, pd);
             }
             else {
@@ -2148,7 +2148,7 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
             mesh.castShadow = true;
             mesh.geometry.applyMatrix(m4);
             
-            if(colorID == 16 || LDR.Colors.isTrans(shownColor)) {
+            if(shownColor == 16 || LDR.Colors.isTrans(shownColor)) {
                 mc.addTrans(mesh, pd);
             }
             else {
@@ -2194,7 +2194,7 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 
                 let mesh = new THREE.Mesh(g.clone(), material);
                 mesh.geometry.applyMatrix(m4);
-                if(colorID == 16 || LDR.Colors.isTrans(c3)) {
+                if(c3 == 16 || LDR.Colors.isTrans(c3)) {
                     mc.addTrans(mesh, pd);
                 }
                 else {

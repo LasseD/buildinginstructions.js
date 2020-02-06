@@ -150,7 +150,7 @@ LDR.Colors.buildTriangleMaterial = function(colorManager, color, texmap) {
 	vertexShader: LDR.Shader.createSimpleVertexShader(LDR.Colors.canBeOld, colors, false, false, texmap),
 	fragmentShader: texmap ? LDR.Shader.TextureFragmentShader : LDR.Shader.SimpleFragmentShader,
 	transparent: isTrans,
-        depthWrite: !isTrans
+        //depthWrite: !isTrans
     });
     ret.colorManager = colorManager;
     return ret;
