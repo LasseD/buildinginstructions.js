@@ -1068,16 +1068,21 @@ LDR.MeshCollector.prototype.addHoverBox = function(mesh, part) {
     this.opaqueObject.add(h);
 }
 
-LDR.MeshCollector.prototype.addOpaque = function(mesh, part) {
+LDR.MeshCollector.prototype.addMesh = function(color, mesh, part) {
     this.addHoverBox(mesh, part);
-    this.triangleMeshes.push({mesh:mesh, part:part, opaque:true});
-    this.opaqueObject.add(mesh);
-}
-
-LDR.MeshCollector.prototype.addTrans = function(mesh, part) {
-    this.addHoverBox(mesh, part);
-    this.triangleMeshes.push({mesh:mesh, part:part, opaque:false});
-    this.transObject.add(mesh);
+    let parent;
+    if(color === 16) {
+	console.log('Adding to sixteenObjec');
+	parent = this.sixteenObject;
+    }
+    else if(LDR.Colors.isTrans(c)) {
+	parent = this.transObject;
+    }
+    else {
+	parent = this.opaqueObject;
+    }
+    this.triangleMeshes.push({mesh:mesh, part:part, parent:parent});
+    parent.add(mesh);
 }
 
 LDR.MeshCollector.prototype.updateMeshVisibility = function() {
@@ -1097,10 +1102,7 @@ LDR.MeshCollector.prototype.removeAllMeshes = function() {
     var self = this;
     this.lineMeshes.forEach(obj => self.opaqueObject.remove(obj.mesh));
 
-    this.triangleMeshes.filter(obj => obj.opaque).forEach(obj => self.opaqueObject.remove(obj.mesh));
-
-    this.triangleMeshes.filter(obj => !obj.opaque).forEach(obj => self.transObject.remove(obj.mesh));
-
+    this.triangleMeshes.forEach(obj => obj.parent.remove(obj.mesh));
     this.triangleMeshes.forEach(obj => obj.part && obj.part.hoverBox && self.opaqueObject.remove(obj.part.hoverBox));
 }
 

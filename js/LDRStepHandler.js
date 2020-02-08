@@ -16,9 +16,10 @@ The builder supports the operations:
 - moveSteps: Go forward/back a specific number of steps.
 - Various methods for trieving information regarding the current step (depth, quantities, etc.)
 */
-LDR.StepHandler = function(opaqueObject, transObject, loader, partDescs, isForMainModel) {
+LDR.StepHandler = function(opaqueObject, sixteenObject, transObject, loader, partDescs, isForMainModel) {
     // Save parameters:
     this.opaqueObject = opaqueObject;
+    this.sixteenObject = sixteenObject;
     this.transObject = transObject;
     this.loader = loader;
     this.partDescs = partDescs;
@@ -47,7 +48,7 @@ LDR.StepHandler.prototype.rebuild = function() {
         let sh = null;
         if(step.containsNonPartSubModels(this.loader)) { // All are sub models (not parts):
             let subDescs = step.subModels.map(subModel => subModel.placeAt(partDesc));
-            sh = new LDR.StepHandler(this.opaqueObject, this.transObject,
+            sh = new LDR.StepHandler(this.opaqueObject, this.sixteenObject, this.transObject,
 				     this.loader, subDescs, false);
         }
         this.steps.push(new LDR.StepInfo(sh, step.cloneColored(partDesc.colorID)));
@@ -227,7 +228,7 @@ LDR.StepHandler.prototype.nextStep = function(doNotEraseForSubModels) {
 	let meshCollector = step.meshCollector;
 	if(!meshCollector) {
 	    let pd = this.partDescs[0];
-            meshCollector = new LDR.MeshCollector(this.opaqueObject, this.transObject);
+            meshCollector = new LDR.MeshCollector(this.opaqueObject, this.sixteenObject, this.transObject);
 
 	    step.step.generateThreePart(this.loader, pd.colorID, pd.position, pd.rotation, true, false, meshCollector);
 	    step.meshCollector = meshCollector;
@@ -528,7 +529,7 @@ LDR.StepHandler.prototype.drawExtras = function() {
     }
 
     if(!step.meshCollector) { // Not already loaded
-	step.meshCollector = new LDR.MeshCollector(this.opaqueObject, this.transObject);
+	step.meshCollector = new LDR.MeshCollector(this.opaqueObject, this.sixteenObject, this.transObject);
 
 	let prevAccumulatedBounds = new THREE.Box3();
 	prevAccumulatedBounds.copy(this.steps[this.length-1].accumulatedBounds);

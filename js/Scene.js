@@ -35,11 +35,13 @@ ENV.Scene = function(canvas, color) {
     // Rendering elements:
     this.baseObject = new THREE.Group();
     let opaqueObject = new THREE.Group();
+    let sixteenObject = new THREE.Group();
     let transObject = new THREE.Group();
     this.baseObject.add(opaqueObject); // Draw non-trans before trans.
+    this.baseObject.add(sixteenObject);
     this.baseObject.add(transObject);
     this.scene.add(this.baseObject);
-    this.mc = new LDR.MeshCollector(opaqueObject, transObject);
+    this.mc = new LDR.MeshCollector(opaqueObject, sixteenObject, transObject);
 
     // Light and background:
     let hl = new THREE.HemisphereLight(0xF4F4FB, 0x30302B, 0.65);

@@ -144,13 +144,15 @@ LDR.Colors.buildTriangleMaterial = function(colorManager, color, texmap) {
     if(texmap && texmap !== true) {
         uniforms['map'] = {type: 't', value: texmap};
     }
-    let isTrans = colorManager.containsTransparentColors() || texmap !== false;
+
+    let isTrans = colorManager.containsTransparentColors();
+
     let ret = new THREE.RawShaderMaterial({
 	uniforms: uniforms,
 	vertexShader: LDR.Shader.createSimpleVertexShader(LDR.Colors.canBeOld, colors, false, false, texmap),
 	fragmentShader: texmap ? LDR.Shader.TextureFragmentShader : LDR.Shader.SimpleFragmentShader,
 	transparent: isTrans,
-        //depthWrite: !isTrans
+        depthWrite: !isTrans
     });
     ret.colorManager = colorManager;
     return ret;

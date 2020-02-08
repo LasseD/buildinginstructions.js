@@ -161,7 +161,7 @@ LDR.SubPartBuilder.prototype.buildIcons = function(baseObject, linkPrefix) {
 	    content.setAttribute('colspan', '5');
 	}
 	else {
-	    line.mc = new LDR.MeshCollector(baseObject, baseObject);
+	    line.mc = new LDR.MeshCollector(baseObject, baseObject, baseObject);
 	    let c = transformColor(line.line1 ? line.desc.colorID : line.c);
 
 	    let color = LDR.Colors[c];

@@ -2121,40 +2121,28 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 	mc.addLines(conditionalLines, pd, true);
     }
     
-    if(loader.physicalRenderingAge === 0) { // Simple rendering:
-        if(this.geometry.triangleGeometries.hasOwnProperty(16)) { // Normal triangle geometry:
-            let material = new LDR.Colors.buildTriangleMaterial(this.geometry.triangleColorManager, c, false);
-            let mesh = new THREE.Mesh(this.geometry.triangleGeometries[16].clone(), material); // Using clone to ensure matrix in next line doesn't affect other usages of the geometry..
-            mesh.geometry.applyMatrix(m4);
-            //mesh.applyMatrix(m4); // Doesn't work for all LDraw parts as the matrix needs to be decomposable to position, quaternion and scale. Some rotation matrices in LDraw parts are not decomposable.
-            if(c == 16 || LDR.Colors.isTrans(c)) {
-                mc.addTrans(mesh, pd);
-            }
-            else {
-                mc.addOpaque(mesh, pd);
-            }            
-        }
-    }
-    else { // Physical rendering:
-        for(let tc in this.geometry.triangleGeometries) {
-            if(!this.geometry.triangleGeometries.hasOwnProperty(tc)) {
-                continue;
-            }
-            let g = this.geometry.triangleGeometries[tc];
+    // Normal triangle geometries:
+    for(let tc in this.geometry.triangleGeometries) {
+	if(!this.geometry.triangleGeometries.hasOwnProperty(tc)) {
+	    continue;
+	}
+	let g = this.geometry.triangleGeometries[tc];
 
-            let shownColor = tc === '16' ? c : tc;
-            let material = LDR.Colors.buildStandardMaterial(shownColor);
-            let mesh = new THREE.Mesh(g.clone(), material);
-            mesh.castShadow = true;
-            mesh.geometry.applyMatrix(m4);
-            
-            if(shownColor == 16 || LDR.Colors.isTrans(shownColor)) {
-                mc.addTrans(mesh, pd);
-            }
-            else {
-                mc.addOpaque(mesh, pd);
-            }            
+	let material;
+	if(loader.physicalRenderingAge === 0) { // Simple rendering:
+	    let triangleColorManager = new LDR.ColorManager();
+            triangleColorManager.get(tc); // Ensure color is present.
+            material = new LDR.Colors.buildTriangleMaterial(triangleColorManager, c, false);
         }
+	else { // Physical rendering:
+            tc = tc === '16' ? c : tc;
+            material = LDR.Colors.buildStandardMaterial(tc);
+	}
+        let mesh = new THREE.Mesh(g.clone(), material); // Using clone to ensure matrix in next line doesn't affect other usages of the geometry.
+        mesh.castShadow = loader.physicalRenderingAge !== 0;
+        mesh.geometry.applyMatrix(m4);
+        //mesh.applyMatrix(m4); // Doesn't work for all LDraw parts as the matrix needs to be decomposable to position, quaternion and scale. Some rotation matrices in LDraw parts are not decomposable.
+        mc.addMesh(tc, mesh, pd);
     }
 
     let self = this;
@@ -2163,46 +2151,42 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
             continue;
         }
         this.geometry.texmapGeometries[idx].forEach(obj => {
-                let g = obj.geometry, c2 = obj.colorID;
-                let c3 = c2 === '16' ? c : c2;
-                let textureFile = LDR.TexmapPlacements[idx].file;
-
-                let material;
-                let buildMaterial, setMap;
-                if(loader.physicalRenderingAge === 0 || !true) {
-                    buildMaterial = t => LDR.Colors.buildTriangleMaterial(self.geometry.triangleColorManager, c3, t);
-                    setMap = t => material.uniforms.map = {type:'t',value:t};
+            let g = obj.geometry, c2 = obj.colorID;
+            let c3 = c2 === '16' ? c : c2;
+            let textureFile = LDR.TexmapPlacements[idx].file;
+	    
+            let material;
+            let buildMaterial, setMap;
+            if(loader.physicalRenderingAge === 0 || !true) {
+		let triangleColorManager = new LDR.ColorManager();
+		triangleColorManager.get(c2); // Ensure color is present.
+                buildMaterial = t => LDR.Colors.buildTriangleMaterial(triangleColorManager, c3, t);
+                setMap = t => material.uniforms.map = {type:'t',value:t};
+            }
+            else {
+                buildMaterial = t => LDR.Colors.buildStandardMaterial(c3, t);
+                setMap = t => material.map = t;
+            }
+	    
+            if(loader.texmaps[textureFile] === true) {
+                material = buildMaterial(true);
+                function setTexmap(t) {
+                    setMap(t);
+                    material.needsUpdate = true;
+                    loader.onProgress(textureFile);
                 }
-                else {
-                    buildMaterial = t => LDR.Colors.buildStandardMaterial(c3, t);
-                    setMap = t => material.map = t;
-                }
-
-                if(loader.texmaps[textureFile] === true) {
-                    material = buildMaterial(true);
-                    function setTexmap(t) {
-                        setMap(t);
-                        material.needsUpdate = true;
-                        loader.onProgress(textureFile);
-                    }
-                    loader.texmapListeners[textureFile].push(setTexmap);
-                }
-                else {
-                    let texture = loader.texmaps[textureFile];
-                    material = buildMaterial(texture);
-                }
-
-                let mesh = new THREE.Mesh(g.clone(), material);
-                mesh.geometry.applyMatrix(m4);
-                if(c3 == 16 || LDR.Colors.isTrans(c3)) {
-                    mc.addTrans(mesh, pd);
-                }
-                else {
-                    mc.addOpaque(mesh, pd);
-                }
-            });
+                loader.texmapListeners[textureFile].push(setTexmap);
+            }
+            else {
+                let texture = loader.texmaps[textureFile];
+                material = buildMaterial(texture);
+            }
+	    
+            let mesh = new THREE.Mesh(g.clone(), material);
+            mesh.geometry.applyMatrix(m4);
+            mc.addMesh(c3, mesh, pd);
+        });
     }
-
 
     let b = this.geometry.boundingBox;
     mc.expandBoundingBox(b, m4);
@@ -2634,6 +2618,10 @@ LDR.ColorManager.prototype.clone = function() {
 }
 
 LDR.ColorManager.prototype.overWrite = function(id) {
+    if(this.sixteen === -1 && this.edgeSixteen === -1) {
+	return;
+    }
+
     let isEdge = id < 0;
     let lowID = isEdge ? -id-1 : id;
     let colorObject = LDR.Colors[lowID];
@@ -2647,7 +2635,6 @@ LDR.ColorManager.prototype.overWrite = function(id) {
         let color = new THREE.Color(isEdge ? colorObject.edge : colorObject.value);
         this.shaderColors[this.sixteen] = new THREE.Vector4(color.r, color.g, color.b, alpha);
     }
-    
     if(this.edgeSixteen >= 0) {
         let color = new THREE.Color(colorObject.edge);
         this.shaderColors[this.edgeSixteen] = new THREE.Vector4(color.r, color.g, color.b, 1); // Drop alpha from edge lines to increase contrast.
@@ -2699,12 +2686,16 @@ LDR.ColorManager.prototype.containsTransparentColors = function() {
   - 'ghost': 'Ghosted' parts will be shown by their lines only (no faces).
 */
 LDR.MeshCollectorIdx = 0;
-LDR.MeshCollector = function(opaqueObject, transObject) {
+LDR.MeshCollector = function(opaqueObject, sixteenObject, transObject) {
+    if(!transObject) {
+	throw 'Missing trans object';
+    }
     this.opaqueObject = opaqueObject;
+    this.sixteenObject = sixteenObject; // To be painted after anything opaque, as it might be trans.
     this.transObject = transObject; // To be painted last.
 
-    this.lineMeshes = []; // {mesh,part,opaque,conditional}
-    this.triangleMeshes = []; // {mesh,part,opaque}
+    this.lineMeshes = []; // {mesh,part,conditional}
+    this.triangleMeshes = []; // {mesh,part,parent}
 
     this.old = false;
     this.visible = true;
@@ -2714,25 +2705,29 @@ LDR.MeshCollector = function(opaqueObject, transObject) {
 }
 
 LDR.MeshCollector.prototype.addLines = function(mesh, part, conditional) {
-    this.lineMeshes.push({mesh:mesh, part:part, opaque:true, conditional:conditional});
+    this.lineMeshes.push({mesh:mesh, part:part, conditional:conditional});
     this.opaqueObject.add(mesh);
 }
 
-LDR.MeshCollector.prototype.addOpaque = function(mesh, part) {
-    this.triangleMeshes.push({mesh:mesh, part:part, opaque:true});
-    this.opaqueObject.add(mesh);
-}
-
-LDR.MeshCollector.prototype.addTrans = function(mesh, part) {
-    this.triangleMeshes.push({mesh:mesh, part:part, opaque:false});
-    this.transObject.add(mesh);
+LDR.MeshCollector.prototype.addMesh = function(color, mesh, part) {
+    let parent;
+    if(color === 16) {
+	parent = this.sixteenObject;
+    }
+    else if(LDR.Colors.isTrans(color)) {
+	parent = this.transObject;
+    }
+    else {
+	parent = this.opaqueObject;
+    }
+    this.triangleMeshes.push({mesh:mesh, part:part, parent:parent});
+    parent.add(mesh);
 }
 
 LDR.MeshCollector.prototype.removeAllMeshes = function() {
     let self = this;
     this.lineMeshes.forEach(obj => self.opaqueObject.remove(obj.mesh));
-    this.triangleMeshes.filter(obj => obj.opaque).forEach(obj => self.opaqueObject.remove(obj.mesh));
-    this.triangleMeshes.filter(obj => !obj.opaque).forEach(obj => self.transObject.remove(obj.mesh));
+    this.triangleMeshes.forEach(obj => obj.parent.remove(obj.mesh));
 }
 
 /*
@@ -2838,8 +2833,6 @@ LDR.MeshCollector.prototype.overwriteColor = function(color) {
         return;
     }
 
-    let isTrans = LDR.Colors.isTrans(color);
-
     function handle(obj, edge) {
         const m = obj.mesh.material;
         const c = m.colorManager;
@@ -2853,12 +2846,15 @@ LDR.MeshCollector.prototype.overwriteColor = function(color) {
 	    m.uniforms.colors.value = colors;
         }
 	if(!edge) {
+	    let isTrans = c.containsTransparentColors();
 	    m.depthWrite = !isTrans; // Set depth write only for opaque materials.
+	    m.transparent = isTrans;
 	}
     }
 
     for(let i = 0; i < this.triangleMeshes.length; i++) {
-	handle(this.triangleMeshes[i], false);
+	let mesh = this.triangleMeshes[i];
+	handle(mesh, false);
     }
     for(let i = 0; i < this.lineMeshes.length; i++) {
 	handle(this.lineMeshes[i], true);

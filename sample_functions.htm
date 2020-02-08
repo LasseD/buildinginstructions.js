@@ -38,11 +38,12 @@
       var scene = new THREE.Scene();
       scene.background = new THREE.Color(0xDDDDDD);
 
-      var baseObject = new THREE.Group(), opaqueObject = new THREE.Group(), transObject = new THREE.Group();
+      var baseObject = new THREE.Group(), opaqueObject = new THREE.Group(), sixteenObject = new THREE.Group(); transObject = new THREE.Group();
       baseObject.add(opaqueObject); // Draw non-trans before trans.
+      baseObject.add(sixteenObject);
       baseObject.add(transObject);
       scene.add(baseObject);
-      var mc = new LDR.MeshCollector(opaqueObject, transObject);
+      var mc = new LDR.MeshCollector(opaqueObject, sixteenObject, transObject);
 
       // Set up renderer:
       var canvas = document.getElementById('main_canvas');

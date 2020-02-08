@@ -65,7 +65,6 @@ LDR.LDRGeometry = function() {
     // geometries:
     this.lineColorManager;
     this.lineGeometry;
-    this.triangleColorManager;
     this.triangleGeometries = {}; // c -> geometry
     this.texmapGeometries = {}; // texmapID -> [{colorID,geometry}] Populated with one geometry pr TEXMAP START command.
     this.conditionalLineGeometry;
@@ -174,8 +173,6 @@ LDR.LDRGeometry.prototype.buildGeometriesAndColors = function() {
     let self = this;
     this.buildGeometriesAndColorsForLines();
 
-    this.triangleColorManager = new LDR.ColorManager();
-
     // Now handle triangle colors and vertices:
     let allTriangleColors = [];
     let seen = {};
@@ -192,62 +189,38 @@ LDR.LDRGeometry.prototype.buildGeometriesAndColors = function() {
     getColorsFrom(this.quads);
     getColorsFrom(this.quads2);
 
-    let triangleVertexAttribute, triangleVertices = [], triangleIndices = [];
-    if(allTriangleColors.length === 1) { // Use 3 floats pr. vertex (x,y,z):
-	let c = allTriangleColors[0];
-	this.triangleColorManager.get(c); // Ensure color is present.
-
-        this.vertices.forEach(v => triangleVertices.push(v.x, v.y, v.z));
-	triangleVertexAttribute = new THREE.Float32BufferAttribute(triangleVertices, 3);
-
-	// No need to update indices for triangles and quads:
+    let colorIdx = -1;
+    allTriangleColors.forEach(c => {
+	let triangleVertices = [], triangleIndices = [];
+        colorIdx--;
+        let tvIdx = 0;
+	    
+        let hv = function(idx) { // Handle vertex:
+            let v = self.vertices[idx];
+            if(v.c !== colorIdx) { // Not already seen for this color.
+                v.c = colorIdx;
+                v.idx = tvIdx++;
+                triangleVertices.push(v.x, v.y, v.z);
+            }
+            return v.idx;
+        }
+	    
         function handlePrimitives(ps, f) {
             if(ps.hasOwnProperty(c)) {
                 ps[c].filter(p => !p.t).forEach(f);
             }
         }
-        handlePrimitives(this.triangles, t => triangleIndices.push(t.p1, t.p2, t.p3));
-        handlePrimitives(this.triangles2, t => triangleIndices.push(t.p1, t.p2, t.p3, t.p3, t.p2, t.p1));
-	handlePrimitives(this.quads, q => triangleIndices.push(q.p1, q.p2, q.p4, q.p2, q.p3, q.p4));
-        handlePrimitives(this.quads2, q => triangleIndices.push(q.p1, q.p2, q.p4, q.p2, q.p3, q.p4,
-                                                                q.p4, q.p3, q.p2, q.p4, q.p2, q.p1));
-    }
-    else if(allTriangleColors.length > 1) { // Use 4 floats pr. vertex (x,y,z,c)
-        let colorIdx = -1;
-        let tvIdx = 0;
-	/*
-	  If a vertex is shared by multiple colors, then duplicate it:
-	 */
-        allTriangleColors.forEach(c => {
-                colorIdx--;
-                let fc = self.triangleColorManager.get(c);
-
-                let hv = function(idx) { // Handle vertex:
-                    let v = self.vertices[idx];
-                    if(v.c !== colorIdx) {
-                        v.c = colorIdx;
-                        v.idx = tvIdx++;
-                        triangleVertices.push(v.x, v.y, v.z, fc);
-                    }
-                    return v.idx;
-                }
-
-                function handlePrimitives(ps, f) {
-                    if(ps.hasOwnProperty(c)) {
-                        ps[c].filter(p => !p.t).forEach(f);
-                    }
-                }
-                handlePrimitives(self.triangles, t => triangleIndices.push(hv(t.p1), hv(t.p2), hv(t.p3)));
-                handlePrimitives(self.triangles2, t => {let i1=hv(t.p1), i2=hv(t.p2), i3=hv(t.p3); triangleIndices.push(i1, i2, i3, i3, i2, i1);});
-                handlePrimitives(self.quads, q => {let i1=hv(q.p1), i2=hv(q.p2), i3=hv(q.p3), i4=hv(q.p4); triangleIndices.push(i1, i2, i4, i2, i3, i4);});
-                handlePrimitives(self.quads2, q => {let i1=hv(q.p1), i2=hv(q.p2), i3=hv(q.p3), i4=hv(q.p4); triangleIndices.push(i1, i2, i4, i2, i3, i4, i4, i3, i2, i4, i2, i1);});
-            });
-	triangleVertexAttribute = new THREE.Float32BufferAttribute(triangleVertices, 4);
-    }
-    let triangleGeometry = this.buildGeometry(triangleIndices, triangleVertexAttribute);
-    if(triangleGeometry) {
-        this.triangleGeometries[16] = triangleGeometry; // All colors = 16
-    }
+        handlePrimitives(self.triangles, t => triangleIndices.push(hv(t.p1), hv(t.p2), hv(t.p3)));
+        handlePrimitives(self.triangles2, t => {let i1=hv(t.p1), i2=hv(t.p2), i3=hv(t.p3); triangleIndices.push(i1, i2, i3, i3, i2, i1);});
+        handlePrimitives(self.quads, q => {let i1=hv(q.p1), i2=hv(q.p2), i3=hv(q.p3), i4=hv(q.p4); triangleIndices.push(i1, i2, i4, i2, i3, i4);});
+        handlePrimitives(self.quads2, q => {let i1=hv(q.p1), i2=hv(q.p2), i3=hv(q.p3), i4=hv(q.p4); triangleIndices.push(i1, i2, i4, i2, i3, i4, i4, i3, i2, i4, i2, i1);});
+	
+	let triangleVertexAttribute = new THREE.Float32BufferAttribute(triangleVertices, 3);
+	let triangleGeometry = this.buildGeometry(triangleIndices, triangleVertexAttribute);
+	if(triangleGeometry) {
+	    this.triangleGeometries[c] = triangleGeometry;
+	}
+    });
 
     // Handle texmap geometries:
     allTriangleColors.forEach(c => self.buildTexmapGeometriesForColor(c));

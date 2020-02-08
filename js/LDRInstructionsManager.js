@@ -69,8 +69,10 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
 
     this.baseObject = new THREE.Group();
     this.opaqueObject = new THREE.Group();
+    this.sixteenObject = new THREE.Group();
     this.transObject = new THREE.Group();
     this.baseObject.add(this.opaqueObject); // Draw non-trans before trans.
+    this.baseObject.add(this.sixteenObject);
     this.baseObject.add(this.transObject);
     this.scene.add(this.baseObject);
     this.pliPreviewer = new LDR.PliPreviewer(modelID, this.secondaryCanvas, this.secondaryRenderer);
@@ -132,7 +134,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
         
         self.pliBuilder = new LDR.PLIBuilder(self.ldrLoader, self.canEdit, mainModel,
                                              document.getElementById('pli'), self.secondaryRenderer);
-        self.stepHandler = new LDR.StepHandler(self.opaqueObject, self.transObject, self.ldrLoader, [pd], true);
+        self.stepHandler = new LDR.StepHandler(self.opaqueObject, self.sixteenObject, self.transObject, self.ldrLoader, [pd], true);
         self.stepHandler.nextStep(false);
 
 	self.realignModel(0);

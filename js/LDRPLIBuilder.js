@@ -32,12 +32,18 @@ LDR.PLIBuilder.prototype.getPartType = function(id) {
     let pt = this.loader.getPartType(id);
     if(!pt.mesh) { // Ensure size is computed.
 	pt.mesh = new THREE.Group();
+	let opaqueObject = new THREE.Group();
+	let sixteenObject = new THREE.Group();
+	let transObject = new THREE.Group();
+	pt.mesh.add(opaqueObject);
+	pt.mesh.add(sixteenObject);
+	pt.mesh.add(transObject);
 
         // Set up mesh collector:
-	pt.pliMC = new LDR.MeshCollector(pt.mesh, pt.mesh);
+	pt.pliMC = new LDR.MeshCollector(opaqueObject, sixteenObject, transObject);
 	let p = new THREE.Vector3();
 	let r = new THREE.Matrix3(); r.set(1,0,0, 0,-1,0, 0,0,-1);
-	pt.generateThreePart(this.loader, 40, p, r, true, false, pt.pliMC); // Color 40 ensures transparent parts work.
+	pt.generateThreePart(this.loader, 16, p, r, true, false, pt.pliMC);
 
         // Draw to ensure bounding box:
         pt.pliMC.draw(false);

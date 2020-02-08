@@ -234,7 +234,7 @@ function onLoad() {
     baseObject = new THREE.Group();
     scene.add(baseObject);
 
-    var mc = new LDR.MeshCollector(baseObject, baseObject);
+    var mc = new LDR.MeshCollector(baseObject, baseObject, baseObject);
     ldrLoader.generate(16, mc);
 
     // Find center of drawn model:
