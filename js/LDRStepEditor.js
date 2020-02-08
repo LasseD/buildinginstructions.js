@@ -1075,7 +1075,7 @@ LDR.MeshCollector.prototype.addMesh = function(color, mesh, part) {
 	console.log('Adding to sixteenObjec');
 	parent = this.sixteenObject;
     }
-    else if(LDR.Colors.isTrans(c)) {
+    else if(LDR.Colors.isTrans(color)) {
 	parent = this.transObject;
     }
     else {
