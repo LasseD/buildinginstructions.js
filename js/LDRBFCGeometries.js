@@ -107,26 +107,28 @@ LDR.BFCGeometry.prototype.buildGeometriesAndColors = function() {
     this.buildGeometryForConditionalLines();
 
     // Now handle triangle colors and vertices:
-    let triangleVertexAttribute, triangleVertices = [], triangleIndices = [];
+    let triangleVertexAttribute, triangleVertices = [], rgb = {'4':[], '2':[], '1':[]};
     this.vertices.forEach(v => triangleVertices.push(v.x, v.y, v.z, 0.1, 
                                                      v.x, v.y, v.z, 1.1,
                                                      v.x, v.y, v.z, 2.1)); // Green, red, blue
     
     this.triangles.forEach(triangle => {
-            triangleIndices.push(3*triangle.p1, 3*triangle.p2, 3*triangle.p3); // Green
-            triangleIndices.push(1+3*triangle.p3, 1+3*triangle.p2, 1+3*triangle.p1); // Red
+            rgb['2'].push(3*triangle.p1, 3*triangle.p2, 3*triangle.p3); // Green
+            rgb['4'].push(1+3*triangle.p3, 1+3*triangle.p2, 1+3*triangle.p1); // Red
         });
     this.triangles2.forEach(triangle => {
-            triangleIndices.push(2+3*triangle.p1, 2+3*triangle.p2, 2+3*triangle.p3); // Blue
-            triangleIndices.push(2+3*triangle.p3, 2+3*triangle.p2, 2+3*triangle.p1); // Blue
+            rgb['1'].push(2+3*triangle.p1, 2+3*triangle.p2, 2+3*triangle.p3); // Blue
+            rgb['1'].push(2+3*triangle.p3, 2+3*triangle.p2, 2+3*triangle.p1); // Blue
         });
 
     triangleVertexAttribute = new THREE.Float32BufferAttribute(triangleVertices, 4);
 
-    let triangleGeometry = this.buildGeometry(triangleIndices, triangleVertexAttribute);
-    if(triangleGeometry) {
-        this.triangleGeometries[16] = triangleGeometry; // All colors = 16
-    }
+    [1,2,4].forEach(c => {
+	let geom = this.buildGeometry(rgb[c], triangleVertexAttribute);
+	if(geom) {
+            this.triangleGeometries[c] = geom;
+	}
+    });
 
     this.geometriesBuilt = true;
 }

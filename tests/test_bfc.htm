@@ -12,8 +12,7 @@
     <script src="../js/LDROptions.js"></script>
     <script src="../js/LDRShaders.js"></script>
     <script src="../js/LDRColorMaterials.js"></script>
-    <script src="../js/LDRGeometries.js"></script>
-    <script src="../js/LDRBFCGeometries.js"></script>
+    <script src="../js/LDRBFCGeometries.js"></script><!-- Enables BFC -->
     <script src="../js/LDRMeasurer.js"></script>
     <script src="../js/LDRGenerator.js"></script>
     <script src="../js/LDRStuds.js"></script>
@@ -122,14 +121,7 @@
         }
       }
 
-      // Enable BFC:
-      THREE.LDRPartType.prototype.ensureGeometry = function(loader) {
-        if(!this.geometry) {
-          this.geometry = new LDR.BFCGeometry();
-          this.geometry.fromPartType(loader, this);
-        }
-      }
-
+      LDR.LDRGeometry = LDR.BFCGeometry; // Enable BFC.
       ldrLoader = new THREE.LDRLoader(onLoad, null, {idToUrl:idToUrl});
       LDR.Studs.setStuds(ldrLoader, ldrOptions.studHighContrast,
                          ldrOptions.studLogo, () => ldrLoader.load(partID));
