@@ -99,7 +99,7 @@ LDR.STORAGE.prototype.retrievePartsFromStorage = function(loader, parts, onDone)
         if(LDR.Generator) {
             let pt = LDR.Generator.make(partID);
             if(pt) {
-                loader.partTypes[partID] = pt;
+                loader.setPartType(pt);
                 onHandled(partID);
                 return;
             }
@@ -122,7 +122,7 @@ LDR.STORAGE.prototype.retrievePartsFromStorage = function(loader, parts, onDone)
 		try {
 		    let pt = new THREE.LDRPartType();
                     pt.unpack(result);
-		    loader.partTypes[pt.ID] = pt;
+		    loader.setPartType(pt);
 		}
 		catch(e) {
 		    console.warn(e);

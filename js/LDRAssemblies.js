@@ -13,8 +13,12 @@ LDR.AssemblyManager = function(loader) {
     this.loader = loader;
     let self = this;
 
+    // Handlers for delayed loading, such as torsos which are loaded after initial substitution of parts:
+    this.partTypeHandlers = {};
+
     // Build the lookup map:
     this.map = {};
+
     function addToMap(mainPart, obj) {
         if(self.map.hasOwnProperty(mainPart)) {
             self.map[mainPart].push(obj);
@@ -42,9 +46,12 @@ LDR.AssemblyManager = function(loader) {
     }
 
     // Add torsos:
-    function handleTorsosInStep(step) {
+    this.handleTorsosInStep = function(step) {
 	// Try to find a torso, two arms and two hands:
-	let torso = step.subModels.find(sm => sm.ID.length >= 7 && sm.ID.startsWith('973') && sm.ID.endsWith('.dat')); if(!torso) return; // No torsos.
+	let torso = step.subModels.find(sm => sm.ID.length >= 7 && sm.ID.startsWith('973') && sm.ID.endsWith('.dat'));
+	if(!torso) {
+	    return; // No torsos.
+	}
         let ID = torso.ID.substring(0, torso.ID.length-4) + 'c' + torso.colorID + '.dat'; // Assembly ID
         if(self.loader.partTypes.hasOwnProperty(ID)) {
             return; // Already built.
@@ -75,26 +82,33 @@ LDR.AssemblyManager = function(loader) {
 	
         // Torso part type:
         let torsoPT = new THREE.LDRPartType();
-	/*let pt = loader.getPartType(torso.ID);
-        if(!pt) {
-            console.warn('Missing torso part: ' + torso.ID + ' in loaded parts.');
-	    console.dir(loader.partTypes);
-            return;
-        }*/
         torsoPT.name = torsoPT.ID = ID;
-        torsoPT.modelDescription = LDR.Colors[torso.colorID].name + ' ' + 'Torso' + ' / '; // pt.modelDescription
+        let md0 = LDR.Colors[torso.colorID].name + ' '; // pt.modelDescription
+        let md2 = ' / '; // pt.modelDescription
+
 	if(armLeft.colorID === armRight.colorID) {
-	    torsoPT.modelDescription += LDR.Colors[armLeft.colorID].name + ' Arms';
+	    md2 += LDR.Colors[armLeft.colorID].name + ' Arms';
 	}
 	else {
-	    torsoPT.modelDescription += LDR.Colors[armLeft.colorID].name + ' Left Arm / ' +
-		LDR.Colors[armRight.colorID].name + ' Right Arm';
+	    md2 += LDR.Colors[armLeft.colorID].name + ' Left Arm / ' + LDR.Colors[armRight.colorID].name + ' Right Arm';
 	}
-	torsoPT.modelDescription += ' / ' + LDR.Colors[hand.colorID].name + ' Hands';
+	md2 += ' / ' + LDR.Colors[hand.colorID].name + ' Hands';
+
+	let pt = loader.getPartType(torso.ID);
+	let md1;
+        if(pt) {
+	    md1 = pt.modelDescription;
+        }
+	else {
+            md1 = 'Minifig Torso';
+	    self.partTypeHandlers[torso.ID] = {handle:p=>torsoPT.modelDescription = md0 + p.modelDescription + md2};
+	}
+	torsoPT.modelDescription = md0 + md1 + md2;
+
         torsoPT.author = 'LDRAssemblies.js';
         torsoPT.license = 'Redistributable under CCAL version 2.0 : see CAreadme.txt';
         torsoPT.ldraw_org = 'Unofficial_Part';
-        torsoPT.inlined = 'UNOFFICIAL';
+        torsoPT.inlined = 'GENERATED';
         torsoPT.cleanSteps = torsoPT.certifiedBFC = torsoPT.CCW = torsoPT.consistentFileAndName = true;
         torsoPT.steps = [torsoStep];
         torsoPT.isPart = true;
@@ -107,7 +121,7 @@ LDR.AssemblyManager = function(loader) {
         let obj = {ID:ID,c:16,keys:keys};
         addToMap(torso.ID, obj);
     }
-    loader.applyOnPartTypes(pt => pt.steps.forEach(handleTorsosInStep));
+    //loader.applyOnPartTypes(pt => pt.steps.forEach(handleTorsosInStep));
 }
 
 LDR.AssemblyManager.prototype.handleStep = function(step) {
@@ -184,4 +198,16 @@ LDR.AssemblyManager.prototype.handleStep = function(step) {
     } // function handleSubModel
     step.subModels.forEach(handleSubModel);
     return ret;
+}
+
+LDR.AssemblyManager.prototype.handlePartType = function(pt) {
+    let self = this;
+
+    if(!pt.isPart) {
+	pt.steps.forEach(step => self.handleTorsosInStep(step));
+    }
+
+    if(this.partTypeHandlers.hasOwnProperty(pt.ID)) {
+	this.partTypeHandlers[pt.ID].handle(pt);
+    }
 }

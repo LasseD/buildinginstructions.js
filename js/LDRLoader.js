@@ -58,9 +58,9 @@ THREE.LDRLoader = function(onLoad, storage, options) {
         // Try to fetch those that can be generated:
         let stillToBeFetched = [];
         toBeFetched.forEach(id => {
-                let subModel = LDR.Generator.make(id)
-                if(subModel) {
-                    loader.partTypes[id] = subModel;
+                let pt = LDR.Generator.make(id)
+                if(pt) {
+                    loader.setPartType(pt);
                 }
                 else {
                     stillToBeFetched.push(id);
@@ -293,7 +293,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 			}
                     }
                     if(!skipPart) {
-                        self.partTypes[part.ID] = part;
+                        self.setPartType(part);
                         loadedParts.push(part.ID);
                     }
                     skipPart = false;
@@ -625,7 +625,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
         }
     }
     if(!skipPart) {
-        this.partTypes[part.ID] = part;
+        this.setPartType(part);
         loadedParts.push(part.ID);
     }
 
@@ -718,14 +718,17 @@ THREE.LDRLoader.prototype.onPartsLoaded = function(loadedParts) {
     loadedParts.forEach(pt => {if(pt.steps.length === 0)self.purgePart(pt.ID);});
 
     // Handle assemblies:
-    if(self.options.buildAssemblies) {
-	if(!self.assemblyManager) {
-            self.assemblyManager = new LDR.AssemblyManager(self);
+    if(this.options.buildAssemblies) {
+	if(!this.assemblyManager) {
+            this.assemblyManager = new LDR.AssemblyManager(this);
 	}
-	const am = self.assemblyManager;
+	const AM = this.assemblyManager;
+
+	loadedParts.forEach(pt => AM.handlePartType(pt));
+
 	let handleAssemblies = pt => { 
 	    if(!pt.isPart) {
-		pt.steps.forEach(s => am.handleStep(s).forEach(checkPart));
+		pt.steps.forEach(s => AM.handleStep(s).forEach(checkPart));
 	    }
 	};
 	loadedParts.forEach(handleAssemblies);
@@ -738,9 +741,9 @@ THREE.LDRLoader.prototype.onPartsLoaded = function(loadedParts) {
 
 THREE.LDRLoader.prototype.getPartType = function(id) {
     if(!this.partTypes.hasOwnProperty(id)) {
-        let subModel;
-	if(LDR.Generator && (subModel = LDR.Generator.make(id))) {
-	    return this.partTypes[id] = subModel;
+        let pt;
+	if(LDR.Generator && (pt = LDR.Generator.make(id))) {
+	    return this.partTypes[id] = pt;
 	}
         return null;
     }
@@ -749,6 +752,16 @@ THREE.LDRLoader.prototype.getPartType = function(id) {
         return null;
     }
     return pt;
+}
+
+THREE.LDRLoader.prototype.setPartType = function(pt) {
+    this.partTypes[pt.ID] = pt;
+    if(this.options.buildAssemblies) {
+	if(!this.assemblyManager) {
+            this.assemblyManager = new LDR.AssemblyManager(this);
+	}
+	this.assemblyManager.handlePartType(pt);
+    }
 }
 
 THREE.LDRLoader.prototype.getMainModel = function() {
@@ -782,7 +795,7 @@ THREE.LDRLoader.prototype.toLDR = function() {
     let self = this;
 
     // Part types:
-    let ret = this.partTypes[this.mainModel].toLDR(this);
+    let ret = this.getMainModel().toLDR(this);
     this.applyOnPartTypes(pt => {
             if(!(pt.inlined || pt.ID === self.mainModel || pt.isOfficialLDraw())) {
                 ret += pt.toLDR(self);
