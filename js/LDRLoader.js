@@ -199,7 +199,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
     }
 
     // State information:
-    let previousComment;
+    let modelDescription;
     let inHeader = true;
     let hasFILE = false;
     let skipPart = false;
@@ -255,13 +255,13 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 	let l3 = parts.length >= 3;
 	let is = type => l3 && type === parts[1];
 
-        // Set the model description once header is exited:
-        if(!part.modelDescription && previousComment) {
-	    part.modelDescription = previousComment;
-	    if(previousComment.startsWith("~Unknown part ")) {
+        // Set the model description
+        if(!part.modelDescription && modelDescription) {
+	    part.modelDescription = modelDescription;
+	    if(modelDescription.startsWith("~Unknown part ")) {
 		self.onError({message:'Unknown part "' + part.ID + '". Please <a href="../upload.php">upload</a> this part for it to be shown correctly in this model. If you do not have it, perhaps you can find it <a href="https://www.ldraw.org/cgi-bin/ptscan.cgi?q=' + part.ID + '">here on LDraw.org</a>. For now it will be shown as a cube.', line:i, subModel:part});
 	    }
-	    previousComment = undefined; // Ready for next part.
+	    modelDescription = null; // Ready for next part.
         }
 
         let p1, p2, p3, p4; // Used in switch.
@@ -304,6 +304,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
                     part.ID = fileName;
                 }
                 part.name = originalFileName;
+		modelDescription = null;
             }
 
 	    if(is("FILE")) {
@@ -472,9 +473,9 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 	    }
 	    else {
 		invertNext = false;
-		previousComment = line.substring(2);
+		modelDescription = line.substring(2);
                 if(inHeader) {
-                    saveThisCommentLine = false; // previousComment is expected to be the description line in the header, so do not save it.
+                    saveThisCommentLine = false; // modelDescription is expected to be the description line in the header, so do not save it.
                 }
 	    }
 	    

@@ -366,3 +366,28 @@ input {
       width: 15vw;
   }
 }
+
+/*
+  Quick links
+*/
+.quick_links {
+  display: table;
+  table-layout: fixed;
+  border-spacing: 2em;
+  width: 100%;
+}
+.quick_links a {
+  color: white;
+  text-decoration: none;
+  display: table-cell;
+  text-align: center;
+  font-weight: bold;
+}
+#instructions_link, #overview_link {
+  font-size: 2em;
+  padding: 0.5em;
+  border-radius: 2em;
+  font-weight: bold;
+  color: white;
+  background-color: #4BB;
+}
