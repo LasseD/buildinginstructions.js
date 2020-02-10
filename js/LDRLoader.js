@@ -125,7 +125,7 @@ THREE.LDRLoader.prototype.load = function(id) {
     let onError = function(event) {
         urlID++;
         if(urlID < urls.length) {
-            self.loader.load(urls[urlID], onFileLoaded, self.onProgress, onError);
+            self.loader.load(urls[urlID], onFileLoaded, undefined, onError);
         }
         else {
             self.unloadedFiles--; // Can't load this.
@@ -135,7 +135,7 @@ THREE.LDRLoader.prototype.load = function(id) {
     }
 
     this.unloadedFiles++;
-    this.loader.load(urls[urlID], onFileLoaded, self.onProgress, onError);
+    this.loader.load(urls[urlID], onFileLoaded, undefined, onError);
 };
 
 /*
@@ -2171,7 +2171,7 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 	    
             let material;
             let buildMaterial, setMap;
-            if(loader.physicalRenderingAge === 0 || !true) {
+            if(loader.physicalRenderingAge === 0) {
 		let triangleColorManager = new LDR.ColorManager();
 		triangleColorManager.get(c2); // Ensure color is present.
                 buildMaterial = t => LDR.Colors.buildTriangleMaterial(triangleColorManager, c3, t);
