@@ -260,7 +260,7 @@ LDR.LDRGeometry.prototype.buildTexmapGeometriesForColor = function(c) {
         let uvs = []; // x 2
         let indexMap = {}; // original index -> new index
 
-        //let uvs = new Float32Array(triangleVertices.length*2);
+        //let uvs = new Float32Array(triangleVertices.length*2); // TODO!
         
         // Compute ps and uvs:
         let texmapPlacement;
@@ -272,7 +272,7 @@ LDR.LDRGeometry.prototype.buildTexmapGeometriesForColor = function(c) {
                 let idx = indexMap[a];
                 // Check UV:
                 let oldU = uvs[2*idx], oldV = uvs[2*idx+1];
-                /*if(oldU === u && oldV === v) {
+                /*if(oldU === u && oldV === v) { TODO!
                     indices.push(idx);
                     return;
                     } TODO */
