@@ -2171,7 +2171,7 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 	    
             let material;
             let buildMaterial, setMap;
-            if(loader.physicalRenderingAge === 0 || !true) {
+            if(loader.physicalRenderingAge === 0) {
 		let triangleColorManager = new LDR.ColorManager();
 		triangleColorManager.get(c2); // Ensure color is present.
                 buildMaterial = t => LDR.Colors.buildTriangleMaterial(triangleColorManager, c3, t);
