@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+ <head>
+    <meta charset=utf-8>
+    <title>Sample File Showing Part Previews</title>
+    <link href="css/options.css" rel="stylesheet" type="text/css">
+    <link href="css/buttons.css" rel="stylesheet" type="text/css">
+    <link href="css/partslist.css" rel="stylesheet" type="text/css">
+    <link href="css/index.css" rel="stylesheet" type="text/css">
+    <meta name="viewport" content="width=device-width" />
+ </head>
+ <body>
+   <script src="js/jquery.min.js"></script>
+   <script src="js/three.min.js"></script>
+   <script src="js/OrbitControls.js"></script>
+   <script src="js/colors.js"></script>
+   <script src="js/LDRShaders.js"></script>
+   <script src="js/LDRSVG.js"></script>
+   <script src="js/LDROptions.js"></script>
+   <script src="js/LDRColorMaterials.js"></script>
+   <script src="js/LDRGeometries.js"></script>
+   <script src="js/LDRLoader.js"></script>
+   <script src="js/LDRMeasurer.js"></script>
+   <script src="js/ClientStorage.js"></script>
+   <script src="js/LDRGenerator.js"></script>
+   <script src="js/LDRStuds.js"></script>
+   <script src="js/LDRPreviews.js"></script><!-- Previews loader -->
+   <div id="list_parts">
+    <table id="list_table">
+     <tr>
+      <th><span class="sorter">#</span></th>
+      <th>Image</th>
+     </tr>
+    </table>
+    <script>
+     let parts = ['3001', '11477', '18675ps2', '2429c01', '2550c01', '3003', '3023', '3024', '3045', '3067a', '3070b', '32000', '32018', '3815c01', '3857', '3960p0b', '4032a', '41747ps1', '4324', '43722', '44375bps0', '4592c01', '4755', '4773a', '50950', '6081', '6091', '6541', '85080', '85970', '92947'];
+     let table = document.getElementById('list_table').children[0];
+     parts.forEach(id => {
+       let tr = document.createElement('tr');
+       tr.setAttribute('class', 'partline');
+       table.appendChild(tr);
+
+       let td1 = document.createElement('td');
+       td1.innerHTML = id + '.dat';
+       tr.appendChild(td1);
+
+       let td2 = document.createElement('td');
+       let c = document.createElement('canvas');
+       c.setAttribute('class', 'part_icon');
+       c.id = id;
+       td2.appendChild(c);
+       tr.appendChild(td2);
+     });
+    </script>
+   </div>
+
+   <script>
+      var ldrOptions = new LDR.Options();
+
+      let previews = new LDR.Previews();
+      previews.initiate();
+   </script>
+
+   <div id="options"></div>
+   <script>
+      let optionsDiv = document.getElementById('options');
+      ldrOptions.appendHeader(optionsDiv);    
+      ldrOptions.appendContrastOptions(optionsDiv);
+      ldrOptions.appendStudHighContrastOptions(optionsDiv);
+      ldrOptions.appendStudLogoOptions(optionsDiv);
+      ldrOptions.appendFooter(optionsDiv);
+      ldrOptions.listeners.push(force => previews.redrawAll(force));
+
+      let lastSorterIndex = -1;
+      $("span.sorter").click(function() {
+        let parent = this.parentNode;
+        let index = Array.from(parent.parentNode.children).indexOf(parent);
+    
+        let list = $("tbody > tr.partline").get();
+   
+        let sort = function(a, b) {
+          a = a.children[index]; b = b.children[index];
+          if(a.children.length > 0) {
+            a = a.children[0]; b = b.children[0];
+          }
+          a = a.innerHTML; b = b.innerHTML;
+	  if(parseInt(a)+'' === a) {
+	    a = parseInt(a); b = parseInt(b);
+	  }
+          return a < b ? 1 : (b < a ? -1 : 0);
+        }
+        let sort_reverse = (a,b) => sort(b, a);
+
+        if(lastSorterIndex === index) {
+          list.sort(sort_reverse);
+          lastSorterIndex = -1;
+        }
+        else {
+          list.sort(sort);
+          lastSorterIndex = index;
+        }
+        for (var i = 0; i < list.length; i++) {
+          list[i].parentNode.appendChild(list[i]);
+        }
+      });   
+  </script>
+ </body>
+</html>
