@@ -3,10 +3,11 @@
  <head>
     <meta charset=utf-8>
     <title>Sample File Showing Part Previews</title>
-    <link href="css/options.css" rel="stylesheet" type="text/css">
-    <link href="css/buttons.css" rel="stylesheet" type="text/css">
-    <link href="css/partslist.css" rel="stylesheet" type="text/css">
-    <link href="css/index.css" rel="stylesheet" type="text/css">
+    <link href="css/options.css" rel="stylesheet" type="text/css" />
+    <link href="css/buttons.css" rel="stylesheet" type="text/css" />
+    <link href="css/partslist.css" rel="stylesheet" type="text/css" />
+    <link href="css/preview.css" rel="stylesheet" type="text/css" />
+    <link href="css/index.css" rel="stylesheet" type="text/css" />
     <meta name="viewport" content="width=device-width" />
  </head>
  <body>
@@ -19,6 +20,8 @@
    <script src="js/LDROptions.js"></script>
    <script src="js/LDRColorMaterials.js"></script>
    <script src="js/LDRGeometries.js"></script>
+   <script src="js/LDRButtons.js"></script>
+   <script src="js/LDRPLIPreview.js"></script>
    <script src="js/LDRLoader.js"></script>
    <script src="js/LDRMeasurer.js"></script>
    <script src="js/ClientStorage.js"></script>
@@ -32,7 +35,7 @@
       <th>Image</th>
      </tr>
     </table>
-    <script>
+    <script> /* Some boilerplate code to set up a list of parts */
      let parts = ['3001', '11477', '18675ps2', '2429c01', '2550c01', '3003', '3023', '3024', '3045', '3067a', '3070b', '32000', '32018', '3815c01', '3857', '3960p0b', '4032a', '41747ps1', '4324', '43722', '44375bps0', '4592c01', '4755', '4773a', '50950', '6081', '6091', '6541', '85080', '85970', '92947'];
      let table = document.getElementById('list_table').children[0];
      parts.forEach(id => {
@@ -53,29 +56,16 @@
      });
     </script>
    </div>
-
-   <script>
-      var ldrOptions = new LDR.Options();
-
-      let previews = new LDR.Previews();
-      previews.initiate();
-   </script>
-
    <div id="options"></div>
+
    <script>
-      let optionsDiv = document.getElementById('options');
-      ldrOptions.appendHeader(optionsDiv);    
-      ldrOptions.appendContrastOptions(optionsDiv);
-      ldrOptions.appendStudHighContrastOptions(optionsDiv);
-      ldrOptions.appendStudLogoOptions(optionsDiv);
-      ldrOptions.appendFooter(optionsDiv);
-      ldrOptions.listeners.push(force => previews.redrawAll(force));
+      var ldrOptions = new LDR.Options(); // Remember to make options available at global level.
+      new LDR.Previews({}, document.getElementById('options')).initiate(); // Preview automatically finds all canvases of class 'part_icon' and loads their 'id' as a part into the canvas.
 
       let lastSorterIndex = -1;
       $("span.sorter").click(function() {
         let parent = this.parentNode;
-        let index = Array.from(parent.parentNode.children).indexOf(parent);
-    
+        let index = Array.from(parent.parentNode.children).indexOf(parent);    
         let list = $("tbody > tr.partline").get();
    
         let sort = function(a, b) {

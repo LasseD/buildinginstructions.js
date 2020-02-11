@@ -4,7 +4,7 @@ LDR.Buttons = function(actions, element, addTopButtons, homeLink, mainImage, can
     let self = this;
     // Add buttons to element:
     
-    // Lower buttons:
+    // Camera buttons:
     this.cameraButtons = this.createDiv('camera_buttons');
     this.zoomOutButtonLarge = this.createDiv('zoom_out_button_large', actions.zoomOut);
     this.zoomOutButtonLarge.appendChild(LDR.SVG.makeZoom(false, 2));
@@ -23,23 +23,28 @@ LDR.Buttons = function(actions, element, addTopButtons, homeLink, mainImage, can
     this.cameraButtons.appendChild(this.zoomInButtonLarge);
     element.appendChild(this.cameraButtons);
 
-    this.backButton = this.createDiv('prev_button', actions.prevStep);
-    this.backButton.appendChild(LDR.SVG.makeLeftArrow(!addTopButtons));
+    // Back button:
+    if(actions.prevStep) {
+        this.backButton = this.createDiv('prev_button', actions.prevStep);
+        this.backButton.appendChild(LDR.SVG.makeLeftArrow(!addTopButtons));
 
-    if(!addTopButtons) { // In case back should be shown as a lower button:
-        element.appendChild(this.backButton); // Add back button to row with camera buttons
+        if(!addTopButtons) { // In case back should be shown as a lower button:
+            element.appendChild(this.backButton); // Add back button to row with camera buttons
+        }
     }
 
     // Right lower corner buttons:
-    this.nextButton = this.createDiv('next_button', actions.nextStep);
-    this.nextButtonLarge = this.createDiv('next_button_large', actions.nextStep);
-    this.doneButton = this.createDiv('done_button', actions.clickDone);
-    this.nextButton.append(LDR.SVG.makeRightArrow());
-    this.nextButtonLarge.append(LDR.SVG.makeRightArrowLarge());
-    this.doneButton.append(LDR.SVG.makeCheckMark());
-    element.appendChild(this.nextButton);
-    element.appendChild(this.nextButtonLarge);
-    element.appendChild(this.doneButton);
+    if(actions.nextStep) {
+        this.nextButton = this.createDiv('next_button', actions.nextStep);
+        this.nextButtonLarge = this.createDiv('next_button_large', actions.nextStep);
+        this.doneButton = this.createDiv('done_button', actions.clickDone);
+        this.nextButton.append(LDR.SVG.makeRightArrow());
+        this.nextButtonLarge.append(LDR.SVG.makeRightArrowLarge());
+        this.doneButton.append(LDR.SVG.makeCheckMark());
+        element.appendChild(this.nextButton);
+        element.appendChild(this.nextButtonLarge);
+        element.appendChild(this.doneButton);
+    }
 
     if(addTopButtons) {
 	this.addTopButtonElements(actions, element, homeLink, mainImage, canEdit);
@@ -121,20 +126,22 @@ LDR.Buttons.prototype.addTopButtonElements = function(actions, element, homeLink
 
 LDR.Buttons.prototype.hideElementsAccordingToOptions = function() {
     // LR Buttons:
-    if(!this.topButtons || ldrOptions.showLRButtons == 1) { // Normal:
-	this.backButton.style.display = 'inline-block'; 
-	this.nextButtonLarge.style.display = 'none';
-	this.nextButton.style.display = 'block'; 
-    }
-    else if(ldrOptions.showLRButtons == 0) { // Large:
-	this.backButton.style.display = 'inline-block'; 
-	this.nextButtonLarge.style.display = 'block';
-	this.nextButton.style.display = 'none';
-    }
-    else { // Normal:
-	this.backButton.style.display = 
+    if(this.backButton && this.nextButton) {
+        if(!this.topButtons || ldrOptions.showLRButtons == 1) { // Normal:
+            this.backButton.style.display = 'inline-block'; 
+            this.nextButtonLarge.style.display = 'none';
+            this.nextButton.style.display = 'block'; 
+        }
+        else if(ldrOptions.showLRButtons == 0) { // Large:
+            this.backButton.style.display = 'inline-block'; 
+            this.nextButtonLarge.style.display = 'block';
+            this.nextButton.style.display = 'none';
+        }
+        else { // Normal:
+            this.backButton.style.display = 
 	    this.nextButton.style.display =
 	    this.nextButtonLarge.style.display = 'none';
+        }
     }
 
     // Camera Buttons:

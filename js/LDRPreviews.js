@@ -4,12 +4,15 @@
   options is used in internal ldrLoader initialization. Additional parameters are:
   - w: Width of displayed icons. Default '200 / window.devicePixelRatio'.
   - h: Height of displayed icons. Default '200 / window.devicePixelRatio'.
+  optionsEle is the html element onto which LDR options are appended.
  */
-LDR.Previews = function(options) {
+LDR.Previews = function(options, optionsEle) {
     let self = this;
 
     this.options = options || {};
     this.options.removePrimitivesAndSubParts = false;
+
+    this.optionsEle = optionsEle;
 
     this.w = this.options.w || 200 / window.devicePixelRatio;
     this.h = this.options.h || 200 / window.devicePixelRatio;
@@ -181,6 +184,10 @@ LDR.Previews.prototype.initiate = function() {
 	lazy_load();
     };
     this.storage = new LDR.STORAGE(onStorageReady);
+
+    this.createBigPreview();
+
+    this.createOptions();
 }
 
 LDR.Previews.prototype.redrawAll = function(force) {
@@ -195,9 +202,97 @@ LDR.Previews.prototype.redrawAll = function(force) {
                            ldrOptions.studLogo, () => {}); // Studs.
     }
 
-    for(let id in rendered) {
+    for(let id in this.rendered) {
         if(this.rendered.hasOwnProperty(id)) {
             this.draw(id);
         }
     }
+}
+
+LDR.Previews.prototype.createBigPreview = function() {
+    let self = this;
+    
+    // Set up HTML elements:
+    let bg = document.createElement('div');
+    bg.setAttribute('class','background');
+    bg.id = 'preview_background';
+    document.body.appendChild(bg);
+
+    let holder = document.createElement('div');
+    holder.setAttribute('class','holder');
+    holder.id = 'preview_holder';
+    document.body.appendChild(holder);
+
+    let canvas = document.createElement('canvas');
+    canvas.id = 'preview';
+    holder.appendChild(canvas);
+
+    // Set up renderer:
+    let renderer = new THREE.WebGLRenderer({antialias:true, canvas:canvas});
+    renderer.setPixelRatio(window.devicePixelRatio);
+
+    let shownBaseObject;
+    this.pliPreviewer = new LDR.PliPreviewer('no_model', canvas, renderer); // Has own renderer, camera, and scene.
+
+    function showPreview(id) {
+        let pt = self.ldrLoader.getPartType(id+'.dat');
+        if(!pt) {
+            console.warn('Part type not yet loaded',id);
+            return;
+        }
+        let baseObject = pt.baseObject;
+        if(!baseObject) {
+            console.warn('Part type not yet built',id);
+            return;
+        }
+
+        if(shownBaseObject) {
+            self.pliPreviewer.scene.remove(shownBaseObject);
+        }
+        self.pliPreviewer.scene.add(baseObject);
+        self.pliPreviewer.subjectSize = baseObject.subjectSize;
+        self.pliPreviewer.showPliPreview();
+        self.pliPreviewer.subjectSize = baseObject.subjectSize;
+        self.pliPreviewer.onResize();
+
+        shownBaseObject = baseObject;
+    }
+
+    // Register listeners:
+    bg.addEventListener('click', ()=>self.pliPreviewer.hidePliPreview());
+    for(var i = 0; i < this.elements.length; i++) {
+        let e = this.elements[i];
+        e.parentElement.addEventListener('click', ()=>showPreview(e.id));
+        e.parentElement.style.cursor = 'pointer';
+    }
+
+    var actions = {
+        zoomIn: () => self.pliPreviewer.zoomIn(),
+        zoomOut: () => self.pliPreviewer.zoomOut(),
+        resetCameraPosition: () => self.pliPreviewer.resetCameraPosition(),
+    };
+    this.ldrButtons = new LDR.Buttons(actions, canvas.parentNode, false);
+
+    this.pliPreviewer.enableControls();
+
+    window.addEventListener('resize', this.pliPreviewer.onResize, false);
+
+    document.onkeydown = function(e) {
+        e = e || window.event;
+        if(e.keyCode == '27') { // ESC
+            self.pliPreviewer.hidePliPreview();
+        }
+    }
+}
+
+LDR.Previews.prototype.createOptions = function() {
+    let self = this;
+    
+    ldrOptions.appendHeader(this.optionsEle);
+    ldrOptions.appendContrastOptions(this.optionsEle);
+    ldrOptions.appendStudHighContrastOptions(this.optionsEle);
+    ldrOptions.appendStudLogoOptions(this.optionsEle);
+    ldrOptions.appendCameraOptions(this.optionsEle, this.ldrButtons);
+    ldrOptions.appendFooter(this.optionsEle);
+    ldrOptions.listeners.push(force => self.redrawAll(force));
 }

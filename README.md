@@ -22,6 +22,8 @@ sample_partslist.htm demonstrates how to display parts lists. The example has tw
 
 sample_part.htm provides a break down of a single part. Points highlight where lines, triangles and quads are positioned. This can be used to inspect new or existing LDraw parts.
 
+sample_previews.htm shows how to use LDRPreviews.js to show preview icons on any page.
+
 sample_functions.htm shows how to perform operations on LDraw models, such as changing all parts of a certain color, and applying improvements toward OMR-compliance.
 
 ### Standard File Structure
