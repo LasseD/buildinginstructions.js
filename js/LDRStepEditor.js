@@ -1072,7 +1072,6 @@ LDR.MeshCollector.prototype.addMesh = function(color, mesh, part) {
     this.addHoverBox(mesh, part);
     let parent;
     if(color === 16) {
-	console.log('Adding to sixteenObjec');
 	parent = this.sixteenObject;
     }
     else if(LDR.Colors.isTrans(color)) {
