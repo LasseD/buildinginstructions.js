@@ -1357,7 +1357,7 @@ THREE.LDRStep.prototype.unpackFrom = function(arrayI, arrayF, idxI, idxF, subMod
 
     function ensureColor(c) {
 	if(!LDR.Colors.hasOwnProperty(c)) { // Direct color:
-	    let hex = colorID.toString(16);
+	    let hex = c.toString(16);
 	    LDR.Colors[c] = {name:'Direct color 0x2'+hex, value:c, edge:c, direct:hex};
 	}
     }
