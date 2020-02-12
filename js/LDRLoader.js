@@ -1355,10 +1355,18 @@ THREE.LDRStep.prototype.unpack = function(obj, saveFileLines) {
 THREE.LDRStep.prototype.unpackFrom = function(arrayI, arrayF, idxI, idxF, subModelList, texmapPlacementMap, saveFileLines) {
     let self = this;
 
+    function ensureColor(c) {
+	if(!LDR.Colors.hasOwnProperty(c)) { // Direct color:
+	    let hex = colorID.toString(16);
+	    LDR.Colors[c] = {name:'Direct color 0x2'+hex, value:c, edge:c, direct:hex};
+	}
+    }
+
     // Sub Models:
     let numSubModels = arrayI[idxI++];
     for(let i = 0; i < numSubModels; i++) {
         let colorID = arrayI[idxI++];
+	ensureColor(colorID);
         let texmapIdx = arrayI[idxI++];
         var texmapPlacement = texmapIdx >= 0 ? texmapPlacementMap[texmapIdx] : null;
         let packed = arrayI[idxI++];
@@ -1386,6 +1394,7 @@ THREE.LDRStep.prototype.unpackFrom = function(arrayI, arrayF, idxI, idxF, subMod
         let numPrimitives = arrayI[idxI++];
         for(let i = 0; i < numPrimitives; i++) {
             let p = {colorID:arrayI[idxI++]};
+	    ensureColor(p.colorID);
             if(cullInfo) {
                 p.cull = arrayI[idxI++]===1;
             }
