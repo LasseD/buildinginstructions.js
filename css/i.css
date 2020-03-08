@@ -30,7 +30,7 @@
   text-align: center;
   font-weight: bold;
 }
-#instructions_link, #parts_list_link, #more_instructions, #more_actions {
+#instructions_link, #parts_list_link, #more_instructions, #more_actions, .key {
   font-size: 2em;
   padding: 0.5em;
   border-radius: 2em;
@@ -218,7 +218,7 @@
 /*
   Settings
  */
-#settings_header, #approval, #donations {
+#settings_header, #approval, #donations, #more_info {
   font-size: 2em;
   padding: 0.5em;
   border-radius: 2em;
@@ -228,6 +228,12 @@
   text-align: center;
   margin-bottom: 1em;
   clear: both;
+}
+#more_info {
+  font-size: 1em;
+  text-align: left;
+  margin-left: 2em;
+  margin-right: 2em;
 }
 #settings {
   margin: 2em;
@@ -241,7 +247,7 @@ label, input, textarea {
     width: 100%;
     margin-bottom: 1em;
 }
-.kv input, .kv label {
+.kv input, .kv label, .kv .key, .kv .value {
     display: table-cell;
 }
 .kv label.right {
@@ -445,7 +451,7 @@ label, input, textarea {
   width: 98%;
   height: 85%;
 }
-#mpd_holder {
+#mpd_holder, #download_holder {
   background-color: black;
   top: 0;
 }
@@ -454,4 +460,28 @@ label, input, textarea {
 }
 a {
   cursor: pointer;
+}
+
+/*
+  Download
+*/
+#download_title {
+  font-size: 2em;
+  text-align: center;
+  margin: 0.5em;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+#download_holder .kv {
+  /*padding: 2em;*/
+  border-spacing: 1em;
+}
+.key {
+  text-align: center;
+}
+.key a {
+  text-decoration: none;
+}
+.value {
+  font-size: 1em;
 }

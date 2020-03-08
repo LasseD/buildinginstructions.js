@@ -274,3 +274,128 @@ LDR.STUDIO.handleTriangleLine = function(pt, parts) {
 
     return tmp;
 }
+
+THREE.LDRLoader.prototype.toLDRStudio = function(colorID) {
+    let self = this;
+
+    let seenColors = {}; // id => {colors}
+    function findColorsFor(id, c) {
+	let pt = self.getPartType(id);	
+	if(pt.isPart) {
+	    return;
+	}
+	if(!seenColors.hasOwnProperty(id)) {
+	    seenColors[id] = {};
+	}
+	sc = seenColors[id];
+	if(sc.hasOwnProperty(c)) {
+	    return; // Already handled.
+	}
+	sc[c] = true;
+	pt.steps.forEach(step => step.subModels.forEach(sm => findColorsFor(sm.ID, sm.colorID === 16 ? c : sm.colorID)));
+    }
+    findColorsFor(this.mainModel, colorID);
+
+    let ret = this.getMainModel().toLDRColored(this, colorID);
+    for(let id in seenColors) {
+	if(!seenColors.hasOwnProperty(id) || id === self.mainModel) {
+	    continue;
+	}
+	let obj = seenColors[id];
+	for(let c in obj) {
+	    if(obj.hasOwnProperty(c)) {
+		ret += self.getPartType(id).toLDRColored(self, c);
+	    }
+	}
+    }
+
+    return ret;
+}
+
+THREE.LDRPartType.prototype.toLDRColored = function(loader, colorID) {
+    let ret = '0 FILE ' + colorID + '__' + this.ID + '\r\n';
+    if(this.modelDescription) {
+        ret += '0 ' + this.modelDescription + '\r\n';
+    }
+    if(this.name) {
+	ret += '0 Name: ' + this.name + '\r\n';
+    }
+    if(this.author) {
+        ret += '0 Author: ' + this.author + '\r\n';
+    }
+    if(this.ldraw_org) {
+        ret += '0 !LDRAW_ORG ' + this.ldraw_org + '\r\n';
+    }
+    if(this.license) {
+        ret += '0 !LICENSE ' + this.license + '\r\n';
+    }
+    if(this.isPart) { // BFC Statement:
+        if(!this.certifiedBFC) {
+            ret += '0 BFC NOCERTIFY\r\n';            
+        }
+        else {
+            ret += '0 BFC CERTIFY ' + (this.CCW ? 'CCW' : 'CW') + '\r\n';
+        }
+    }
+    if(this.headerLines.length > 0) {
+        ret += '\r\n'; // Empty line before additional header lines, such as 'THEME' and 'KEYWORDS'
+        this.headerLines.forEach(line => ret += line.toLDR(loader));
+    }
+    if(this.hasOwnProperty('preferredColor')) {
+        ret += '\r\n0 !CMDLINE -c' + this.preferredColor + '\r\n';
+    }
+    if(this.historyLines.length > 0) {
+        ret += '\r\n';
+        this.historyLines.forEach(hl => ret += '0 !HISTORY ' + hl + '\r\n');
+    }
+    if(this.steps.length > 0) {
+        ret += '\r\n';
+        this.steps.forEach((step, idx, a) => ret += step.toLDRColored(loader, idx === 0 ? null : a[idx-1].rotation, idx === a.length-1, colorID));
+    }
+    ret += '\r\n';
+    return ret;
+}
+
+LDR.Line1.prototype.toLDRColored = function(loader, colorID) {
+    return this.desc.toLDRColored(loader, colorID);
+}
+
+THREE.LDRPartDescription.prototype.toLDRColored = function(loader, colorID) {
+    let pt = loader.getPartType(this.ID);
+    let c = this.colorID == 16 ? colorID : this.colorID;
+    let id = pt.isPart ? pt.ID : c + '__' + this.ID;
+    return '1 ' + c + ' ' + this.position.toLDR() + ' ' + this.rotation.toLDR() + ' ' + id + '\r\n';
+}
+
+THREE.LDRStep.prototype.toLDRColored = function(loader, prevStepRotation, isLastStep, colorID) {
+    let ret = '';
+
+    function outputLine(line) {
+	if(line.line1) {
+            ret += line.toLDRColored(loader, colorID);
+	}
+	else {
+            ret += line.toLDR(loader);
+	}
+    }
+    this.fileLines.forEach(outputLine);
+
+    // End with STEP or ROTSTEP:
+    if(!this.rotation) {
+        if(prevStepRotation) {
+            ret += '0 ROTSTEP END\r\n';
+        }
+        else if(!isLastStep) {
+            ret += '0 STEP\r\n';
+        }
+    }
+    else { // We have a rotation. Check against prev:
+        if(THREE.LDRStepRotation.equals(this.rotation, prevStepRotation)) {
+            ret += '0 STEP\r\n';            
+        }
+        else {
+            ret += this.rotation.toLDR();
+        }
+    }
+    return ret;
+}
