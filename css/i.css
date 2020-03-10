@@ -30,7 +30,7 @@
   text-align: center;
   font-weight: bold;
 }
-#instructions_link, #parts_list_link, #more_instructions, #more_actions, .key {
+#instructions_link, #edit_link, #parts_list_link, #more_instructions, #more_actions, .key {
   font-size: 2em;
   padding: 0.5em;
   border-radius: 2em;

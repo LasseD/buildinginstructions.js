@@ -111,7 +111,7 @@ ENV.Scene.prototype.setUpGui = function(setModelColorOriginal) {
         if(LDR.Colors[16].m) { // Be able to set color:
             let choices = {};
             for(let idx in LDR.Colors) {
-                if(LDR.Colors.hasOwnProperty(idx)) {
+                if(idx !== "16" && idx !== "24" && LDR.Colors.hasOwnProperty(idx)) {
                     let color = LDR.Colors[idx];
                     if(color.hasOwnProperty('edge') && !color.hasOwnProperty('material')) { // No special materials - only ABS and normal trans:
                         choices[idx + ' ' + color.name.replace(/\_/gi, ' ')] = idx;
