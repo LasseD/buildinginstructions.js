@@ -109,7 +109,10 @@ LDR.Previews.prototype.draw = function(id) {
         let r = new THREE.Matrix3();
         r.set(1,0,0, 0,-1,0, 0,0,-1);
 
+	let backupAge = this.ldrLoader.physicalRenderingAge;
+	this.ldrLoader.physicalRenderingAge = 0; // Ensure non-physical renderer is used.
         pt.generateThreePart(this.ldrLoader, 16, p, r, true, false, mc);
+	this.ldrLoader.physicalRenderingAge = backupAge;
 
         let elementCenter = new THREE.Vector3();
         mc.boundingBox.getCenter(elementCenter);
@@ -287,6 +290,9 @@ LDR.Previews.prototype.createBigPreview = function() {
 
 LDR.Previews.prototype.createOptions = function() {
     let self = this;
+    if(!this.optionsEle) {
+	return;
+    }
     
     ldrOptions.appendHeader(this.optionsEle);
     ldrOptions.appendContrastOptions(this.optionsEle);

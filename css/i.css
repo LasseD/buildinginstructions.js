@@ -465,16 +465,24 @@ a {
 /*
   Download
 */
-#download_title {
-  font-size: 2em;
+#download_holder .kv {
+  /*padding: 2em;*/
+  border-spacing: 1em;
+}
+#textured_table {
   text-align: center;
+  width: 100%;
+}
+#download_holder h2 {
+  text-align: center;
+  font-size: 2em;
   margin: 0.5em;
   font-weight: bold;
   text-transform: uppercase;
 }
-#download_holder .kv {
-  /*padding: 2em;*/
-  border-spacing: 1em;
+#download_holder {
+  position: absolute;
+  height: fit-content;
 }
 .key {
   text-align: center;

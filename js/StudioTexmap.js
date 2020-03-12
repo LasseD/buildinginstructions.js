@@ -279,9 +279,18 @@ THREE.LDRLoader.prototype.toLDRStudio = function(colorID) {
     let self = this;
 
     let seenColors = {}; // id => {colors}
+    let unofficial_parts = {}; // id => true
     function findColorsFor(id, c) {
 	let pt = self.getPartType(id);	
 	if(pt.isPart) {
+	    if(!pt.isOfficialLDraw() &&
+	       !unofficial_parts.hasOwnProperty(pt.ID) &&
+	       pt.steps.length === 1 &&
+	       !pt.steps[0].subModels.some(x => x.texmapPlacement) &&
+	       !pt.steps[0].triangles.some(x => x.texmapPlacement) &&
+	       !pt.steps[0].quads.some(x => x.texmapPlacement)) {
+		unofficial_parts[pt.ID] = true;
+	    }
 	    return;
 	}
 	if(!seenColors.hasOwnProperty(id)) {
@@ -308,7 +317,11 @@ THREE.LDRLoader.prototype.toLDRStudio = function(colorID) {
 	    }
 	}
     }
-
+    for(let id in unofficial_parts) {
+	if(unofficial_parts.hasOwnProperty(id)) {
+	    ret += self.getPartType(id).toLDR(self);
+	}
+    }
     return ret;
 }
 
@@ -397,5 +410,68 @@ THREE.LDRStep.prototype.toLDRColored = function(loader, prevStepRotation, isLast
             ret += this.rotation.toLDR();
         }
     }
+    return ret;
+}
+
+THREE.LDRPartType.prototype.toStudioTexturedFile = function(ldrLoader) {
+    if(!this.isPart) {
+	throw 'The part type ' + this.ID + ' cannot be converted to a Studio 2.0 textured file since it is not a part';
+    }
+    // We now know there is exactly 1 step:
+    let step = this.steps[0];
+
+    // Find all textured triangles:
+    let tt = []; // Textured triangles
+    let tmp;
+    step.triangles.filter(x => x.texmapPlacement).forEach(x => {
+	tmp = x.texmapPlacement.file;
+        tt.push(x);
+    });
+    step.quads.filter(x => x.texmapPlacement).forEach(x => {
+	tmp = x.texmapPlacement.file;
+        tt.push({colorID:x.colorID, p1:x.p1, p2:x.p2, p3:x.p3, texmapPlacement:x.texmapPlacement});
+        tt.push({colorID:x.colorID, p1:x.p1, p2:x.p3, p3:x.p4, texmapPlacement:x.texmapPlacement});
+    });
+
+    if(tt.length === 0) {
+	throw 'The part type ' + this.ID + ' cannot be converted to a Studio 2.0 textured file since it has no textures, or all textures might be on sub-models, which is not yet supported!';
+    }
+    // Find dataurl:
+    let dataurl = ldrLoader.texmapDataurls.find(obj => obj.id === tmp);
+    if(!dataurl) {
+	console.dir(ldrLoader.texmapDataurls);
+	console.dir(tmp);
+	throw 'The part type ' + this.ID + ' cannot be converted to a Studio 2.0 textured file since it has no inlined texture. Only inlined textures are currently supported!';
+    }
+
+    let ret = '0 FILE ' + this.ID +
+	'\r\n0 ' + (this.modelDescription ? this.modelDescription : '') +
+	'\r\n0 Name:  ' + this.ID +
+	'\r\n0 Author:  ' + (this.author ? this.author : '') + 
+	'\r\n0 BFC ' + (this.certifiedBFC?'':'NO') + 'CERTIFY ' + (this.CCW ? '' : 'CW') +
+	'\r\n0 PE_TEX_PATH -1' +
+	'\r\n0 PE_TEX_INFO ' + dataurl.content + '\r\n';
+
+    step.subModels.forEach(x => ret += x.toLDR(ldrLoader));
+    step.lines.forEach(x => ret += new LDR.Line2(x.colorID, x.p1, x.p2).toLDR());
+    step.conditionalLines.forEach(x => ret += new LDR.Line5(x.colorID, x.p1, x.p2, x.p3, x.p4).toLDR());
+
+    // Convert all texture triangles:
+    tt.forEach(x => { // Studio 2.0 triangle lines:
+        ret += '3 ' + x.colorID + ' ' + x.p1.toLDR() + ' ' + x.p2.toLDR() + ' ' + x.p3.toLDR();
+        let [U1, V1]=x.texmapPlacement.getUV(x.p1, x.p2, x.p3);
+        let [U2, V2]=x.texmapPlacement.getUV(x.p2, x.p3, x.p1);
+        let [U3, V3]=x.texmapPlacement.getUV(x.p3, x.p1, x.p2);
+        [U1,V1,U2,V2,U3,V3].map(LDR.convertFloat).forEach(x => ret += ' ' + x);
+        ret += '\r\n';
+    });
+
+    step.triangles.filter(x => !x.texmapPlacement).forEach(x => {
+        ret += new LDR.Line3(x.colorID, x.p1, x.p2, x.p3).toLDR();
+    });
+    step.quads.filter(x => !x.texmapPlacement).forEach(x => {
+        ret += new LDR.Line4(x.colorID, x.p1, x.p2, x.p3, x.p4).toLDR();
+    });
+
     return ret;
 }
