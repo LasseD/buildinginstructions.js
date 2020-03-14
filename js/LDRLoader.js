@@ -87,8 +87,7 @@ THREE.LDRLoader = function(onLoad, storage, options) {
     };
 
     this.idToTextureUrl = this.options.idToTextureUrl || function(id) {
-        let lowerID = id.toLowerCase();
-	return "textures/"+lowerID;
+	return "textures/" + id.toLowerCase();
     };
 
     this.cleanUpPrimitivesAndSubParts = this.options.cleanUpPrimitivesAndSubParts || false;

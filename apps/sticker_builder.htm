@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html>
+ <head>
+    <meta charset=utf-8>
+    <title>Build sticker parts from png images</title>
+    <meta name="viewport" content="width=device-width" />
+    <style>
+      body {
+        font-family: "Arial","Helvetica",sans-serif;
+        padding: 0;
+        margin: 0;
+        background-color: #EEE;
+      }
+      h1, h3 {
+        text-transform: uppercase;
+        display: block;
+        text-align: center;
+        margin: 0;
+        padding: 0.5em;
+        font-size: 2em;
+      }
+      h1 {
+        background-color: #000;
+        color: white;
+      }
+      h3 {
+        background-color: #DD9;
+      }
+      .section {
+        display: block;
+        margin: 0.5em;
+      }
+      .desc {
+        margin: 0.5em;
+      }
+      .choice {
+        display: table;
+        margin: 0.5em;
+      }
+      .choice, textarea, button {
+        display: block;
+        width: 95%;
+      }
+      button {
+        height: 4em;
+      }
+      #contact {
+        margin: 2em;
+        text-align: center;
+      }
+      .error, .warning {
+        display: block;
+        margin: 1em;
+        padding: 0.5em;
+        font-weight: bold;
+      }
+      .error {
+        border: 0.2em solid red;
+      }
+      .warning {
+        border: 0.2em solid orange;
+      }
+      canvas {
+        display: block;
+        margin: auto;
+      }
+      img {
+        display: block;
+        width: 50%;
+        margin: auto;
+      }
+      .download {
+        display: block;
+        margin: 1em;
+        text-align: center;
+        padding: 0.5em;
+        border: 1px solid black;
+        background-color: white;
+        color: black;
+        text-decoration: none;
+      }
+    </style>
+ </head>
+ <body>
+    <script src="../js/jquery.min.js"></script>
+    <script src="../js/three.min.js"></script>
+    <script src="../js/OrbitControls.js"></script>
+    <script src="../js/colors.js"></script>
+    <script src="../js/ClientStorage.js"></script>
+    <script src="../js/LDROptions.js"></script>
+    <script src="../js/LDRShaders.js"></script>
+    <script src="../js/LDRColorMaterials.js"></script>
+    <script src="../js/LDRGeometries.js"></script>
+    <script src="../js/LDRLoader.js"></script>
+    <script src="../js/LDRGenerator.js"></script>
+    <script src="../js/LDRStuds.js"></script>
+    <script src="../js/StudioTexmap.js"></script>
+  
+    <h1>Build sticker parts from png images</h1>
+  <div class="section">
+   <span class="desc">
+     Select a PNG image and the size of the sticker. The size is given in LDU's.
+     As an example. A 1 x 1 Brick is 20 LDU wide and 24 LDU tall, while a plate is only 8 LDU tall.
+     The resulting part can be used in <a href="https://www.bricklink.com/v3/studio/download.page">Studio 2.0</a> and on <a href="https://brickhub.org">Brickhub.org</a>.
+   </span>
+   <span class="choice">
+    <label for="file">PNG image:</label>
+    <input id="file" name="file" type="file" onchange="readFromFile(event);" />
+    <br />
+
+    <label for="width">Width:</label>
+    <input id="width" name="width" type="text" onchange="convert();" value="19.5" />
+    <br />
+
+    <label for="width">Height:</label>
+    <input id="height" name="height" type="text" onchange="convert();" value="19.5" />
+    <br />
+
+    <label for="width">Thickness (write 0 for a completely flat sticker):</label>
+    <input id="thickness" name="thickness" type="text" onchange="convert();" value="0.5" />
+    <br />
+
+    <label for="width">Sticker file name:</label>
+    <input id="filename" name="filename" type="text" onchange="convert();" value="sticker_x.dat" />
+    <br />
+
+    <label for="width">Description</label>
+    <input id="description" name="description" type="text" onchange="convert();" value="Sticker X - Width 19.5 - Height 19.5" />
+   </span>
+
+   <div id="warnings"></div>
+   <div id="errors"></div>
+
+   <canvas id="preview"></canvas>
+  </div>
+
+  <h3>Download the Studio Sticker File</h3>
+  <div class="section">
+   <span class="desc">
+     Copy or download the Studio 2.0 / Part Designer file below.
+   </span>
+   <span class="choice">
+     <textarea id="ldr_result" rows="10"></textarea>
+     <button onclick="copyToClipboard();">Copy File to Clipboard</button>
+     <a class="download" id="downloadContent"></a>
+   </span>
+  </div>
+
+  <div id="contact">
+    <a href="https://github.com/LasseD/buildinginstructions.js">Sticker Builder is part of buildinginstructions.js</a> which is in the public domain and may be freely distributed.
+    <a href="https://github.com/mrdoob/three.js">three.js and OrbitControls.js</a> use the MIT license.
+    Contact: Lasse Deleuran on <a href="mailto:lasse.deleuran@gmail.com">lasse.deleuran@gmail.com</a>.
+  </div>
+
+  <script>
+/*
+  Warnings and errors:
+ */
+function resetWarningsAndErrors() {
+  $('#warnings').empty();
+  $('#errors').empty();
+}
+function onWarning(obj) {
+  let message = obj.message + ' on line ' + obj.line;
+
+  console.dir(obj);
+
+  message = message.replace('<', '&lt;');
+
+  var span = document.createElement('span');
+  span.setAttribute('class', 'warning');
+  span.innerHTML = message;
+  $('#warnings').append(span);
+}
+function onError(obj) {
+  var span = document.createElement('span');
+  span.setAttribute('class', 'error');
+  span.innerHTML = obj.message;
+  $('#errors').empty().append(span);
+}
+
+/*
+  three.js rendering:
+ */
+var ldrOptions = new LDR.Options(); LDR.Studs.makeGenerators('', ldrOptions.studHighContrast, ldrOptions.studLogo);  // Determine how to show parts.
+
+// Set up camera:
+var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
+camera.position.set(10000, 7000, 10000);
+camera.lookAt(new THREE.Vector3());
+
+// Set up scene:
+var scene = new THREE.Scene();
+scene.background = new THREE.Color(0xFFFFFF);
+var baseObject;
+
+// Set up renderer:
+let canvas = document.getElementById('preview');
+var renderer = new THREE.WebGLRenderer({antialias:true, canvas:canvas});
+renderer.setPixelRatio(window.devicePixelRatio);
+
+function render() {
+  renderer.render(scene, camera);
+}
+
+var w, h;
+function onWindowResize(){
+  w = window.innerHeight * 0.7;
+  h = window.innerWidth * 0.7;
+  w = h = Math.min(w, h);
+  camera.left = -w;
+  camera.right = w;
+  camera.top = h;
+  camera.bottom = -h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+  render();
+}
+window.addEventListener('resize', onWindowResize, false);
+onWindowResize();
+
+// React to user input:
+let controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.addEventListener('change', render);
+
+let ldrLoader, storage;
+
+function onLoad() {
+    if(!ldrLoader.mainModel) {
+      onError({message:'A valid model was not parsed. Nothing will be shown'});
+      return;
+    }
+
+    if(baseObject) {
+      scene.remove(baseObject);
+    }
+    baseObject = new THREE.Group();
+    scene.add(baseObject);
+
+    var mc = new LDR.MeshCollector(baseObject, baseObject, baseObject);
+    ldrLoader.generate(16, mc);
+
+    // Find center of drawn model:
+    var b = mc.boundingBox;
+    var elementCenter = new THREE.Vector3();
+    b.getCenter(elementCenter);
+    baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
+
+    camera.zoom = w/b.min.distanceTo(b.max)*2;
+    onWindowResize();
+
+    // Output:
+    let ret = ldrLoader.getMainModel().toStudioTexturedFile(ldrLoader);
+    let e = document.getElementById('ldr_result');
+    e.innerHTML = ret;
+    e = document.getElementById('downloadContent');
+    e.href = 'data:text/x-ldraw;plain,' + ret;
+    e.setAttribute('download', ldrLoader.mainModel);
+    e.innerHTML = 'Click here to download ' + ldrLoader.mainModel;
+}
+
+/*
+  Converting
+ */
+let png = 'iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH5AEYChQ1nEYzVAAAAB1pVFh0Q29tbWVudAAAAAAAQ3JlYXRlZCB3aXRoIEdJTVBkLmUHAAAAFklEQVQI12N4KqUh5fWUQcrr6VMpDQAiEgThLKLB4AAAAABJRU5ErkJggg==';
+function convert() {
+  resetWarningsAndErrors();
+
+  let h = parseFloat($('#width')[0].value)/2;
+  let w = parseFloat($('#height')[0].value)/2;
+  let t = parseFloat($('#thickness')[0].value);
+  let filename = $('#filename')[0].value.toLowerCase();
+  let desc = $('#description')[0].value;
+  console.log('size', w, h, t);
+
+  // Sticker:
+  let part = new THREE.LDRPartType();
+  part.ID = part.name = filename;
+  part.modelDescription = desc;
+  part.author = 'Sticker Builder';
+  part.license = 'Redistributable under CCAL version 2.0 : see CAreadme.txt';
+  part.cleanSteps = true;
+  part.consistentFileAndName = true;
+  part.certifiedBFC = true;
+  part.CCW = true;
+  part.isPart = true;
+
+  let step = new THREE.LDRStep();
+  let p1 = new THREE.Vector3(-w, 0, -h);
+  let p2 = new THREE.Vector3(-w, 0, h);
+  let p3 = new THREE.Vector3(w, 0, h);
+  let p4 = new THREE.Vector3(w, 0, -h);
+  let tmp = new LDR.TexmapPlacement();
+  tmp.p = [new THREE.Vector3(-w, 0, -h), new THREE.Vector3(-w, 0, h), new THREE.Vector3(w, 0, -h)]; // 3 points
+  tmp.setPlanar();
+  let pid = tmp.file = 'x.png';
+  tmp.idx = 0;
+  LDR.TexmapPlacements = [tmp];
+  let mimetype = 'png';
+
+  step.addQuadPoints(16, p4, p3, p2, p1, true, tmp);
+  if(t > 0) { // Add box5:
+    console.log('With box5 of thickness', t);
+    let r = new THREE.Matrix3();
+    r.set(w, 0, 0,
+          0, t, 0,
+          0, 0, h);
+    step.addSubModel(new THREE.LDRPartDescription(16, new THREE.Vector3(), r, 'box5.dat', true, false, null));
+  }
+  part.addStep(step);
+
+  let idToUrl = id => ['../ldraw_parts/'+id.toLowerCase(), '../ldraw_unofficial'+id.toLowerCase()];
+  ldrLoader = new THREE.LDRLoader(onLoad, storage, {idToUrl:idToUrl, onError:onError, onWarning:onWarning, onProgress:render, saveFileLines:true});
+  ldrLoader.texmapDataurls.push({id:pid, mimetype:mimetype, content:png});
+
+  let dataurl = 'data:image/' + mimetype + ';base64,' + png;
+  ldrLoader.texmaps[pid] = true;
+  ldrLoader.texmapListeners[pid] = [];
+  let image = new Image();
+  image.onload = function(e) {
+    let texture = new THREE.Texture(this);
+    texture.needsUpdate = true;
+    ldrLoader.texmaps[pid] = texture;
+    ldrLoader.texmapListeners[pid].forEach(l => l(texture));
+    ldrLoader.onProgress(pid);
+  };
+  image.src = dataurl;
+
+  ldrLoader.partTypes[part.ID] = part;
+  ldrLoader.mainModel = part.ID;
+  ldrLoader.load('box5.dat'); // Ensure onLoad is called - even if box5.dat is not used!
+}
+
+function readFromFile(event) {
+  var reader = new FileReader();
+  reader.onload = function(){
+    png = reader.result;
+    let prefix = 'data:image/png;base64,';
+    if(!png.startsWith(prefix)) {
+      onError({message:'The file is not recognized as a PNG image.'});
+      return;
+    }
+    png = png.substring(prefix.length);
+    convert();
+  };
+  reader.readAsDataURL(event.target.files[0]);
+}
+
+function copyToClipboard() {
+  $('#ldr_result')[0].select();
+  document.execCommand('copy');
+}
+
+$(document).ready(function() {
+  convert();
+});
+  </script>
+ </body>
+</html>

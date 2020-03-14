@@ -82,19 +82,19 @@
     </style>
  </head>
  <body>
-    <script src="js/jquery.min.js"></script>
-    <script src="js/three.min.js"></script>
-    <script src="js/OrbitControls.js"></script>
-    <script src="js/colors.js"></script>
-    <script src="js/ClientStorage.js"></script>
-    <script src="js/LDROptions.js"></script>
-    <script src="js/LDRShaders.js"></script>
-    <script src="js/LDRColorMaterials.js"></script>
-    <script src="js/LDRGeometries.js"></script>
-    <script src="js/LDRLoader.js"></script>
-    <script src="js/LDRGenerator.js"></script>
-    <script src="js/LDRStuds.js"></script>
-    <script src="js/StudioTexmap.js"></script>
+    <script src="../js/jquery.min.js"></script>
+    <script src="../js/three.min.js"></script>
+    <script src="../js/OrbitControls.js"></script>
+    <script src="../js/colors.js"></script>
+    <script src="../js/ClientStorage.js"></script>
+    <script src="../js/LDROptions.js"></script>
+    <script src="../js/LDRShaders.js"></script>
+    <script src="../js/LDRColorMaterials.js"></script>
+    <script src="../js/LDRGeometries.js"></script>
+    <script src="../js/LDRLoader.js"></script>
+    <script src="../js/LDRGenerator.js"></script>
+    <script src="../js/LDRStuds.js"></script>
+    <script src="../js/StudioTexmap.js"></script>
   
     <h1>Studio2LDraw - Convert custom parts from Studio 2.0 to LDraw</h1>
 
@@ -307,7 +307,9 @@ function convert(ldr) {
   }
 
   LDR.TexmapPlacements = [];
-  ldrLoader = new THREE.LDRLoader(onLoad, storage, {onError:onError, onWarning:onWarning, onProgress:render, saveFileLines:true});
+  let idToUrl = id => ['../ldraw_parts/'+id.toLowerCase(), '../ldraw_unofficial'+id.toLowerCase()];
+  let idToTextureUrl = id => "../textures/" + id.toLowerCase();
+  ldrLoader = new THREE.LDRLoader(onLoad, storage, {idToUrl:idToUrl, idToTextureUrl:idToTextureUrl, onError:onError, onWarning:onWarning, onProgress:render, saveFileLines:true});
   ldrLoader.parse(ldr, 'main.dat');
 }
 

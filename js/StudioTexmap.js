@@ -448,6 +448,7 @@ THREE.LDRPartType.prototype.toStudioTexturedFile = function(ldrLoader) {
 	'\r\n0 ' + (this.modelDescription ? this.modelDescription : '') +
 	'\r\n0 Name:  ' + this.ID +
 	'\r\n0 Author:  ' + (this.author ? this.author : '') + 
+	'\r\n0 !LICENSE  ' + (this.license ? this.license : '') + 
 	'\r\n0 BFC ' + (this.certifiedBFC?'':'NO') + 'CERTIFY ' + (this.CCW ? '' : 'CW') +
 	'\r\n0 PE_TEX_PATH -1' +
 	'\r\n0 PE_TEX_INFO ' + dataurl.content + '\r\n';
