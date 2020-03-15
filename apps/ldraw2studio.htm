@@ -368,6 +368,7 @@ function convert(ldr) {
   let idToTextureUrl = id => "../textures/" + id.toLowerCase();
   ldrLoader = new THREE.LDRLoader(onLoad, storage, {idToUrl:idToUrl, idToTextureUrl:idToTextureUrl, onError:onError, onWarning:onWarning, onProgress:render, saveFileLines:true});
   ldrLoader.parse(ldr, fileName);
+  ldrLoader.reportProgress(fileName);
 }
 
 function readFromFile(event) {
