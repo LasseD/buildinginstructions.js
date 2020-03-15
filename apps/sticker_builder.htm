@@ -30,12 +30,8 @@
         display: block;
         margin: 0.5em;
       }
-      .desc {
-        margin: 0.5em;
-      }
-      .choice {
-        display: table;
-        margin: 0.5em;
+      .choice, .desc {
+        margin: 0;
       }
       .choice, textarea, button {
         display: block;
@@ -96,12 +92,12 @@
     <script src="../js/LDRStuds.js"></script>
     <script src="../js/StudioTexmap.js"></script>
   
-    <h1>Build sticker parts from png images</h1>
+    <h1>Sticker Builder - Make parts from png images</h1>
   <div class="section">
    <span class="desc">
-     Select a PNG image and the size of the sticker. The size is given in LDU's.
-     As an example. A 1 x 1 Brick is 20 LDU wide and 24 LDU tall, while a plate is only 8 LDU tall.
-     The resulting part can be used in <a href="https://www.bricklink.com/v3/studio/download.page">Studio 2.0</a> and on <a href="https://brickhub.org">Brickhub.org</a>.
+     <p>See <a href="">this Youtube video</a> for a guide of how to use Sticker Builder to create custom sticker parts for <a href="https://www.bricklink.com/v3/studio/download.page">Studio 2.0</a> and on <a href="https://brickhub.org">Brickhub.org</a>.</p>
+     <p>Select a PNG image and the size of the sticker. The size is given in LDU's.
+     As an example. A 1 x 1 Brick is 20 LDU wide and 24 LDU tall, while a plate is only 8 LDU tall.</p>
    </span>
    <span class="choice">
     <label for="file">PNG image:</label>
@@ -112,12 +108,14 @@
     <input id="width" name="width" type="text" onchange="convert();" value="19.5" />
     <br />
 
-    <label for="width">Height:</label>
+    <label for="height">Height:</label>
     <input id="height" name="height" type="text" onchange="convert();" value="19.5" />
     <br />
 
-    <label for="width">Thickness (write 0 for a completely flat sticker):</label>
+    <label for="thickness">Thickness (write 0 for a completely flat sticker):</label>
     <input id="thickness" name="thickness" type="text" onchange="convert();" value="0.5" />
+    <label for="box5">Use box5.dat instead of primitives</label>
+    <input id="box5" name="box5" type="checkbox" onchange="convert();" checked="checked" />
     <br />
 
     <label for="width">Sticker file name:</label>
@@ -134,14 +132,11 @@
    <canvas id="preview"></canvas>
   </div>
 
-  <h3>Download the Studio Sticker File</h3>
+  <h3>Get the Studio Sticker File</h3>
   <div class="section">
-   <span class="desc">
-     Copy or download the Studio 2.0 / Part Designer file below.
-   </span>
    <span class="choice">
      <textarea id="ldr_result" rows="10"></textarea>
-     <button onclick="copyToClipboard();">Copy File to Clipboard</button>
+     <button onclick="copyToClipboard();">Copy File content to Clipboard</button>
      <a class="download" id="downloadContent"></a>
    </span>
   </div>
@@ -269,9 +264,10 @@ function convert() {
   let h = parseFloat($('#width')[0].value)/2;
   let w = parseFloat($('#height')[0].value)/2;
   let t = parseFloat($('#thickness')[0].value);
+  let useBox5 = $('#box5')[0].checked;
   let filename = $('#filename')[0].value.toLowerCase();
   let desc = $('#description')[0].value;
-  console.log('size', w, h, t);
+  console.log('W/L/H/UseBox5', w, h, t,useBox5);
 
   // Sticker:
   let part = new THREE.LDRPartType();
@@ -301,11 +297,43 @@ function convert() {
   step.addQuadPoints(16, p4, p3, p2, p1, true, tmp);
   if(t > 0) { // Add box5:
     console.log('With box5 of thickness', t);
-    let r = new THREE.Matrix3();
-    r.set(w, 0, 0,
-          0, t, 0,
-          0, 0, h);
-    step.addSubModel(new THREE.LDRPartDescription(16, new THREE.Vector3(), r, 'box5.dat', true, false, null));
+    if(useBox5) {
+      let r = new THREE.Matrix3();
+      r.set(w, 0, 0,
+            0, t, 0,
+            0, 0, h);
+      step.addSubModel(new THREE.LDRPartDescription(16, new THREE.Vector3(), r, 'box5.dat', true, false, null));
+    }
+    else {
+      let p5 = new THREE.Vector3(-w, t, -h);
+      let p6 = new THREE.Vector3(-w, t, h);
+      let p7 = new THREE.Vector3(w, t, h);
+      let p8 = new THREE.Vector3(w, t, -h);
+
+      // Lines:
+      // Top rect:
+      step.addLine(24, p1, p2);
+      step.addLine(24, p2, p3);
+      step.addLine(24, p3, p4);
+      step.addLine(24, p4, p1);
+      // Bottom rext:
+      step.addLine(24, p5, p6);
+      step.addLine(24, p6, p7);
+      step.addLine(24, p7, p8);
+      step.addLine(24, p8, p5);
+      // Sides:
+      step.addLine(24, p1, p5);
+      step.addLine(24, p2, p6);
+      step.addLine(24, p3, p7);
+      step.addLine(24, p4, p8);
+
+      // Quads:
+      step.addQuadPoints(16, p1, p2, p6, p5, true);
+      step.addQuadPoints(16, p2, p3, p7, p6, true);
+      step.addQuadPoints(16, p3, p4, p8, p7, true);
+      step.addQuadPoints(16, p4, p1, p5, p8, true);
+      step.addQuadPoints(16, p5, p6, p7, p8, true);
+    }
   }
   part.addStep(step);
 

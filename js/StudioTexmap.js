@@ -26,7 +26,7 @@ LDR.STUDIO.handlePart = function(loader, pt) {
 	return; // Not relevant for Studio 2.0 texmaps or not with a single step.
     }
     let step = pt.steps[0];
-    if(step.quads.length > 0 || step.triangles.length === 0) {
+    if(step.triangles.length === 0) {
 	return; // Quads not supported.
     }
 
@@ -446,9 +446,9 @@ THREE.LDRPartType.prototype.toStudioTexturedFile = function(ldrLoader) {
 
     let ret = '0 FILE ' + this.ID +
 	'\r\n0 ' + (this.modelDescription ? this.modelDescription : '') +
-	'\r\n0 Name:  ' + this.ID +
-	'\r\n0 Author:  ' + (this.author ? this.author : '') + 
-	'\r\n0 !LICENSE  ' + (this.license ? this.license : '') + 
+	'\r\n0 Name: ' + this.ID +
+	'\r\n0 Author: ' + (this.author ? this.author : '') + 
+	'\r\n0 !LICENSE ' + (this.license ? this.license : '') + 
 	'\r\n0 BFC ' + (this.certifiedBFC?'':'NO') + 'CERTIFY ' + (this.CCW ? '' : 'CW') +
 	'\r\n0 PE_TEX_PATH -1' +
 	'\r\n0 PE_TEX_INFO ' + dataurl.content + '\r\n';

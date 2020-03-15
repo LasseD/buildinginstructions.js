@@ -667,7 +667,7 @@ THREE.LDRLoader.prototype.loadTexmaps = function() {
                     self.texmapLoader.load(self.idToTextureUrl(file),
                                            t => setTexture(t, file),
                                            undefined,
-                                           e => self.onError({message:e.message, subModel:file}));
+                                           e => self.onError({error:e, message:e.message, subModel:file}));
                 }
             });
     }

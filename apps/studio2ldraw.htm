@@ -86,7 +86,6 @@
     <script src="../js/three.min.js"></script>
     <script src="../js/OrbitControls.js"></script>
     <script src="../js/colors.js"></script>
-    <script src="../js/ClientStorage.js"></script>
     <script src="../js/LDROptions.js"></script>
     <script src="../js/LDRShaders.js"></script>
     <script src="../js/LDRColorMaterials.js"></script>
@@ -109,8 +108,7 @@
     <input id="file" name="file" type="file" onchange="readFromFile(event);" />
    </span>
    <span class="choice">
-    <textarea id="file_content" onkeyup="convert(null)" rows="8">
-0 FILE sample_file.ldr
+    <textarea id="file_content" onkeyup="convert(null)" rows="8">0 FILE sample_file.ldr
 0 BFC NOCERTIFY CCW
 0 PE_TEX_INFO iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH5AEYChQ1nEYzVAAAAB1pVFh0Q29tbWVudAAAAAAAQ3JlYXRlZCB3aXRoIEdJTVBkLmUHAAAAFklEQVQI12N4KqUh5fWUQcrr6VMpDQAiEgThLKLB4AAAAABJRU5ErkJggg==
 1 16 0 -24 0 1 0 0 0 1 0 0 0 1 s/3005s01.dat
@@ -237,39 +235,41 @@ onWindowResize();
 let controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.addEventListener('change', render);
 
-let ldrLoader, storage;
+let ldrLoader;
 
 function onLoad() {
-    if(!ldrLoader.mainModel) {
-      console.log('A valid model was not parsed. Nothing will be shown');
-      return;
-    }
+  console.warn('ONLOAD');
+  console.dir(ldrLoader);
+  if(!ldrLoader.mainModel) {
+    console.log('A valid model was not parsed. Nothing will be shown');
+    return;
+  }
 
-    if(baseObject) {
-      scene.remove(baseObject);
-    }
-    baseObject = new THREE.Group();
-    scene.add(baseObject);
+  if(baseObject) {
+    scene.remove(baseObject);
+  }
+  baseObject = new THREE.Group();
+  scene.add(baseObject);
 
-    var mc = new LDR.MeshCollector(baseObject, baseObject, baseObject);
-    ldrLoader.generate(16, mc);
+  var mc = new LDR.MeshCollector(baseObject, baseObject, baseObject);
+  ldrLoader.generate(16, mc);
 
-    // Find center of drawn model:
-    var b = mc.boundingBox;
-    var elementCenter = new THREE.Vector3();
-    b.getCenter(elementCenter);
-    baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
+  // Find center of drawn model:
+  var b = mc.boundingBox;
+  var elementCenter = new THREE.Vector3();
+  b.getCenter(elementCenter);
+  baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
 
-    camera.zoom = w/b.min.distanceTo(b.max)*2;
-    onWindowResize();
+  camera.zoom = w/b.min.distanceTo(b.max)*2;
+  onWindowResize();
 
-    // Extract textures if requested
-    if(document.getElementById('inline').checked) {
-      document.getElementById('texture').style.display = 'none';
-    }
-    else {
-      document.getElementById('texture').style.display = 'block';
-      function extractTexture(obj) {
+  // Extract textures if requested
+  if(document.getElementById('inline').checked) {
+    document.getElementById('texture').style.display = 'none';
+  }
+  else {
+    document.getElementById('texture').style.display = 'block';
+    function extractTexture(obj) {
         let mimetype = obj.minetype || 'png';
         let content = obj.content;
         let png = document.getElementById('png');
@@ -279,18 +279,18 @@ function onLoad() {
         a.href = 'data:image/octet-stream;base64,' + content;
         a.setAttribute('download', obj.id);
         a.innerHTML = 'Click here to download ' + obj.id;
-      }
-      ldrLoader.texmapDataurls.forEach(extractTexture);
     }
+    ldrLoader.texmapDataurls.forEach(extractTexture);
+  }
 
-    // LDraw content:
-    let lDrawContent = ldrLoader.toLDR();
-    let e = document.getElementById('ldr_result');
-    e.innerHTML = lDrawContent;
-    e = document.getElementById('downloadContent');
-    e.href = 'data:text/x-ldraw;plain,' + lDrawContent;
-    e.setAttribute('download', ldrLoader.mainModel);
-    e.innerHTML = 'Click here to download ' + ldrLoader.mainModel;
+  // LDraw content:
+  let lDrawContent = ldrLoader.toLDR();
+  let e = document.getElementById('ldr_result');
+  e.innerHTML = lDrawContent;
+  e = document.getElementById('downloadContent');
+  e.href = 'data:text/x-ldraw;plain,' + lDrawContent;
+  e.setAttribute('download', ldrLoader.mainModel);
+  e.innerHTML = 'Click here to download ' + ldrLoader.mainModel;
 }
 
 /*
@@ -308,9 +308,9 @@ function convert(ldr) {
 
   LDR.TexmapPlacements = [];
   let idToUrl = id => ['../ldraw_parts/'+id.toLowerCase(), '../ldraw_unofficial'+id.toLowerCase()];
-  let idToTextureUrl = id => "../textures/" + id.toLowerCase();
-  ldrLoader = new THREE.LDRLoader(onLoad, storage, {idToUrl:idToUrl, idToTextureUrl:idToTextureUrl, onError:onError, onWarning:onWarning, onProgress:render, saveFileLines:true});
+  ldrLoader = new THREE.LDRLoader(onLoad, null, {idToUrl:idToUrl, onError:onError, onWarning:onWarning, onProgress:render, saveFileLines:true});
   ldrLoader.parse(ldr, 'main.dat');
+  ldrLoader.reportProgress('main.dat');
 }
 
 function readFromFile(event) {
