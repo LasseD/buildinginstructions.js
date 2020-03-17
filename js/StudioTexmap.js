@@ -15,6 +15,7 @@ LDR.STUDIO.handleCommentLine = function(part, parts) {
 
     // store texmap:
     part.studioTexmap = parts[2];
+    //console.log(part.ID,part.studioTexmap.substring(part.studioTexmap.length-50));
     return true;
 }
 
@@ -59,8 +60,10 @@ LDR.STUDIO.handlePart = function(loader, pt) {
 
     // Set up dataurl:
     let pid = pt.ID + '.png';
+    //console.log(pt.ID, 'PID',pid);
     let dataurl = 'data:image/png;base64,' + pt.studioTexmap;
     loader.texmapDataurls.push({id:pid, mimetype:'png', content:pt.studioTexmap});
+    delete pt.studioTexmap; // Ensure this is only called once.
 
     loader.texmaps[pid] = true;
     if(!loader.texmapListeners.hasOwnProperty(pid)) {
@@ -73,11 +76,9 @@ LDR.STUDIO.handlePart = function(loader, pt) {
         loader.texmaps[pid] = texture;
         loader.texmapListeners[pid].forEach(l => l(texture));
         loader.onProgress(pid);
-	//document.body.append(image);
+	document.body.append(image);
     };
     image.src = dataurl;
-
-    delete pt.studioTexmap; // Ensure this is only called once.
 }
 
 /*
@@ -106,7 +107,7 @@ LDR.STUDIO.handleTriangleLine = function(pt, parts) {
         let [u3,v3] = lastTmp.getUV(q3);
         //console.log(U1,U2,U3,V1,V2,V3);
         //console.log(u1,u2,u3,v1,v2,v3);
-        if(isZero(u1-U1) && isZero(u2-U2) && isZero(u3-U3) && isZero(1-v1-V1) && isZero(1-v2-V2) && isZero(1-v3-V3)) {
+        if(lastTmp.file === (pt.ID + '.png') && isZero(u1-U1) && isZero(u2-U2) && isZero(u3-U3) && isZero(1-v1-V1) && isZero(1-v2-V2) && isZero(1-v3-V3)) {
             lastTmp.used = false;
             return lastTmp;
         }
@@ -226,7 +227,6 @@ LDR.STUDIO.handleTriangleLine = function(pt, parts) {
         let n1 = P1.n, n2 = P2.n;
 
         let u = new THREE.Vector3(); u.crossVectors(P1.n, P2.n);
-        //console.log('u');console.dir(u);
         if(!isZero(u.z) && !((isZero(n2.x) && isZero(n1.x)) || (isZero(n2.y) && isZero(n1.y)))) { // Lock z=0 and find p1:
             /* n1.p1 = A1, n2.p1 = A2, so:
                
@@ -242,19 +242,16 @@ LDR.STUDIO.handleTriangleLine = function(pt, parts) {
             let x = isZero(n2.y) ? (A2 - (n2.y/n1.y)*A1) / (n2.x-n1.x*(n2.y/n1.y)) : (A1 - (n1.y/n2.y)*A2) / (n1.x-n2.x*(n1.y/n2.y));
             let y = isZero(n2.x) ? (A2 - (n2.x/n1.x)*A1) / (n2.y-n1.y*(n2.x/n1.x)) : (A1 - (n1.x/n2.x)*A2) / (n1.y-n2.y*(n1.x/n2.x));
             p1.set(x, y, 0);
-            //console.log('Set z=0:',x,y,0,'checks:',toPlane(n1,-A1,p1),toPlane(n2,-A2,p1));
         }
         else if(!isZero(u.y) && !((isZero(n2.x) && isZero(n1.x)) || (isZero(n2.z) && isZero(n1.z)))) { // Same for y, so substitude z for y:
             let x = isZero(n2.z) ? (A2 - (n2.z/n1.z)*A1) / (n2.x-n1.x*(n2.z/n1.z)) : (A1 - (n1.z/n2.z)*A2) / (n1.x-n2.x*(n1.z/n2.z));
             let z = isZero(n2.x) ? (A2 - (n2.x/n1.x)*A1) / (n2.z-n1.z*(n2.x/n1.x)) : (A1 - (n1.x/n2.x)*A2) / (n1.z-n2.z*(n1.x/n2.x));
             p1.set(x, 0, z);
-            //console.log('Set y=0:',x,0,z,'checks:',toPlane(n1,-A1,p1),toPlane(n2,-A2,p1));
         }
         else if(!isZero(u.x) && !((isZero(n2.y) && isZero(n1.y)) || (isZero(n2.z) && isZero(n1.z)))) { // Same for x:
             let y = isZero(n2.z) ? (A2 - (n2.z/n1.z)*A1) / (n2.y-n1.y*(n2.z/n1.z)) : (A1 - (n1.z/n2.z)*A2) / (n1.y-n2.y*(n1.z/n2.z));
             let z = isZero(n2.y) ? (A2 - (n2.y/n1.y)*A1) / (n2.z-n1.z*(n2.y/n1.y)) : (A1 - (n1.y/n2.y)*A2) / (n1.z-n2.z*(n1.y/n2.y));
             p1.set(0, y, z);
-            //console.log('Set x=0:',0,y,z,'checks:',toPlane(n1,-A1,p1),toPlane(n2,-A2,p1));
         }
         else {
             return; // Bail!
@@ -439,8 +436,6 @@ THREE.LDRPartType.prototype.toStudioTexturedFile = function(ldrLoader) {
     // Find dataurl:
     let dataurl = ldrLoader.texmapDataurls.find(obj => obj.id === tmp);
     if(!dataurl) {
-	console.dir(ldrLoader.texmapDataurls);
-	console.dir(tmp);
 	throw 'The part type ' + this.ID + ' cannot be converted to a Studio 2.0 textured file since it has no inlined texture. Only inlined textures are currently supported!';
     }
 

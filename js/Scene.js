@@ -44,10 +44,9 @@ ENV.Scene = function(canvas, color) {
     this.mc = new LDR.MeshCollector(opaqueObject, sixteenObject, transObject);
 
     // Light and background:
-    let hl = new THREE.HemisphereLight(0xF4F4FB, 0x30302B, 0.65);
-    this.hemisphereLight = hl;
-    this.scene.add(hl);
-    this.scene.background = new THREE.Color(0xA0A0A2);
+    this.hemisphereLight = new THREE.HemisphereLight(0xF4F4FB, 0x30302B, 0.65);
+    this.scene.add(this.hemisphereLight);
+    this.scene.background = new THREE.Color(0xDDDDDD);//A0A0A2);
 }
 
 ENV.Scene.prototype.setUpGui = function(setModelColorOriginal) {
@@ -75,9 +74,10 @@ ENV.Scene.prototype.setUpGui = function(setModelColorOriginal) {
     let gui = new dat.GUI({autoPlace: false});    
     {
         let c = gui.addFolder('Camera');
-        c.add(this.camera.position, 'x', -5*size.w, 5*size.w).listen().onChange(r);
+	let d = Math.max(size.w, size.l)*5;
+        c.add(this.camera.position, 'x', -d, d).listen().onChange(r);
         c.add(this.camera.position, 'y', -5*size.h, 5*size.h).listen().onChange(r);
-        c.add(this.camera.position, 'z', -5*size.l, 5*size.l).listen().onChange(r);
+        c.add(this.camera.position, 'z', -d, d).listen().onChange(r);
         c.add(this.camera, 'fov', 1, 150).listen().onChange(r);
         c.add(self, 'resetCamera').name('Reset');
     }
@@ -219,19 +219,19 @@ ENV.Scene.prototype.addPointLight = function() {
 }
 
 ENV.Scene.prototype.addDirectionalLight = function() {
-    const color = 0xF6E3FF;
-    const intensity = 0.7;
     const dist = this.size.w*1.5;
     const y = this.size.h*2;
-    let light = new THREE.DirectionalLight(color, intensity, 2*(dist+y));
+    const diam = this.size.diam;
+
+    let light = new THREE.DirectionalLight(0xF6E3FF, 0.4); // color, intensity
+    light.position.set(0.3*dist, 0.3*dist, -0.1*dist);
     light.lookAt(0,0,0);
     
     light.castShadow = true;
-    let diam = this.size.diam;
-    light.shadow.mapSize.width = Math.floor(2.5*diam); // Adjust according to size!
-    light.shadow.mapSize.height = Math.floor(2.5*diam);
+    light.shadow.mapSize.width = Math.floor(3*diam); // Adjust according to size!
+    light.shadow.mapSize.height = Math.floor(3*diam);
     light.shadow.camera.near = 0.5;
-    light.shadow.camera.far = 2*(dist+y);
+    light.shadow.camera.far = 3*(dist+y);
     light.shadow.camera.left = -diam;
     light.shadow.camera.right = diam;
     light.shadow.camera.top = diam;
@@ -280,7 +280,7 @@ ENV.Scene.prototype.registerLight = function(light, folder) {
 }
 
 ENV.Scene.prototype.resetCamera = function() {
-    let cameraDist = 1.4*this.size.diam;
+    let cameraDist = 2*this.size.diam;
     this.camera.position.set(cameraDist, 0.65*cameraDist, cameraDist);
     this.camera.lookAt(new THREE.Vector3());
     this.camera.fov = ENV.DEFAULT_FOV;
@@ -303,7 +303,7 @@ ENV.Scene.prototype.repositionFloor = function(dist) {
 ENV.Scene.prototype.setSize = function(b) {
     let bump = x => Math.max(100, x);
     let w = bump(b.max.x-b.min.x), l = bump(b.max.z-b.min.z), h = bump(b.max.y-b.min.y);
-    this.size = {w:w, l:l, h:h, diam:Math.sqrt(w*w + l*l + h*h)};
+    this.size = {w:w, l:l, h:h, diam:Math.max(w,l,h)};
 }
 
 ENV.Scene.prototype.build = function() {
@@ -316,8 +316,8 @@ ENV.Scene.prototype.build = function() {
     this.baseObject.position.set(-elementCenter.x, elementCenter.y, -elementCenter.z);
 
     // Lights:
-    this.addPointLight(0xF6E3FF, 0.70,  1.1, this.size.w*1.5, this.size.h*2.0);
-    //this.addDirectionalLight(0xF6E3FF, 0.35,  -0.1, this.size.w*1.5, this.size.h*2.0);
+    //this.addPointLight();
+    this.addDirectionalLight();
 }
 ENV.Scene.prototype.buildOMRScene = ENV.Scene.prototype.buildStandardScene = ENV.Scene.prototype.build; // Backward compatibility
 
