@@ -386,6 +386,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 	    }
 	    else if(parts[1] === "!BRICKHUB_INLINED") {
 		part.inlined = parts.length === 3 ? parts[2] : 'UNKNOWN';
+                saveThisCommentLine = false;
 	    }
 	    else if(parts[1] === "!HISTORY") {
 		part.historyLines.push(parts.slice(2).join(" "));
@@ -1981,8 +1982,11 @@ THREE.LDRPartType.prototype.cleanUp = function(loader) {
     }
 }
 
-THREE.LDRPartType.prototype.toLDR = function(loader) {
-    let ret = '0 FILE ' + this.ID + '\r\n';
+THREE.LDRPartType.prototype.toLDR = function(loader, skipFile) {
+    let ret = '';
+    if(!skipFile) {
+	ret = '0 FILE ' + this.ID + '\r\n';
+    }
     if(this.modelDescription) {
         ret += '0 ' + this.modelDescription + '\r\n';
     }

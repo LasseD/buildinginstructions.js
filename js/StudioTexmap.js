@@ -76,7 +76,6 @@ LDR.STUDIO.handlePart = function(loader, pt) {
         loader.texmaps[pid] = texture;
         loader.texmapListeners[pid].forEach(l => l(texture));
         loader.onProgress(pid);
-	document.body.append(image);
     };
     image.src = dataurl;
 }
@@ -276,18 +275,9 @@ THREE.LDRLoader.prototype.toLDRStudio = function(colorID) {
     let self = this;
 
     let seenColors = {}; // id => {colors}
-    let unofficial_parts = {}; // id => true
     function findColorsFor(id, c) {
 	let pt = self.getPartType(id);	
 	if(pt.isPart) {
-	    if(!pt.isOfficialLDraw() &&
-	       !unofficial_parts.hasOwnProperty(pt.ID) &&
-	       pt.steps.length === 1 &&
-	       !pt.steps[0].subModels.some(x => x.texmapPlacement) &&
-	       !pt.steps[0].triangles.some(x => x.texmapPlacement) &&
-	       !pt.steps[0].quads.some(x => x.texmapPlacement)) {
-		unofficial_parts[pt.ID] = true;
-	    }
 	    return;
 	}
 	if(!seenColors.hasOwnProperty(id)) {
@@ -314,11 +304,7 @@ THREE.LDRLoader.prototype.toLDRStudio = function(colorID) {
 	    }
 	}
     }
-    for(let id in unofficial_parts) {
-	if(unofficial_parts.hasOwnProperty(id)) {
-	    ret += self.getPartType(id).toLDR(self);
-	}
-    }
+
     return ret;
 }
 
@@ -410,9 +396,9 @@ THREE.LDRStep.prototype.toLDRColored = function(loader, prevStepRotation, isLast
     return ret;
 }
 
-THREE.LDRPartType.prototype.toStudioTexturedFile = function(ldrLoader) {
+THREE.LDRPartType.prototype.toStudioFile = function(ldrLoader) {
     if(!this.isPart) {
-	throw 'The part type ' + this.ID + ' cannot be converted to a Studio 2.0 textured file since it is not a part';
+	throw 'The part type ' + this.ID + ' cannot be converted to a Studio 2.0 file since it is not a part';
     }
     // We now know there is exactly 1 step:
     let step = this.steps[0];
@@ -430,23 +416,20 @@ THREE.LDRPartType.prototype.toStudioTexturedFile = function(ldrLoader) {
         tt.push({colorID:x.colorID, p1:x.p1, p2:x.p3, p3:x.p4, texmapPlacement:x.texmapPlacement});
     });
 
-    if(tt.length === 0) {
-	throw 'The part type ' + this.ID + ' cannot be converted to a Studio 2.0 textured file since it has no textures, or all textures might be on sub-models, which is not yet supported!';
-    }
     // Find dataurl:
     let dataurl = ldrLoader.texmapDataurls.find(obj => obj.id === tmp);
-    if(!dataurl) {
-	throw 'The part type ' + this.ID + ' cannot be converted to a Studio 2.0 textured file since it has no inlined texture. Only inlined textures are currently supported!';
-    }
 
     let ret = '0 FILE ' + this.ID +
 	'\r\n0 ' + (this.modelDescription ? this.modelDescription : '') +
 	'\r\n0 Name: ' + this.ID +
 	'\r\n0 Author: ' + (this.author ? this.author : '') + 
 	'\r\n0 !LICENSE ' + (this.license ? this.license : '') + 
-	'\r\n0 BFC ' + (this.certifiedBFC?'':'NO') + 'CERTIFY ' + (this.CCW ? '' : 'CW') +
-	'\r\n0 PE_TEX_PATH -1' +
-	'\r\n0 PE_TEX_INFO ' + dataurl.content + '\r\n';
+	'\r\n0 BFC ' + (this.certifiedBFC?'':'NO') + 'CERTIFY ' + (this.CCW ? '' : 'CW');
+
+    if(dataurl) {
+	ret += '\r\n0 PE_TEX_PATH -1' +
+	    '\r\n0 PE_TEX_INFO ' + dataurl.content + '\r\n';
+    }
 
     step.subModels.forEach(x => ret += x.toLDR(ldrLoader));
     step.lines.forEach(x => ret += new LDR.Line2(x.colorID, x.p1, x.p2).toLDR());
