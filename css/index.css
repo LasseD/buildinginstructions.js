@@ -283,10 +283,10 @@ Samples
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
-    color: black;
-    -webkit-text-fill-color: black; /* Will override color (regardless of order) */
+    /*color: black;
+    -webkit-text-fill-color: black;
     -webkit-text-stroke-width: 0.2px;
-    -webkit-text-stroke-color: white;
+    -webkit-text-stroke-color: white;*/
     font-weight: bold;
 }
 .part {

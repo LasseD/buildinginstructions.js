@@ -245,7 +245,7 @@ function onLoad() {
     onWindowResize();
 
     // Output:
-    let ret = ldrLoader.getMainModel().toStudioTexturedFile(ldrLoader);
+    let ret = ldrLoader.getMainModel().toStudioFile(ldrLoader);
     let e = document.getElementById('ldr_result');
     e.innerHTML = ret;
     e = document.getElementById('downloadContent');
