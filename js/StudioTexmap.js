@@ -274,6 +274,25 @@ LDR.STUDIO.handleTriangleLine = function(pt, parts) {
 THREE.LDRLoader.prototype.toLDRStudio = function(colorID) {
     let self = this;
 
+    // Mark all parts that have texmaps, as these should be downloaded separately:
+    function setTexmap(pt) {
+	if(!pt.isPart) {
+	    return; // Not a part.
+	}
+        let step = pt.steps[0];
+	
+	function find(list) {
+	    let x = list.find(y => y.texmapPlacement);
+	    if(x) {
+		pt.texmapFile = x.texmapPlacement.file;
+		return true;
+	    }
+	    return false;
+	}
+	find(step.triangles) || find(step.quads) || find(step.subModels);
+    }
+    this.applyOnPartTypes(setTexmap);
+
     let seenColors = {}; // id => {colors}
     function findColorsFor(id, c) {
 	let pt = self.getPartType(id);	
@@ -419,16 +438,19 @@ THREE.LDRPartType.prototype.toStudioFile = function(ldrLoader) {
     // Find dataurl:
     let dataurl = ldrLoader.texmapDataurls.find(obj => obj.id === tmp);
 
-    let ret = '0 FILE ' + this.ID +
-	'\r\n0 ' + (this.modelDescription ? this.modelDescription : '') +
+    let ret = '';
+    if(dataurl) {
+	ret = '0 FILE ' + this.ID + '\r\n';
+    }
+    ret += '0 ' + (this.modelDescription ? this.modelDescription : '') +
 	'\r\n0 Name: ' + this.ID +
 	'\r\n0 Author: ' + (this.author ? this.author : '') + 
 	'\r\n0 !LICENSE ' + (this.license ? this.license : '') + 
-	'\r\n0 BFC ' + (this.certifiedBFC?'':'NO') + 'CERTIFY ' + (this.CCW ? '' : 'CW');
+	'\r\n0 BFC ' + (this.certifiedBFC?'':'NO') + 'CERTIFY ' + (this.CCW ? '' : 'CW') + 
+        '\r\n';
 
     if(dataurl) {
-	ret += '\r\n0 PE_TEX_PATH -1' +
-	    '\r\n0 PE_TEX_INFO ' + dataurl.content + '\r\n';
+	ret += '0 PE_TEX_PATH -1\r\n0 PE_TEX_INFO ' + dataurl.content + '\r\n';
     }
 
     step.subModels.forEach(x => ret += x.toLDR(ldrLoader));
