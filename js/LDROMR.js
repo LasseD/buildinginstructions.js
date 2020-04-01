@@ -39,9 +39,9 @@ LDR.OMR = {};
  These are identified by having the description '~Moved to <new_part>'.
  in buildinginstructions.js, the property 'replacement' is set on part types when this occurs.
  */
-LDR.OMR.UpgradeToNewParts = function() {
+LDR.OMR.UpgradeToReplacements = function() {
     return {
-        checkers: {checkPartType:pt => (pt.replacement && pt.modelDescription && !pt.modelDescription.startsWith('~Unknown part ')) ? "Click here to upgrade all moved parts, such as " + pt.ID + " to latest versions" : false},
+        checkers: {checkPartType:pt => (pt.replacement && pt.modelDescription && !pt.modelDescription.startsWith('~Unknown part ')) ? "Click here to upgrade all moved parts, such as " + pt.ID + " to " + pt.replacement : false},
 
         handlers: {handlePartDescription: pd => {
                 let pt = ldrLoader.getPartType(pd.ID);
@@ -50,6 +50,40 @@ LDR.OMR.UpgradeToNewParts = function() {
                 }
             }
         }
+    };
+}
+
+LDR.OMR.UpgradeToNewPartsBasedOnYear = function(year) {
+    function check(pt) {
+	if(!pt.ID.endsWith('.dat')) {
+	    return false;
+	}
+	let id = pt.ID.substring(0, pt.ID.length-4);
+	if(!LDR.Replacements.hasOwnProperty(id)) {
+	    return false;
+	}
+	let obj = LDR.Replacements[id];
+	if(obj.year <= year) {
+	    return "In " + year + ", parts, such as " + id + " had been replaced by " + obj.part + ". Click here to upgrade all these.";
+	}
+	return false;
+    }
+
+    return {
+        checkers: {checkPartType:check},
+        handlers: {handlePartDescription: pd => {
+	    let id = pd.ID;
+	    if(!id.endsWith('.dat')) {
+		return;
+	    }
+	    id = id.substring(0, id.length-4);
+            if(LDR.Replacements.hasOwnProperty(id)) {
+                let obj = LDR.Replacements[id];
+		if(obj.year <= year) {
+		    pd.ID = obj.part + '.dat';
+		}
+            }
+        }}
     };
 }
 
@@ -72,25 +106,31 @@ LDR.OMR.FixPlacements = function() {
         return Number(x);
     };
     
-    let check3 = p => p.x!==convert(p.x) || p.y!==convert(p.y) || p.z!==convert(p.z);
+    let checkV = p => p.x!==convert(p.x) || p.y!==convert(p.y) || p.z!==convert(p.z);
 
     let bad = 0
     let total = 0;
-    function checkPD(p) {
+    function checkPD(pd) {
+	let p = pd.position;
+	let r = pd.rotation.elements;
         total++;
-        if(check3(p)) {
+        if(checkV(p) || pd.rotation.elements.some(x => x!==convert(x))) {
             ++bad;
         }
         return (total >= MIN_TOTAL) && (bad/total > ACCEPTABLE_FRACTION);
     }
 
     let checkers = {checkPartDescription:pd => 
-                    checkPD(pd.position) ? "Many parts are placed with precision higher than three decimals, such as '" + pd.ID + "' placed at (" + pd.position.x + ", " + pd.position.y + ", " + pd.position.z + "). This is often observed in models created in Bricklink Studio 2.0. Click here to align all parts to have at most three decimals in their positions." : false};
+                    checkPD(pd) ? "Many parts are placed with precision higher than three decimals, such as '" + pd.ID + "' placed at (" + pd.position.toLDR() + ") with rotation (" + pd.rotation.toLDR() + "). This is often observed in models created in Bricklink Studio 2.0. Click here to align all parts to have at most three decimals in their positions." : false};
 
     let handlers = {handlePartDescription: function(pd) {
 	pd.position.set(convert(pd.position.x),
 			convert(pd.position.y),
 			convert(pd.position.z));
+	let e = pd.rotation.elements;
+	pd.rotation.set(convert(e[0]), convert(e[3]), convert(e[6]),
+		        convert(e[1]), convert(e[4]), convert(e[7]),
+		        convert(e[2]), convert(e[5]), convert(e[8]));
     }};
 
     return {checkers:checkers, handlers:handlers};
