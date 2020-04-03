@@ -681,7 +681,7 @@ LDR.InstructionsManager.prototype.clickDone = function() {
 }
 
 /*
-  Icon: {x, y, width, height, mult, key, partID, colorID, desc, inlined}
+  Icon: {x, y, width, height, mult, key, partID, c, desc, inlined}
 */
 LDR.InstructionsManager.prototype.onPLIClick = function(e) {
     let x = e.layerX || e.clientX;
@@ -723,7 +723,7 @@ LDR.InstructionsManager.prototype.onPLIClick = function(e) {
         this.pliHighlighted = pt.mesh;
         this.pliPreviewer.scene.add(this.pliHighlighted);
         
-        pt.pliMC.overwriteColor(icon.part.colorID);
+        pt.pliMC.overwriteColor(icon.part.c);
         this.pliPreviewer.showPliPreview(icon);
         let b = pt.pliMC.boundingBox;
         let size = b.min.distanceTo(b.max) * 0.6;

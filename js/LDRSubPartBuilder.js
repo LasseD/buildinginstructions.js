@@ -6,8 +6,8 @@ LDR.ICON_SIZE = 200;
   The LDRSubPartBulder is used for displaying a part and all of its sub parts, 
   primitives, and comment lines.
 */
-LDR.SubPartBuilder = function(baseMC, table, redPoints, loader, partType, colorID, position, rotation, scene, subjectSize, onIconClick, from) {
-    if(colorID === undefined)
+LDR.SubPartBuilder = function(baseMC, table, redPoints, loader, partType, c, position, rotation, scene, subjectSize, onIconClick, from) {
+    if(c === undefined)
 	throw "Color undefined!";
 
     let self = this;
@@ -15,7 +15,7 @@ LDR.SubPartBuilder = function(baseMC, table, redPoints, loader, partType, colorI
     this.table = table;
     this.redPoints = redPoints;
     this.loader = loader;
-    this.c = colorID;
+    this.c = c;
     this.p = position;
     this.r = rotation;
     this.scene = scene;
@@ -45,7 +45,7 @@ LDR.SubPartBuilder = function(baseMC, table, redPoints, loader, partType, colorI
     LDR.makeEle(tr, 'td', 'line_cull').innerHTML = "&#x271" + (this.partType.certifiedBFC ? '4' : '6') + ";";;
     let CCW = this.partType.CCW;
     LDR.makeEle(tr, 'td', 'line_wind').innerHTML = "&#x21B" + (CCW ? 'A' : 'B') + ";";
-    LDR.makeEle(tr, 'td', 'line_color').innerHTML = colorID;
+    LDR.makeEle(tr, 'td', 'line_color').innerHTML = c;
     this.imageHolder = LDR.makeEle(tr, 'td', 'line_image');
 
     // Add icon for self:
@@ -162,10 +162,10 @@ LDR.SubPartBuilder.prototype.buildIcons = function(baseObject, linkPrefix) {
 	}
 	else {
 	    line.mc = new LDR.MeshCollector(baseObject, baseObject, baseObject);
-	    let c = transformColor(line.line1 ? line.desc.colorID : line.c);
+	    let c = transformColor(line.line1 ? line.desc.c : line.c);
 
 	    let color = LDR.Colors[c];
-	    let shownColor = color.direct ? color.direct : colorID;
+	    let shownColor = color.direct ? color.direct : c;
 	    let step = new THREE.LDRStep(); // Not used by line1.
 
 	    if(line.line1) {
@@ -196,7 +196,7 @@ LDR.SubPartBuilder.prototype.buildIcons = function(baseObject, linkPrefix) {
 		LDR.makeEle(tr, 'td', 'line_desc').innerHTML = LDR.writePrettyPointsPR(line.desc.position, line.desc.rotation);
 		LDR.makeEle(tr, 'td', 'line_cull').innerHTML = "&#x271" + (line.desc.cull ? '4' : '6') + ";";
 		LDR.makeEle(tr, 'td', 'line_wind').innerHTML = "&#x21B" + (!line.desc.invertCCW ? 'A' : 'B') + ";";
-		LDR.makeEle(tr, 'td', 'line_color').innerHTML = line.desc.colorID;
+		LDR.makeEle(tr, 'td', 'line_color').innerHTML = line.desc.c;
 
                 // Hack in a new part type for the sub model:
                 let identityRotation = new THREE.Matrix3();

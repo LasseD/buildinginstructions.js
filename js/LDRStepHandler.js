@@ -51,7 +51,7 @@ LDR.StepHandler.prototype.rebuild = function() {
             sh = new LDR.StepHandler(this.opaqueObject, this.sixteenObject, this.transObject,
 				     this.loader, subDescs, false);
         }
-        this.steps.push(new LDR.StepInfo(sh, step.cloneColored(partDesc.colorID)));
+        this.steps.push(new LDR.StepInfo(sh, step.cloneColored(partDesc.c)));
     }
     this.steps.push(new LDR.StepInfo()); // One more for placement step. This is also where extra parts are added.
 
@@ -230,7 +230,7 @@ LDR.StepHandler.prototype.nextStep = function(doNotEraseForSubModels) {
 	    let pd = this.partDescs[0];
             meshCollector = new LDR.MeshCollector(this.opaqueObject, this.sixteenObject, this.transObject);
 
-	    step.step.generateThreePart(this.loader, pd.colorID, pd.position, pd.rotation, true, false, meshCollector);
+	    step.step.generateThreePart(this.loader, pd.c, pd.p, pd.r, true, false, meshCollector);
 	    step.meshCollector = meshCollector;
 	    this.setCurrentBounds(meshCollector.boundingBox);
 
@@ -539,7 +539,7 @@ LDR.StepHandler.prototype.drawExtras = function() {
 	for(let i = 1; i < this.partDescs.length; i++) {
 	    let pd = this.partDescs[i];
 	    // Here it is not necessary to run any "geometryBuilder.buildPart..." due to all parts having already been loaded when the first submodel was built.
-	    this.part.generateThreePart(this.loader, pd.colorID, pd.position, pd.rotation, true, false, step.meshCollector);
+	    this.part.generateThreePart(this.loader, pd.c, pd.p, pd.r, true, false, step.meshCollector);
 	}
 
 	let b = step.meshCollector.boundingBox;

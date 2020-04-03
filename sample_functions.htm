@@ -123,7 +123,7 @@
           functionsEle.removeChild(functionsEle.firstChild);
         }        
 
-        createFunctionButton({checkPartDescription:pd=>pd.colorID !== 4 ? "Color everything red" : false}, {handlePartDescription:pd => pd.colorID=4});
+        createFunctionButton({checkPartDescription:pd=>pd.c !== 4 ? "Color everything red" : false}, {handlePartDescription:pd => pd.c=4});
 
         createFunctionButtonFromObject(LDR.OMR.ColorPartsAccordingToYear(2006));
         createFunctionButtonFromObject(LDR.OMR.ColorPartsAccordingToYear(2007));
@@ -157,7 +157,7 @@
         let checkPD = function(pd) {
 	  let ret = checks.checkPartDescription && checks.checkPartDescription(pd)
           if(ret) {
-            console.log('Function enabled due to ' + pd.ID + ' in color ' + pd.colorID);
+            console.log('Function enabled due to ' + pd.ID + ' in color ' + pd.c);
             return ret;
           }
           let pt = ldrLoader.getPartType(pd.ID);

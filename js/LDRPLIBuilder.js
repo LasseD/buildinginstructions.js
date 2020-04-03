@@ -69,10 +69,10 @@ LDR.PLIBuilder.prototype.updateCamera = function(w, h) {
     this.camera.updateProjectionMatrix();
 }
 
-LDR.PLIBuilder.prototype.renderIcon = function(partID, colorID, w, h) {
+LDR.PLIBuilder.prototype.renderIcon = function(partID, c, w, h) {
     let pt = this.getPartType(partID);
 
-    pt.pliMC.overwriteColor(colorID);
+    pt.pliMC.overwriteColor(c);
     pt.pliMC.draw(false);
 
     this.scene.add(pt.mesh);
@@ -84,7 +84,7 @@ LDR.PLIBuilder.prototype.renderIcon = function(partID, colorID, w, h) {
 }
 
 LDR.PLIBuilder.prototype.createClickMap = function(step) {
-    let icons = {}; // key -> {key, partID, colorID, mult, desc}, key='part_id'_'color_id'
+    let icons = {}; // key -> {key, partID, c, mult, desc}, key='part_id'_'color_id'
     this.clickMap = [];
     for(let i = 0; i < step.subModels.length; i++) {
 	let dat = step.subModels[i];
@@ -96,7 +96,7 @@ LDR.PLIBuilder.prototype.createClickMap = function(step) {
         if(!partType || !partType.isPart) {
             continue; // Do not show sub models.
         }
-	let colorID = dat.colorID;
+	let c = dat.c;
 	let key = partID.endsWith('.dat') ? partID.substring(0, partID.length-4) : partID;
 	let pliID = key;
 
@@ -124,7 +124,7 @@ LDR.PLIBuilder.prototype.createClickMap = function(step) {
 	    dat.ID = partID;
 	}
 
-	key += '_' + colorID;
+	key += '_' + c;
 	let icon = icons[key];
         if(this.groupParts && icon) {
             icon.mult++;
@@ -134,7 +134,7 @@ LDR.PLIBuilder.prototype.createClickMap = function(step) {
 	    let b = pt.pliMC.boundingBox;
 	    icon = {key: key,
 		    partID: partID,
-		    colorID: colorID,
+		    c: c,
                     mult: 1,
 		    desc: pt.modelDescription,
 		    annotation: LDR.Annotations ? LDR.Annotations[pliID] : null,
@@ -161,7 +161,7 @@ LDR.PLIBuilder.prototype.createClickMap = function(step) {
 	if(ca !== cb) {
 	    return ca < cb ? -1 : 1; // Group plates, bricks, etc. (Only works well when not also sorting by width above)
 	}
-	return a.colorID - b.colorID;
+	return a.c - b.c;
     }
     this.clickMap.sort(sorter);
 }
@@ -209,7 +209,7 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
         let y = icon.y*DPR;
 	let w = parseInt(icon.DX*scaleDown);
 	let h = parseInt(icon.DY*scaleDown);
-        self.renderIcon(icon.partID, icon.colorID, w, h);
+        self.renderIcon(icon.partID, icon.c, w, h);
 	context.drawImage(self.renderer.domElement, x, y);
 	
         // Code below is to highlight PLI boundary lines:

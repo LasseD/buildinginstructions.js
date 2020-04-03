@@ -52,7 +52,7 @@ LDR.AssemblyManager = function(loader) {
 	if(!torso) {
 	    return; // No torsos.
 	}
-        let ID = torso.ID.substring(0, torso.ID.length-4) + 'c' + torso.colorID + '.dat'; // Assembly ID
+        let ID = torso.ID.substring(0, torso.ID.length-4) + 'c' + torso.c + '.dat'; // Assembly ID
         if(self.loader.partTypes.hasOwnProperty(ID)) {
             return; // Already built.
         }
@@ -66,33 +66,33 @@ LDR.AssemblyManager = function(loader) {
         let idMatrix = new THREE.Matrix3(); idMatrix.set(1, 0, 0, 0, 1, 0, 0, 0, 1);
 
         // Torso:
-        torsoStep.addSubModel(new THREE.LDRPartDescription(torso.colorID, zeroVector, idMatrix, torso.ID, true, false));
+        torsoStep.addSubModel(new THREE.LDRPartDescription(torso.c, zeroVector, idMatrix, torso.ID, true, false));
 	
         // Arms:
         let armMatrix1 = new THREE.Matrix3(); armMatrix1.set(1, 0.17, 0, -0.17, 1, 0, 0, 0, 1);
-        torsoStep.addSubModel(new THREE.LDRPartDescription(armLeft.colorID, new THREE.Vector3(15.5, 8, 0), armMatrix1, armLeft.ID, true, false));
+        torsoStep.addSubModel(new THREE.LDRPartDescription(armLeft.c, new THREE.Vector3(15.5, 8, 0), armMatrix1, armLeft.ID, true, false));
         let armMatrix2 = new THREE.Matrix3(); armMatrix2.set(1, -0.17, 0, 0.17, 1, 0, 0, 0, 1);
-        torsoStep.addSubModel(new THREE.LDRPartDescription(armRight.colorID, new THREE.Vector3(-15.5, 8, 0), armMatrix2, armRight.ID, true, false));
+        torsoStep.addSubModel(new THREE.LDRPartDescription(armRight.c, new THREE.Vector3(-15.5, 8, 0), armMatrix2, armRight.ID, true, false));
 	
         // Hands:
         let handMatrix1 = new THREE.Matrix3(); handMatrix1.set(1, 0.12, -0.12, -0.17, 0.697, -0.697, 0, 0.707, 0.707);
-        torsoStep.addSubModel(new THREE.LDRPartDescription(hand.colorID, new THREE.Vector3(23.658, 25.851, -10), handMatrix1, hand.ID, true, false));
+        torsoStep.addSubModel(new THREE.LDRPartDescription(hand.c, new THREE.Vector3(23.658, 25.851, -10), handMatrix1, hand.ID, true, false));
         let handMatrix2 = new THREE.Matrix3(); handMatrix2.set(1, -0.12, 0.12, 0.17, 0.697, -0.697, 0, 0.707, 0.707);
-        torsoStep.addSubModel(new THREE.LDRPartDescription(hand.colorID, new THREE.Vector3(-23.658, 25.851, -10), handMatrix2, hand.ID, true, false));
+        torsoStep.addSubModel(new THREE.LDRPartDescription(hand.c, new THREE.Vector3(-23.658, 25.851, -10), handMatrix2, hand.ID, true, false));
 	
         // Torso part type:
         let torsoPT = new THREE.LDRPartType();
         torsoPT.name = torsoPT.ID = ID;
-        let md0 = LDR.Colors[torso.colorID].name + ' '; // pt.modelDescription
+        let md0 = LDR.Colors[torso.c].name + ' '; // pt.modelDescription
         let md2 = ' / '; // pt.modelDescription
 
-	if(armLeft.colorID === armRight.colorID) {
-	    md2 += LDR.Colors[armLeft.colorID].name + ' Arms';
+	if(armLeft.c === armRight.c) {
+	    md2 += LDR.Colors[armLeft.c].name + ' Arms';
 	}
 	else {
-	    md2 += LDR.Colors[armLeft.colorID].name + ' Left Arm / ' + LDR.Colors[armRight.colorID].name + ' Right Arm';
+	    md2 += LDR.Colors[armLeft.c].name + ' Left Arm / ' + LDR.Colors[armRight.c].name + ' Right Arm';
 	}
-	md2 += ' / ' + LDR.Colors[hand.colorID].name + ' Hands';
+	md2 += ' / ' + LDR.Colors[hand.c].name + ' Hands';
 
 	let pt = loader.getPartType(torso.ID);
 	let md1;
@@ -114,10 +114,10 @@ LDR.AssemblyManager = function(loader) {
         torsoPT.isPart = true;
         self.loader.partTypes[ID] = torsoPT;
 	
-        let keys = [armLeft.ID + '_' + armLeft.colorID, 
-		    armRight.ID + '_' + armRight.colorID,
-		    hand.ID + '_' + hand.colorID,
-		    hand.ID + '_' + hand.colorID];
+        let keys = [armLeft.ID + '_' + armLeft.c, 
+		    armRight.ID + '_' + armRight.c,
+		    hand.ID + '_' + hand.c,
+		    hand.ID + '_' + hand.c];
         let obj = {ID:ID,c:16,keys:keys};
         addToMap(torso.ID, obj);
     }
@@ -137,7 +137,7 @@ LDR.AssemblyManager.prototype.handleStep = function(step) {
         let aList = self.map[sm.ID];
         for(let i = 0; i < aList.length; i++) { // Try to build all assemblies that have sm as main model:
             let obj = aList[i]; // {ID, c, keys}
-            if(obj.c !== 16 && obj.c !== sm.colorID) {
+            if(obj.c !== 16 && obj.c !== sm.c) {
                 continue; // Color does not match.
             }
             
@@ -171,15 +171,15 @@ LDR.AssemblyManager.prototype.handleStep = function(step) {
                         return; // Main model or already removed.
                     }
 
-                    if(sm2.colorID !== 16) { // Attempt to find exact match:
-                        if(decrease(sm2.ID + '_' + sm2.colorID)) {
-                            found.push({idx:idx2,c:sm2.colorID});
+                    if(sm2.c !== 16) { // Attempt to find exact match:
+                        if(decrease(sm2.ID + '_' + sm2.c)) {
+                            found.push({idx:idx2,c:sm2.c});
                             return;
                         }
                         // When color is not 16 and not found, then it has to match main model:
                     }
 
-                    if(sm2.colorID === sm.colorID && decrease(sm2.ID + '_16')) {
+                    if(sm2.c === sm.c && decrease(sm2.ID + '_16')) {
                         found.push({idx:idx2,c:16});
                     }
                 });

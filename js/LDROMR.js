@@ -85,12 +85,12 @@ LDR.OMR.FixPlacements = function() {
     }
 
     let checkers = {checkPartDescription:pd => 
-                    checkPD(pd.position) ? "Many parts are placed with precision higher than three decimals, such as '" + pd.ID + "' placed at (" + pd.position.x + ", " + pd.position.y + ", " + pd.position.z + "). This is often observed in models created in Bricklink Studio 2.0. Click here to align all parts to have at most three decimals in their positions." : false};
+                    checkPD(pd.p) ? "Many parts are placed with precision higher than three decimals, such as '" + pd.ID + "' placed at (" + pd.p.x + ", " + pd.p.y + ", " + pd.p.z + "). This is often observed in models created in Bricklink Studio 2.0. Click here to align all parts to have at most three decimals in their positions." : false};
 
     let handlers = {handlePartDescription: function(pd) {
-	pd.position.set(convert(pd.position.x),
-			convert(pd.position.y),
-			convert(pd.position.z));
+	pd.p.set(convert(pd.p.x),
+			convert(pd.p.y),
+			convert(pd.p.z));
     }};
 
     return {checkers:checkers, handlers:handlers};
@@ -230,22 +230,22 @@ LDR.OMR.StandardizeFileNames = function(setNumber) {
  */
 LDR.OMR.ColorPartsAccordingToYear = function(year) {
     function transformColors(pd, map) {
-        if(map.hasOwnProperty(pd.colorID)) {
-            pd.colorID = map[pd.colorID];
+        if(map.hasOwnProperty(pd.c)) {
+            pd.c = map[pd.c];
         }
     }
 
     if(year >= 2007) {
-        let title = (id, colorID) => "In 2007 LEGO started using new brown and gray colors. This model has one or more parts in old colors, such as " + id + " in " + LDR.Colors[colorID].name + ". Click here to change to new colors";
+        let title = (id, c) => "In 2007 LEGO started using new brown and gray colors. This model has one or more parts in old colors, such as " + id + " in " + LDR.Colors[c].name + ". Click here to change to new colors";
         return {
-            checkers: {checkPartDescription: pd => (pd.colorID===6||pd.colorID===7||pd.colorID===8) ? title(pd.ID, pd.colorID) : false},
+            checkers: {checkPartDescription: pd => (pd.c===6||pd.c===7||pd.c===8) ? title(pd.ID, pd.c) : false},
             handlers: {handlePartDescription: pd => transformColors(pd, {'6':70,'7':71,'8':72})}
         };
     }
     else {
-        let title = (id, colorID) => "In 2007 LEGO started using new gray and brown colors. This model contains one or more parts in new colors, such as " + id + " in " + LDR.Colors[colorID].name + ". Click here to change to old colors";
+        let title = (id, c) => "In 2007 LEGO started using new gray and brown colors. This model contains one or more parts in new colors, such as " + id + " in " + LDR.Colors[c].name + ". Click here to change to old colors";
         return {
-            checkers:{checkPartDescription:pd => (pd.colorID===70||pd.colorID===71||pd.colorID===72) ? title(pd.ID, pd.colorID) : false},
+            checkers:{checkPartDescription:pd => (pd.c===70||pd.c===71||pd.c===72) ? title(pd.ID, pd.c) : false},
             handlers:{handlePartDescription:pd => transformColors(pd, {'70':6,'71':7,'72':8})}
         };
     }
