@@ -283,9 +283,9 @@ THREE.LDRLoader.prototype.toLDRStudio = function(c) {
         let step = pt.steps[0];
 	
 	function find(list) {
-	    let x = list.find(y => y.texmapPlacement);
+	    let x = list.find(y => y.tmp);
 	    if(x) {
-		pt.texmapFile = x.texmapPlacement.file;
+		pt.texmapFile = x.tmp.file;
 		return true;
 	    }
 	    return false;
@@ -430,8 +430,8 @@ THREE.LDRPartType.prototype.toStudioFile = function(ldrLoader) {
     });
     step.quads.filter(x => x.tmp).forEach(x => {
 	tmp = x.tmp.file;
-        tt.push({c:x.c, p1:x.p1, p2:x.p2, p3:x.p3, texmapPlacement:x.tmp});
-        tt.push({c:x.c, p1:x.p1, p2:x.p3, p3:x.p4, texmapPlacement:x.tmp});
+        tt.push({c:x.c, p1:x.p1, p2:x.p2, p3:x.p3, tmp:x.tmp});
+        tt.push({c:x.c, p1:x.p1, p2:x.p3, p3:x.p4, tmp:x.tmp});
     });
 
     // Find dataurl:

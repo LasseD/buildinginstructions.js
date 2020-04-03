@@ -294,7 +294,7 @@ function convert() {
   LDR.TexmapPlacements = [tmp];
   let mimetype = 'png';
 
-  step.addQuad(16, p4, p3, p2, p1, true, tmp);
+  step.addQuad(16, p4, p3, p2, p1, true, false, tmp);
   if(t > 0) { // Add box5:
     console.log('With box5 of thickness', t);
     if(useBox5) {
@@ -328,11 +328,11 @@ function convert() {
       step.addLine(24, p4, p8);
 
       // Quads:
-      step.addQuad(16, p1, p2, p6, p5, true);
-      step.addQuad(16, p2, p3, p7, p6, true);
-      step.addQuad(16, p3, p4, p8, p7, true);
-      step.addQuad(16, p4, p1, p5, p8, true);
-      step.addQuad(16, p5, p6, p7, p8, true);
+      step.addQuad(16, p1, p2, p6, p5, true, false);
+      step.addQuad(16, p2, p3, p7, p6, true, false);
+      step.addQuad(16, p3, p4, p8, p7, true, false);
+      step.addQuad(16, p4, p1, p5, p8, true, false);
+      step.addQuad(16, p5, p6, p7, p8, true, false);
     }
   }
   part.addStep(step);
