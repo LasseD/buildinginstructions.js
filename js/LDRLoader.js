@@ -934,7 +934,7 @@ THREE.LDRLoader.prototype.pack = function() {
 
     // Pack texmaps:
     arrayI.push(LDR.TexmapPlacements.length);
-    LDR.TexmapPlacements.forEach(tmp => tmp.packInto(arrayF, arrayI, arrayS, nameMap));
+    LDR.TexmapPlacements.forEach(tmp => tmp.packInto(arrayI, arrayF, arrayS, nameMap));
     
     // Pack dataurls:
     arrayI.push(this.texmapDataurls.length);
@@ -951,7 +951,7 @@ THREE.LDRLoader.prototype.pack = function() {
 	arrayI.push(pt.steps.length);
 
 	pt.steps.forEach(step => {
-            step.packInto(arrayF, arrayI, arrayS, nameMap);
+            step.packInto(arrayI, arrayF, arrayS, nameMap);
 
 	    // Also handle rotation:
 	    if(step.rotation) {
@@ -1169,20 +1169,18 @@ THREE.LDRStepIdx = 0;
 THREE.LDRStep = function() {
     this.idx = THREE.LDRStepIdx++;
     this.hasPrimitives = false;
-    this.subModels = [];
+    this.subModels = []; // THREE.LDRPartDescription
     this.lines = []; // LDR.Line2
     this.conditionalLines = []; // LDR.Line5
     this.triangles = []; // LDR.Line3
     this.quads = []; // LDR.Line4
-    this.rotation = null;
+    this.rotation = null; // THREE.LDRStepRotation
     this.cnt = -1;
-    this.original;
+    this.original; // THREE.LDRStep
 }
 
 THREE.LDRStep.prototype.pack = function(obj) {
-    let arrayF = [];
-    let arrayI = [];
-    let arrayS = [];
+    let arrayI = [], arrayF = [], arrayS = [];
     
     // SubModels:
     let subModelMap = {};
@@ -1209,7 +1207,7 @@ THREE.LDRStep.prototype.pack = function(obj) {
     }
     for(let idx in texmapPlacements) {
         if(texmapPlacements.hasOwnProperty(idx)) {
-            texmapPlacements[idx].packInto(arrayF, arrayI, arrayS, subModelMap);
+            texmapPlacements[idx].packInto(arrayI, arrayF, arrayS, subModelMap);
         }
     }
 
@@ -1217,7 +1215,7 @@ THREE.LDRStep.prototype.pack = function(obj) {
         obj.sp = subModelList.join('|'); // All sub models, including those for fallback geometries.
     }
 
-    this.packInto(arrayF, arrayI, arrayS, subModelMap);
+    this.packInto(arrayI, arrayF, arrayS, subModelMap);
 
     if(arrayS.length > 0) {
         obj.sx = arrayS.join('¤'); // Files for texmaps.
@@ -1231,7 +1229,7 @@ THREE.LDRStep.prototype.pack = function(obj) {
     obj.af = new Float32Array(arrayF);
 }
 
-THREE.LDRStep.prototype.packInto = function(arrayF, arrayI, arrayS, subModelMap) {
+THREE.LDRStep.prototype.packInto = function(arrayI, arrayF, arrayS, subModelMap) {
     arrayI.push(this.subModels.length);
     function handleSubModel(sm) {
         if(!subModelMap.hasOwnProperty(sm.ID)) {
@@ -1257,28 +1255,14 @@ THREE.LDRStep.prototype.packInto = function(arrayF, arrayI, arrayS, subModelMap)
     this.subModels.forEach(handleSubModel);
 
     // Primitives:
-    function handle(primitives, size, cullInfo) {
+    function handle(primitives) {
         arrayI.push(primitives.length);
-        primitives.forEach(x => {
-                arrayI.push(x.c);
-                if(cullInfo) {
-                    arrayI.push(x.cull ? 1 : 0);
-                }
-                arrayI.push(x.tmp ? x.tmp.idx : -1);
-                arrayF.push(x.p1.x, x.p1.y, x.p1.z, 
-                            x.p2.x, x.p2.y, x.p2.z);
-                if(size > 2) {
-                    arrayF.push(x.p3.x, x.p3.y, x.p3.z);
-                }
-                if(size > 3) {
-                    arrayF.push(x.p4.x, x.p4.y, x.p4.z);
-                }
-            });
+        primitives.forEach(x => x.pack(arrayI, arrayF));
     }
-    handle(this.lines, 2, false);
-    handle(this.triangles, 3, true);
-    handle(this.quads, 4, true);
-    handle(this.conditionalLines, 4, false);
+    handle(this.lines);
+    handle(this.triangles);
+    handle(this.quads);
+    handle(this.conditionalLines);
 }
 
 THREE.LDRStep.prototype.unpack = function(obj, saveFileLines) {
@@ -1342,39 +1326,22 @@ THREE.LDRStep.prototype.unpackFrom = function(arrayI, arrayF, arrayS, idxI, idxF
     }
 
     // Primitives:
-    function handle(size, cullInfo, makeLine) {
+    function handle(makeLine) {
         let ret = [];
         let numPrimitives = arrayI[idxI++];
         for(let i = 0; i < numPrimitives; i++) {
-            let p = {c:arrayI[idxI++]};
+            self.hasPrimitives = true;
+            let p = makeLine();
+            [idxI, idxF] = p.unpackFrom(arrayI, arrayF, idxI, idxF, texmapPlacementMap);
 	    ensureColor(p.c);
-            if(cullInfo) {
-                p.cull = arrayI[idxI++]===1;
-            }
-
-            let texmapIdx = arrayI[idxI++];
-            if(texmapIdx >= 0) {
-                p.tmp = texmapPlacementMap[texmapIdx];
-            }
-
-            p.p1 = new THREE.Vector3(arrayF[idxF++], arrayF[idxF++], arrayF[idxF++]);
-            p.p2 = new THREE.Vector3(arrayF[idxF++], arrayF[idxF++], arrayF[idxF++]);
-            if(size > 2) {
-                p.p3 = new THREE.Vector3(arrayF[idxF++], arrayF[idxF++], arrayF[idxF++]);
-            }
-            if(size > 3) {
-                p.p4 = new THREE.Vector3(arrayF[idxF++], arrayF[idxF++], arrayF[idxF++]);
-            }
-            ret.push(makeLine(p.c, p.p1, p.p2, p.p3, p.p4, p.cull, true, p.tmp));
+            ret.push(p);
         }
         return ret;
     }
-    this.lines = handle(2, false, (c, p1, p2, p3, p4, cull, ccw, tmp) => new LDR.Line2(c, p1, p2, tmp));
-    this.triangles = handle(3, true, (c, p1, p2, p3, p4, cull, ccw, tmp) => new LDR.Line3(c, p1, p2, p3, cull, ccw, tmp));
-    this.quads = handle(4, true, (c, p1, p2, p3, p4, cull, ccw, tmp) => new LDR.Line4(c, p1, p2, p3, p4, cull, ccw, tmp));
-    this.conditionalLines = handle(4, false, (c, p1, p2, p3, p4, cull, ccw, tmp) => new LDR.Line5(c, p1, p2, p3, p4, tmp));
-
-    this.hasPrimitives = this.lines.length > 0 || this.conditionalLines.length > 0 || this.triangles.length > 0 || this.quads.length > 0;
+    this.lines = handle(() => new LDR.Line2());
+    this.triangles = handle(() => new LDR.Line3());
+    this.quads = handle(() => new LDR.Line4());
+    this.conditionalLines = handle(() => new LDR.Line5());
 
     return [idxI, idxF, idxS];
 }
@@ -1665,7 +1632,6 @@ THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, 
 
 LDR.Line0 = function(txt) {
     this.txt = txt;    
-    this.line0 = true;
 }
 
 LDR.Line0.prototype.toLDR = function() {
@@ -1700,7 +1666,27 @@ LDR.Line2 = function(c, p1, p2, tmp) {
     this.p1 = p1;
     this.p2 = p2;
     this.tmp = tmp;
-    this.line2 = true;
+}
+
+LDR.Line2.prototype.pack = function(arrayI, arrayF) {
+    arrayI.push(this.c);
+    arrayI.push(this.tmp ? this.tmp.idx : -1);
+    arrayF.push(this.p1.x, this.p1.y, this.p1.z, 
+                this.p2.x, this.p2.y, this.p2.z);
+}
+
+LDR.Line2.prototype.unpackFrom = function(arrayI, arrayF, idxI, idxF, texmapPlacementMap) {
+    this.c = arrayI[idxI++];
+
+    let texmapIdx = arrayI[idxI++];
+    if(texmapIdx >= 0) {
+        this.tmp = texmapPlacementMap[texmapIdx];
+    }
+
+    this.p1 = new THREE.Vector3(arrayF[idxF++], arrayF[idxF++], arrayF[idxF++]);
+    this.p2 = new THREE.Vector3(arrayF[idxF++], arrayF[idxF++], arrayF[idxF++]);
+
+    return [idxI, idxF];
 }
 
 LDR.Line2.prototype.toLDR = function() {
@@ -1721,7 +1707,37 @@ LDR.Line3 = function(c, p1, p2, p3, cull, invert, tmp) {
     }
     this.cull = cull;
     this.tmp = tmp;
-    this.line3 = true;
+}
+
+LDR.Line3.prototype.pack = function(arrayI, arrayF) {
+    arrayI.push(this.cull ? this.c : -1-this.c);
+    arrayI.push(this.tmp ? this.tmp.idx : -1);
+    arrayF.push(this.p1.x, this.p1.y, this.p1.z, 
+                this.p2.x, this.p2.y, this.p2.z,
+                this.p3.x, this.p3.y, this.p3.z);    
+}
+
+LDR.Line3.prototype.unpackFrom = function(arrayI, arrayF, idxI, idxF, texmapPlacementMap) {
+    let packed = arrayI[idxI++];
+    if(packed < 0) {
+        this.cull = false;
+        this.c = -1-packed;
+    }
+    else {
+        this.cull = true;
+        this.c = packed;
+    }
+
+    let texmapIdx = arrayI[idxI++];
+    if(texmapIdx >= 0) {
+        this.tmp = texmapPlacementMap[texmapIdx];
+    }
+
+    this.p1 = new THREE.Vector3(arrayF[idxF++], arrayF[idxF++], arrayF[idxF++]);
+    this.p2 = new THREE.Vector3(arrayF[idxF++], arrayF[idxF++], arrayF[idxF++]);
+    this.p3 = new THREE.Vector3(arrayF[idxF++], arrayF[idxF++], arrayF[idxF++]);
+
+    return [idxI, idxF];
 }
 
 LDR.Line3.prototype.toLDR = function() {
@@ -1744,7 +1760,39 @@ LDR.Line4 = function(c, p1, p2, p3, p4, cull, invert, tmp) {
     }
     this.cull = cull;
     this.tmp = tmp;
-    this.line4 = true;
+}
+
+LDR.Line4.prototype.pack = function(arrayI, arrayF) {
+    arrayI.push(this.cull ? this.c : -1-this.c);
+    arrayI.push(this.tmp ? this.tmp.idx : -1);
+    arrayF.push(this.p1.x, this.p1.y, this.p1.z, 
+                this.p2.x, this.p2.y, this.p2.z,
+                this.p3.x, this.p3.y, this.p3.z,
+                this.p4.x, this.p4.y, this.p4.z);    
+}
+
+LDR.Line4.prototype.unpackFrom = function(arrayI, arrayF, idxI, idxF, texmapPlacementMap) {
+    let packed = arrayI[idxI++];
+    if(packed < 0) {
+        this.cull = false;
+        this.c = -1-packed;
+    }
+    else {
+        this.cull = true;
+        this.c = packed;
+    }
+
+    let texmapIdx = arrayI[idxI++];
+    if(texmapIdx >= 0) {
+        this.tmp = texmapPlacementMap[texmapIdx];
+    }
+
+    this.p1 = new THREE.Vector3(arrayF[idxF++], arrayF[idxF++], arrayF[idxF++]);
+    this.p2 = new THREE.Vector3(arrayF[idxF++], arrayF[idxF++], arrayF[idxF++]);
+    this.p3 = new THREE.Vector3(arrayF[idxF++], arrayF[idxF++], arrayF[idxF++]);
+    this.p4 = new THREE.Vector3(arrayF[idxF++], arrayF[idxF++], arrayF[idxF++]);
+
+    return [idxI, idxF];
 }
 
 LDR.Line4.prototype.toLDR = function() {
@@ -1758,7 +1806,31 @@ LDR.Line5 = function(c, p1, p2, p3, p4, tmp) {
     this.p3 = p3;
     this.p4 = p4;
     this.tmp = tmp;
-    this.line5 = true;
+}
+
+LDR.Line5.prototype.pack = function(arrayI, arrayF) {
+    arrayI.push(this.c);
+    arrayI.push(this.tmp ? this.tmp.idx : -1);
+    arrayF.push(this.p1.x, this.p1.y, this.p1.z, 
+                this.p2.x, this.p2.y, this.p2.z,
+                this.p3.x, this.p3.y, this.p3.z,
+                this.p4.x, this.p4.y, this.p4.z);    
+}
+
+LDR.Line5.prototype.unpackFrom = function(arrayI, arrayF, idxI, idxF, texmapPlacementMap) {
+    this.c = arrayI[idxI++];
+
+    let texmapIdx = arrayI[idxI++];
+    if(texmapIdx >= 0) {
+        this.tmp = texmapPlacementMap[texmapIdx];
+    }
+
+    this.p1 = new THREE.Vector3(arrayF[idxF++], arrayF[idxF++], arrayF[idxF++]);
+    this.p2 = new THREE.Vector3(arrayF[idxF++], arrayF[idxF++], arrayF[idxF++]);
+    this.p3 = new THREE.Vector3(arrayF[idxF++], arrayF[idxF++], arrayF[idxF++]);
+    this.p4 = new THREE.Vector3(arrayF[idxF++], arrayF[idxF++], arrayF[idxF++]);
+
+    return [idxI, idxF];
 }
 
 LDR.Line5.prototype.toLDR = function() {
@@ -2370,7 +2442,7 @@ LDR.TexmapPlacement.prototype.setSpherical = function() {
     this.getUV = this.getUVSpherical;
 }
 
-LDR.TexmapPlacement.prototype.packInto = function(arrayF, arrayI, arrayS, subModelMap) {
+LDR.TexmapPlacement.prototype.packInto = function(arrayI, arrayF, arrayS, subModelMap) {
     arrayI.push(this.idx, this.type);
     this.p.forEach(pt => arrayF.push(pt.x, pt.y, pt.z));
     if(this.type > 0) {

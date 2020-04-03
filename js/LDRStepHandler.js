@@ -144,7 +144,7 @@ LDR.StepHandler.prototype.computeCameraPositionRotation = function(defaultMatrix
     let stepRotation = step.step.rotation;
 
     // Get the current model rotation matrix and model center:
-    let pr = this.partDescs[0].rotation.elements;
+    let pr = this.partDescs[0].r.elements;
     let modelCenter = new THREE.Vector3(); 
     if(useAccumulatedBounds) {
 	step.accumulatedBounds.getCenter(modelCenter);

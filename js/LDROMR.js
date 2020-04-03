@@ -111,10 +111,10 @@ LDR.OMR.FixPlacements = function() {
     let bad = 0
     let total = 0;
     function checkPD(pd) {
-	let p = pd.position;
-	let r = pd.rotation.elements;
+	let p = pd.p;
+	let r = pd.r.elements;
         total++;
-        if(checkV(p) || pd.rotation.elements.some(x => x!==convert(x))) {
+        if(checkV(p) || pd.r.elements.some(x => x!==convert(x))) {
             ++bad;
         }
         return (total >= MIN_TOTAL) && (bad/total > ACCEPTABLE_FRACTION);
@@ -124,13 +124,13 @@ LDR.OMR.FixPlacements = function() {
                     checkPD(pd) ? "Many parts are placed with precision higher than three decimals, such as '" + pd.ID + "' placed at (" + pd.p.toLDR() + ") with rotation (" + pd.r.toLDR() + "). This is often observed in models created in Bricklink Studio 2.0. Click here to align all parts to have at most three decimals in their positions." : false};
 
     let handlers = {handlePartDescription: function(pd) {
-	pd.position.set(convert(pd.position.x),
-			convert(pd.position.y),
-			convert(pd.position.z));
-	let e = pd.rotation.elements;
-	pd.rotation.set(convert(e[0]), convert(e[3]), convert(e[6]),
-		        convert(e[1]), convert(e[4]), convert(e[7]),
-		        convert(e[2]), convert(e[5]), convert(e[8]));
+	pd.p.set(convert(pd.p.x),
+                 convert(pd.p.y),
+                 convert(pd.p.z));
+	let e = pd.r.elements;
+	pd.r.set(convert(e[0]), convert(e[3]), convert(e[6]),
+                 convert(e[1]), convert(e[4]), convert(e[7]),
+                 convert(e[2]), convert(e[5]), convert(e[8]));
     }};
 
     return {checkers:checkers, handlers:handlers};

@@ -167,7 +167,7 @@
 	var icon = {
 	  partID: ele.getAttribute('part_id'),
 	  desc: ele.getAttribute('part_description'),
-	  colorID: ele.getAttribute('color_id'),
+	  c: ele.getAttribute('color_id'),
 	  inlined: ele.getAttribute('inlined')
 	};
         pliPreviewer.showPliPreview(icon);
@@ -196,7 +196,7 @@
       function makePartElement(pcInfo, i, w, h) {
         var span = document.createElement('span');
         span.setAttribute('class', 'part');
-        span.setAttribute('color_id', pcInfo.colorID);
+        span.setAttribute('color_id', pcInfo.c);
         span.setAttribute('part_description', pcInfo.partDesc);
         span.setAttribute('part_id', pcInfo.part.ID);
         span.setAttribute('pcIdx', ""+i);
@@ -273,7 +273,7 @@
 	tr.setAttribute('class', idSet ? 'checked_partline' : 'partline');
 
 	tr.setAttribute('amount', pcInfo.amount);
-	tr.setAttribute('color_id', pcInfo.colorID);
+	tr.setAttribute('color_id', pcInfo.c);
 	tr.setAttribute('part_description', pcInfo.partDesc);
 	tr.setAttribute('part_id', pcInfo.part.ID);
 	tr.setAttribute('pcIdx', ""+i);
@@ -306,7 +306,7 @@
 	tr.appendChild(td);
 
 	appendTDs(tr, pcInfo.amount, 'list_amount');
-	var colorTxt = LDR.Colors[pcInfo.colorID].name.replace(/\_/g,' ') + ' (' + pcInfo.colorID + ')';
+	var colorTxt = LDR.Colors[pcInfo.c].name.replace(/\_/g,' ') + ' (' + pcInfo.c + ')';
 	appendTDs(tr, colorTxt, 'list_color');
 
 	let partID = pcInfo.part.ID.slice(0, -4);
@@ -361,7 +361,7 @@
 	    pt.baseObject = baseObject;
 	  }
 
-	  pt.pliMC.overwriteColor(pc.colorID);
+	  pt.pliMC.overwriteColor(pc.c);
     	  pt.pliMC.draw(false);
 
           return pt.baseObject;
@@ -393,7 +393,7 @@
             content += ' <ITEM>\n' +
                        '  <ITEMTYPE>P</ITEMTYPE>\n' + 
                        '  <ITEMID>' + id + '</ITEMID>\n' +
-                       '  <COLOR>' + LDR.Colors[info.colorID].bricklink_id + '</COLOR>\n' +
+                       '  <COLOR>' + LDR.Colors[info.c].bricklink_id + '</COLOR>\n' +
                        '  <MINQTY>' + info.amount + '</MINQTY>\n' +
                        ' </ITEM>\n';
           }

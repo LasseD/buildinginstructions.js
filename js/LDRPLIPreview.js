@@ -1,5 +1,5 @@
 /*
-  Icon: {x, y, width, height, mult, key, part, colorID, desc}
+  Icon: {x, y, width, height, mult, key, part, c, desc}
  */
 LDR.PliPreviewer = function(modelID, canvas, renderer) {
     if(!renderer || !canvas) {
@@ -73,8 +73,8 @@ LDR.PliPreviewer.prototype.zoomOut = function() {
  
 LDR.PliPreviewer.prototype.showPliPreview = function(icon) {
     if(icon) {
-        let colorID = icon.colorID;
-        let color = LDR.Colors[colorID];
+        let c = icon.c;
+        let color = LDR.Colors[c];
 
         // Update description:
         let nameEle = document.getElementById('preview_info_name');
@@ -93,7 +93,7 @@ LDR.PliPreviewer.prototype.showPliPreview = function(icon) {
         nameEle.innerHTML = desc + " (" + partIdNoDat + ")";
         let blA = document.getElementById('preview_info_bl_link');
         if(color.bricklink_name) {
-            blA.setAttribute('href', 'https://www.bricklink.com/catalogItemIn.asp?P=' + partIdBricklink + '&colorID=' + color.bricklink_id + '&in=A');
+            blA.setAttribute('href', 'https://www.bricklink.com/catalogItemIn.asp?P=' + partIdBricklink + '&c=' + color.bricklink_id + '&in=A');
         }
         else {
             blA.setAttribute('href', 'https://www.bricklink.com/catalogItem.asp?P=' + partIdBricklink);
@@ -114,7 +114,7 @@ LDR.PliPreviewer.prototype.showPliPreview = function(icon) {
             blA.style.visibility = "visible";
         }
         
-        document.getElementById('preview_info_color_ldraw').innerHTML = color.name + " (" + colorID + ")";
+        document.getElementById('preview_info_color_ldraw').innerHTML = color.name + " (" + c + ")";
         document.getElementById('preview_info_color_lego').innerHTML = color.lego_name ? (color.lego_name + " (" + color.lego_id + ")") : 'Unknown official LEGO color';
         document.getElementById('preview_info_id_bricklink').innerHTML = partIdBricklink;
         document.getElementById('preview_info_color_bricklink').innerHTML = color.bricklink_name ? (color.bricklink_name + " (" + color.bricklink_id + ")") : 'Unknown Bricklink color';

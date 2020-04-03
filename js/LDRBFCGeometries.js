@@ -269,7 +269,7 @@ LDR.BFCGeometry.prototype.sortAndBurnVertices = function(vertices, primitives) {
 }
 
 /*
-  Build a geometry from normal {p1,p2,colorID} lines.
+  Build a geometry from normal {p1,p2,c} lines.
  */
 LDR.BFCGeometry.prototype.fromLines = function(ps) {
     let vertices = [];
@@ -377,16 +377,16 @@ LDR.BFCGeometry.prototype.fromPartDescription = function(loader, pd) {
     this.replaceWithDeep(pt.geometry);
 
     let m4 = new THREE.Matrix4();
-    let m3e = pd.rotation.elements;
+    let m3e = pd.r.elements;
     m4.set(
-	m3e[0], m3e[3], m3e[6], pd.position.x,
-	m3e[1], m3e[4], m3e[7], pd.position.y,
-	m3e[2], m3e[5], m3e[8], pd.position.z,
+	m3e[0], m3e[3], m3e[6], pd.p.x,
+	m3e[1], m3e[4], m3e[7], pd.p.y,
+	m3e[2], m3e[5], m3e[8], pd.p.z,
 	0, 0, 0, 1
     );
     this.boundingBox.applyMatrix4(m4);
 
-    let invert = pd.invertCCW !== (pd.rotation.determinant() < 0);
+    let invert = pd.invertCCW !== (pd.r.determinant() < 0);
     
     // Update and re-sort the vertices:
     // First decorate with initial index and update position:
@@ -395,8 +395,8 @@ LDR.BFCGeometry.prototype.fromPartDescription = function(loader, pd) {
 	v.oldIndex = i;
 	
 	let position = new THREE.Vector3(v.x, v.y, v.z);
-	position.applyMatrix3(pd.rotation);
-	position.add(pd.position);
+	position.applyMatrix3(pd.r);
+	position.add(pd.p);
 	v.x = position.x;
 	v.y = position.y;
 	v.z = position.z;
