@@ -469,9 +469,17 @@ a {
   /*padding: 2em;*/
   border-spacing: 1em;
 }
-#textured_table {
+#unofficial_table {
   text-align: center;
   width: 100%;
+}
+#unofficial_desc {
+  display: block;
+  margin-left: 1em;
+  margin-right: 1em;
+}
+#unofficial_desc p, #unofficial_desc p a, .value {
+  color: #AAA;
 }
 #download_holder h2 {
   text-align: center;
@@ -489,7 +497,4 @@ a {
 }
 .key a {
   text-decoration: none;
-}
-.value {
-  font-size: 1em;
 }

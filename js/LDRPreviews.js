@@ -79,15 +79,20 @@ LDR.Previews.prototype.draw = function(id) {
     if(!pt.baseObject) {
         // Check that pt is fully loaded:
         let ok = true;
-        function check(id) {
+        function check(obj) {
+	    let id = obj.ID;
+	    if(!id) {
+	        ok = false;
+		return;
+	    }
             let pt = self.ldrLoader.getPartType(id);
-            if(!pt) {
+            if(!pt || !pt.steps) {
 	        ok = false;
 		return;
             }
-            pt.steps.forEach(step => step.subModels.forEach(sm => check(sm.ID)));
+            pt.steps.forEach(step => step.subModels.forEach(sm => check(sm)));
         }
-        check(pt.ID);
+        check(pt);
         if(!ok) {
             return; // Not ready.
         }
@@ -111,6 +116,7 @@ LDR.Previews.prototype.draw = function(id) {
 
 	let backupAge = this.ldrLoader.physicalRenderingAge;
 	this.ldrLoader.physicalRenderingAge = 0; // Ensure non-physical renderer is used.
+	ldrOptions.lineContrast = 1;
         pt.generateThreePart(this.ldrLoader, 16, p, r, true, false, mc);
 	this.ldrLoader.physicalRenderingAge = backupAge;
 
