@@ -21,7 +21,6 @@
  *  - message: Human-readable error message.
  *  - line: (Optional) Line number in the loaded file where the error occured.
  *  - subModel: (Optional) THREE.LDRPartType in which the error occured.
- * - saveFileLines: Set to 'true' if comment lines (lines of type '0') should be saved. These are used when generating .ldr files.
  * - physicalRenderingAge: Set to 0 for standard cell shaded rendering. Otherwise, this number indicates the age of physical materials to be rendered (older materials will appear yellowed for some colors)
  * - idToUrl(id) is used to translate an id into all potential file locations. Set this function to fit your own directory structure if needed. A normal LDraw directory has files both under /parts and /p and requires you to search for dat files. You can choose to combine the directories to reduce the need for searching, but this is not considered good practice.
  * - idToTextureUrl(id) is used to translate a texture file name into the single position where the file can be fetched. By default the file name is made lower case and rpefixed 'textures/' to locate the texture file.
@@ -74,7 +73,6 @@ THREE.LDRLoader = function(onLoad, storage, options) {
     this.onWarning = this.options.onWarning || console.dir;
     this.onError = this.options.onError || console.dir;
     this.loader = new THREE.FileLoader(this.options.manager || THREE.DefaultLoadingManager);
-    this.saveFileLines = this.options.saveFileLines || false;
     this.physicalRenderingAge = this.options.physicalRenderingAge || 0;
     this.mainModel;
 
@@ -374,6 +372,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 	    }
 	    else if(parts[1] === "STEP") {
 		closeStep(true);
+                saveThisCommentLine = false;
 	    }
 	    else if(parts[1] === "ROTSTEP") {
 		if(parts.length >= 5) {
@@ -383,6 +382,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 		    step.rotation = null;
 		}
 		closeStep(true);
+                saveThisCommentLine = false;
 	    }
 	    else if(parts[1] === "!BRICKHUB_INLINED") {
 		part.inlined = parts.length === 3 ? parts[2] : 'UNKNOWN';
@@ -482,7 +482,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 	    
 	    // TODO: Buffer exchange commands
 
-	    if(this.saveFileLines && saveThisCommentLine) {
+	    if(saveThisCommentLine) {
                 let fileLine = new LDR.Line0(parts.slice(1).join(" "));
                 if(step.subModels.length > 0) {
                     step.subModels[step.subModels.length-1].commentLines.push(fileLine);
@@ -786,26 +786,10 @@ THREE.LDRLoader.prototype.substituteReplacementParts = function() {
     this.applyOnPartTypes(fixReplacedParts);
 }
 
-LDR.hashCode = function(s) {
-    if(!s) {
-        return 0;
-    }
-    let hash = 0;
-    for(let i = 0; i < s.length; i++) {
-        hash = Math.imul(31, hash) + s.charCodeAt(i) | 0;
-    }
-    return hash;
-}
-
 THREE.LDRLoader.prototype.unpack = function(obj) {
     let self = this;
 
-    if(!obj.hasOwnProperty('h')) {
-	throw "Missing hash!";
-    }
-
     let names = obj['names'].split('¤');
-    let hash = LDR.hashCode(obj.names);
 
     let parts = [];
     this.mainModel = names[0];
@@ -819,7 +803,7 @@ THREE.LDRLoader.prototype.unpack = function(obj) {
     let numberOfTexmaps = arrayI[idxI++];
     for(let i = 0; i < numberOfTexmaps; i++) {
         let tmp = new LDR.TexmapPlacement();
-        [idxI, idxF, idxS] = tmp.unpackFrom(arrayI, arrayF, arrayS, idxI, idxF, idxS, names, self.saveFileLines);
+        [idxI, idxF, idxS] = tmp.unpackFrom(arrayI, arrayF, arrayS, idxI, idxF, idxS, names);
         if(tmp.idx !== LDR.TexmapPlacements.length) {
             console.error('Indexing error on packed texmap. Expected ' + LDR.TexmapPlacements.length + ', found ' + tmp.idx);
         }
@@ -860,9 +844,10 @@ THREE.LDRLoader.prototype.unpack = function(obj) {
 	pt.ID = pt.name = name;
 	pt.cleanSteps = true;
 
+	// Unpack steps:
 	for(let j = 0; j < numSteps; j++) {
 	    let step = new THREE.LDRStep();
-	    [idxI, idxF, idxS] = step.unpackFrom(arrayI, arrayF, arrayS, idxI, idxF, idxS, names, LDR.TexmapPlacements, self.saveFileLines);
+	    [idxI, idxF, idxS] = step.unpackFrom(arrayI, arrayF, arrayS, idxI, idxF, idxS, names, LDR.TexmapPlacements, true);
 
 	    // Handle rotation:
 	    let r = arrayI[idxI++];
@@ -873,30 +858,26 @@ THREE.LDRLoader.prototype.unpack = function(obj) {
 	    pt.steps.push(step);	    
 	}
 
+	// Unpack header lines:
+	let numHeaderLines = arrayI[idxI++];
+	for(let j = 0; j < numHeaderLines; j++) {
+	    pt.headerLines.push(new LDR.Line0(arrayS[idxS++]));
+	}
+
 	if(obj.hasOwnProperty('d'+i)) {
             pt.modelDescription = obj['d'+i];
-	    hash += LDR.hashCode(pt.modelDescription);
         }
 	if(obj.hasOwnProperty('n'+i)) {
 	    let inlined = obj['n'+i];
 	    pt.inlined = (inlined === -1) ? 'UNOFFICIAL' : inlined;
-	    hash += LDR.hashCode(pt.inlined);
 	}
 	if(obj.hasOwnProperty('e'+i)) {
             let encoded = obj['e' + i];
             pt.certifiedBFC = encoded % 2 === 1;
             pt.CCW = Math.floor(encoded/2) % 2 === 1;
-	    hash = (23*hash + encoded) | 0;
 	}
 	self.partTypes[name] = pt;
     });
-
-    obj['i'].forEach(i => hash = (13*hash+i)|0);
-    obj['f'].forEach(f => hash = (17*hash+parseInt(f))|0);
-    hash += LDR.hashCode(obj['s']);
-    if(hash !== obj.h) {
-	throw "Hash check failure for instructions: Computed " + hash + " vs read " + obj.h;
-    }
 
     this.onPartsLoaded();
 
@@ -929,7 +910,6 @@ THREE.LDRLoader.prototype.pack = function() {
     LDR.TexmapPlacements.forEach(tmp => tmp.fallback.subModels.forEach(sm => scanName(sm.ID)));
 
     let ret = {names:names.join('¤')};
-    let hash = LDR.hashCode(ret.names);
     let arrayF = [], arrayI = [], arrayS = [];
 
     // Pack texmaps:
@@ -948,10 +928,10 @@ THREE.LDRLoader.prototype.pack = function() {
 	    return;
 	}
 
+	// Pack steps:
 	arrayI.push(pt.steps.length);
-
 	pt.steps.forEach(step => {
-            step.packInto(arrayI, arrayF, arrayS, nameMap);
+            step.packInto(arrayI, arrayF, arrayS, nameMap, true); // true for saving comment lines
 
 	    // Also handle rotation:
 	    if(step.rotation) {
@@ -964,18 +944,19 @@ THREE.LDRLoader.prototype.pack = function() {
 	    }
 	});
 	
+	// Pack header lines:
+	arrayI.push(pt.headerLines.length);
+	arrayS.push(...pt.headerLines.map(line => line.txt));
+
 	if(pt.isPart) {
             if(pt.modelDescription) {
                 ret['d' + idx] = pt.modelDescription;
-		hash += LDR.hashCode(pt.modelDescription);
             }
             if(pt.inlined) {
                 ret['n' + idx] = (pt.inlined === 'UNOFFICIAL' ? -1 : pt.inlined);
-		hash += LDR.hashCode(pt.inlined);
             }
 	    let headerCode = (pt.CCW ? 2 : 0) + (pt.certifiedBFC ? 1 : 0);
             ret['e' + idx] = headerCode;
-	    hash = (23*hash + headerCode) | 0;
 	}
     });
 
@@ -987,11 +968,6 @@ THREE.LDRLoader.prototype.pack = function() {
     }
     ret['f'] = new Float32Array(arrayF);
     ret['s'] = arrayS.join('¤');
-
-    ret['i'].forEach(i => hash = (13*hash+i)|0);
-    ret['f'].forEach(f => hash = (17*hash+parseInt(f))|0);
-    hash += LDR.hashCode(ret.s);
-    ret['h'] = hash;
 
     return ret;
 }
@@ -1179,7 +1155,7 @@ THREE.LDRStep = function() {
     this.original; // THREE.LDRStep
 }
 
-THREE.LDRStep.prototype.pack = function(obj) {
+THREE.LDRStep.prototype.pack = function(obj, saveCommentLines) {
     let arrayI = [], arrayF = [], arrayS = [];
     
     // SubModels:
@@ -1215,7 +1191,7 @@ THREE.LDRStep.prototype.pack = function(obj) {
         obj.sp = subModelList.join('|'); // All sub models, including those for fallback geometries.
     }
 
-    this.packInto(arrayI, arrayF, arrayS, subModelMap);
+    this.packInto(arrayI, arrayF, arrayS, subModelMap, saveCommentLines);
 
     if(arrayS.length > 0) {
         obj.sx = arrayS.join('¤'); // Files for texmaps.
@@ -1229,7 +1205,7 @@ THREE.LDRStep.prototype.pack = function(obj) {
     obj.af = new Float32Array(arrayF);
 }
 
-THREE.LDRStep.prototype.packInto = function(arrayI, arrayF, arrayS, subModelMap) {
+THREE.LDRStep.prototype.packInto = function(arrayI, arrayF, arrayS, subModelMap, saveCommentLines) {
     arrayI.push(this.subModels.length);
     function handleSubModel(sm) {
         if(!subModelMap.hasOwnProperty(sm.ID)) {
@@ -1241,8 +1217,13 @@ THREE.LDRStep.prototype.packInto = function(arrayI, arrayF, arrayS, subModelMap)
         arrayI.push((subModelMap[sm.ID] * 4) +
                     (sm.invertCCW ? 2 : 0) +
                     (sm.cull ? 1 : 0)); // Encode these three properties into a single int.
-        arrayI.push(sm.commentLines.length);
-        sm.commentLines.forEach(x => arrayS.push(x.txt));
+        if(saveCommentLines) {
+            arrayI.push(sm.commentLines.length);
+            sm.commentLines.forEach(x => arrayS.push(x.txt));
+        }
+	else {
+	    arrayI.push(0);
+	}
 
         arrayF.push(sm.p.x, sm.p.y, sm.p.z);
         let e = sm.r.elements;
@@ -1891,33 +1872,16 @@ THREE.LDRPartType.prototype.pack = function(loader) {
     ret.ID = id;
 
     let step0 = this.steps[0];
-    step0.pack(ret);
+    step0.pack(ret, false); // false = Don't save comment lines for parts.
     // Ignore headers and history to save space.
     ret.md = this.modelDescription;
     ret.e = (this.CCW ? 2 : 0) + (this.certifiedBFC ? 1 : 0);
     ret.d = this.ldraw_org;
 
-    let hash = LDR.hashCode(ret.md);
-    hash = (23*hash + ret.e) | 0;
-    hash += LDR.hashCode(ret.d);
-    if(ret.sx) {
-	hash += LDR.hashCode(ret.sx);
-    }
-    if(ret.sp) {
-	hash += LDR.hashCode(ret.sp);
-    }
-    ret.ai.forEach(i => hash = (13*hash+i)|0);
-    ret.af.forEach(f => hash = (17*hash+parseInt(f))|0);
-    ret.h = hash;
-
     return ret;
 }
 
 THREE.LDRPartType.prototype.unpack = function(obj, saveFileLines) {
-    if(!obj.hasOwnProperty('h')) {
-	throw "Missing hash!";
-    }
-
     this.ID = this.name = obj.ID + '.dat';
     this.modelDescription = obj.md;
     let step = new THREE.LDRStep();
@@ -1928,21 +1892,6 @@ THREE.LDRPartType.prototype.unpack = function(obj, saveFileLines) {
     this.inlined = 'IDB';
     this.isPart = true;
     this.ldraw_org = obj.d;
-
-    let hash = LDR.hashCode(obj.md);
-    hash = (23*hash + obj.e) | 0;
-    hash += LDR.hashCode(obj.d);
-    if(obj.sx) {
-	hash += LDR.hashCode(obj.sx);
-    }
-    if(obj.sp) {
-	hash += LDR.hashCode(obj.sp);
-    }
-    obj.ai.forEach(i => hash = (13*hash+i)|0);
-    obj.af.forEach(f => hash = (17*hash+parseInt(f))|0);
-    if(hash !== obj.h) {
-	throw "Hash check failure for Part Type: " + hash + " vs " + obj.h;
-    }
 }
 
 THREE.LDRLoader.prototype.purgePart = function(ID) {
@@ -2463,7 +2412,7 @@ LDR.TexmapPlacement.prototype.packInto = function(arrayI, arrayF, arrayS, subMod
         arrayS.push(this.file);
     }
 
-    this.fallback.packInto(arrayF, arrayI, arrayS, subModelMap);
+    this.fallback.packInto(arrayF, arrayI, arrayS, subModelMap, false); // Flase since there are no comments in a fallback
 }
 
 LDR.TexmapPlacement.prototype.unpackFrom = function(arrayI, arrayF, arrayS, idxI, idxF, idxS, subModelList, saveFileLines) {
