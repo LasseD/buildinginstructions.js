@@ -847,7 +847,7 @@ THREE.LDRLoader.prototype.unpack = function(obj) {
 	// Unpack steps:
 	for(let j = 0; j < numSteps; j++) {
 	    let step = new THREE.LDRStep();
-	    [idxI, idxF, idxS] = step.unpackFrom(arrayI, arrayF, arrayS, idxI, idxF, idxS, names, LDR.TexmapPlacements, true);
+	    [idxI, idxF, idxS] = step.unpackFrom(arrayI, arrayF, arrayS, idxI, idxF, idxS, names, LDR.TexmapPlacements);
 
 	    // Handle rotation:
 	    let r = arrayI[idxI++];
@@ -886,6 +886,7 @@ THREE.LDRLoader.prototype.unpack = function(obj) {
 
 THREE.LDRLoader.prototype.pack = function() {
     let self = this;
+
     let mainModel = this.getMainModel();
 
     // First find all parts mentioned in those that will be packed:
@@ -1246,7 +1247,7 @@ THREE.LDRStep.prototype.packInto = function(arrayI, arrayF, arrayS, subModelMap,
     handle(this.conditionalLines);
 }
 
-THREE.LDRStep.prototype.unpack = function(obj, saveFileLines) {
+THREE.LDRStep.prototype.unpack = function(obj) {
     let arrayI = obj.ai;
     let arrayF = obj.af;
     let arrayS = obj.sx ? obj.sx.split('¤') : []; // texmap files.
@@ -1259,17 +1260,17 @@ THREE.LDRStep.prototype.unpack = function(obj, saveFileLines) {
     let texmapPlacementMap = {};
     for(let i = 0; i < numberOfTexmapPlacements; i++) {
         let texmapPlacement = new LDR.TexmapPlacement();
-        [idxI, idxF, idxS] = texmapPlacement.unpackFrom(arrayI, arrayF, arrayS, idxI, idxF, idxS, subModelList, saveFileLines);
+        [idxI, idxF, idxS] = texmapPlacement.unpackFrom(arrayI, arrayF, arrayS, idxI, idxF, idxS, subModelList);
         texmapPlacementMap[texmapPlacement.idx] = texmapPlacement;
         // Map back into global LDR.TexmapPlacements:
         texmapPlacement.idx = LDR.TexmapPlacements.length;
         LDR.TexmapPlacements.push(texmapPlacement);
     }
 
-    this.unpackFrom(arrayI, arrayF, arrayS, idxI, idxF, idxS, subModelList, texmapPlacementMap, saveFileLines);
+    this.unpackFrom(arrayI, arrayF, arrayS, idxI, idxF, idxS, subModelList, texmapPlacementMap);
 }
 
-THREE.LDRStep.prototype.unpackFrom = function(arrayI, arrayF, arrayS, idxI, idxF, idxS, subModelList, texmapPlacementMap, saveFileLines) {
+THREE.LDRStep.prototype.unpackFrom = function(arrayI, arrayF, arrayS, idxI, idxF, idxS, subModelList, texmapPlacementMap) {
     let self = this;
 
     function ensureColor(c) {
@@ -1881,11 +1882,11 @@ THREE.LDRPartType.prototype.pack = function(loader) {
     return ret;
 }
 
-THREE.LDRPartType.prototype.unpack = function(obj, saveFileLines) {
+THREE.LDRPartType.prototype.unpack = function(obj) {
     this.ID = this.name = obj.ID + '.dat';
     this.modelDescription = obj.md;
     let step = new THREE.LDRStep();
-    step.unpack(obj, saveFileLines);
+    step.unpack(obj);
     this.steps = [step];
     this.certifiedBFC = obj.e % 2 === 1;
     this.CCW = Math.floor(obj.e/2) % 2 === 1;
@@ -2405,17 +2406,16 @@ LDR.TexmapPlacement.prototype.packInto = function(arrayI, arrayF, arrayS, subMod
     if(this.glossmapFile) {
         arrayI.push(2);
         arrayS.push(this.glossmapFile);
-        arrayS.push(this.file);
     }
     else {
         arrayI.push(1);
-        arrayS.push(this.file);
     }
+    arrayS.push(this.file);
 
-    this.fallback.packInto(arrayF, arrayI, arrayS, subModelMap, false); // Flase since there are no comments in a fallback
+    this.fallback.packInto(arrayI, arrayF, arrayS, subModelMap, false); // Flase since there are no comments in a fallback
 }
 
-LDR.TexmapPlacement.prototype.unpackFrom = function(arrayI, arrayF, arrayS, idxI, idxF, idxS, subModelList, saveFileLines) {
+LDR.TexmapPlacement.prototype.unpackFrom = function(arrayI, arrayF, arrayS, idxI, idxF, idxS, subModelList) {
     this.idx = arrayI[idxI++];
     this.type = arrayI[idxI++];
     for(let i = 0; i < 3; i++) {
@@ -2445,7 +2445,7 @@ LDR.TexmapPlacement.prototype.unpackFrom = function(arrayI, arrayF, arrayS, idxI
         this.setSpherical();
     }
 
-    [idxI, idxF, idxS] = this.fallback.unpackFrom(arrayI, arrayF, arrayS, idxI, idxF, idxS, subModelList, {}, saveFileLines);
+    [idxI, idxF, idxS] = this.fallback.unpackFrom(arrayI, arrayF, arrayS, idxI, idxF, idxS, subModelList, {});
 
     return [idxI, idxF, idxS];
 }
