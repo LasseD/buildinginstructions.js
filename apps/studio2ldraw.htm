@@ -288,7 +288,7 @@ function onLoad() {
   let e = document.getElementById('ldr_result');
   e.innerHTML = lDrawContent;
   e = document.getElementById('downloadContent');
-  e.href = 'data:text/x-ldraw;plain,' + lDrawContent;
+  e.href = 'data:text/x-ldraw;base64,' + btoa(lDrawContent);
   e.setAttribute('download', ldrLoader.mainModel);
   e.innerHTML = 'Click here to download ' + ldrLoader.mainModel;
 }

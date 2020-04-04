@@ -291,7 +291,7 @@ function onLoad() {
     let e = document.getElementById('ldr_result');
     e.innerHTML = ret;
     e = document.getElementById('downloadContent');
-    e.href = 'data:text/x-ldraw;plain,' + ret;
+    e.href = 'data:text/x-ldraw;base64,' + btoa(ret);
     e.setAttribute('download', ldrLoader.mainModel);
     e.innerHTML = 'Click here to download ' + ldrLoader.mainModel;
 }
