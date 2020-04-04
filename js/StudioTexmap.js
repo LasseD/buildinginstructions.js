@@ -34,16 +34,16 @@ LDR.STUDIO.handlePart = function(loader, pt) {
     // Fix positioning issue:
     // Studio 2.0 custom LDraw parts are misaligned when they contain a single sub part!
     if(step.subModels.length > 0 && step.triangles.length > 0 && step.lines.length === 0) {
-	let misalignment = step.subModels[0].position;
+	let misalignment = step.subModels[0].p;
 
         // Check that all misalignments are... aligned:
         let ok = true;
-        step.subModels.forEach(sm => ok = ok && sm.position.equals(misalignment));
+        step.subModels.forEach(sm => ok = ok && sm.p.equals(misalignment));
         if(ok) {
             step.triangles.forEach(t => {t.p1.sub(misalignment); t.p2.sub(misalignment); t.p3.sub(misalignment);});
 
             let tmps = {};
-            step.triangles.forEach(t => tmps[t.texmapPlacement.idx] = t.texmapPlacement);
+            step.triangles.forEach(t => tmps[t.tmp.idx] = t.tmp);
             for(let idx in tmps) {
                 if(!tmps.hasOwnProperty(idx)) {
                     continue;
@@ -54,7 +54,7 @@ LDR.STUDIO.handlePart = function(loader, pt) {
             }
 
             // Finally set the position of the single sub model:
-            step.subModels.forEach(sm => sm.position.set(0, 0, 0));
+            step.subModels.forEach(sm => sm.p.set(0, 0, 0));
         }
     }
 
@@ -76,6 +76,7 @@ LDR.STUDIO.handlePart = function(loader, pt) {
         loader.texmaps[pid] = texture;
         loader.texmapListeners[pid].forEach(l => l(texture));
         loader.onProgress(pid);
+	//document.body.append(image);
     };
     image.src = dataurl;
 }
@@ -271,7 +272,7 @@ LDR.STUDIO.handleTriangleLine = function(pt, parts) {
     return tmp;
 }
 
-THREE.LDRLoader.prototype.toLDRStudio = function(colorID) {
+THREE.LDRLoader.prototype.toLDRStudio = function(c) {
     let self = this;
 
     // Mark all parts that have texmaps, as these should be downloaded separately:
@@ -282,9 +283,9 @@ THREE.LDRLoader.prototype.toLDRStudio = function(colorID) {
         let step = pt.steps[0];
 	
 	function find(list) {
-	    let x = list.find(y => y.texmapPlacement);
+	    let x = list.find(y => y.tmp);
 	    if(x) {
-		pt.texmapFile = x.texmapPlacement.file;
+		pt.texmapFile = x.tmp.file;
 		return true;
 	    }
 	    return false;
@@ -297,7 +298,7 @@ THREE.LDRLoader.prototype.toLDRStudio = function(colorID) {
     function findColorsFor(id, c) {
 	let pt = self.getPartType(id);	
 	if(pt.isPart) {
-	    return;
+	    return; // Don't include parts.
 	}
 	if(!seenColors.hasOwnProperty(id)) {
 	    seenColors[id] = {};
@@ -307,11 +308,11 @@ THREE.LDRLoader.prototype.toLDRStudio = function(colorID) {
 	    return; // Already handled.
 	}
 	sc[c] = true;
-	pt.steps.forEach(step => step.subModels.forEach(sm => findColorsFor(sm.ID, sm.colorID === 16 ? c : sm.colorID)));
+	pt.steps.forEach(step => step.subModels.forEach(sm => findColorsFor(sm.ID, sm.c === 16 ? c : sm.c)));
     }
-    findColorsFor(this.mainModel, colorID);
+    findColorsFor(this.mainModel, c);
 
-    let ret = this.getMainModel().toLDRColored(this, colorID);
+    let ret = this.getMainModel().toLDRColored(this, c);
     for(let id in seenColors) {
 	if(!seenColors.hasOwnProperty(id) || id === self.mainModel) {
 	    continue;
@@ -327,8 +328,8 @@ THREE.LDRLoader.prototype.toLDRStudio = function(colorID) {
     return ret;
 }
 
-THREE.LDRPartType.prototype.toLDRColored = function(loader, colorID) {
-    let ret = '0 FILE ' + colorID + '__' + this.ID + '\r\n';
+THREE.LDRPartType.prototype.toLDRColored = function(loader, c) {
+    let ret = '0 FILE ' + c + '__' + this.ID + '\r\n';
     if(this.modelDescription) {
         ret += '0 ' + this.modelDescription + '\r\n';
     }
@@ -365,38 +366,36 @@ THREE.LDRPartType.prototype.toLDRColored = function(loader, colorID) {
     }
     if(this.steps.length > 0) {
         ret += '\r\n';
-        this.steps.forEach((step, idx, a) => ret += step.toLDRColored(loader, idx === 0 ? null : a[idx-1].rotation, idx === a.length-1, colorID));
+        this.steps.forEach((step, idx, a) => ret += step.toLDRColored(loader, idx === 0 ? null : a[idx-1].r, idx === a.length-1, c));
     }
     ret += '\r\n';
     return ret;
 }
 
-LDR.Line1.prototype.toLDRColored = function(loader, colorID) {
-    return this.desc.toLDRColored(loader, colorID);
-}
-
-THREE.LDRPartDescription.prototype.toLDRColored = function(loader, colorID) {
+THREE.LDRPartDescription.prototype.toLDRColored = function(loader, c) {
     let pt = loader.getPartType(this.ID);
-    let c = this.colorID == 16 ? colorID : this.colorID;
-    let id = pt.isPart ? pt.ID : c + '__' + this.ID;
-    return '1 ' + c + ' ' + this.position.toLDR() + ' ' + this.rotation.toLDR() + ' ' + id + '\r\n';
+    let c2 = this.c == 16 ? c : this.c;
+    let id = pt.isPart ? pt.ID : c2 + '__' + this.ID;
+    return '1 ' + c2 + ' ' + this.p.toLDR() + ' ' + this.r.toLDR() + ' ' + id + '\r\n';
 }
 
-THREE.LDRStep.prototype.toLDRColored = function(loader, prevStepRotation, isLastStep, colorID) {
+THREE.LDRStep.prototype.toLDRColored = function(loader, prevStepRotation, isLastStep, c) {
     let ret = '';
 
-    function outputLine(line) {
+    function handle(line) {
 	if(line.line1) {
-            ret += line.toLDRColored(loader, colorID);
+            ret += line.toLDRColored(loader, c);
 	}
 	else {
             ret += line.toLDR(loader);
 	}
     }
-    this.fileLines.forEach(outputLine);
+    this.subModels.forEach(handle);
+    this.triangles.forEach(handle);
+    this.quads.forEach(handle);
 
     // End with STEP or ROTSTEP:
-    if(!this.rotation) {
+    if(!this.r) {
         if(prevStepRotation) {
             ret += '0 ROTSTEP END\r\n';
         }
@@ -405,11 +404,11 @@ THREE.LDRStep.prototype.toLDRColored = function(loader, prevStepRotation, isLast
         }
     }
     else { // We have a rotation. Check against prev:
-        if(THREE.LDRStepRotation.equals(this.rotation, prevStepRotation)) {
+        if(THREE.LDRStepRotation.equals(this.r, prevStepRotation)) {
             ret += '0 STEP\r\n';            
         }
         else {
-            ret += this.rotation.toLDR();
+            ret += this.r.toLDR();
         }
     }
     return ret;
@@ -425,14 +424,14 @@ THREE.LDRPartType.prototype.toStudioFile = function(ldrLoader) {
     // Find all textured triangles:
     let tt = []; // Textured triangles
     let tmp;
-    step.triangles.filter(x => x.texmapPlacement).forEach(x => {
-	tmp = x.texmapPlacement.file;
+    step.triangles.filter(x => x.tmp).forEach(x => {
+	tmp = x.tmp.file;
         tt.push(x);
     });
-    step.quads.filter(x => x.texmapPlacement).forEach(x => {
-	tmp = x.texmapPlacement.file;
-        tt.push({colorID:x.colorID, p1:x.p1, p2:x.p2, p3:x.p3, texmapPlacement:x.texmapPlacement});
-        tt.push({colorID:x.colorID, p1:x.p1, p2:x.p3, p3:x.p4, texmapPlacement:x.texmapPlacement});
+    step.quads.filter(x => x.tmp).forEach(x => {
+	tmp = x.tmp.file;
+        tt.push({c:x.c, p1:x.p1, p2:x.p2, p3:x.p3, tmp:x.tmp});
+        tt.push({c:x.c, p1:x.p1, p2:x.p3, p3:x.p4, tmp:x.tmp});
     });
 
     // Find dataurl:
@@ -454,25 +453,25 @@ THREE.LDRPartType.prototype.toStudioFile = function(ldrLoader) {
     }
 
     step.subModels.forEach(x => ret += x.toLDR(ldrLoader));
-    step.lines.forEach(x => ret += new LDR.Line2(x.colorID, x.p1, x.p2).toLDR());
-    step.conditionalLines.forEach(x => ret += new LDR.Line5(x.colorID, x.p1, x.p2, x.p3, x.p4).toLDR());
+    step.lines.forEach(x => ret += new LDR.Line2(x.c, x.p1, x.p2).toLDR());
+    step.conditionalLines.forEach(x => ret += new LDR.Line5(x.c, x.p1, x.p2, x.p3, x.p4).toLDR());
 
     // Convert all texture triangles:
     tt.forEach(x => { // Studio 2.0 triangle lines:
-        ret += '3 ' + x.colorID + ' ' + x.p1.toLDR() + ' ' + x.p2.toLDR() + ' ' + x.p3.toLDR();
-        let [U1, V1]=x.texmapPlacement.getUV(x.p1, x.p2, x.p3);
-        let [U2, V2]=x.texmapPlacement.getUV(x.p2, x.p3, x.p1);
-        let [U3, V3]=x.texmapPlacement.getUV(x.p3, x.p1, x.p2);
+        ret += '3 ' + x.c + ' ' + x.p1.toLDR() + ' ' + x.p2.toLDR() + ' ' + x.p3.toLDR();
+        let [U1, V1]=x.tmp.getUV(x.p1, x.p2, x.p3);
+        let [U2, V2]=x.tmp.getUV(x.p2, x.p3, x.p1);
+        let [U3, V3]=x.tmp.getUV(x.p3, x.p1, x.p2);
         [U1,V1,U2,V2,U3,V3].map(LDR.convertFloat).forEach(x => ret += ' ' + x);
         ret += '\r\n';
     });
 
-    step.triangles.filter(x => !x.texmapPlacement).forEach(x => {
-        ret += new LDR.Line3(x.colorID, x.p1, x.p2, x.p3).toLDR();
+    step.triangles.filter(x => !x.tmp).forEach(x => {
+        ret += new LDR.Line3(x.c, x.p1, x.p2, x.p3).toLDR();
     });
-    step.quads.filter(x => !x.texmapPlacement).forEach(x => {
-        ret += new LDR.Line4(x.colorID, x.p1, x.p2, x.p3, x.p4).toLDR();
-    });
+    step.quads.filter(x => !x.tmp).forEach(x => {
+        ret += new LDR.Line4(x.c, x.p1, x.p2, x.p3, x.p4).toLDR();
+        });
 
     return ret;
 }

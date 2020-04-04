@@ -66,7 +66,7 @@ LDR.LDRGeometry = function() {
     this.lineColorManager;
     this.lineGeometry;
     this.triangleGeometries = {}; // c -> geometry
-    this.texmapGeometries = {}; // texmapID -> [{colorID,geometry}] Populated with one geometry pr TEXMAP START command.
+    this.texmapGeometries = {}; // texmapID -> [{c,g}] Populated with one geometry pr TEXMAP START command.
     this.conditionalLineGeometry;
     this.geometriesBuilt = false;
     this.boundingBox = new THREE.Box3();
@@ -75,12 +75,12 @@ LDR.LDRGeometry = function() {
 /*
   Used for showing points where all vertices are.
  */
-LDR.LDRGeometry.prototype.buildVertexAttribute = function(rotation) {
+LDR.LDRGeometry.prototype.buildVertexAttribute = function(r) {
     let vertices = [];
     this.vertices.forEach(v => {
-            let position = new THREE.Vector3(v.x, v.y, v.z);
-            position.applyMatrix3(rotation);
-            vertices.push(position.x, position.y, position.z);
+            let p = new THREE.Vector3(v.x, v.y, v.z);
+            p.applyMatrix3(r);
+            vertices.push(p.x, p.y, p.z);
         });
     return new THREE.Float32BufferAttribute(vertices, 3);
 }
@@ -312,7 +312,7 @@ LDR.LDRGeometry.prototype.buildTexmapGeometriesForColor = function(c) {
         if(!self.texmapGeometries.hasOwnProperty(texmapPlacement.idx)) {
             self.texmapGeometries[texmapPlacement.idx] = [];
         }
-        self.texmapGeometries[texmapPlacement.idx].push({colorID:c, geometry:g});
+        self.texmapGeometries[texmapPlacement.idx].push({c:c, g:g});
     }
 }
 
@@ -865,23 +865,23 @@ LDR.LDRGeometry.prototype.sortAndBurnVertices = function(vertices, primitives) {
 }
 
 /*
-  Build a geometry from {p1,p2,colorID} lines.
+  Build a geometry from {p1,p2,c} lines.
  */
 LDR.LDRGeometry.prototype.fromLines = function(ps) {
     let vertices = [];
     for(let i = 0; i < ps.length; i++) {
 	let p = ps[i], idx;
-	if(this.lines.hasOwnProperty(p.colorID)) {
-	    let t = this.lines[p.colorID];
+	if(this.lines.hasOwnProperty(p.c)) {
+	    let t = this.lines[p.c];
 	    idx = t.length;
 	    t.push({});
 	}
 	else {
-	    this.lines[p.colorID] = [{}];
+	    this.lines[p.c] = [{}];
 	    idx = 0;
 	}
-	vertices.push({x:p.p1.x, y:p.p1.y, z:p.p1.z, c:p.colorID, idx:idx, p:1},
-		      {x:p.p2.x, y:p.p2.y, z:p.p2.z, c:p.colorID, idx:idx, p:2});
+	vertices.push({x:p.p1.x, y:p.p1.y, z:p.p1.z, c:p.c, idx:idx, p:1},
+		      {x:p.p2.x, y:p.p2.y, z:p.p2.z, c:p.c, idx:idx, p:2});
         this.boundingBox.expandByPoint(p.p1);
         this.boundingBox.expandByPoint(p.p2);
     }
@@ -892,19 +892,19 @@ LDR.LDRGeometry.prototype.fromConditionalLines = function(ps) {
     let vertices = [];
     for(let i = 0; i < ps.length; i++) {
 	let p = ps[i], idx;
-	if(this.conditionalLines.hasOwnProperty(p.colorID)) {
-	    let t = this.conditionalLines[p.colorID];
+	if(this.conditionalLines.hasOwnProperty(p.c)) {
+	    let t = this.conditionalLines[p.c];
 	    idx = t.length;
 	    t.push({});
 	}
 	else {
-	    this.conditionalLines[p.colorID] = [{}];
+	    this.conditionalLines[p.c] = [{}];
 	    idx = 0;
 	}
-	vertices.push({x:p.p1.x, y:p.p1.y, z:p.p1.z, c:p.colorID, idx:idx, p:1},
-		      {x:p.p2.x, y:p.p2.y, z:p.p2.z, c:p.colorID, idx:idx, p:2},
-		      {x:p.p3.x, y:p.p3.y, z:p.p3.z, c:p.colorID, idx:idx, p:3},
-		      {x:p.p4.x, y:p.p4.y, z:p.p4.z, c:p.colorID, idx:idx, p:4});
+	vertices.push({x:p.p1.x, y:p.p1.y, z:p.p1.z, c:p.c, idx:idx, p:1},
+		      {x:p.p2.x, y:p.p2.y, z:p.p2.z, c:p.c, idx:idx, p:2},
+		      {x:p.p3.x, y:p.p3.y, z:p.p3.z, c:p.c, idx:idx, p:3},
+		      {x:p.p4.x, y:p.p4.y, z:p.p4.z, c:p.c, idx:idx, p:4});
         this.boundingBox.expandByPoint(p.p1);
         this.boundingBox.expandByPoint(p.p2);
     }
@@ -917,18 +917,18 @@ LDR.LDRGeometry.prototype.fromTriangles = function(cull, ps) {
     let self = this;
     ps.forEach(p => {
             let idx;
-            if(triangles.hasOwnProperty(p.colorID)) {
-                let t = triangles[p.colorID];
+            if(triangles.hasOwnProperty(p.c)) {
+                let t = triangles[p.c];
                 idx = t.length;
                 t.push({});
             }
             else {
-                triangles[p.colorID] = [{}];
+                triangles[p.c] = [{}];
                 idx = 0;
             }
-            vertices.push({x:p.p1.x, y:p.p1.y, z:p.p1.z, c:p.colorID, idx:idx, p:1, t:p.texmapPlacement},
-                          {x:p.p2.x, y:p.p2.y, z:p.p2.z, c:p.colorID, idx:idx, p:2, t:p.texmapPlacement},
-                          {x:p.p3.x, y:p.p3.y, z:p.p3.z, c:p.colorID, idx:idx, p:3, t:p.texmapPlacement});
+            vertices.push({x:p.p1.x, y:p.p1.y, z:p.p1.z, c:p.c, idx:idx, p:1, t:p.tmp},
+                          {x:p.p2.x, y:p.p2.y, z:p.p2.z, c:p.c, idx:idx, p:2, t:p.tmp},
+                          {x:p.p3.x, y:p.p3.y, z:p.p3.z, c:p.c, idx:idx, p:3, t:p.tmp});
             self.boundingBox.expandByPoint(p.p1);
             self.boundingBox.expandByPoint(p.p2);
             self.boundingBox.expandByPoint(p.p3);
@@ -942,19 +942,19 @@ LDR.LDRGeometry.prototype.fromQuads = function(cull, ps) {
     let self = this;
     ps.forEach(p => {
             let idx;
-            if(quads.hasOwnProperty(p.colorID)) {
-                let t = quads[p.colorID];
+            if(quads.hasOwnProperty(p.c)) {
+                let t = quads[p.c];
                 idx = t.length;
                 t.push({});
             }
             else {
-                quads[p.colorID] = [{}];
+                quads[p.c] = [{}];
                 idx = 0;
             }
-            vertices.push({x:p.p1.x, y:p.p1.y, z:p.p1.z, c:p.colorID, idx:idx, p:1, t:p.texmapPlacement},
-                          {x:p.p2.x, y:p.p2.y, z:p.p2.z, c:p.colorID, idx:idx, p:2, t:p.texmapPlacement},
-                          {x:p.p3.x, y:p.p3.y, z:p.p3.z, c:p.colorID, idx:idx, p:3, t:p.texmapPlacement},
-                          {x:p.p4.x, y:p.p4.y, z:p.p4.z, c:p.colorID, idx:idx, p:4, t:p.texmapPlacement});
+            vertices.push({x:p.p1.x, y:p.p1.y, z:p.p1.z, c:p.c, idx:idx, p:1, t:p.tmp},
+                          {x:p.p2.x, y:p.p2.y, z:p.p2.z, c:p.c, idx:idx, p:2, t:p.tmp},
+                          {x:p.p3.x, y:p.p3.y, z:p.p3.z, c:p.c, idx:idx, p:3, t:p.tmp},
+                          {x:p.p4.x, y:p.p4.y, z:p.p4.z, c:p.c, idx:idx, p:4, t:p.tmp});
             self.boundingBox.expandByPoint(p.p1);
             self.boundingBox.expandByPoint(p.p2);
             self.boundingBox.expandByPoint(p.p3);
@@ -1003,27 +1003,27 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
     this.replaceWithDeep(pt.geometry);
 
     let m4 = new THREE.Matrix4();
-    let m3e = pd.rotation.elements;
+    let m3e = pd.r.elements;
     m4.set(
-	m3e[0], m3e[3], m3e[6], pd.position.x,
-	m3e[1], m3e[4], m3e[7], pd.position.y,
-	m3e[2], m3e[5], m3e[8], pd.position.z,
+	m3e[0], m3e[3], m3e[6], pd.p.x,
+	m3e[1], m3e[4], m3e[7], pd.p.y,
+	m3e[2], m3e[5], m3e[8], pd.p.z,
 	0, 0, 0, 1
     );
     this.boundingBox.applyMatrix4(m4);
 
-    let invert = pd.invertCCW !== (pd.rotation.determinant() < 0);
+    let invert = pd.invertCCW !== (pd.r.determinant() < 0);
 
     // Function to update color (notice that input and output are strings):
     let replaceColor;
-    if(pd.colorID === 16) {
+    if(pd.c === 16) {
 	replaceColor = x => ''+x; // Do nothing.
     }
-    else if(pd.colorID === 24) {	    
+    else if(pd.c === 24) {	    
 	replaceColor = x => x === '16' ? '24' : ''+x;
     }
-    else if(pd.colorID < 0) { // Edge color
-        let pos = ''+pd.colorID;
+    else if(pd.c < 0) { // Edge color
+        let pos = ''+pd.c;
 	replaceColor = function(x) {
 	    if(x === '16' || x === '24') {
 		return pos;
@@ -1034,8 +1034,8 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
 	};
     }
     else { // Standard color
-        let pos = ''+pd.colorID;
-        let neg = ''+(-pd.colorID-1);
+        let pos = ''+pd.c;
+        let neg = ''+(-pd.c-1);
 	replaceColor = function(x) {
 	    if(x === '16') {
 		return pos;
@@ -1053,18 +1053,18 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
     
     // Update and re-sort the vertices:
     // First decorate with initial index and update position:
-    let position = new THREE.Vector3();
+    let p = new THREE.Vector3();
     let lp = pd.logoPosition;
     for(let i = 0; i < this.vertices.length; i++) {
 	let v = this.vertices[i];
 	v.oldIndex = i;
 	
-	position.set(v.x, v.y, v.z);
-	position.applyMatrix3(pd.rotation);
-	position.add(pd.position);
-	v.x = position.x;
-	v.y = position.y;
-	v.z = position.z;
+	p.set(v.x, v.y, v.z);
+	p.applyMatrix3(pd.r);
+	p.add(pd.p);
+	v.x = p.x;
+	v.y = p.y;
+	v.z = p.z;
         v.o = v.o || (lp && lp.x === v.x && lp.y === v.y && lp.z === v.z);
     }
     let newIndices = [];

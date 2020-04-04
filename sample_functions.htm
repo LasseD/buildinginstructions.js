@@ -123,11 +123,12 @@
           functionsEle.removeChild(functionsEle.firstChild);
         }        
 
-        createFunctionButton({checkPartDescription:pd=>pd.colorID !== 4 ? "Color everything red" : false}, {handlePartDescription:pd => pd.colorID=4});
+        createFunctionButton({checkPartDescription:pd=>pd.c !== 4 ? "Color everything red" : false}, {handlePartDescription:pd => pd.c=4});
 
         createFunctionButtonFromObject(LDR.OMR.ColorPartsAccordingToYear(2006));
         createFunctionButtonFromObject(LDR.OMR.ColorPartsAccordingToYear(2007));
-        createFunctionButtonFromObject(LDR.OMR.UpgradeToNewParts());
+        createFunctionButtonFromObject(LDR.OMR.UpgradeToReplacements());
+        //createFunctionButtonFromObject(LDR.OMR.UpgradeToNewPartsBasedOnYear(2020));
         createFunctionButtonFromObject(LDR.OMR.StandardizeFileNames('6712'));
         createFunctionButtonFromObject(LDR.OMR.FixAuthors('Peter Falk [columbo]'));
         createFunctionButtonFromObject(LDR.OMR.SetLDrawOrg(false));
@@ -157,7 +158,7 @@
         let checkPD = function(pd) {
 	  let ret = checks.checkPartDescription && checks.checkPartDescription(pd)
           if(ret) {
-            console.log('Function enabled due to ' + pd.ID + ' in color ' + pd.colorID);
+            console.log('Function enabled due to ' + pd.ID + ' in color ' + pd.c);
             return ret;
           }
           let pt = ldrLoader.getPartType(pd.ID);

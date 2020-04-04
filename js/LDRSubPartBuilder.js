@@ -6,8 +6,8 @@ LDR.ICON_SIZE = 200;
   The LDRSubPartBulder is used for displaying a part and all of its sub parts, 
   primitives, and comment lines.
 */
-LDR.SubPartBuilder = function(baseMC, table, redPoints, loader, partType, colorID, position, rotation, scene, subjectSize, onIconClick, from) {
-    if(colorID === undefined)
+LDR.SubPartBuilder = function(baseMC, table, redPoints, loader, partType, c, position, rotation, scene, subjectSize, onIconClick, from) {
+    if(c === undefined)
 	throw "Color undefined!";
 
     let self = this;
@@ -15,7 +15,7 @@ LDR.SubPartBuilder = function(baseMC, table, redPoints, loader, partType, colorI
     this.table = table;
     this.redPoints = redPoints;
     this.loader = loader;
-    this.c = colorID;
+    this.c = c;
     this.p = position;
     this.r = rotation;
     this.scene = scene;
@@ -45,7 +45,7 @@ LDR.SubPartBuilder = function(baseMC, table, redPoints, loader, partType, colorI
     LDR.makeEle(tr, 'td', 'line_cull').innerHTML = "&#x271" + (this.partType.certifiedBFC ? '4' : '6') + ";";;
     let CCW = this.partType.CCW;
     LDR.makeEle(tr, 'td', 'line_wind').innerHTML = "&#x21B" + (CCW ? 'A' : 'B') + ";";
-    LDR.makeEle(tr, 'td', 'line_color').innerHTML = colorID;
+    LDR.makeEle(tr, 'td', 'line_color').innerHTML = c;
     this.imageHolder = LDR.makeEle(tr, 'td', 'line_image');
 
     // Add icon for self:
@@ -111,21 +111,22 @@ LDR.SubPartBuilder.prototype.setFileLineVisibility = function(v) {
     if(!this.linesBuilt) {
 	return;
     }
-    let fileLines = this.partType.steps[0].fileLines;
-    for(let i = 0; i < fileLines.length; i++) {
-	let line = fileLines[i];
-	if(line.line0) {
-	    continue;
-	}
+    function handle(line) {
 	line.mc.setVisible(v);
 	if(line.markers) {
 	    line.markers.visible = v;
 	}
     }
+    let step = this.partType.steps[0];
+    step.subModels.forEach(handle);
+    step.lines.forEach(handle);
+    step.triangles.forEach(handle);
+    step.quads.forEach(handle);
+    step.conditionalLines.forEach(handle);
 }
 
 LDR.SubPartBuilder.prototype.buildIcons = function(baseObject, linkPrefix) {
-    const self = this;
+    let self = this;
     // Handle all lines:
     let transformColor = function(subColorID) {
 	if(subColorID === 16) {
@@ -148,13 +149,12 @@ LDR.SubPartBuilder.prototype.buildIcons = function(baseObject, linkPrefix) {
 	return ret;
     }
 
-    let fileLines = this.partType.steps[0].fileLines;
-    for(let i = 0; i < fileLines.length; i++) {
-	let line = fileLines[i];
+    let i = 0;
+    function handleLine(line, type) {
 	let p1, p2, p3, p4;
 	
-	let tr = LDR.makeEle(this.table, 'tr');
-	if(line.line0) { // Comment line - just display.
+	let tr = LDR.makeEle(self.table, 'tr');
+	if(type === 0) { // Comment line - just display.
 	    LDR.makeEle(tr, 'td', 'line_type').innerHTML = 'Comment';
 	    let content = LDR.makeEle(tr, 'td', 'line_desc');
 	    content.innerHTML = line.txt;
@@ -162,21 +162,21 @@ LDR.SubPartBuilder.prototype.buildIcons = function(baseObject, linkPrefix) {
 	}
 	else {
 	    line.mc = new LDR.MeshCollector(baseObject, baseObject, baseObject);
-	    let c = transformColor(line.line1 ? line.desc.colorID : line.c);
+	    let c = transformColor(line.c);
 
 	    let color = LDR.Colors[c];
-	    let shownColor = color.direct ? color.direct : colorID;
+	    let shownColor = color.direct ? color.direct : c;
 	    let step = new THREE.LDRStep(); // Not used by line1.
 
-	    if(line.line1) {
-                let pt = this.loader.getPartType(line.desc.ID);
+	    if(type === 1) {
+                let pt = self.loader.getPartType(line.ID);
 		if(!pt) {
 		    throw {
 			name: "UnloadedPartTypeException",
 			level: "Severe",
-			message: "Unloaded part type: " + line.desc.ID,
-			htmlMessage: "Unloaded part type: " + line.desc.ID,
-			toString: function(){return "Unloaded part type: " + line.desc.ID;} 
+			message: "Unloaded part type: " + line.ID,
+			htmlMessage: "Unloaded part type: " + line.ID,
+			toString: function(){return "Unloaded part type: " + line.ID;} 
 		    };
 		}
 
@@ -190,13 +190,13 @@ LDR.SubPartBuilder.prototype.buildIcons = function(baseObject, linkPrefix) {
 		    url += "part.php?from=" + self.from + "&id=";
 		}
 		a.setAttribute('href', url + pt.ID);
-		a.innerHTML = line.desc.ID;
+		a.innerHTML = line.ID;
 		typeEle.appendChild(a);
 
-		LDR.makeEle(tr, 'td', 'line_desc').innerHTML = LDR.writePrettyPointsPR(line.desc.position, line.desc.rotation);
-		LDR.makeEle(tr, 'td', 'line_cull').innerHTML = "&#x271" + (line.desc.cull ? '4' : '6') + ";";
-		LDR.makeEle(tr, 'td', 'line_wind').innerHTML = "&#x21B" + (!line.desc.invertCCW ? 'A' : 'B') + ";";
-		LDR.makeEle(tr, 'td', 'line_color').innerHTML = line.desc.colorID;
+		LDR.makeEle(tr, 'td', 'line_desc').innerHTML = LDR.writePrettyPointsPR(line.p, line.r);
+		LDR.makeEle(tr, 'td', 'line_cull').innerHTML = "&#x271" + (line.cull ? '4' : '6') + ";";
+		LDR.makeEle(tr, 'td', 'line_wind').innerHTML = "&#x21B" + (!line.invertCCW ? 'A' : 'B') + ";";
+		LDR.makeEle(tr, 'td', 'line_color').innerHTML = line.c;
 
                 // Hack in a new part type for the sub model:
                 let identityRotation = new THREE.Matrix3();
@@ -205,16 +205,16 @@ LDR.SubPartBuilder.prototype.buildIcons = function(baseObject, linkPrefix) {
                                      0, 0, 1);
                 let pd = new THREE.LDRPartDescription(40, new THREE.Vector3(), identityRotation, pt.ID, true, false);
                 let g = new LDR.LDRGeometry();
-                g.fromPartDescription(this.loader, line.desc);
+                g.fromPartDescription(self.loader, line);
 
                 step.addSubModel(pd);
                 pt = new THREE.LDRPartType();
-                pt.ID = 'HIGHLIGHT_PART_' + i;
+                pt.ID = 'HIGHLIGHT_PART_' + i++;
                 pt.addStep(step);
                 pt.geometry = g;
-		pt.generateThreePart(this.loader, 40, this.p, this.r, true, false, line.mc, pd);
+		pt.generateThreePart(self.loader, 40, self.p, self.r, true, false, line.mc, pd);
 	    }
-	    else if(line.line2) {
+	    else if(type === 2) {
 		LDR.makeEle(tr, 'td', 'line_type').innerHTML = 'Line';
 		LDR.writePrettyPoints(LDR.makeEle(tr, 'td', 'line_desc'), [line.p1, line.p2]);
 		LDR.makeEle(tr, 'td', 'line_cull').innerHTML = '-';	    
@@ -225,32 +225,32 @@ LDR.SubPartBuilder.prototype.buildIcons = function(baseObject, linkPrefix) {
 		p2 = transformPoint(line.p2);		
 		step.addLine(c, p1, p2);
 	    }
-	    else if(line.line3) {
+	    else if(type === 3) {
 		LDR.makeEle(tr, 'td', 'line_type').innerHTML = 'Triangle';
 		LDR.writePrettyPoints(LDR.makeEle(tr, 'td', 'line_desc'), [line.p1, line.p2, line.p3]);
 		LDR.makeEle(tr, 'td', 'line_cull').innerHTML = "&#x271" + (line.cull ? '4' : '6') + ";";;
-		LDR.makeEle(tr, 'td', 'line_wind').innerHTML = "&#x21B" + (line.ccw ? 'A' : 'B') + ";";
+		LDR.makeEle(tr, 'td', 'line_wind').innerHTML = '-';
 		LDR.makeEle(tr, 'td', 'line_color').innerHTML = shownColor;
 
 		p1 = transformPoint(line.p1);
 		p2 = transformPoint(line.p2);
 		p3 = transformPoint(line.p3);
-		step.addTrianglePoints(c, p1, p2, p3, true);
+		step.addTriangle(c, p1, p2, p3, true, false);
 	    }
-	    else if(line.line4) {
+	    else if(type === 4) {
 		LDR.makeEle(tr, 'td', 'line_type').innerHTML = 'Quad';
 		LDR.writePrettyPoints(LDR.makeEle(tr, 'td', 'line_desc'), [line.p1, line.p2, line.p3, line.p4]);
 		LDR.makeEle(tr, 'td', 'line_cull').innerHTML = "&#x271" + (line.cull ? '4' : '6') + ";";;
-		LDR.makeEle(tr, 'td', 'line_wind').innerHTML = "&#x21B" + (line.ccw ? 'A' : 'B') + ";";
+		LDR.makeEle(tr, 'td', 'line_wind').innerHTML = '-';
 		LDR.makeEle(tr, 'td', 'line_color').innerHTML = shownColor;
 
 		p1 = transformPoint(line.p1);
 		p2 = transformPoint(line.p2);
 		p3 = transformPoint(line.p3);
 		p4 = transformPoint(line.p4);
-		step.addQuadPoints(c, p1, p2, p3, p4, true);
+		step.addQuad(c, p1, p2, p3, p4, true, false);
 	    }
-	    else if(line.line5) {
+	    else if(type === 5) {
 		LDR.makeEle(tr, 'td', 'line_type').innerHTML = 'Optional';
 		LDR.writePrettyPoints(LDR.makeEle(tr, 'td', 'line_desc'), [line.p1, line.p2, line.p3, line.p4]);
 		LDR.makeEle(tr, 'td', 'line_cull').innerHTML = '-';	    
@@ -264,17 +264,16 @@ LDR.SubPartBuilder.prototype.buildIcons = function(baseObject, linkPrefix) {
 		step.addConditionalLine(c, p1, p2, p3, p4);
 	    }
 
-	    if(!line.line1) {
+	    if(type !== 1) { // TODO: Why is this necessary?
                 let pt = new THREE.LDRPartType();
                 pt.ID = 'Shadow part for step';
 		pt.addStep(step);
-		pt.ensureGeometry(this.loader);
-		pt.generateThreePart(this.loader, c, new THREE.Vector3(), new THREE.Matrix3(), line.cull, line.ccw, line.mc);
+		pt.ensureGeometry(self.loader);
+		pt.generateThreePart(self.loader, c, new THREE.Vector3(), new THREE.Matrix3(), line.cull, true, line.mc);
 	    }
 
 	    line.imageHolder = LDR.makeEle(tr, 'td', 'line_image');
 	}
-
 	if(p1) {
 	    // Add line points to cloud:
 	    let pts = [p1.x, p1.y, p1.z, p2.x, p2.y, p2.z];
@@ -304,16 +303,21 @@ LDR.SubPartBuilder.prototype.buildIcons = function(baseObject, linkPrefix) {
 
             line.markers = new THREE.Points(pointGeometry, pointMaterial);
 	    line.markers.visible = false;
-	}
-    }
+	} // if(p1)
+    } // function handleLine
 
+    let step = this.partType.steps[0];
+    step.subModels.forEach(sm => {
+            sm.commentLines.forEach(line => handleLine(line, 0));
+            handleLine(sm, 1);
+        });
+    step.lines.forEach(x => handleLine(x, 2));
+    step.triangles.forEach(x => handleLine(x, 3));
+    step.quads.forEach(x => handleLine(x, 4));
+    step.conditionalLines.forEach(x => handleLine(x, 5));
+                                                                                
     // Icons for lines:
-    for(let i = 0; i < fileLines.length; i++) {
-	const line = fileLines[i];
-	if(line.line0) {
-	    continue;
-	}
-
+    function handle(line) {
 	line.canvas = LDR.buildThumbnail(line.imageHolder);
 	line.canvas.line = line;
 	line.canvas.addEventListener('click', function() {
@@ -333,11 +337,18 @@ LDR.SubPartBuilder.prototype.buildIcons = function(baseObject, linkPrefix) {
 	    line.markers.updateMatrix();
 	}
     }
+    step.subModels.forEach(handle);
+    step.lines.forEach(handle);
+    step.triangles.forEach(handle);
+    step.quads.forEach(handle);
+    step.conditionalLines.forEach(handle);
 
     this.linesBuilt = true;
 } 
 
 LDR.SubPartBuilder.prototype.drawAllIcons = function() {
+    let self = this;
+
     // Base icon:
     this.setFileLineVisibility(false);
     this.redPoints.visible = false;
@@ -356,29 +367,30 @@ LDR.SubPartBuilder.prototype.drawAllIcons = function() {
     // Icons for lines:
     this.baseMC.setVisible(false);
     this.redPoints.visible = true;
-    let fileLines = this.partType.steps[0].fileLines;
-    for(let i = 0; i < fileLines.length; i++) {
-	let line = fileLines[i];
-	if(line.line0) {
-	    continue;
-	}
-
+    function handle(line) {
 	line.mc.setVisible(true);
-	line.mc.overwriteColor(this.c);
+	line.mc.overwriteColor(self.c);
 	line.mc.draw(false);
 	if(line.markers) {
 	    line.markers.visible = true;
 	}
 
-	this.render();
+	self.render();
 	context = line.canvas.getContext('2d');
-	context.drawImage(this.renderer.domElement, 0, 0);
+	context.drawImage(self.renderer.domElement, 0, 0);
 
 	line.mc.setVisible(false);
 	if(line.markers) {
 	    line.markers.visible = false;
 	}
     }
+    let step = this.partType.steps[0];
+    step.subModels.forEach(handle);
+    step.lines.forEach(handle);
+    step.triangles.forEach(handle);
+    step.quads.forEach(handle);
+    step.conditionalLines.forEach(handle);
+
     this.redPoints.visible = false;
     this.baseMC.setVisible(true);
 }

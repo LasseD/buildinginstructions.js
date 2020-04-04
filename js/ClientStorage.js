@@ -2,7 +2,7 @@
 
 LDR.STORAGE = function(onReady) {
     let self = this;
-    this.req = indexedDB.open("ldraw", 7);
+    this.req = indexedDB.open("ldraw", 8);
 
     this.req.onupgradeneeded = function(event) {
 	const db = event.target.result;
@@ -26,6 +26,9 @@ LDR.STORAGE = function(onReady) {
 	if(event.oldVersion < 7) {
 	    // Bug fix for when partType.cleanUp is called
 	    // step culling moved to lines
+	}
+	if(event.oldVersion < 8) {
+            // Moved comments to lines of type 1
 	    var pStore = this.transaction.objectStore("parts");
 	    pStore.clear();
 	    var iStore = this.transaction.objectStore("instructions");

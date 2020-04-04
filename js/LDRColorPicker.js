@@ -33,11 +33,11 @@ LDR.ColorPicker = function(onColorSelected) {
 
         self.decorateEle(colorEle, color, i);
 
-        colorEle.colorID = i;
+        colorEle.c = i;
         colorEle.addEventListener('click', function(event){
                 event.preventDefault();
                 event.stopPropagation();
-                onColorSelected(this.colorID);
+                onColorSelected(this.c);
                 $("#color_picker_background, #color_picker_holder").hide();
             }, false);
     }

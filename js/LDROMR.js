@@ -111,26 +111,26 @@ LDR.OMR.FixPlacements = function() {
     let bad = 0
     let total = 0;
     function checkPD(pd) {
-	let p = pd.position;
-	let r = pd.rotation.elements;
+	let p = pd.p;
+	let r = pd.r.elements;
         total++;
-        if(checkV(p) || pd.rotation.elements.some(x => x!==convert(x))) {
+        if(checkV(p) || pd.r.elements.some(x => x!==convert(x))) {
             ++bad;
         }
         return (total >= MIN_TOTAL) && (bad/total > ACCEPTABLE_FRACTION);
     }
 
     let checkers = {checkPartDescription:pd => 
-                    checkPD(pd) ? "Many parts are placed with precision higher than three decimals, such as '" + pd.ID + "' placed at (" + pd.position.toLDR() + ") with rotation (" + pd.rotation.toLDR() + "). This is often observed in models created in Bricklink Studio 2.0. Click here to align all parts to have at most three decimals in their positions." : false};
+                    checkPD(pd) ? "Many parts are placed with precision higher than three decimals, such as '" + pd.ID + "' placed at (" + pd.p.toLDR() + ") with rotation (" + pd.r.toLDR() + "). This is often observed in models created in Bricklink Studio 2.0. Click here to align all parts to have at most three decimals in their positions." : false};
 
     let handlers = {handlePartDescription: function(pd) {
-	pd.position.set(convert(pd.position.x),
-			convert(pd.position.y),
-			convert(pd.position.z));
-	let e = pd.rotation.elements;
-	pd.rotation.set(convert(e[0]), convert(e[3]), convert(e[6]),
-		        convert(e[1]), convert(e[4]), convert(e[7]),
-		        convert(e[2]), convert(e[5]), convert(e[8]));
+	pd.p.set(convert(pd.p.x),
+                 convert(pd.p.y),
+                 convert(pd.p.z));
+	let e = pd.r.elements;
+	pd.r.set(convert(e[0]), convert(e[3]), convert(e[6]),
+                 convert(e[1]), convert(e[4]), convert(e[7]),
+                 convert(e[2]), convert(e[5]), convert(e[8]));
     }};
 
     return {checkers:checkers, handlers:handlers};
@@ -270,22 +270,22 @@ LDR.OMR.StandardizeFileNames = function(setNumber) {
  */
 LDR.OMR.ColorPartsAccordingToYear = function(year) {
     function transformColors(pd, map) {
-        if(map.hasOwnProperty(pd.colorID)) {
-            pd.colorID = map[pd.colorID];
+        if(map.hasOwnProperty(pd.c)) {
+            pd.c = map[pd.c];
         }
     }
 
     if(year >= 2007) {
-        let title = (id, colorID) => "In 2007 LEGO started using new brown and gray colors. This model has one or more parts in old colors, such as " + id + " in " + LDR.Colors[colorID].name + ". Click here to change to new colors";
+        let title = (id, c) => "In 2007 LEGO started using new brown and gray colors. This model has one or more parts in old colors, such as " + id + " in " + LDR.Colors[c].name + ". Click here to change to new colors";
         return {
-            checkers: {checkPartDescription: pd => (pd.colorID===6||pd.colorID===7||pd.colorID===8) ? title(pd.ID, pd.colorID) : false},
+            checkers: {checkPartDescription: pd => (pd.c===6||pd.c===7||pd.c===8) ? title(pd.ID, pd.c) : false},
             handlers: {handlePartDescription: pd => transformColors(pd, {'6':70,'7':71,'8':72})}
         };
     }
     else {
-        let title = (id, colorID) => "In 2007 LEGO started using new gray and brown colors. This model contains one or more parts in new colors, such as " + id + " in " + LDR.Colors[colorID].name + ". Click here to change to old colors";
+        let title = (id, c) => "In 2007 LEGO started using new gray and brown colors. This model contains one or more parts in new colors, such as " + id + " in " + LDR.Colors[c].name + ". Click here to change to old colors";
         return {
-            checkers:{checkPartDescription:pd => (pd.colorID===70||pd.colorID===71||pd.colorID===72) ? title(pd.ID, pd.colorID) : false},
+            checkers:{checkPartDescription:pd => (pd.c===70||pd.c===71||pd.c===72) ? title(pd.ID, pd.c) : false},
             handlers:{handlePartDescription:pd => transformColors(pd, {'70':6,'71':7,'72':8})}
         };
     }

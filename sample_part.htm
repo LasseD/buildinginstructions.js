@@ -175,7 +175,7 @@
 
 	// Red Points:
 	let pointGeometry = new THREE.BufferGeometry();
-	pointGeometry.addAttribute('position', mainModel.geometry.buildVertexAttribute(inv));
+	pointGeometry.setAttribute('position', mainModel.geometry.buildVertexAttribute(inv));
 	pointMaterial = new THREE.PointsMaterial({size: ldrOptions.pointSize, color: ldrOptions.pointColor});
 	pointMaterial.visible = ldrOptions.pointSize > 0;
 	let markerPoints = new THREE.Points(pointGeometry, pointMaterial);
@@ -187,7 +187,7 @@
 	  render();
 	  preview.scrollIntoView();
 	};
-	builder = new LDR.SubPartBuilder(mc, structureEle, markerPoints, ldrLoader, mainModel, colorID, origo, inv, scene, w, onIconClick, 0);
+	builder = new LDR.SubPartBuilder(mc, structureEle, markerPoints, ldrLoader, mainModel, c, origo, inv, scene, w, onIconClick, 0);
         builder.drawAllIcons();
 
 	$('#load_details').show();
@@ -235,13 +235,13 @@
 
       // Color setup:
       let colorPicker = new LDR.ColorPicker(setColor);
-      let colorID = 16;
+      let c = 16;
     
       function setColor(idx) {
-        if(colorID === idx || idx === undefined) {
+        if(c === idx || idx === undefined) {
 	  return;
 	}
-        colorID = idx;
+        c = idx;
         let color = LDR.Colors[idx];
 
         let buttonEle = document.getElementById('color_picker_button');

@@ -8,7 +8,7 @@ LDR.PartsBuilder = function(loader, mainModelID, mainModelColor, onBuiltPart) {
     this.mainModelID = mainModelID;
     this.mainModelColor = mainModelColor;
 
-    this.pcs = {}; // partID_colorID -> PartAndColor objects
+    this.pcs = {}; // partID_c -> PartAndColor objects
     this.pcKeys = []; // Used for lookup and sorting.    
     const pcs = this.pcs;
     const pcKeys = this.pcKeys;
@@ -16,18 +16,18 @@ LDR.PartsBuilder = function(loader, mainModelID, mainModelColor, onBuiltPart) {
     // First fix all replacements:
     loader.substituteReplacementParts();
 
-    function build(multiplier, partID, colorID) {
+    function build(multiplier, partID, c) {
 	let model = loader.getPartType(partID);
 
         function handleStep(step, idx) {
             if(step.containsNonPartSubModels(loader)) {
 		let ldr = step.subModels[0];
-		build(multiplier*step.subModels.length, ldr.ID, ldr.colorID == 16 ? colorID : ldr.colorID);
+		build(multiplier*step.subModels.length, ldr.ID, ldr.c == 16 ? c : ldr.c);
                 return;
 	    }
 
             step.subModels.forEach(dat => {
-                let datColorID = dat.colorID == 16 ? colorID : dat.colorID;
+                let datColorID = dat.c == 16 ? c : dat.c;
                 // Key consists of ID (without .dat) '_', and color ID
 		if(dat.REPLACEMENT_PLI === true) {
 		    return; // Replaced part.
@@ -52,19 +52,19 @@ LDR.PartsBuilder = function(loader, mainModelID, mainModelColor, onBuiltPart) {
     function sorter(a, b) {
 	a = pcs[a];
 	b = pcs[b];
-	if(a.colorID != b.colorID) {
-	    return a.colorID - b.colorID;
+	if(a.c != b.c) {
+	    return a.c - b.c;
         }
 	return a.partID < b.partID ? -1 : (b.partID < a.partID ? 1 : 0);
     }
     pcKeys.sort(sorter);
 }
 
-LDR.PartAndColor = function(key, part, colorID, loader) {
+LDR.PartAndColor = function(key, part, c, loader) {
     this.key = key;
     this.part = part;
     this.ID = part.REPLACEMENT_PLI ? part.REPLACEMENT_PLI : part.ID;
-    this.colorID = colorID;
+    this.c = c;
     this.loader = loader;
 
     this.amount = 0;

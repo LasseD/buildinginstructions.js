@@ -627,7 +627,7 @@ LDR.StepEditor.prototype.makeToggleAllIcon = function() {
 // Editor operations on StepHandler:
 //
 
-LDR.StepHandler.prototype.colorGhosted = function(colorID) {
+LDR.StepHandler.prototype.colorGhosted = function(c) {
     let [part, current, stepInfo] = this.getCurrentStepInfo();
     let step = stepInfo.step;
     if(!step) {
@@ -637,7 +637,7 @@ LDR.StepHandler.prototype.colorGhosted = function(colorID) {
 
     // Remove ghosted parts from both step and mc:
     let stepIndex = this.getCurrentStepIndex();
-    step.original.subModels.forEach(pd => {if(pd.ghost){pd.colorID = colorID};});
+    step.original.subModels.forEach(pd => {if(pd.ghost){pd.c = c};});
 
     this.rebuild();
     this.moveSteps(stepIndex, () => {});
@@ -872,13 +872,13 @@ LDR.StepHandler.prototype.moveUp = function(info, right) {
                 ghosts.forEach(ghost => {
                         let g = ghost.cloneNoPR(); // No position or rotation - set below:
                 
-                        g.position = new THREE.Vector3();
-                        g.position.copy(ghost.position);
-                        g.position.applyMatrix3(sm.rotation);
-                        g.position.add(sm.position);
+                        g.p = new THREE.Vector3();
+                        g.p.copy(ghost.p);
+                        g.p.applyMatrix3(sm.r);
+                        g.p.add(sm.p);
                         
-                        g.rotation = new THREE.Matrix3();
-                        g.rotation.multiplyMatrices(sm.rotation, ghost.rotation);
+                        g.r = new THREE.Matrix3();
+                        g.r.multiplyMatrices(sm.r, ghost.r);
                         
                         newStep.subModels.push(g);
                         newStep.fileLines.push(new LDR.Line1(g));
@@ -928,7 +928,7 @@ LDR.StepHandler.prototype.moveDown = function(info, right) {
 
     // Create new step in sub model of adjacent step.
     let inv = new THREE.Matrix3();
-    inv.getInverse(adjacentPD.rotation, true);
+    inv.getInverse(adjacentPD.r, true);
     let adjacentPT = this.loader.getPartType(adjacentPD.ID);
 
     // Add new step before or after this step:
@@ -936,13 +936,13 @@ LDR.StepHandler.prototype.moveDown = function(info, right) {
     ghosts.forEach(ghost => {
         let g = ghost.cloneNoPR(); // No position or rotation - set below:
                 
-        g.position = new THREE.Vector3();
-        g.position.copy(ghost.position);
-        g.position.sub(adjacentPD.position);
-        g.position.applyMatrix3(inv);
+        g.p = new THREE.Vector3();
+        g.p.copy(ghost.p);
+        g.p.sub(adjacentPD.p);
+        g.p.applyMatrix3(inv);
         
-        g.rotation = new THREE.Matrix3();
-        g.rotation.multiplyMatrices(inv, ghost.rotation);
+        g.r = new THREE.Matrix3();
+        g.r.multiplyMatrices(inv, ghost.r);
         
         newStep.subModels.push(g);
         newStep.fileLines.push(new LDR.Line1(g));
@@ -1051,7 +1051,7 @@ THREE.LDRPartDescription.prototype.cloneNoPR = function() {
     if(this.original) {
 	throw "Cloning non-original PD in cloneNoPR!";
     }
-    let ret = new THREE.LDRPartDescription(this.colorID, null, null, this.ID, 
+    let ret = new THREE.LDRPartDescription(this.c, null, null, this.ID, 
 					   this.cull, this.invertCCW);
     ret.REPLACEMENT_PLI = this.REPLACEMENT_PLI;
     ret.ghost = this.ghost || false;
