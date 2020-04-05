@@ -310,9 +310,11 @@ LDR.InstructionsManager.prototype.onWindowResize = function(){
 }
 
 LDR.InstructionsManager.prototype.resetCameraPosition = function() {
+    this.controls.reset();
     this.updateCameraZoom();
     this.updateViewPort();
     this.camera.lookAt(new THREE.Vector3());
+    this.camera.updateProjectionMatrix();
     this.updateViewPort();
     this.render();
 }
@@ -384,21 +386,30 @@ LDR.InstructionsManager.prototype.updateViewPort = function() {
     if(this.ignoreViewPortUpdate) {
 	return;
     }
-    this.camera.position.set(10000, 7000, 10000);
+
+    let c = this.camera;
+    let W = this.canvas.clientWidth*0.95; // c.right-c.left
+    let H = this.canvas.clientHeight*0.95; // c.top-c.bottom
+
+    c.position.set(10000, 7000, 10000);
 
     let dx = 0;
-    let dy = this.topButtonsHeight/2;
+    let dy = this.topButtonsHeight;
 
     if(!this.pliBuilder || this.pliW == 0) {
         // No move
     }
     else if(this.pliBuilder.fillHeight) {
-        dx += this.pliW/2;
+        dx += this.pliW;
     }
     else {
-        dy += this.pliH/2;
+        dy += this.pliH;
     }
-    this.controls.panTo(dx, dy);
+
+    c.clearViewOffset();
+    c.setViewOffset(W, H, -dx/2, -dy/2, W, H);
+    c.updateProjectionMatrix();
+    this.controls.update();
 }
 
 LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, onDone) {
