@@ -262,7 +262,7 @@ LDR.OMR.SetLDrawOrg = function(unofficial) {
    for all unofficial parts.
    In bbuildinginstructions.org, the 'name' property on part types is used for both '0 FILE' and '0 Name:' lines.
  */
-LDR.OMR.StandardizeFileNames = function(setNumber) {
+LDR.OMR.StandardizeFileNames = function(setNumber, ldrLoader) {
     let setNumberPrefix = setNumber + ' - ';
     let title = (pt,i,d) => ['Standardize file headers',
 			     '0 FILE ' + pt.ID + '\n0 ' + pt.modelDescription + '\n0 Name: ' + pt.name,
@@ -301,14 +301,24 @@ LDR.OMR.StandardizeFileNames = function(setNumber) {
 	    if(!pt.modelDescription) {
 		pt.modelDescription = e;
 	    }
-	    pt.ID = pt.name = setNumberPrefix + e + '.ldr';
+	    let from = pt.ID;
+	    pt.ID = pt.name = setNumberPrefix + e + '.ldr';	    
+	    ldrLoader.partTypes[pt.ID] = pt;
+	    if(ldrLoader.mainModel === from) {
+		ldrLoader.mainModel = pt.ID;
+	    }
         }
         else if(!pt.inlined && pt.ldraw_org && pt.ldraw_org.startsWith('Unofficial_')) {
             pt.name = setNumberPrefix + extract(pt.name) + '.dat';
         }
     }
+    let handlePartDescription = function(pd) {
+	let pt = ldrLoader.getPartType(pd.ID);
+	handlePartType(pt);
+	pd.ID = pt.ID; // Replaced ID.
+    }
 
-    return {checkers:{checkPartType:checkPartType}, handlers:{handlePartType:handlePartType}};
+    return {checkers:{checkPartType:checkPartType}, handlers:{handlePartType:handlePartType, handlePartDescription:handlePartDescription}};
 }
 
 /**

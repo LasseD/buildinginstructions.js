@@ -758,6 +758,7 @@ THREE.LDRLoader.prototype.toLDR = function() {
         if(seen.hasOwnProperty(pt.ID) &&
 	   !(pt.inlined || pt.ID === self.mainModel || pt.isOfficialLDraw())) {
             ret += pt.toLDR(self);
+	    delete seen[pt.ID];
         }
     });
 
