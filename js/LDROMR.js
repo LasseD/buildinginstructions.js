@@ -39,9 +39,9 @@ LDR.OMR = {};
  These are identified by having the description '~Moved to <new_part>'.
  in buildinginstructions.js, the property 'replacement' is set on part types when this occurs.
  */
-LDR.OMR.UpgradeToReplacements = function() {
+LDR.OMR.UpgradeToReplacements = function(ldrLoader) {
     return {
-        checkers: {checkPartType:pt => (pt.replacement && pt.modelDescription && !pt.modelDescription.startsWith('~Unknown part ')) ? "Click here to upgrade all moved parts, such as " + pt.ID + " to " + pt.replacement : false},
+        checkers: {checkPartType:pt => (pt.replacement && pt.modelDescription) ? ['Click here to upgrade moved parts',pt.ID,pt.replacement] : false},
 
         handlers: {handlePartDescription: pd => {
                 let pt = ldrLoader.getPartType(pd.ID);
@@ -53,18 +53,31 @@ LDR.OMR.UpgradeToReplacements = function() {
     };
 }
 
-LDR.OMR.UpgradeToNewPartsBasedOnYear = function(year) {
+LDR.OMR.UpgradeToPartsBasedOnYear = function(year) {
+    let R = {};
+    for(let id in LDR.Replacements) {
+	if(LDR.Replacements.hasOwnProperty(id)) {
+	    let obj = LDR.Replacements[id];
+	    R[obj.part] = {part: id, year:obj.year};
+	}
+    }
+
     function check(pt) {
 	if(!pt.ID.endsWith('.dat')) {
 	    return false;
 	}
 	let id = pt.ID.substring(0, pt.ID.length-4);
-	if(!LDR.Replacements.hasOwnProperty(id)) {
-	    return false;
+	if(LDR.Replacements.hasOwnProperty(id)) {
+	    let obj = LDR.Replacements[id];
+	    if(obj.year <= year) {
+		return ['In ' + year + ', LEGO had replaced some part with newer versions. Click here to set parts as they were in ' + year, id+'.dat', obj.part+'.dat'];
+	    }
 	}
-	let obj = LDR.Replacements[id];
-	if(obj.year <= year) {
-	    return "In " + year + ", parts, such as " + id + " had been replaced by " + obj.part + ". Click here to upgrade all these.";
+	if(R.hasOwnProperty(id)) {
+	    let obj = R[id];
+	    if(obj.year > year) {
+		return ['In ' + year + ', LEGO had replaced some part with newer versions. Click here to set parts as they were in ' + year, id+'.dat', obj.part+'.dat'];
+	    }
 	}
 	return false;
     }
@@ -83,6 +96,12 @@ LDR.OMR.UpgradeToNewPartsBasedOnYear = function(year) {
 		    pd.ID = obj.part + '.dat';
 		}
             }
+            else if(R.hasOwnProperty(id)) {
+                let obj = R[id];
+		if(obj.year > year) {
+		    pd.ID = obj.part + '.dat';
+		}
+            }
         }}
     };
 }
@@ -91,7 +110,7 @@ LDR.OMR.UpgradeToNewPartsBasedOnYear = function(year) {
  Check if many part descriptions are placed with precision higher than 3 decimals.
  Correct all to at most 3 decimals.
  */
-LDR.OMR.FixPlacements = function() {
+LDR.OMR.FixPlacements = function(ldrLoader) {
     const ACCEPTABLE_FRACTION = 0.3;
     const MIN_TOTAL = 20;
 
@@ -120,9 +139,6 @@ LDR.OMR.FixPlacements = function() {
         return (total >= MIN_TOTAL) && (bad/total > ACCEPTABLE_FRACTION);
     }
 
-    let checkers = {checkPartDescription:pd => 
-                    checkPD(pd) ? "Many parts are placed with precision higher than three decimals, such as '" + pd.ID + "' placed at (" + pd.p.toLDR() + ") with rotation (" + pd.r.toLDR() + "). This is often observed in models created in Bricklink Studio 2.0. Click here to align all parts to have at most three decimals in their positions." : false};
-
     let handlers = {handlePartDescription: function(pd) {
 	pd.p.set(convert(pd.p.x),
                  convert(pd.p.y),
@@ -131,7 +147,11 @@ LDR.OMR.FixPlacements = function() {
 	pd.r.set(convert(e[0]), convert(e[3]), convert(e[6]),
                  convert(e[1]), convert(e[4]), convert(e[7]),
                  convert(e[2]), convert(e[5]), convert(e[8]));
+	return pd;
     }};
+
+    let checkers = {checkPartDescription:pd => 
+                    checkPD(pd) ? ['Many parts are placed with precision higher than three decimals. This is often observed in models created in Bricklink Studio 2.0. Click here to align all parts to have at most three decimals in their positions.', pd.toLDR(ldrLoader), handlers.handlePartDescription(pd.cloneColored(16)).toLDR(ldrLoader)] : false};
 
     return {checkers:checkers, handlers:handlers};
 }
@@ -141,17 +161,29 @@ LDR.OMR.FixPlacements = function() {
  Fix any deviating author line.
  */
 LDR.OMR.FixAuthors = function(expectedAuthor) {
-    let title = "Change all author lines in the models of the LDraw file to '" + expectedAuthor + "' (This does not include any unofficial parts)";
+    let title = pt => ['Align author lines in the LDraw file by clicking here', pt.author ? ('0 Author: ' + pt.author) : '[Missing author line]', '0 Author: ' + expectedAuthor];
 
-    let checkers = {checkPartType: pt => pt.isPart ? false : (pt.author !== expectedAuthor ? title : false)};
-    
+    function checkPartType(pt) {
+	if(pt.isPart) {
+	    return !pt.author ? title(pt) : false;
+
+	}
+	else {
+	    return pt.author !== expectedAuthor ? title(pt) : false;
+	}
+    }
+
     let handlers = {handlePartType: pt => {
-        if(!pt.isPart)  {
+        if(pt.isPart)  {
+	    if(!pt.author) {
+		pt.author = expectedAuthor;
+	    }
+	}
+	else {
             pt.author = expectedAuthor;
 	}
     }};
-
-    return {checkers:checkers, handlers:handlers};
+    return {checkers:{checkPartType:checkPartType}, handlers:handlers};
 }
 
 /**
@@ -160,14 +192,14 @@ LDR.OMR.FixAuthors = function(expectedAuthor) {
  */
 LDR.OMR.FixLicenses = function() {
     const LICENSE = 'Redistributable under CCAL version 2.0 : see CAreadme.txt';
-    let title = "Change all license lines in the models of the LDraw file (including unofficial parts) to '" + LICENSE + "'";
 
-    let checkers = {checkPartType: pt => pt.license !== LICENSE ? title : false};
-    
-    let handlers = {handlePartType: pt => {
-	pt.license = LICENSE;
-    }};
+    function title(lc) {
+	let from = lc ? ('0 !LICENSE ' + lc) : '[Missing license]';
+	return ['Update license lines in the LDraw file', from, '0 !LICENSE ' + LICENSE];
+    }
 
+    let checkers = {checkPartType: pt => (pt.license !== LICENSE) ? title(pt.license) : false};
+    let handlers = {handlePartType: pt => pt.license = LICENSE};
     return {checkers:checkers, handlers:handlers};
 }
 
@@ -177,31 +209,45 @@ LDR.OMR.FixLicenses = function() {
 LDR.OMR.LDrawOrgChanged = false;
 LDR.OMR.SetLDrawOrg = function(unofficial) {
     let type = unofficial ? 'Unofficial_Model' : 'Model';
-    let title = "Set all 'LDRAW_ORG' lines to '" + type + "' ";
+    let title = "Set all LDRAW_ORG lines of unofficial parts to 'Unofficial_Part' and of all other to '" + type + "' ";
     if(unofficial) {
-        title += " indicating the model is OMR compliant, but not yet accepted into the official library";
+        title += " indicating the file is OMR compliant, but not yet accepted into the official OMR library";
     }
     else {
-        title += " indicating the model is OMR compliant and accepted into the official library";
+        title += " indicating the file is OMR compliant and accepted into the official library";
     }
 
-    let checkers = {checkPartType: pt => (!LDR.OMR.LDrawOrgChanged && !pt.isPart && pt.ldraw_org !== type && pt.ldraw_org !== 'Model') ? title : false};
-    let handlers = {handlePartType: pt => {if(!pt.isPart){pt.ldraw_org = type; LDR.OMR.LDrawOrgChanged = true;}}};
-    return {checkers:checkers, handlers:handlers};
-}
+    function checkPartType(pt) {
+	if(LDR.OMR.LDrawOrgChanged) {
+	    return false; // Only change once.
+	}
+	if(pt.isPart) {
+	    if(!pt.ldraw_org) {
+		return [title, '[Missing line in part ' + pt.ID + ']', '0 !LDRAW_ORG Unofficial_Part'];
+	    }
+	    return false;
+	}
+	else {
+	    if(pt.ldraw_org !== type && pt.ldraw_org !== 'Model') {
+		return [title,(pt.ldraw_org?('0 !LDRAW_ORG '+pt.ldraw_org):'[Missing line in ' + pt.ID + ']'),'0 !LDRAW_ORG '+type];
+	    }
+	    return false;
+	}
+    }
 
-/**
-   Ensure all unofficial parts are inlined.
-   In buildinginstructions.js the property 'inlined' on part types determine if the part should be inlined.
- */
-LDR.OMR.InlineUnofficialParts = function() {
-    let title = id => "Copy content of unofficial files, such as " + id + " into the MPD file to improve OMR compliance";
+    function handlePartType(pt) {
+	if(pt.isPart) {
+	    if(!pt.ldraw_org) {
+		pt.ldraw_org = 'Unofficial_Part';
+	    }
+	}
+	else {
+	    pt.ldraw_org = type;
+	}
+	LDR.OMR.LDrawOrgChanged = true;
+    }
 
-    let checkers = {checkPartType: pt => (pt.isPart && pt.inlined && pt.ldraw_org && pt.ldraw_org.startsWith('Unofficial_') && pt.inlined !== "GENERATED") ? title(pt.ID) : false};
-
-    let handlers = {handlePartType: pt => {if(pt.isPart && pt.inlined && pt.ldraw_org && pt.ldraw_org.startsWith('Unofficial_') && pt.inlined !== "GENERATED"){pt.inlined = undefined;}}};
-
-    return {checkers:checkers, handlers:handlers};
+    return {checkers:{checkPartType:checkPartType}, handlers:{handlePartType:handlePartType}};
 }
 
 /**
@@ -218,7 +264,9 @@ LDR.OMR.InlineUnofficialParts = function() {
  */
 LDR.OMR.StandardizeFileNames = function(setNumber) {
     let setNumberPrefix = setNumber + ' - ';
-    let title = (i,d) => "Change file headers to follow the standard <pre>0 FILE " + i + "\n0 " + d + "\n0 Name: " + i + "</pre>";
+    let title = (pt,i,d) => ['Standardize file headers',
+			     '0 FILE ' + pt.ID + '\n0 ' + pt.modelDescription + '\n0 Name: ' + pt.name,
+			     '0 FILE ' + i + '\n0 ' + d + '\n0 Name: ' + i];
     
     function extract(x) {
 	if(x.endsWith('.ldr') || x.endsWith('.LDR') || x.endsWith('.dat') || x.endsWith('.DAT') || x.endsWith('.mpd') || x.endsWith('.MPD')) {
@@ -230,17 +278,18 @@ LDR.OMR.StandardizeFileNames = function(setNumber) {
 
     let checkPartType = function(pt) {
         if(!pt.isPart) { // Not a part: Check that all 3 lines are well-formed:
-	    let d = extract(pt.name);
-	    let i = setNumberPrefix + d + '.ldr';
+	    let e = extract(pt.name);
+	    let d = pt.modelDescription ? pt.modelDescription : e;
+	    let i = setNumberPrefix + e + '.ldr';
             if(pt.name !== i || pt.modelDescription !== d) {
-		return title(i, d);
+		return title(pt, i, d);
 	    }
 	    return false;
         }
         else if(!pt.inlined && pt.ldraw_org && pt.ldraw_org.startsWith('Unofficial_')) { // Check a part for inconsistencies:
             if(!pt.name.startsWith(setNumberPrefix)) {
 		let i = setNumberPrefix + extract(pt.name) + '.dat';
-                return title(i, pt.modelDescription);
+                return title(pt, i, pt.modelDescription);
             }
         }
         return false;
@@ -248,9 +297,11 @@ LDR.OMR.StandardizeFileNames = function(setNumber) {
 
     let handlePartType = function(pt) {
         if(!pt.isPart) {
-	    let d = extract(pt.name);
-	    pt.modelDescription = d;
-	    pt.name = setNumberPrefix + d + '.ldr';
+	    let e = extract(pt.name);
+	    if(!pt.modelDescription) {
+		pt.modelDescription = e;
+	    }
+	    pt.ID = pt.name = setNumberPrefix + e + '.ldr';
         }
         else if(!pt.inlined && pt.ldraw_org && pt.ldraw_org.startsWith('Unofficial_')) {
             pt.name = setNumberPrefix + extract(pt.name) + '.dat';
@@ -268,7 +319,7 @@ LDR.OMR.StandardizeFileNames = function(setNumber) {
    be changed to use new colors.
    Colors involved are brown, gray and dark gray.
  */
-LDR.OMR.ColorPartsAccordingToYear = function(year) {
+LDR.OMR.ColorPartsAccordingToYear = function(year, ldrLoader) {
     function transformColors(pd, map) {
         if(map.hasOwnProperty(pd.c)) {
             pd.c = map[pd.c];
@@ -276,19 +327,57 @@ LDR.OMR.ColorPartsAccordingToYear = function(year) {
     }
 
     if(year >= 2007) {
-        let title = (id, c) => "In 2007 LEGO started using new brown and gray colors. This model has one or more parts in old colors, such as " + id + " in " + LDR.Colors[c].name + ". Click here to change to new colors";
+	let map = {'6':70,'7':71,'8':72};
+        function title(pd, c) {
+	    let pd2 = pd.cloneColored(16); pd2.c = c;
+	    return ['In 2007 LEGO started using new brown and gray colors. Click here to make all parts use the new colors', pd.toLDR(ldrLoader), pd2.toLDR(ldrLoader)];
+	}
         return {
-            checkers: {checkPartDescription: pd => (pd.c===6||pd.c===7||pd.c===8) ? title(pd.ID, pd.c) : false},
-            handlers: {handlePartDescription: pd => transformColors(pd, {'6':70,'7':71,'8':72})}
+            checkers: {checkPartDescription: pd => (pd.c===6||pd.c===7||pd.c===8) ? title(pd, map[pd.c]) : false},
+            handlers: {handlePartDescription: pd => transformColors(pd, map)}
         };
     }
     else {
-        let title = (id, c) => "In 2007 LEGO started using new gray and brown colors. This model contains one or more parts in new colors, such as " + id + " in " + LDR.Colors[c].name + ". Click here to change to old colors";
+	let map = {'70':6,'71':7,'72':8};
+        function title(pd, c) {
+	    let pd2 = pd.cloneColored(16); pd2.c = c;
+	    return ['Before 2007 LEGO used old brown and gray colors. Click here to make all parts use the old colors as they were in ' + year, pd.toLDR(ldrLoader), pd2.toLDR(ldrLoader)];
+	}
         return {
-            checkers:{checkPartDescription:pd => (pd.c===70||pd.c===71||pd.c===72) ? title(pd.ID, pd.c) : false},
-            handlers:{handlePartDescription:pd => transformColors(pd, {'70':6,'71':7,'72':8})}
+            checkers: {checkPartDescription: pd => (pd.c===70||pd.c===71||pd.c===72) ? title(pd, map[pd.c]) : false},
+            handlers: {handlePartDescription: pd => transformColors(pd, map)}
         };
     }
 }    
 
 // TODO: Ensure history lines are well formed.
+
+THREE.LDRLoader.prototype.toLDROMR = function() {
+    let self = this;
+
+    // Part types:
+    let ret = this.getMainModel().toLDR(this);
+
+    this.applyOnPartTypes(pt => {
+	if(pt.ID === self.mainModel)
+	    return; // Main model
+        if(!pt.isPart || (pt.isPart && !pt.isOfficialLDraw())) {
+            ret += pt.toLDR(self); // Non-parts and unofficial parts
+        }
+    });
+
+    // Inline texmaps:
+    const CHARACTERS_PER_LINE = 76;
+    function outputDataUrl(id, mimetype, content) {
+        ret += "0 FILE " + id + "\r\n";
+        ret += "0 !DATA START\r\n";
+        let lines = Math.ceil(content.length / CHARACTERS_PER_LINE);
+        for(let i = 0; i < content.length; i += CHARACTERS_PER_LINE) {
+            ret += "0 !:" + content.substr(i, CHARACTERS_PER_LINE) + "\r\n";
+        }
+        ret += "0 !DATA END\r\n\r\n";
+    }
+    this.texmapDataurls.forEach(obj => outputDataUrl(obj.id, obj.mimetype, obj.content));
+
+    return ret;
+}

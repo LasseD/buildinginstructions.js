@@ -364,6 +364,84 @@ label, input, textarea {
 #save_preview, #save_theme {
   display: none;
 }
+.omr_notice, .omr_function {
+  display: inline-block;
+
+  width: 0.65em;
+  height: 0.65em;
+  overflow: hidden;
+  
+  -webkit-transform: rotate(45deg);
+  -moz-transform: rotate(45deg);
+  -o-transform: rotate(45deg);
+  -ms-transform: rotate(45deg);
+  transform: rotate(45deg);
+}
+.omr_notice {
+  background-color: #C82;
+  border: 0.1em solid #DA4;
+}
+.omr_function {
+  cursor: pointer;
+  background-color: #4BB;
+  border: 0.1em solid #4CC;
+}
+.omr_notice b, .omr_function b {
+  display: block;
+  position: relative;
+  top: -0.16em;
+  left: -0.16em;
+
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  -webkit-transform: rotate(-45deg);
+  -moz-transform: rotate(-45deg);
+  -o-transform: rotate(-45deg);
+  -ms-transform: rotate(-45deg);
+  transform: rotate(-45deg);
+}
+.updatable_field {
+  position: relative;
+  top: 0;
+}
+.tooltiptext {
+  text-align: left;
+  display: block;
+  visibility: hidden;
+  position: absolute;
+  background-color: #C82;
+  border: 0.2em solid #DA4;
+  z-index: 1;
+  color: white;
+  width: 88vw;
+  font-size: 1.2em;
+
+  top: 1.5em;
+}
+#set_number_select .tooltiptext {
+  font-size: 0.7em;
+}
+.omr_function + .tooltiptext {
+  background-color: #4BB;
+  border: 0.2em solid #4CC;
+}
+.omr_function:hover + .tooltiptext, .omr_notice:hover + .tooltiptext {
+  visibility: visible;
+}
+.example_replacement {
+  display: table;
+  border-spacing: 0.5em;
+}
+.example_left, .example_right {
+  display: table-cell;
+  font-family: "Lucida Console", Monaco, monospace;
+  font-weight: normal;
+  font-size: 0.75em;
+  color: black;
+  background-color: white;
+  padding: 0.5em;
+}
 
 /*
   Preview

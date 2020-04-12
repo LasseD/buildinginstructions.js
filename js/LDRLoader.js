@@ -255,8 +255,8 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
         // Set the model description
         if(!part.modelDescription && modelDescription) {
 	    part.modelDescription = modelDescription;
-	    if(modelDescription.startsWith("~Unknown part ")) {
-		self.onError({message:'Unknown part "' + part.ID + '". Please <a href="../upload.php">upload</a> this part for it to be shown correctly in this model. If you do not have it, perhaps you can find it <a href="https://www.ldraw.org/cgi-bin/ptscan.cgi?q=' + part.ID + '">here on LDraw.org</a>. For now it will be shown as a cube.', line:i, subModel:part});
+	    if(modelDescription.startsWith("~Unknown part ")) { // TODO: This piece of code is specific to Brickhub.org and should be generalised.
+		self.onError({message:'Unknown part "' + part.ID + '". Please <a href="../upload.php">upload</a> this part for it to be shown correctly in this model. If you do not have it, perhaps you can find it <a href="https://www.ldraw.org/cgi-bin/ptscan.cgi?q=' + part.ID + '">here on LDraw.org</a>. For now it will be shown as a cube. <a href="#" onclick="bump();">Click here</a> once the part has been uploaded to load it into the model.', line:i, subModel:part});
 	    }
 	    modelDescription = null; // Ready for next part.
         }
@@ -743,11 +743,23 @@ THREE.LDRLoader.prototype.toLDR = function() {
     // Part types:
     let ret = this.getMainModel().toLDR(this);
 
+    let seen = {};
+    function see(id) {
+	if(seen.hasOwnProperty(id)) {
+	    return;
+	}
+	seen[id] = true;
+	let pt = self.getPartType(id);
+	pt.steps.forEach(step => step.subModels.forEach(sm => see(sm.ID)));
+    }
+    see(this.mainModel);
+
     this.applyOnPartTypes(pt => {
-            if(!(pt.inlined || pt.ID === self.mainModel || pt.isOfficialLDraw())) {
-                ret += pt.toLDR(self);
-            }
-        });
+        if(seen.hasOwnProperty(pt.ID) &&
+	   !(pt.inlined || pt.ID === self.mainModel || pt.isOfficialLDraw())) {
+            ret += pt.toLDR(self);
+        }
+    });
 
     // Inline texmaps:
     const CHARACTERS_PER_LINE = 76;
@@ -1949,9 +1961,7 @@ THREE.LDRPartType.prototype.cleanUp = function(loader) {
 
     if(this.isReplacedPart()) {
 	this.replacement = this.steps[0].subModels[0].ID;
-	if(this.replacement !== 'box.dat') { // Being replaced by box.dat indicates unknown part substitution, so warning has already been raised.
-	    loader.onWarning({message:'The part "' + this.ID + '" has been replaced by "' + this.replacement + '".', line:0, subModel:this});
-	}
+	loader.onWarning({message:'The part "' + this.ID + '" has been replaced by "' + this.replacement + '".', line:0, subModel:this});
     }
     else {
 	let newSteps = [];
