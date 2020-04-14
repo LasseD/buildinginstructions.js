@@ -135,8 +135,9 @@ LDR.OMR.FixPlacements = function(ldrLoader) {
         total++;
         if(checkV(p) || pd.r.elements.some(x => x!==convert(x))) {
             ++bad;
+            return (total >= MIN_TOTAL) && (bad/total > ACCEPTABLE_FRACTION);
         }
-        return (total >= MIN_TOTAL) && (bad/total > ACCEPTABLE_FRACTION);
+	return false;
     }
 
     let handlers = {handlePartDescription: function(pd) {
@@ -151,9 +152,23 @@ LDR.OMR.FixPlacements = function(ldrLoader) {
     }};
 
     let checkers = {checkPartDescription:pd => 
-                    checkPD(pd) ? ['Many parts are placed with precision higher than three decimals. This is often observed in models created in Bricklink Studio 2.0. Click here to align all parts to have at most three decimals in their positions.', pd.toLDR(ldrLoader), handlers.handlePartDescription(pd.cloneColored(16)).toLDR(ldrLoader)] : false};
+                    checkPD(pd) ? ['Many parts are placed with precision higher than three decimals. This is often observed in models created in Bricklink Studio 2.0. Click here to align all parts to have at most three decimals in their positions.', pd.toFullLDR(ldrLoader), handlers.handlePartDescription(pd.cloneColored(16)).toLDR(ldrLoader)] : false};
 
     return {checkers:checkers, handlers:handlers};
+}
+
+THREE.LDRPartDescription.prototype.toFullLDR = function(loader) {
+    let pt = loader.getPartType(this.ID);
+    let ret = '1 ' + this.c + ' ' + this.p.x + ' ' + this.p.y + ' ' + this.p.z + ' ' + this.r.toFullLDR() + ' ' + pt.ID + '\r\n';
+    return ret;
+}
+
+THREE.Matrix3.prototype.toFullLDR = function() {
+    let e = this.elements;
+    let rowMajor = [e[0], e[3], e[6],
+                    e[1], e[4], e[7],
+                    e[2], e[5], e[8]]
+    return rowMajor.join(' ');
 }
 
 /**
@@ -360,7 +375,104 @@ LDR.OMR.ColorPartsAccordingToYear = function(year, ldrLoader) {
     }
 }    
 
-// TODO: Ensure history lines are well formed.
+LDR.OMR.GetHeaderContent = function(pt) {
+    let theme = '';
+    let keywords = [];
+    let historyLines = []; // [{date,author,txt}] 
+    let otherLines = [];
+
+    function handleLine(line0) {
+	let parts = line0.txt.split(' ');
+	if(parts.length < 2) {
+	    otherLines.push(line0);
+	    return;
+	}
+	let t0 = parts[0];
+	let t = parts.slice(1).join(' ');
+	
+	if(t0 === '!THEME') {
+	    theme = t;
+	}
+	else if(t0 === '!KEYWORDS') {
+	    keywords.push(...t.split(',').map(x => x.trim()));
+	}
+	else if(t0 === '!HISTORY') {
+	    if(parts.length < 4) {
+		otherLines.push(new LDR.Line0('!MALFORMED_HISTORY_LINE ' + t));
+		return;
+	    }
+	    let date;
+	    try {
+  	      date = new Date(parts[1]).toISOString().split('T')[0];
+	    }
+	    catch(e) {
+		otherLines.push(new LDR.Line0('!MALFORMED_HISTORY_LINE ' + t));
+		return;
+	    }
+	    let author = parts[2];
+	    if(!(author.startsWith('[') && author.endsWith(']'))) {
+		otherLines.push(new LDR.Line0('!MALFORMED_HISTORY_LINE ' + t));
+		return;
+	    }
+	    historyLines.push({date:date, author:author, txt:parts.slice(3).join(' ')});
+	}
+	else {
+	    otherLines.push(line0);
+	}
+    }
+    
+    pt.headerLines.forEach(handleLine);
+
+    historyLines = historyLines
+	.sort((a,b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0)
+	.map(obj => new LDR.Line0('!HISTORY ' + obj.date + ' ' + obj.author + ' ' + obj.txt));
+
+    return [theme, keywords, historyLines, otherLines];
+}
+
+// Fix !THEME, !KEYWORDS and !HISTORY header lines:
+LDR.OMR.FixHeaderLines = function(expectedTheme, expectedKeywords, ldrLoader) {
+    function getHeaderLines(pt) {
+	let [theme, keywords, historyLines, otherLines] = LDR.OMR.GetHeaderContent(pt);
+	if(expectedTheme) {
+	    theme = expectedTheme;
+	}
+	if(expectedKeywords) {
+	    keywords = expectedKeywords;
+	}
+	let ret = [];
+	if(theme) {
+	    ret.push(new LDR.Line0('!THEME ' + theme));
+	}
+	if(keywords.length > 0) {
+	    ret.push(new LDR.Line0('!KEYWORDS ' + keywords.join(', ')));
+	}
+	ret.push(...historyLines);
+	ret.push(...otherLines);
+	return ret;
+    }
+
+    function check(pt) {
+	if(pt.ID !== ldrLoader.mainModel) {
+	    return false; // Only set header lines in main model
+	}
+	let lines = getHeaderLines(pt);
+	if(lines.length != pt.headerLines.length || 
+	   pt.headerLines.some((line,i) => line.txt !== lines[i].txt)) {
+	    let f = arr => arr.map(x => x.toLDR()).join('\n');
+	    return ['Click here to update the headers', f(pt.headerLines), f(lines)];
+	}
+	return false;
+    }
+
+    function handle(pt) {
+	if(pt.ID === ldrLoader.mainModel) {
+	    pt.headerLines = getHeaderLines(pt);
+	}
+    }
+
+    return {checkers:{checkPartType:check}, handlers:{handlePartType:handle}};
+}
 
 THREE.LDRLoader.prototype.toLDROMR = function() {
     let self = this;

@@ -154,7 +154,7 @@ LDR.StepEditor.prototype.generateNextID = function() {
     while(this.loader.partTypes.hasOwnProperty(this.nextID.toString(radix) + '.ldr')) {
         this.nextID++;
     }
-    return this.nextID.toString(radix) + '.ldr';
+    return this.nextID.toString(radix);
 }
 
 LDR.StepEditor.prototype.updateCurrentStep = function() {
@@ -677,12 +677,10 @@ LDR.StepHandler.prototype.remove = function(info) {
 
     if(!mergeFullStep) {
         info.originalStep.subModels = info.originalSubModels.filter(pd => !pd.ghost);
-        info.originalStep.fileLines = info.originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
     }
     else if(info.current > 0) { // Merge step left:
         let prevStep = part.steps[info.current-1];
         prevStep.subModels.push(...info.originalStep.subModels);
-        prevStep.fileLines.push(...info.originalStep.fileLines);
         part.steps.splice(info.current, 1);
         info.stepIndex -= this.countUsages(part.ID)+1;
     }
@@ -743,9 +741,6 @@ LDR.StepHandler.prototype.moveNext = function(info, alwaysToNew) {
             part.steps = part.steps.slice(1);
             info.stepIndex -= this.countUsages(part.ID);
         }
-        // All OK: Update lines in step:
-        nextStep.fileLines.push(...info.originalStep.fileLines.filter(line => (line.line1 ? line.desc.ghost : false)));
-        info.originalStep.fileLines = info.originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
     }
     return true;
 }
@@ -794,8 +789,6 @@ LDR.StepHandler.prototype.movePrev = function(info, alwaysToNew) {
         // Update steps:
         prevStep.subModels.push(...info.originalSubModels.filter(pd => pd.ghost));
         info.originalStep.subModels = info.originalSubModels.filter(pd => !pd.ghost);
-        prevStep.fileLines.push(...info.originalStep.fileLines.filter(line => (line.line1 ? line.desc.ghost : false)));
-        info.originalStep.fileLines = info.originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
     }
     return true;
 }
@@ -807,11 +800,12 @@ LDR.StepHandler.prototype.moveToNewSubModel = function(info, newID) {
 
     // Create new part type:
     let newPT = new THREE.LDRPartType();
-    newPT.ID = newPT.name = newPT.modelDescription = newID;
+    newPT.ID = newPT.name = newID + '.ldr';
+    newPT.modelDescription = newID;
     newPT.author = 'LDRStepEditor';
     newPT.license = 'Redistributable under CCAL version 2.0 : see CAreadme.txt';
     newPT.cleanSteps = newPT.certifiedBFC = newPT.CCW = newPT.consistentFileAndName = true;
-    this.loader.partTypes[newID] = newPT;
+    this.loader.partTypes[newPT.ID] = newPT;
     console.log('Created model type ' + newPT.ID);
 
     // Create drop step (where the new part type is inserted):
@@ -821,7 +815,6 @@ LDR.StepHandler.prototype.moveToNewSubModel = function(info, newID) {
     if(info.originalStep.rotation) {
         dropStep.rotation = info.originalStep.rotation.clone();
     }
-    dropStep.fileLines = [ new LDR.Line1(newPD) ];
     dropStep.addSubModel(newPD);
 
     let part = info.part;
@@ -834,8 +827,6 @@ LDR.StepHandler.prototype.moveToNewSubModel = function(info, newID) {
         let newStep = new THREE.LDRStep();
         newStep.subModels.push(...info.originalSubModels.filter(pd => pd.ghost));
         info.originalStep.subModels = info.originalSubModels.filter(pd => !pd.ghost);
-        newStep.fileLines.push(...info.originalStep.fileLines.filter(line => (line.line1 ? line.desc.ghost : false)));
-        info.originalStep.fileLines = info.originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
         newPT.steps = [ newStep ];
     }
     else { // Move full step to new sub model by simply switching the steps:
@@ -881,7 +872,6 @@ LDR.StepHandler.prototype.moveUp = function(info, right) {
                         g.r.multiplyMatrices(sm.r, ghost.r);
                         
                         newStep.subModels.push(g);
-                        newStep.fileLines.push(new LDR.Line1(g));
                     });
             }
             step.subModels.forEach(handleSubModel);
@@ -902,7 +892,6 @@ LDR.StepHandler.prototype.moveUp = function(info, right) {
     }
     else { // Update the step:
         info.originalStep.subModels = info.originalStep.subModels.filter(pd => !pd.ghost);
-        info.originalStep.fileLines = info.originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
         info.stepIndex += this.countUsages(part.ID);
     }
     return true;
@@ -945,7 +934,6 @@ LDR.StepHandler.prototype.moveDown = function(info, right) {
         g.r.multiplyMatrices(inv, ghost.r);
         
         newStep.subModels.push(g);
-        newStep.fileLines.push(new LDR.Line1(g));
     });
     adjacentPT.steps.splice(right ? 0 : adjacentPT.steps.length, 0, newStep); // Add step.
     info.stepIndex += this.countUsages(adjacentPT.ID);
@@ -957,7 +945,6 @@ LDR.StepHandler.prototype.moveDown = function(info, right) {
     }
     else { // Update the step:
         info.originalStep.subModels = info.originalStep.subModels.filter(pd => !pd.ghost);
-        info.originalStep.fileLines = info.originalStep.fileLines.filter(line => (line.line1 ? !line.desc.ghost : true));
 	info.stepIndex+=1; // Move to new step.
     }
     return true;
@@ -973,12 +960,10 @@ LDR.StepHandler.prototype.split = function(info) {
         let newStep = new THREE.LDRStep();
         let pd = info.originalSubModels[i];
         newStep.addSubModel(pd);
-        newStep.fileLines.push(new LDR.Line1(pd));
         info.part.steps.splice(info.current+i, 0, newStep);
     }
     let pd0 = info.originalSubModels[0];
     info.originalStep.subModels = [pd0];
-    info.originalStep.fileLines = [new LDR.Line1(pd0)];
 
     info.stepIndex += (info.originalSubModels.length-1)*this.countUsages(info.part.ID);
     return true;
@@ -1002,7 +987,6 @@ LDR.StepHandler.prototype.joinWithNext = function(info) {
     }
 
     info.originalSubModels.push(...nextStep.subModels);
-    info.step.fileLines.push(...nextStep.fileLines);
     info.part.steps.splice(info.current+1, 1); // Remove the next step.
 
     info.stepIndex -= this.countUsages(info.part.ID);

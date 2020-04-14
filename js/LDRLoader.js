@@ -388,9 +388,6 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 		part.inlined = parts.length === 3 ? parts[2] : 'UNKNOWN';
                 saveThisCommentLine = false;
 	    }
-	    else if(parts[1] === "!HISTORY") {
-		part.historyLines.push(parts.slice(2).join(" "));
-	    }
 	    else if(parts[1] === "!TEXMAP") {
                 if(texmapPlacement) { // Expect "0 !TEXMAP FALLBACK" or "0 !TEXMAP END"
                     if(!(parts.length === 3 && (parts[2] === 'FALLBACK' || parts[2] === 'END'))) {
@@ -461,6 +458,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 		if(is("!THEME") ||
 		   is("!HELP") ||
 		   is("!KEYWORDS") ||
+		   is("!HISTORY") ||
 		   is("!LPUB") ||
 		   is("!LDCAD") ||
 		   is("!LEOCAD") ||
@@ -483,7 +481,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 	    // TODO: Buffer exchange commands
 
 	    if(saveThisCommentLine) {
-                let fileLine = new LDR.Line0(parts.slice(1).join(" "));
+                let fileLine = new LDR.Line0(parts.slice(1).join(' '));
                 if(step.subModels.length > 0) {
                     step.subModels[step.subModels.length-1].commentLines.push(fileLine);
                 }
@@ -1840,7 +1838,6 @@ THREE.LDRPartType = function() {
     this.license;
     this.steps = [];
     this.headerLines = [];
-    this.historyLines = [];
     this.lastRotation = null;
     this.replacement;
     this.inlined;
@@ -2001,14 +1998,18 @@ THREE.LDRPartType.prototype.toLDR = function(loader, skipFile) {
     }
     if(this.headerLines.length > 0) {
         ret += '\r\n'; // Empty line before additional header lines, such as 'THEME' and 'KEYWORDS'
-        this.headerLines.forEach(line => ret += line.toLDR(loader));
+	let anyHistoryLines = false;
+	function printHeaderLine(line0) {	    
+	    if(!anyHistoryLines && line0.txt.startsWith('!HISTORY')) {
+		ret += '\r\n'; // Space before history lines
+		anyHistoryLines = true;
+	    }
+	    ret += line0.toLDR(loader);
+	}
+        this.headerLines.forEach(printHeaderLine);
     }
     if(this.hasOwnProperty('preferredColor')) {
         ret += '\r\n0 !CMDLINE -c' + this.preferredColor + '\r\n';
-    }
-    if(this.historyLines.length > 0) {
-        ret += '\r\n';
-        this.historyLines.forEach(hl => ret += '0 !HISTORY ' + hl + '\r\n');
     }
     if(this.steps.length > 0) {
         ret += '\r\n';
