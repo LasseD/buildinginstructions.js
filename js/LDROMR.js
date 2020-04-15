@@ -201,6 +201,25 @@ LDR.OMR.FixAuthors = function(expectedAuthor) {
     return {checkers:{checkPartType:checkPartType}, handlers:handlers};
 }
 
+LDR.OMR.FixTyres = function(ldrLoader) {
+    function checkPD(pd) {
+	let pt = ldrLoader.getPartType(pd.ID);
+	return pd.c == 0 && pt.isPart && pt.modelDescription.startsWith('Tyre ');
+    }
+
+    let handlers = {handlePartDescription: function(pd) {
+	if(checkPD(pd)) {
+	    pd.c = 256;
+	}
+	return pd;
+    }};
+
+    let checkers = {checkPartDescription:pd => 
+                    checkPD(pd) ? ['Change the material of tyres to rubber black (256) instead of solid black (0)', pd.toLDR(ldrLoader), handlers.handlePartDescription(pd.cloneColored(0)).toLDR(ldrLoader)] : false};
+
+    return {checkers:checkers, handlers:handlers};
+}
+
 /**
  Check and fix all licenses to be OMR compliant.
  All sub models and unofficial parts are affected.
@@ -459,7 +478,7 @@ LDR.OMR.FixHeaderLines = function(expectedTheme, expectedKeywords, ldrLoader) {
 	let lines = getHeaderLines(pt);
 	if(lines.length != pt.headerLines.length || 
 	   pt.headerLines.some((line,i) => line.txt !== lines[i].txt)) {
-	    let f = arr => arr.map(x => x.toLDR()).join('\n');
+	    let f = arr => arr.length == 0 ? '[No header]' : arr.map(x => x.toLDR()).join('\n');
 	    return ['Click here to update the headers', f(pt.headerLines), f(lines)];
 	}
 	return false;
