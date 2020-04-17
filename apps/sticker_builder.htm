@@ -282,12 +282,12 @@ function convert() {
   part.isPart = true;
 
   let step = new THREE.LDRStep();
-  let p1 = new THREE.Vector3(-w, 0, -h);
-  let p2 = new THREE.Vector3(-w, 0, h);
-  let p3 = new THREE.Vector3(w, 0, h);
-  let p4 = new THREE.Vector3(w, 0, -h);
+  let p1 = new THREE.Vector3(-w, -t, -h);
+  let p2 = new THREE.Vector3(-w, -t, h);
+  let p3 = new THREE.Vector3(w, -t, h);
+  let p4 = new THREE.Vector3(w, -t, -h);
   let tmp = new LDR.TexmapPlacement();
-  tmp.p = [new THREE.Vector3(-w, 0, -h), new THREE.Vector3(-w, 0, h), new THREE.Vector3(w, 0, -h)]; // 3 points
+  tmp.p = [new THREE.Vector3(-w, -t, -h), new THREE.Vector3(-w, -t, h), new THREE.Vector3(w, -t, -h)]; // 3 points
   tmp.setPlanar();
   let pid = tmp.file = 'x.png';
   tmp.idx = 0;
@@ -302,13 +302,13 @@ function convert() {
       r.set(w, 0, 0,
             0, t, 0,
             0, 0, h);
-      step.addSubModel(new THREE.LDRPartDescription(16, new THREE.Vector3(), r, 'box5.dat', true, false, null));
+      step.addSubModel(new THREE.LDRPartDescription(16, new THREE.Vector3(0, -t, 0), r, 'box5.dat', true, false, null));
     }
     else {
-      let p5 = new THREE.Vector3(-w, t, -h);
-      let p6 = new THREE.Vector3(-w, t, h);
-      let p7 = new THREE.Vector3(w, t, h);
-      let p8 = new THREE.Vector3(w, t, -h);
+      let p5 = new THREE.Vector3(-w, 0, -h);
+      let p6 = new THREE.Vector3(-w, 0, h);
+      let p7 = new THREE.Vector3(w, 0, h);
+      let p8 = new THREE.Vector3(w, 0, -h);
 
       // Lines:
       // Top rect:
