@@ -1919,6 +1919,9 @@ THREE.LDRLoader.prototype.purgePart = function(ID) {
         
         console.warn('Purging '+id);
         delete this.partTypes[id];
+        if(this.mainModel === id) {
+            delete this.mainModel;
+        }
 
         function handle(pt) {
             pt.purgePart(id);
