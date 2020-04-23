@@ -947,8 +947,8 @@ THREE.LDRLoader.prototype.pack = function() {
 
 	    // Also handle rotation:
 	    if(step.rotation) {
-		let r = step.rotation;
-		arrayI.push(r === 'ABS' ? 1 : 2);
+		let r = step.rotation;;
+		arrayI.push(r.type === 'ABS' ? 1 : 2);
 		arrayF.push(r.x, r.y, r.z);
 	    }
 	    else {
