@@ -360,10 +360,6 @@ THREE.LDRPartType.prototype.toLDRColored = function(loader, c) {
     if(this.hasOwnProperty('preferredColor')) {
         ret += '\r\n0 !CMDLINE -c' + this.preferredColor + '\r\n';
     }
-    if(this.historyLines.length > 0) {
-        ret += '\r\n';
-        this.historyLines.forEach(hl => ret += '0 !HISTORY ' + hl + '\r\n');
-    }
     if(this.steps.length > 0) {
         ret += '\r\n';
         this.steps.forEach((step, idx, a) => ret += step.toLDRColored(loader, idx === 0 ? null : a[idx-1].r, idx === a.length-1, c));
