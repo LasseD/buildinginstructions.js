@@ -365,7 +365,9 @@ label, input, textarea {
   display: none;
 }
 .omr_notice, .omr_function {
-  display: inline-block;
+  /*display: inline-block;
+  visibility: hidden;*/
+    display: none;
 
   width: 0.65em;
   height: 0.65em;

@@ -166,12 +166,9 @@ Content
 }
 /* https://codepen.io/ericrasch/pen/Irlpm */
 .bar {
-    text-align: center;
     display: block;
-    /*margin-right: -2em;
-      padding-left: 0.5em;*/
+    text-align: center;
     clear: both;
-    /*overflow-x: hidden;*/  
     position: relative;
     z-index: 1;
     background-color: black;
