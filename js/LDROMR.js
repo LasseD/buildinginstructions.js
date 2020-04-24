@@ -417,22 +417,30 @@ LDR.OMR.GetHeaderContent = function(pt) {
 	}
 	else if(t0 === '!HISTORY') {
 	    if(parts.length < 4) {
-		otherLines.push(new LDR.Line0('!MALFORMED_HISTORY_LINE ' + t));
+		otherLines.push(new LDR.Line0('!HISTORY_LINE_TOO_SHORT ' + t));
 		return;
 	    }
-	    let date;
-	    try {
-  	      date = new Date(parts[1]).toISOString().split('T')[0];
+
+	    let d = parts[1].match(/^([12]\d{3})-0?([1-9]|11|12)-0?([1-3]?\d)$/);
+	    if(!d) {
+		otherLines.push(new LDR.Line0('!HISTORY_LINE_DATE_PARSE_FAIL ' + t));
+		return;
+	    }
+	    let date = d[1] + '-' + (d[2].length===1?'0':'') + d[2] + '-' + (d[3].length===1?'0':'') + d[3];
+	    try { // Actual valid date check:
+		date = new Date(parts[1]).toISOString().split('T')[0];
 	    }
 	    catch(e) {
-		otherLines.push(new LDR.Line0('!MALFORMED_HISTORY_LINE ' + t));
+		otherLines.push(new LDR.Line0('!HISTORY_LINE_DATE_INVALID ' + t));
 		return;
 	    }
+
 	    let author = parts[2];
 	    if(!(author.startsWith('[') && author.endsWith(']'))) {
-		otherLines.push(new LDR.Line0('!MALFORMED_HISTORY_LINE ' + t));
+		otherLines.push(new LDR.Line0('!HISTORY_LINE_AUTHOR_MALFORMED ' + t));
 		return;
 	    }
+
 	    historyLines.push({date:date, author:author, txt:parts.slice(3).join(' ')});
 	}
 	else {

@@ -333,9 +333,8 @@ THREE.LDRPartType.prototype.toLDRColored = function(loader, c) {
     if(this.modelDescription) {
         ret += '0 ' + this.modelDescription + '\r\n';
     }
-    if(this.name) {
-	ret += '0 Name: ' + this.name + '\r\n';
-    }
+    ret += '0 Name: ' + c + '__' + this.ID + '\r\n';
+
     if(this.author) {
         ret += '0 Author: ' + this.author + '\r\n';
     }
@@ -371,24 +370,16 @@ THREE.LDRPartType.prototype.toLDRColored = function(loader, c) {
 THREE.LDRPartDescription.prototype.toLDRColored = function(loader, c) {
     let pt = loader.getPartType(this.ID);
     let c2 = this.c == 16 ? c : this.c;
-    let id = pt.isPart ? pt.ID : c2 + '__' + this.ID;
+    let id = pt.isPart ? pt.ID : (c2 + '__' + this.ID);
     return '1 ' + c2 + ' ' + this.p.toLDR() + ' ' + this.r.toLDR() + ' ' + id + '\r\n';
 }
 
 THREE.LDRStep.prototype.toLDRColored = function(loader, prevStepRotation, isLastStep, c) {
     let ret = '';
 
-    function handle(line) {
-	if(line.line1) {
-            ret += line.toLDRColored(loader, c);
-	}
-	else {
-            ret += line.toLDR(loader);
-	}
-    }
-    this.subModels.forEach(handle);
-    this.triangles.forEach(handle);
-    this.quads.forEach(handle);
+    this.subModels.forEach(sm => ret += sm.toLDRColored(loader, c));
+    this.triangles.forEach(x => ret += x.toLDR());
+    this.quads.forEach(x => ret += x.toLDR());
 
     // End with STEP or ROTSTEP:
     if(!this.r) {
