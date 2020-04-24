@@ -428,7 +428,8 @@ LDR.OMR.GetHeaderContent = function(pt) {
 	    }
 	    let date = d[1] + '-' + (d[2].length===1?'0':'') + d[2] + '-' + (d[3].length===1?'0':'') + d[3];
 	    try { // Actual valid date check:
-		date = new Date(parts[1]).toISOString().split('T')[0];
+		new Date(date).toISOString();
+		console.dir(date);
 	    }
 	    catch(e) {
 		otherLines.push(new LDR.Line0('!HISTORY_LINE_DATE_INVALID ' + t));
