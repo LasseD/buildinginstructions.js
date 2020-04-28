@@ -42,7 +42,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
         clickDone: () => self.clickDone(),
         toggleEditor: () => self.stepEditor && self.stepEditor.toggleEnabled(),
     };
-    this.ldrButtons = new LDR.Buttons(actions, canvasHolder, true, modelID, mainImage, this.canEdit);
+    this.ldrButtons = new LDR.Buttons(actions, canvasHolder, true, modelID, mainImage, this.canEdit, options.showNumberOfSteps);
     this.controls = new THREE.OrbitControls(this.camera, this.canvas);
     this.controls.noTriggerSize = 0.1;
     this.controls.screenSpacePanning = true;
@@ -143,6 +143,11 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
 	self.render(); // Updates background color.
 
         console.log("Render done after " + (new Date()-startTime) + "ms.");
+
+	// Number of steps:
+	if(options.showNumberOfSteps) {
+	    document.getElementById('numberOfSteps').innerHTML = '/ ' + self.stepHandler.totalNumberOfSteps;
+	}
 
 	// Go to step indicated by parameter:
 	if(stepFromParameters > 1) {

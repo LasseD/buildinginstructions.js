@@ -1,6 +1,6 @@
 'use strict';
 
-LDR.Buttons = function(actions, element, addTopButtons, homeLink, mainImage, canEdit) {
+LDR.Buttons = function(actions, element, addTopButtons, homeLink, mainImage, canEdit, showNumberOfSteps) {
     let self = this;
     // Add buttons to element:
     
@@ -47,7 +47,7 @@ LDR.Buttons = function(actions, element, addTopButtons, homeLink, mainImage, can
     }
 
     if(addTopButtons) {
-	this.addTopButtonElements(actions, element, homeLink, mainImage, canEdit);
+	this.addTopButtonElements(actions, element, homeLink, mainImage, canEdit, showNumberOfSteps);
     }
 
     this.hideElementsAccordingToOptions();
@@ -85,7 +85,8 @@ LDR.Buttons = function(actions, element, addTopButtons, homeLink, mainImage, can
     onFadeInComplete();
 }
 
-LDR.Buttons.prototype.addTopButtonElements = function(actions, element, homeLink, mainImage, canEdit) {
+LDR.Buttons.prototype.addTopButtonElements = function(actions, element, homeLink, mainImage, canEdit, showNumberOfSteps) {
+    console.dir(showNumberOfSteps);
     // Upper row of buttons (added last due to their absolute position):    
     this.topButtons = this.createDiv('top_buttons');
 
@@ -95,6 +96,13 @@ LDR.Buttons.prototype.addTopButtonElements = function(actions, element, homeLink
     this.stepToButton = this.createDiv('stepToContainer');
     this.stepToButton.appendChild(this.makeStepTo());
     this.topButtons.appendChild(this.stepToButton);
+
+    if(showNumberOfSteps) {
+	let stepsEle = this.createDiv('numberOfSteps');
+	//this.stepToButton.appendChild(stepsEle);
+	this.topButtons.appendChild(stepsEle);
+	stepsEle.innerHTML = "/ ?";
+    }
 
     this.homeButton = this.create('a', 'home_button', null, 'top_button');
     this.homeButton.setAttribute('href', homeLink);

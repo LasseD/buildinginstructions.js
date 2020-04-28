@@ -82,7 +82,7 @@
 #optionsButton a, #editButton a {
     display: block;
 }
-#stepToContainer {
+#stepToContainer, #numberOfSteps {
     display: inline-block;
     position: relative;
     top: -25px;
@@ -95,6 +95,11 @@
     width: 150px;
     border: none;
     background: none;
+}
+#numberOfSteps {
+    font-family: sans-serif;
+    font-weight: bold;
+    font-size: 60px;
 }
 
 #to_top {
