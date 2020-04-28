@@ -3,8 +3,9 @@
 LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, refreshCache, baseURL, stepFromParameters, options) {
     let startTime = new Date();
     let self = this;
+    options = options || {};
     this.stepEditor;
-    this.canEdit = options && options.canEdit; // Only set if LDRStepEditor.js is loaded.
+    this.canEdit = options.canEdit === true; // Only set if LDRStepEditor.js is loaded.
     this.modelID = modelID;
     this.modelColor = modelColor;
     this.refreshCache = refreshCache;
@@ -52,7 +53,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
 
     window.addEventListener('resize', () => self.onWindowResize(), false);
 
-    this.adPeek = 120;
+    this.adPeek = options.hasOwnProperty('adPeek') ? options.adPeek : 0;
     this.lastRefresh = new Date();
       
     this.currentRotationMatrix = new THREE.Matrix4(); 
@@ -231,7 +232,9 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
     pli.addEventListener('mouseover', e => self.onPLIMove(e));
     pli.addEventListener('mouseout', () => self.onPLIMove(false));
 
-    this.setUpOptions();
+    if(options.setUpOptions) {
+	this.setUpOptions();
+    }
     this.onWindowResize();
     if(LDR.STORAGE) {
         this.storage = new LDR.STORAGE(onStorageReady);

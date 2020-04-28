@@ -108,7 +108,16 @@
       var ldrOptions = new LDR.Options(); // Global scope for options.
 
       $(function() {
-        let options = {canEdit:true, saveFileLines:true, buildAssemblies:true, key:model, timestamp:'1970-01-01 00:00:00'};
+        let options = {
+          canEdit: false, // Show editor options
+          buildAssemblies: true, // Assemble parts, such as minifig torsos and legs
+          key: model,
+          adPeek: 0,
+          setUpOptions: true,
+          timestamp: '1970-01-01 00:00:00' // Ensure that model can be retrieved from InstancedDB
+        };
+
+        // Get the requested step from the query parameters:
         let step = location.search.substr(1).split('&').map(x => x.split('=')).find(x => x[0] === 'step')[1];
         if(!step) step = 1;
 
