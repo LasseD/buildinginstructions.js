@@ -472,10 +472,9 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
         b = this.stepHandler.getBounds();
         size = b.min.distanceTo(b.max);
         if(size < viewPortSize) { // Zoom a bit out as just the step is a bit too small.
-            let b2 = new THREE.Box3(); b2.copy(b); b = b2;
-            let bDiff = new THREE.Vector3(); bDiff.subVectors(b.max, b.min); // b.max-b.min
-
-            bDiff.multiplyScalar(0.25*(viewPortSize/size-1));
+            let bDiff = new THREE.Vector3();
+	    bDiff.subVectors(b.max, b.min); // b.max-b.min
+            bDiff.multiplyScalar(0.10*(viewPortSize/size-1));
             b.max.add(bDiff);
             b.min.sub(bDiff);
             size = viewPortSize;
