@@ -108,8 +108,11 @@
       var ldrOptions = new LDR.Options(); // Global scope for options.
 
       $(function() {
-        var options = {canEdit:true, saveFileLines:true, buildAssemblies:true, key:model, timestamp:'1970-01-01 00:00:00'};
-        manager = new LDR.InstructionsManager(model, '#', 14, null, ()=>{}, baseURL, 1, options);
+        let options = {canEdit:true, saveFileLines:true, buildAssemblies:true, key:model, timestamp:'1970-01-01 00:00:00'};
+        let step = location.search.substr(1).split('&').map(x => x.split('=')).find(x => x[0] === 'step')[1];
+        if(!step) step = 1;
+
+        manager = new LDR.InstructionsManager(model, '#', 14, null, ()=>{}, baseURL, step, options);
       });
     </script>
   </body>
