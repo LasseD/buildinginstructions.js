@@ -451,13 +451,13 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
     }
     
     let viewPortWidth = window.innerWidth;
-    let viewPortHeight = window.innerHeight - this.adPeek;// - 100;
+    let viewPortHeight = window.innerHeight - this.adPeek;
     if(this.pliH > 0) { // Adjust for pli.
         if(this.pliBuilder.fillHeight) {
-            viewPortWidth *= 0.6;
+            viewPortWidth -= this.pliW;
         }
         else {
-            viewPortHeight *= 0.6;
+            viewPortHeight -= this.pliH;
         }
     }
     
@@ -465,17 +465,17 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
     let b = this.stepHandler.getAccumulatedBounds();
 
     let size = b.min.distanceTo(b.max);
-    let viewPortSize = Math.sqrt(this.viewPortWidth*this.viewPortWidth + this.viewPortHeight*this.viewPortHeight);
+    let viewPortSize = 0.75*Math.sqrt(viewPortWidth*viewPortWidth + viewPortHeight*viewPortHeight);
 
     if(size > viewPortSize) {
         useAccumulatedBounds = false;
         b = this.stepHandler.getBounds();
         size = b.min.distanceTo(b.max);
-        if(size < viewPortSize) {
+        if(size < viewPortSize) { // Zoom a bit out as just the step is a bit too small.
             let b2 = new THREE.Box3(); b2.copy(b); b = b2;
             let bDiff = new THREE.Vector3(); bDiff.subVectors(b.max, b.min); // b.max-b.min
 
-            bDiff.multiplyScalar(0.5*(viewPortSize/size-1));
+            bDiff.multiplyScalar(0.25*(viewPortSize/size-1));
             b.max.add(bDiff);
             b.min.sub(bDiff);
             size = viewPortSize;
