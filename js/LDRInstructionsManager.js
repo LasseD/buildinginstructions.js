@@ -10,6 +10,9 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
     this.modelColor = modelColor;
     this.refreshCache = refreshCache;
     this.baseURL = baseURL;
+    this.pliMaxWidthPercentage = options.hasOwnProperty('pliMaxWidthPercentage') ? options.pliMaxWidthPercentage : 40;
+    this.pliMaxHeightPercentage = options.hasOwnProperty('pliMaxHeightPercentage') ? options.pliMaxHeightPercentage : 35;
+
     LDR.Colors.canBeOld = true;
 
     this.scene = new THREE.Scene(); // To add stuff to
@@ -42,7 +45,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
         clickDone: () => self.clickDone(),
         toggleEditor: () => self.stepEditor && self.stepEditor.toggleEnabled(),
     };
-    this.ldrButtons = new LDR.Buttons(actions, canvasHolder, true, modelID, mainImage, this.canEdit, options.showNumberOfSteps);
+    this.ldrButtons = new LDR.Buttons(actions, canvasHolder, true, modelID, mainImage, options);
     this.controls = new THREE.OrbitControls(this.camera, this.canvas);
     this.controls.noTriggerSize = 0.1;
     this.controls.screenSpacePanning = true;
@@ -376,14 +379,14 @@ LDR.InstructionsManager.prototype.updatePLI = function(force) {
     }
     e.style.display = 'inline';
     
-    let maxWidth = window.innerWidth - e.offsetLeft - 18;
-    let maxHeight = (window.innerHeight - 130 - this.adPeek);
+    let maxWidth = window.innerWidth - e.offsetLeft - 18; // 18 for margins
+    let maxHeight = window.innerHeight - 130 - this.adPeek; // 130 for the top buttons + margins
     
     if(window.innerWidth > window.innerHeight) {
-        this.pliBuilder.drawPLIForStep(true, step, maxWidth*0.4, maxHeight, this.maxSizePerPixel, force);
+        this.pliBuilder.drawPLIForStep(true, step, maxWidth*this.pliMaxWidthPercentage/100, maxHeight, this.maxSizePerPixel, force);
     }
     else {
-        this.pliBuilder.drawPLIForStep(false, step, maxWidth, maxHeight*0.35, this.maxSizePerPixel, force);
+        this.pliBuilder.drawPLIForStep(false, step, maxWidth, maxHeight*this.pliMaxHeightPercentage/100, this.maxSizePerPixel, force);
     }
     this.pliW = parseInt(e.offsetWidth + e.offsetLeft)+6; // 6 for border.
     this.pliH = parseInt(e.offsetHeight);

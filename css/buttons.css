@@ -193,10 +193,10 @@ line, polygon, rect, polyline, path, circle, ellipse {
     width: 12vw;
     height: 12vw;
   }
-  #stepToContainer {
+  #stepToContainer, #numberOfSteps {
     top: -4vw;
   }
-  #stepToContainer input {
+  #stepToContainer input, #numberOfSteps {
     font-size: 6vw;
     width: 18vw;
   }

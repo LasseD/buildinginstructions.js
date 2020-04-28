@@ -1,6 +1,6 @@
 'use strict';
 
-LDR.Buttons = function(actions, element, addTopButtons, homeLink, mainImage, canEdit, showNumberOfSteps) {
+LDR.Buttons = function(actions, element, addTopButtons, homeLink, mainImage, options) {
     let self = this;
     // Add buttons to element:
     
@@ -47,7 +47,7 @@ LDR.Buttons = function(actions, element, addTopButtons, homeLink, mainImage, can
     }
 
     if(addTopButtons) {
-	this.addTopButtonElements(actions, element, homeLink, mainImage, canEdit, showNumberOfSteps);
+	this.addTopButtonElements(actions, element, homeLink, mainImage, options);
     }
 
     this.hideElementsAccordingToOptions();
@@ -85,8 +85,7 @@ LDR.Buttons = function(actions, element, addTopButtons, homeLink, mainImage, can
     onFadeInComplete();
 }
 
-LDR.Buttons.prototype.addTopButtonElements = function(actions, element, homeLink, mainImage, canEdit, showNumberOfSteps) {
-    console.dir(showNumberOfSteps);
+LDR.Buttons.prototype.addTopButtonElements = function(actions, element, homeLink, mainImage, options) {
     // Upper row of buttons (added last due to their absolute position):    
     this.topButtons = this.createDiv('top_buttons');
 
@@ -97,9 +96,8 @@ LDR.Buttons.prototype.addTopButtonElements = function(actions, element, homeLink
     this.stepToButton.appendChild(this.makeStepTo());
     this.topButtons.appendChild(this.stepToButton);
 
-    if(showNumberOfSteps) {
+    if(options.showNumberOfSteps) {
 	let stepsEle = this.createDiv('numberOfSteps');
-	//this.stepToButton.appendChild(stepsEle);
 	this.topButtons.appendChild(stepsEle);
 	stepsEle.innerHTML = "/ ?";
     }
@@ -117,7 +115,7 @@ LDR.Buttons.prototype.addTopButtonElements = function(actions, element, homeLink
     this.topButtons.appendChild(this.homeButton);
 
     // Edit:
-    if(canEdit) {
+    if(options.canEdit) {
         let editButton = this.createDiv('editButton');
         editButton.appendChild(LDR.SVG.makeEdit());
         editButton.addEventListener('click', actions.toggleEditor);
@@ -125,9 +123,11 @@ LDR.Buttons.prototype.addTopButtonElements = function(actions, element, homeLink
     }
 
     // Options
-    this.optionsButton = this.createDiv('optionsButton');
-    this.optionsButton.appendChild(LDR.SVG.makeOptions());
-    this.topButtons.appendChild(this.optionsButton);
+    if(options.setUpOptions) {
+	this.optionsButton = this.createDiv('optionsButton');
+	this.optionsButton.appendChild(LDR.SVG.makeOptions());
+	this.topButtons.appendChild(this.optionsButton);
+    }
 
     element.appendChild(this.topButtons);
 }

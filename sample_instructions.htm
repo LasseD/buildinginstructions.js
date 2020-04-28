@@ -99,10 +99,10 @@
     </div>
     <div id="options" /></div>
     <script>
-      var model = 'models/corvette_full.mpd';
+      //var model = 'models/corvette_full.mpd';
       //var model = 'models/test_purging.mpd';
       //var model = 'models/fll.mpd';
-      //var model = 'models/spiral.ldr';
+      var model = 'models/spiral.ldr';
 
       var baseURL = 'sample_instructions.htm?step='; // Change this line so it fits the page that renders instructions for you (probably not 'sample_instructions.htm')
       var manager;
@@ -113,9 +113,11 @@
           canEdit: false, // Show editor options
           buildAssemblies: true, // Assemble parts, such as minifig torsos and legs
           key: model,
-          adPeek: 0,
-          setUpOptions: true,
+          adPeek: 0, // Show a bar below to contain editor options - set to roughly 120 if canEdit is set to true
+          setUpOptions: true, // Show button options below.
           showNumberOfSteps: true,
+          pliMaxWidthPercentage: 30, // The maximum width of the PLI box in percentage of the screen width when the PLI box is shown on the left side.
+          pliMaxHeightPercentage: 30, // The maximum height of the PLI box in percentage of the screen height when the PLI box is shown on top.
           timestamp: '1970-01-01 00:00:00' // Ensure that model can be retrieved from InstancedDB
         };
 
