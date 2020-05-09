@@ -436,13 +436,17 @@ LDR.OMR.GetHeaderContent = function(pt) {
 		return;
 	    }
 
-	    let author = parts[2];
-	    if(!(author.startsWith('[') && author.endsWith(']'))) {
+	    let idx = 2;
+	    let author = parts[idx++];
+	    while(!author.endsWith(']') && idx < parts.length) { // Combine author parts in case of spaces in user name:
+		author += ' ' + parts[idx++];
+	    }
+	    if(idx === parts.length || !(author.startsWith('[') && author.endsWith(']'))) {
 		otherLines.push(new LDR.Line0('!HISTORY_LINE_AUTHOR_MALFORMED ' + t));
 		return;
 	    }
 
-	    historyLines.push({date:date, author:author, txt:parts.slice(3).join(' ')});
+	    historyLines.push({date:date, author:author, txt:parts.slice(idx).join(' ')});
 	}
 	else {
 	    otherLines.push(line0);

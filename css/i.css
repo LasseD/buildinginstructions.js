@@ -291,6 +291,7 @@ label, input, textarea {
 .cb label {
     position: relative;
     padding-left: 4.5em;
+    padding-top: 0.4em;
 }
 .cb input + label::before {
     text-align: center;
