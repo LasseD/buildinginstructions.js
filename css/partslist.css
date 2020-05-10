@@ -152,9 +152,11 @@ td.list_image {
   height: 75%;
 }
 #xml_holder {
+  position: absolute;
   background-color: black;
   top: 0;
   height: 100%;
+  width: 90%;
 }
 
 /*
@@ -250,16 +252,12 @@ td.list_image {
 /*
   Notes
 */
-input {
-    height: 2em;
-    font-size: 1em;
-}
 .cb {
-    margin: 1.7em 0 0 1em;
+    margin: 1em 0 1em 1em;
     display: block;
     position: relative;
-    font-size: 2.3em;
     float: left;
+    font-size: 2.5vw;
 }
 .cb input {
     position: relative;
@@ -329,6 +327,19 @@ input {
 }
 .note_field {
     display: none;
+}
+.note_field input {
+    height: 2em;
+    width: 95%;
+}
+
+#download_options {
+    margin-left: 1em;
+    padding-bottom: 0.5em;
+    font-size: 2em;
+}
+#download_options input {
+    transform: scale(2);
 }
 
 /*
