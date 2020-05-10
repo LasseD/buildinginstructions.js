@@ -64,31 +64,28 @@ body {
   cursor: pointer;
   margin-left: 2px;
 }
-#pli_drag_horizontal {
-  display: inline-block;
-  cursor: col-resize;
-  border-left: 2px solid black;
-  cursor: col-resize;
-  width: 2vw;
-  margin-bottom: 2px;
+#pli_drag_horizontal, #pli_drag_vertical, .decoration_holder, #instructions_decorations {
   /* Prevent text select: */
   -webkit-user-select: none; /* Safari + Chrome */
   -moz-user-select: none; /* Firefox */
   -khtml-user-select: none; /* Linux */
   -ms-user-select: none; /* IE */
 }
+#pli_drag_horizontal {
+  display: none;
+  cursor: col-resize;
+  border-left: 2px solid black;
+  cursor: col-resize;
+  width: 1vw;
+  margin-bottom: 2px;
+}
 #pli_drag_vertical {
-  display: block;
+  display: none;
   cursor: row-resize;
   border-top: 2px solid black;
   cursor: row-resize;
-  height: 2vw;
+  height: 1vh;
   margin-left: 4px;
-  /* Prevent text select: */
-  -webkit-user-select: none; /* Safari + Chrome */
-  -moz-user-select: none; /* Firefox */
-  -khtml-user-select: none; /* Linux */
-  -ms-user-select: none; /* IE */
 }
 
 #empty_step {

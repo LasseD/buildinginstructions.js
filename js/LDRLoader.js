@@ -20,7 +20,7 @@
  * - onError(obj) is called on breaking errors. obj has the following properties:
  *  - message: Human-readable error message.
  *  - line: (Optional) Line number in the loaded file where the error occured.
- *  - subModel: (Optional) THREE.LDRPartType in which the error occured.
+ *  - subModel: (Optional) ID of the part in which the error occured.
  * - physicalRenderingAge: Set to 0 for standard cell shaded rendering. Otherwise, this number indicates the age of physical materials to be rendered (older materials will appear yellowed for some colors)
  * - idToUrl(id) is used to translate an id into all potential file locations. Set this function to fit your own directory structure if needed. A normal LDraw directory has files both under /parts and /p and requires you to search for dat files. You can choose to combine the directories to reduce the need for searching, but this is not considered good practice.
  * - idToTextureUrl(id) is used to translate a texture file name into the single position where the file can be fetched. By default the file name is made lower case and rpefixed 'textures/' to locate the texture file.
@@ -234,7 +234,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 	    else if(LDR.Colors[colorID] === undefined) {
 		// This color might be on the form "0x2995220", such as seen in 3626bps5.dat:
 		
-		this.onWarning({message:'Unknown color "' + colorID + '". Black (0) will be shown instead.', line:i, subModel:part});
+		this.onWarning({message:'Unknown color "' + colorID + '". Black (0) will be shown instead.', line:i, subModel:part.ID});
 		colorID = 0;
 	    }
 	    else {
@@ -256,7 +256,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
         if(!part.modelDescription && modelDescription) {
 	    part.modelDescription = modelDescription;
 	    if(modelDescription.startsWith("~Unknown part ")) { // TODO: This piece of code is specific to Brickhub.org and should be generalised.
-		self.onError({message:'Unknown part "' + part.ID + '". Please <a href="../upload.php">upload</a> this part for it to be shown correctly in this model. If you do not have it, perhaps you can find it <a href="https://www.ldraw.org/cgi-bin/ptscan.cgi?q=' + part.ID + '">here on LDraw.org</a>. For now it will be shown as a cube. <a href="#" onclick="bump();">Click here</a> once the part has been uploaded to load it into the model.', line:i, subModel:part});
+		self.onError({message:'Unknown part "' + part.ID + '". Please <a href="../upload.php">upload</a> this part for it to be shown correctly in this model. If you do not have it, perhaps you can find it <a href="https://www.ldraw.org/cgi-bin/ptscan.cgi?q=' + part.ID + '">here on LDraw.org</a>. For now it will be shown as a cube. <a href="#" onclick="bump();">Click here</a> once the part has been uploaded to load it into the model.', line:i, subModel:part.ID});
 	    }
 	    modelDescription = null; // Ready for next part.
         }
@@ -391,7 +391,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 	    else if(parts[1] === "!TEXMAP") {
                 if(texmapPlacement) { // Expect "0 !TEXMAP FALLBACK" or "0 !TEXMAP END"
                     if(!(parts.length === 3 && (parts[2] === 'FALLBACK' || parts[2] === 'END'))) {
-                        self.onWarning({message:'Unexpected !TEXMAP line. Expected FALLBACK or END line. Found: "' + line + '".', line:i, subModel:part});
+                        self.onWarning({message:'Unexpected !TEXMAP line. Expected FALLBACK or END line. Found: "' + line + '".', line:i, subModel:part.ID});
                         inTexmapFallback = false;
                         texmapPlacement = null;
                     }
@@ -407,7 +407,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
                     texmapPlacement = new LDR.TexmapPlacement();
                     texmapPlacement.setFromParts(parts);
                     if(texmapPlacement.error) {
-                        self.onWarning({message:texmapPlacement.error + ': "' + line + '"', line:i, subModel:part});
+                        self.onWarning({message:texmapPlacement.error + ': "' + line + '"', line:i, subModel:part.ID});
                         texmapPlacement = null;
                     }
                 }
@@ -422,7 +422,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
                     line = dataLines[i]; if(!line) continue;
                     parts = line.split(' ').filter(x => x !== ''); if(parts.length <= 1) continue; // Empty/ empty comment line
                     lineType = parseInt(parts[0]);
-                    if(lineType !== 0) {self.onWarning({message:'Unexpected DATA line type ' + lineType + ' is ignored.', line:i, subModel:part}); continue;}
+                    if(lineType !== 0) {self.onWarning({message:'Unexpected DATA line type ' + lineType + ' is ignored.', line:i, subModel:part.ID}); continue;}
                     if(parts.length === 3 && parts[1] === '!DATA' && parts[2] === 'END') break; // Done
                     if(!parts[1].startsWith('!:')) continue;
 
@@ -467,7 +467,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 		}
 		else {
 		    invertNext = false;
-		    self.onWarning({message:'Unknown LDraw command "' + parts[1] + '" is ignored.', line:i, subModel:part});
+		    self.onWarning({message:'Unknown LDraw command "' + parts[1] + '" is ignored.', line:i, subModel:part.ID});
 		}
 	    }
 	    else {
@@ -556,7 +556,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 	    invertNext = false;
 	    break;
         default:
-            self.onWarning({message:'Unknown command "' + parts[1] + '" is ignored.', line:i, subModel:part});
+            self.onWarning({message:'Unknown command "' + parts[1] + '" is ignored.', line:i, subModel:part.ID});
             break;
 	}
     }
@@ -1962,7 +1962,7 @@ THREE.LDRPartType.prototype.cleanUp = function(loader) {
 
     if(this.isReplacedPart()) {
 	this.replacement = this.steps[0].subModels[0].ID;
-	loader.onWarning({message:'The part "' + this.ID + '" has been replaced by "' + this.replacement + '".', line:0, subModel:this});
+	//loader.onWarning({message:'The part "' + this.ID + '" has been replaced by "' + this.replacement + '".', line:0, subModel:this.ID});
     }
     else {
 	let newSteps = [];

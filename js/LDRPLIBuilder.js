@@ -181,7 +181,7 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
         this.canvas.style.display = 'none';
         return;
     }
-    this.canvas.style.display = 'block';
+    this.canvas.style.display = 'inline-block';
 
     this.groupParts = groupParts;
     this.fillHeight = fillHeight;
@@ -192,7 +192,7 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
     // Find, sort and set up icons to show:
     this.createClickMap(step);
     let textHeight = (!fillHeight ? maxHeight : maxWidth) / Math.sqrt(this.clickMap.length) * 0.19;
-    let [W,H] = Algorithm.PackPlis(fillHeight, maxWidth, maxHeight, this.clickMap, textHeight);
+    let [W,H] = Algorithm.PackPlis(fillHeight, maxWidth-4, maxHeight-4, this.clickMap, textHeight);
     const DPR = window.devicePixelRatio;
     if(fillHeight) {
         let h = Math.max(100, 12+H);
@@ -243,7 +243,7 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
             let y = (icon.y + icon.MULT_Y) * DPR;
             let w = icon.MULT_DX * DPR;
             let h = textHeight * DPR;
-            context.fillText(icon.mult + "x", x, y + h*0.9); // *0.9 to move a bit up from lower line.
+            context.fillText(icon.mult + "x", x, y + h*0.84); // *0.84 to move a bit up from lower line.
         }
         self.clickMap.forEach(drawMultiplier);
     }

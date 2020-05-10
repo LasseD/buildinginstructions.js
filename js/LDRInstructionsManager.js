@@ -12,6 +12,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
     this.baseURL = baseURL;
     this.pliMaxWidthPercentage = options.hasOwnProperty('pliMaxWidthPercentage') ? options.pliMaxWidthPercentage : 40;
     this.pliMaxHeightPercentage = options.hasOwnProperty('pliMaxHeightPercentage') ? options.pliMaxHeightPercentage : 35;
+    this.animateUIElements = options.hasOwnProperty('animateUIElements') ? options.animateUIElements : false;
 
     LDR.Colors.canBeOld = true;
 
@@ -328,7 +329,9 @@ LDR.InstructionsManager.prototype.updateRotator = function(zoom) {
     if(showRotator) {
         rotator.style.visibility = "visible";
         let rotatorAnimation = document.getElementById("rotator_animation");
-        rotatorAnimation.beginElement();
+	if(this.animateUIElements) {
+            rotatorAnimation.beginElement();
+	}
     }
     else {
         rotator.style.visibility = "hidden";
@@ -348,8 +351,13 @@ LDR.InstructionsManager.prototype.updateMultiplier = function(zoom) {
     else {
         multiplier[0].style.visibility = "visible";
         multiplier[0].innerHTML = "x" + this.currentMultiplier;
-        multiplier[0].style['font-size'] = "20vw";
-        setTimeout(() => multiplier.animate({fontSize: "8vw"}, 200), 100);
+	if(this.animateUIElements) {
+            multiplier[0].style['font-size'] = "20vw";
+            setTimeout(() => multiplier.animate({fontSize: "8vw"}, 200), 100);
+	}
+	else {
+            multiplier[0].style['font-size'] = "8vw";
+	}
     }
     this.oldMultiplier = this.currentMultiplier;
 }
@@ -441,13 +449,13 @@ LDR.InstructionsManager.prototype.updatePLI = function(force) {
 
     this.showPLI = (edit || ldrOptions.showPLI) && step.containsPartSubModels(this.ldrLoader);
     let e = this.pliElement;
-    this.emptyElement.style.display = (!edit || this.showPLI || step.containsNonPartSubModels(this.ldrLoader)) ? 'none' : 'block';
+    this.emptyElement.style.display = (!edit || this.showPLI || step.containsNonPartSubModels(this.ldrLoader)) ? 'none' : 'inline-block';
 
     if(!this.showPLI) {
         e.style.display = this.dh.style.display = this.dv.style.display = 'none';
         return;
     }
-    e.style.display = 'inline';
+    e.style.display = 'inline-block';
     
     let maxWidth = window.innerWidth - e.offsetLeft - 18; // 18 for margins
     let maxHeight = window.innerHeight - 130 - this.adPeek; // 130 for the top buttons + margins
