@@ -304,8 +304,9 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
                 localStorage.setItem('pliW', self.pliW);
                 self.onWindowResize();
             }
+	    return true;
         }
-        else if(resizingV) {
+        if(resizingV) {
             let newH = pliH + (y2-y);
             if(self.pliH != newH) {
                 self.pliH = newH;
@@ -313,14 +314,17 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
                 localStorage.setItem('pliH', self.pliH);
                 self.onWindowResize();
             }
+	    return true;
         }
+	return false;
     }
     p.addEventListener('mousemove', e => resize(e.clientX, e.clientY));
     p.addEventListener('touchmove', e => {
-            if(e.touches.length > 0) {
-                resize(e.touches[0].pageX, e.touches[0].pageY);
-            }
-        });
+        if(e.touches.length > 0 && resize(e.touches[0].pageX, e.touches[0].pageY)) {
+	    e.preventDefault();
+	    e.stopPropagation();
+        }
+    });
 }
 
 LDR.InstructionsManager.prototype.updateRotator = function(zoom) {
@@ -447,7 +451,7 @@ LDR.InstructionsManager.prototype.updatePLI = function(force) {
     let step = this.stepHandler.getCurrentStep();
     let edit = ldrOptions.showEditor && this.canEdit;
 
-    this.showPLI = (edit || ldrOptions.showPLI) && step.containsPartSubModels(this.ldrLoader);
+    this.showPLI = /*edit ||*/ step.containsPartSubModels(this.ldrLoader);
     let e = this.pliElement;
     this.emptyElement.style.display = (!edit || this.showPLI || step.containsNonPartSubModels(this.ldrLoader)) ? 'none' : 'inline-block';
 
