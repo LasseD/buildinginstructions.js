@@ -2130,14 +2130,14 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
     if(this.geometry.lineGeometry) {
 	let material = new LDR.Colors.buildLineMaterial(this.geometry.lineColorManager, c, false);
 	let normalLines = new THREE.LineSegments(this.geometry.lineGeometry, material);
-	normalLines.applyMatrix(m4);
+	normalLines.applyMatrix4(m4);
 	mc.addLines(normalLines, pd, false);
     }
     
     if(this.geometry.conditionalLineGeometry) {
 	let material = new LDR.Colors.buildLineMaterial(this.geometry.lineColorManager, c, true);
 	let conditionalLines = new THREE.LineSegments(this.geometry.conditionalLineGeometry, material);
-	conditionalLines.applyMatrix(m4);
+	conditionalLines.applyMatrix4(m4);
 	mc.addLines(conditionalLines, pd, true);
     }
     
@@ -2160,8 +2160,8 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 	}
         let mesh = new THREE.Mesh(g.clone(), material); // Using clone to ensure matrix in next line doesn't affect other usages of the geometry.
         mesh.castShadow = loader.physicalRenderingAge !== 0;
-        mesh.geometry.applyMatrix(m4);
-        //mesh.applyMatrix(m4); // Doesn't work for all LDraw parts as the matrix needs to be decomposable to position, quaternion and scale. Some rotation matrices in LDraw parts are not decomposable.
+        mesh.geometry.applyMatrix4(m4);
+        //mesh.applyMatrix4(m4); // Doesn't work for all LDraw parts as the matrix needs to be decomposable to position, quaternion and scale. Some rotation matrices in LDraw parts are not decomposable.
         mc.addMesh(tc, mesh, pd);
     }
 
@@ -2203,7 +2203,7 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
             }
 	    
             let mesh = new THREE.Mesh(g.clone(), material);
-            mesh.geometry.applyMatrix(m4);
+            mesh.geometry.applyMatrix4(m4);
             mc.addMesh(c3, mesh, pd);
         });
     }

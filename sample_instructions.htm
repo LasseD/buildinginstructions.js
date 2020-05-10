@@ -40,6 +40,8 @@
      <div id="instructions_decorations">
       <span id="empty_step">EMPTY STEP</span>
       <canvas id="pli"></canvas>
+      <div id="pli_drag_horizontal" class="ui_control"></div>
+      <div id="pli_drag_vertical" class="ui_control"></div>
       <span class="decoration_holder">
        <div id="multiplier">x1</div>
       </span>
@@ -122,8 +124,9 @@
         };
 
         // Get the requested step from the query parameters:
-        let step = location.search.substr(1).split('&').map(x => x.split('=')).find(x => x[0] === 'step')[1];
-        if(!step) step = 1;
+        let step = 1;
+        let stepFromUrl = location.search.substr(1).split('&').map(x => x.split('=')).find(x => x[0] === 'step');
+        if(stepFromUrl) step = stepFromUrl[1];
 
         manager = new LDR.InstructionsManager(model, '#', 14, null, ()=>{}, baseURL, step, options);
       });

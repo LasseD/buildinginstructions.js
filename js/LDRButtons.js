@@ -6,6 +6,7 @@ LDR.Buttons = function(actions, element, addTopButtons, homeLink, mainImage, opt
     
     // Camera buttons:
     this.cameraButtons = this.createDiv('camera_buttons');
+    this.cameraButtons.setAttribute('class', 'ui_control');
     this.zoomOutButtonLarge = this.createDiv('zoom_out_button_large', actions.zoomOut);
     this.zoomOutButtonLarge.appendChild(LDR.SVG.makeZoom(false, 2));
     this.cameraButtons.appendChild(this.zoomOutButtonLarge);
@@ -53,36 +54,27 @@ LDR.Buttons = function(actions, element, addTopButtons, homeLink, mainImage, opt
     this.hideElementsAccordingToOptions();
 
     this.fadeOutHandle;
-    this.fadingIn = false;
     let fadeOut = function() {
-	self.fadeOutHandle = undefined;
-	$('#camera_buttons').fadeTo(1000, 0);
+	self.fadeOutHandle = null;
+	$('.ui_control').fadeTo(1000, 0);
     }
     let onFadeInComplete = function() {
-	self.fadingIn = false;
         self.fadeOutHandle = setTimeout(fadeOut, 1000);
     }
     fadeOut();
 
-    let runCameraFading = function() {
-	if(ldrOptions.showCameraButtons == 2) {
-	    return; // Do not show anything.
-        }
-	if(self.fadingIn) {
-	    return; // Currently fading in. Do nothing.
-        }
-
-        $('#camera_buttons').stop(); // Stop fade out.
+    let runUIFading = function() {
+        $('.ui_control').stop(); // Stop fade out.
 	if(self.fadeOutHandle) {
 	    clearTimeout(self.fadeOutHandle);
         }
 	self.fadingIn = true;
-	$('#camera_buttons').fadeTo(1000, 1, onFadeInComplete);
+	$('.ui_control').css('opacity', 1);
+        onFadeInComplete();
     };
-    $("canvas, #camera_buttons").mousemove(runCameraFading);
-    $("canvas, #camera_buttons").on('tap', runCameraFading);
-    $("#camera_buttons").click(runCameraFading);
-    onFadeInComplete();
+    $("#main_canvas_holder").mousemove(runUIFading);
+    $("canvas, .ui_control").on('tap', runUIFading);
+    $(".ui_control").click(runUIFading);
 }
 
 LDR.Buttons.prototype.addTopButtonElements = function(actions, element, homeLink, mainImage, options) {

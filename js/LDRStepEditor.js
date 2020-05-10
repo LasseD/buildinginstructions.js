@@ -917,7 +917,7 @@ LDR.StepHandler.prototype.moveDown = function(info, right) {
 
     // Create new step in sub model of adjacent step.
     let inv = new THREE.Matrix3();
-    inv.getInverse(adjacentPD.r, true);
+    inv.getInverse(adjacentPD.r);
     let adjacentPT = this.loader.getPartType(adjacentPD.ID);
 
     // Add new step before or after this step:

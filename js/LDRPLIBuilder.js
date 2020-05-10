@@ -166,7 +166,7 @@ LDR.PLIBuilder.prototype.createClickMap = function(step) {
     this.clickMap.sort(sorter);
 }
 
-LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, maxHeight, maxSizePerPixel, force) {
+LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, maxHeight, force) {
     let groupParts = !(this.canEdit && ldrOptions.showEditor);
     // Ensure no re-draw if not necessary:
     if(!force && 
@@ -175,6 +175,14 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
        this.fillHeight === fillHeight) {
 	return;
     }
+
+    const LOWER_LIMIT = 10;
+    if(maxWidth < LOWER_LIMIT || maxHeight < LOWER_LIMIT) {
+        this.canvas.style.display = 'none';
+        return;
+    }
+    this.canvas.style.display = 'block';
+
     this.groupParts = groupParts;
     this.fillHeight = fillHeight;
     this.lastStep = step;
@@ -186,10 +194,20 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
     let textHeight = (!fillHeight ? maxHeight : maxWidth) / Math.sqrt(this.clickMap.length) * 0.19;
     let [W,H] = Algorithm.PackPlis(fillHeight, maxWidth, maxHeight, this.clickMap, textHeight);
     const DPR = window.devicePixelRatio;
-    this.canvas.width = (12+W)*DPR;
-    this.canvas.height = (12+H)*DPR;
-    this.canvas.style.width = (W+12)+"px";
-    this.canvas.style.height = (H+12)+"px";
+    if(fillHeight) {
+        let h = Math.max(100, 12+H);
+        this.canvas.width = maxWidth*DPR;
+        this.canvas.height = h*DPR;
+        this.canvas.style.width = maxWidth+"px";
+        this.canvas.style.height = h+"px";
+    }
+    else {
+        let w = Math.max(100, 12+W);
+        this.canvas.width = w*DPR;
+        this.canvas.height = maxHeight*DPR;
+        this.canvas.style.width = w+"px";
+        this.canvas.style.height = maxHeight+"px";
+    }
 
     let context = this.canvas.getContext('2d');
     if(!context) {

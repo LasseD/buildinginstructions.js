@@ -23,9 +23,6 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
     this.defaultZoom = 1; // Will be overwritten.
     this.currentStep = 1; // Shown current step.
     this.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000 ); // Orthographics for LEGO
-    this.pliW = 0;
-    this.pliH = 0;
-    // TODO: THIS DOES NOT WORK: this.maxSizePerPixel = 100000; // TODO: Update when clicking zoom and save using options.
 
     let pixelRatio = window.devicePixelRatio;
     this.canvas = document.getElementById('main_canvas');
@@ -57,6 +54,29 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
     window.addEventListener('resize', () => self.onWindowResize(), false);
 
     this.adPeek = options.hasOwnProperty('adPeek') ? options.adPeek : 0;
+
+    // PLIW either from storage or params:
+    let storagePLIW = localStorage.getItem('pliW');
+    if(storagePLIW !== null && storagePLIW >= 0) {
+        this.pliW = storagePLIW;
+    }
+    else {
+        this.pliW = (window.innerWidth-20) * this.pliMaxWidthPercentage/100;
+    }
+    let clampW = () => self.pliW = Math.min(Math.max(self.pliW, 0), window.innerWidth-70);
+    clampW();
+
+    let storagePLIH = localStorage.getItem('pliH');
+    if(storagePLIH !== null && storagePLIH >= 0) {
+        console.log('storage',storagePLIH);
+        this.pliH = storagePLIH;
+    }
+    else {
+        this.pliH = (window.innerHeight-this.adPeek) * this.pliMaxHeightPercentage/100;
+    }
+    let clampH = () => self.pliH = Math.min(Math.max(self.pliH, 0), window.innerHeight-self.adPeek-50);
+    clampH();
+
     this.lastRefresh = new Date();
       
     this.currentRotationMatrix = new THREE.Matrix4(); 
@@ -250,6 +270,56 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
     else {
         onStorageReady();
     }
+
+    // Set up PLI size drag:
+    this.dh = document.getElementById('pli_drag_horizontal');
+    this.dv = document.getElementById('pli_drag_vertical');
+    let p = document.getElementById('instructions_decorations');
+    let resizingV = false, resizingH = false;
+    let x, y, pliW, pliH;
+    let mouseStart = e => {x = e.clientX; y = e.clientY; pliH = self.pliH; pliW = self.pliW};
+    let touchStart = e => {if(e.touches.length > 0) {x = e.touches[0].pageX; y = e.touches[0].pageY; pliH = self.pliH; pliW = self.pliW}};
+    let stop = e => {resizingV = resizingH = false;};
+
+    // Start:
+    this.dv.addEventListener('mousedown', () => resizingV = true);
+    this.dv.addEventListener('touchstart', () => resizingV = true);
+    this.dh.addEventListener('mousedown', () => resizingH = true);
+    this.dh.addEventListener('touchstart', () => resizingH = true);
+    p.addEventListener('mousedown', mouseStart);
+    p.addEventListener('touchstart', touchStart);
+
+    // Stop:
+    p.addEventListener('mouseup', stop);
+    p.addEventListener('touchend', stop);
+
+    // Move:
+    function resize(x2, y2) {
+        if(resizingH) {
+            let newW = pliW + (x2-x);
+            if(self.pliW != newW) {
+                self.pliW = newW;
+                clampW();
+                localStorage.setItem('pliW', self.pliW);
+                self.onWindowResize();
+            }
+        }
+        else if(resizingV) {
+            let newH = pliH + (y2-y);
+            if(self.pliH != newH) {
+                self.pliH = newH;
+                clampH();
+                localStorage.setItem('pliH', self.pliH);
+                self.onWindowResize();
+            }
+        }
+    }
+    p.addEventListener('mousemove', e => resize(e.clientX, e.clientY));
+    p.addEventListener('touchmove', e => {
+            if(e.touches.length > 0) {
+                resize(e.touches[0].pageX, e.touches[0].pageY);
+            }
+        });
 }
 
 LDR.InstructionsManager.prototype.updateRotator = function(zoom) {
@@ -368,34 +438,43 @@ LDR.InstructionsManager.prototype.updateUIComponents = function(force) {
 LDR.InstructionsManager.prototype.updatePLI = function(force) {
     let step = this.stepHandler.getCurrentStep();
     let edit = ldrOptions.showEditor && this.canEdit;
+
     this.showPLI = (edit || ldrOptions.showPLI) && step.containsPartSubModels(this.ldrLoader);
     let e = this.pliElement;
     this.emptyElement.style.display = (!edit || this.showPLI || step.containsNonPartSubModels(this.ldrLoader)) ? 'none' : 'block';
 
     if(!this.showPLI) {
-        this.pliW = this.pliH = 0;
-        e.style.display = 'none';
+        e.style.display = this.dh.style.display = this.dv.style.display = 'none';
         return;
     }
     e.style.display = 'inline';
     
     let maxWidth = window.innerWidth - e.offsetLeft - 18; // 18 for margins
     let maxHeight = window.innerHeight - 130 - this.adPeek; // 130 for the top buttons + margins
-    
+
     if(window.innerWidth > window.innerHeight) {
-        this.pliBuilder.drawPLIForStep(true, step, maxWidth*this.pliMaxWidthPercentage/100, maxHeight, this.maxSizePerPixel, force);
+        let w = this.pliW;
+        let h = maxHeight;
+        this.pliBuilder.drawPLIForStep(true, step, w, h, force);
+        this.dh.style.display = 'inline-block';
+        this.dh.style.height = this.pliBuilder.canvas.style.height;// (h+4) + 'px';
+        this.dv.style.display = 'none';
+        this.dv.style.width = '0px';
     }
     else {
-        this.pliBuilder.drawPLIForStep(false, step, maxWidth, maxHeight*this.pliMaxHeightPercentage/100, this.maxSizePerPixel, force);
+        let w = maxWidth;
+        let h = this.pliH;
+        this.pliBuilder.drawPLIForStep(false, step, w, h, force);
+        this.dv.style.display = 'block';
+        this.dv.style.width = this.pliBuilder.canvas.style.width;
+        this.dh.style.display = 'none';
+        this.dh.style.height = '0px';
     }
-    this.pliW = parseInt(e.offsetWidth + e.offsetLeft)+6; // 6 for border.
-    this.pliH = parseInt(e.offsetHeight);
-    //console.log("Setting PLI size " + this.pliW + ", " + this.pliH + " from " + maxWidth + "/" + maxHeight + ", maxSizePerPixel=" + this.maxSizePerPixel + ', step=' + step);
 }
 
-LDR.InstructionsManager.prototype.updateViewPort = function() {
+LDR.InstructionsManager.prototype.updateViewPort = function(overwriteSize) {
     if(this.ignoreViewPortUpdate) {
-	return;
+	return; // Editor change
     }
 
     let c = this.camera;
@@ -407,14 +486,14 @@ LDR.InstructionsManager.prototype.updateViewPort = function() {
     let dx = 0;
     let dy = this.topButtonsHeight;
 
-    if(!this.pliBuilder || this.pliW == 0) {
+    if(!overwriteSize && !this.showPLI) {
         // No move
     }
     else if(this.pliBuilder.fillHeight) {
-        dx += this.pliW;
+        dx += overwriteSize ? overwriteSize[0] : this.pliW;
     }
     else {
-        dy += this.pliH;
+        dy += overwriteSize ? overwriteSize[1] : this.pliH;
     }
 
     c.clearViewOffset();
@@ -428,12 +507,9 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
     let oldRotationMatrix = this.currentRotationMatrix;
     let oldPosition = new THREE.Vector3();
     oldPosition.copy(this.baseObject.position);
+    let oldPLIW = this.showPLI ? this.pliW : 0;
+    let oldPLIH = this.showPLI ? this.pliH : 0;
 
-    // PLI:
-    let oldPLIW = this.pliW;
-    let oldPLIH = this.pliH;
-    let newPLIW, newPLIH;
-    
     let oldLevel = this.stepHandler.getLevelOfCurrentStep();
     let newLevel = oldLevel;
     let goBack = function(){}; // Used for single steps
@@ -489,7 +565,9 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
     let measurer = new LDR.Measurer(this.camera);
     let [dx,dy] = measurer.measure(b, this.baseObject.matrixWorld);
     
-    this.updatePLI(false); newPLIW = this.pliW, newPLIH = this.pliH;
+    this.updatePLI(false);
+    let newPLIW = this.showPLI ? this.pliW : 0;
+    let newPLIH = this.showPLI ? this.pliH : 0;
     
     goBack();
     let rotationChanges = !this.currentRotationMatrix.equals(oldRotationMatrix);
@@ -498,8 +576,7 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
     let ignoreScale = new THREE.Vector3(); // Ignore
     this.currentRotationMatrix.decompose(ignorePos, newRot, ignoreScale);
     
-    let positionChanges = !oldPosition.equals(newPosition) || 
-    oldPLIW !== newPLIW || oldPLIH !== newPLIH;
+    let positionChanges = !oldPosition.equals(newPosition) || oldPLIW !== newPLIW || oldPLIH !== newPLIH;
     
     let oldDefaultZoom = this.defaultZoom;
     viewPortWidth = window.innerWidth;
@@ -531,8 +608,6 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
         self.baseObject.position.z = newPosition.z;
 	
         self.defaultZoom = newDefaultZoom;
-        self.pliW = newPLIW;
-        self.pliH = newPLIH;
         self.updateViewPort();
         self.updateCameraZoom();
         self.render();
@@ -566,9 +641,9 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
         
         let progress = diffMS / animationTimeMS;
         self.defaultZoom = oldDefaultZoom + (newDefaultZoom-oldDefaultZoom)*progress;
-        self.pliW = oldPLIW + (newPLIW-oldPLIW)*progress;
-        self.pliH = oldPLIH + (newPLIH-oldPLIH)*progress;
-        self.updateViewPort();
+        let pw = oldPLIW + (newPLIW-oldPLIW)*progress;
+        let ph = oldPLIH + (newPLIH-oldPLIH)*progress;
+        self.updateViewPort([pw, ph]);
         self.updateCameraZoom();
         
         if(diffMS < animationTimeRotationMS) { // Rotate first.
@@ -847,9 +922,7 @@ LDR.InstructionsManager.prototype.setUpOptions = function() {
     ldrOptions.appendStudHighContrastOptions(optionsDiv);
     ldrOptions.appendStudLogoOptions(optionsDiv);
     ldrOptions.appendAnimationOptions(optionsDiv);
-    ldrOptions.appendShowPLIOptions(optionsDiv);
     ldrOptions.appendLROptions(optionsDiv, this.ldrButtons);
-    ldrOptions.appendCameraOptions(optionsDiv, this.ldrButtons);
 
     ldrOptions.appendFooter(optionsDiv);
     ldrOptions.listeners.push(function(partGeometriesChanged) {

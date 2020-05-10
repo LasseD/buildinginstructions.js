@@ -159,7 +159,7 @@ LDR.StepHandler.prototype.computeCameraPositionRotation = function(defaultMatrix
 	       pr[2], pr[5], pr[8], 0,
 	       0,     0,     0,     1);
     let invM4 = new THREE.Matrix4();
-    invM4.getInverse(partM4, true);
+    invM4.getInverse(partM4);
 
     let invY = new THREE.Matrix4();
     invY.set(1,0,0,0, 0,-1,0,0, 0,0,-1,0, 0,0,0,1);

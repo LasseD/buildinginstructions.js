@@ -12,7 +12,7 @@ LDR.Options = function() {
     this.lineColor = 0x333333;
     this.oldColor = 0xFFFF6F;
     this.showLRButtons = 0; // 0=right big, 1=right normal, 2=both off
-    this.showCameraButtons = 0; // 0=+- on right, 1=+- on sides, 2=off
+    this.showCameraButtons = 1; // 0=+- on right, 1=+- on sides, 2=off
     this.showStepRotationAnimations = 1; // 0=slow, 1=normal speed, 2=off
     this.partsListType = 0; // 0=icons, 1=list
     this.showNotes = 0; // 0=off, 1=on
@@ -60,9 +60,9 @@ LDR.Options.prototype.saveOptionsToCookie = function() {
     addToKv("lineContrast");
     addToKv("showPartsCallouts");
     addToKv("showStepRotationAnimations");
-    addToKv("showCameraButtons");
+    //addToKv("showCameraButtons");
     addToKv("showLRButtons");
-    addToKv("showPLI");
+    //addToKv("showPLI");
     addToKv("showEditor");
     addToKv("studHighContrast");
     addToKv("studLogo");
@@ -470,6 +470,8 @@ LDR.Options.prototype.appendAnimationOptions = function(optionsBlock) {
 }
 
 LDR.Options.prototype.appendShowPLIOptions = function(optionsBlock) {
+    console.warn('Show PLI option deprecated');
+    return;
     let group = this.addOptionsGroup(optionsBlock, 2, "Parts List");
     let options = this;
     let onPLIChange = function(idx) {
@@ -564,6 +566,9 @@ LDR.Options.prototype.appendLROptions = function(optionsBlock, ldrButtons) {
 }
 
 LDR.Options.prototype.appendCameraOptions = function(optionsBlock, ldrButtons) {
+    console.warn('Camera options deprecated');
+    return;
+
     let group = this.addOptionsGroup(optionsBlock, 3, "Camera Buttons");
     let options = this;
     let onCameraChange = function(idx) {
