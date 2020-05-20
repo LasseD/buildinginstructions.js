@@ -451,7 +451,7 @@ LDR.InstructionsManager.prototype.updatePLI = function(force) {
     let step = this.stepHandler.getCurrentStep();
     let edit = ldrOptions.showEditor && this.canEdit;
 
-    this.showPLI = /*edit ||*/ step.containsPartSubModels(this.ldrLoader);
+    this.showPLI = edit || step.containsPartSubModels(this.ldrLoader);
     let e = this.pliElement;
     this.emptyElement.style.display = (!edit || this.showPLI || step.containsNonPartSubModels(this.ldrLoader)) ? 'none' : 'inline-block';
 
@@ -469,7 +469,7 @@ LDR.InstructionsManager.prototype.updatePLI = function(force) {
         let h = maxHeight;
         this.pliBuilder.drawPLIForStep(true, step, w, h, force);
         this.dh.style.display = 'inline-block';
-        this.dh.style.height = this.pliBuilder.canvas.style.height;// (h+4) + 'px';
+        this.dh.style.height = this.pliBuilder.canvas.style.height;
         this.dv.style.display = 'none';
         this.dv.style.width = '0px';
     }

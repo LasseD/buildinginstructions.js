@@ -70,6 +70,7 @@ LDR.PLIBuilder.prototype.updateCamera = function(w, h) {
 }
 
 LDR.PLIBuilder.prototype.renderIcon = function(partID, c, w, h) {
+    //console.log('Rendering',partID,c);
     let pt = this.getPartType(partID);
 
     pt.pliMC.overwriteColor(c);
@@ -93,13 +94,14 @@ LDR.PLIBuilder.prototype.createClickMap = function(step) {
 	}
 	let partID = (this.groupParts && dat.REPLACEMENT_PLI) ? dat.REPLACEMENT_PLI : dat.ID;
 	let partType = this.loader.getPartType(partID);
-        if(!partType || !partType.isPart) {
-            continue; // Do not show sub models.
+        if(!partType) {
+            continue; // Part not loaded
         }
 	let c = dat.c;
 	let key = partID.endsWith('.dat') ? partID.substring(0, partID.length-4) : partID;
 	let pliID = key;
 
+	// Check if there is special PLI information for this part:
 	if(LDR.PLI && LDR.PLI.hasOwnProperty(pliID)) {
 	    let pliInfo = LDR.PLI[pliID];
 	    partID = "pli_" + partType.ID;
