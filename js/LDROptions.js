@@ -4,7 +4,7 @@ LDR.Options = function() {
     this.listeners = [];
     
     // Default values for options (in case of first visit or no cookies:
-    this.showOldColors = 0; // 0 = all colors. 1 = single color old
+    this.showOldColors = 0; // 0 = highlight new with red, 1 = highlight new with lime, 2 = all colors normal, 3 = single color old
     this.lineContrast = 1; // 0 = High contrast, 1 = LDraw
     this.bgColor = 0xFFFFFF;
     this.pointColor = 0xFF0000;
@@ -146,69 +146,64 @@ LDR.Options.prototype.appendDescriptionBar = function(optionsBlock, columns, des
 }
 
 LDR.Options.prototype.appendOldBrickColorOptions = function(optionsBlock) {
-    let group = this.addOptionsGroup(optionsBlock, 2, "Highlight New Parts");
+    let group = this.addOptionsGroup(optionsBlock, 4, "Highlight New Parts");
     let options = this;
     let onOldBrickChange = function(idx) {
 	options.showOldColors = idx;
 	options.onChange(false);
     };
-    let buttons = this.createButtons(group, 2, this.showOldColors, onOldBrickChange);
+    let buttons = this.createButtons(group, 4, this.showOldColors, onOldBrickChange);
     
     // Color functions:
-    let red = function(){return '#C91A09';};
-    let green = function(){return '#257A3E';};
-    let blue = function(){return '#0055BF';};    
-    let rgb = [red, green, blue];
+    let red = () => '#800000';
+    let lime = () => '#A0FF00';
+    let green = () => '#257A3E';
+    let blue = () => '#0055BF';
+    let gb = [green, blue];
     
-    let lineColor = function(options){
-	return LDR.Colors.int2Hex(options.lineColor);
-    };
-    let oldColor = function(options){
-	return LDR.Colors.int2Hex(options.oldColor);
-    };
+    let lineColor = options => LDR.Colors.int2Hex(options.lineColor);
+    let oldColor = options => LDR.Colors.int2Hex(options.oldColor);
 
-    let positions = [{x:-1,y:1},{x:1,y:1},{x:1,y:-1}];
-    let drawParts = function(x, y, cnt, cntOld, svg) {
+    let svg;
+    function drawParts(x, cnt, cntOld, outlineColor) {
 	for(let i = 0; i < cnt; i++) {
-	    let position = positions[i];
-	    options.createSvgBlock(x + 0.5*position.x*LDR.Options.svgBlockWidth, 
-				   y + 0.5*position.y*LDR.Options.svgBlockHeight, 
-				   i == 0 || i == cnt-1,
-				   i < cntOld ? oldColor : rgb[i%3],
-				   lineColor,
+	    options.createSvgBlock(x,
+				   (-i+0.5)*LDR.Options.svgBlockHeight, 
+				   i === cnt-1,
+				   i < cntOld ? oldColor : gb[i%2],
+				   (i == cnt-1) ? outlineColor : lineColor,
 				   svg);
 	}
     }
 
-    /* 
-       The first option is to always paint colors:
-       Indicated by 9 bricks - all colorful.
-    */
     let dst = 60;
     let w = 20;
-    {
+    function drawBase(idx) {
 	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
 	svg.setAttribute('viewBox', '-100 -40 200 80');
-	buttons[0].appendChild(svg);
-	drawParts(-dst, 0, 2, 0, svg);
+	buttons[idx].appendChild(svg);
 	svg.appendChild(LDR.SVG.makeLine(-w, 0, w, 0, true));
 	svg.appendChild(LDR.SVG.makeLine(w/2, w/2, w, 0, true));
 	svg.appendChild(LDR.SVG.makeLine(w/2, -w/2, w, 0, true));
-	drawParts(dst, 0, 3, 0, svg);
+        return svg;
     }
-    /* 
-       Second option: old colors in customizable color:
-    */
-    {
-	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
-	svg.setAttribute('viewBox', '-100 -40 200 80');
-	buttons[1].appendChild(svg);
-	drawParts(-dst, 0, 2, 0, svg);
-	svg.appendChild(LDR.SVG.makeLine(-w, 0, w, 0, true));
-	svg.appendChild(LDR.SVG.makeLine(w/2, w/2, w, 0, true));
-	svg.appendChild(LDR.SVG.makeLine(w/2, -w/2, w, 0, true));
-	drawParts(dst, 0, 3, 2, svg);
-    }
+
+    // Red outline:
+    svg = drawBase(0);
+    drawParts(-dst, 1, 0, red);
+    drawParts(dst, 2, 0, red);
+    // Lime outline:
+    svg = drawBase(1);
+    drawParts(-dst, 1, 0, lime);
+    drawParts(dst, 2, 0, lime);
+    // Paint all in colors:
+    svg = drawBase(2);
+    drawParts(-dst, 1, 0, lineColor);
+    drawParts(dst, 2, 0, lineColor);
+    // old parts in single color:
+    svg = drawBase(3);
+    drawParts(-dst, 1, 0, lineColor);
+    drawParts(dst, 2, 1, lineColor);
 }
 
 LDR.Options.prototype.appendContrastOptions = function(optionsBlock) {

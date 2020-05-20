@@ -16,17 +16,18 @@ The builder supports the operations:
 - moveSteps: Go forward/back a specific number of steps.
 - Various methods for trieving information regarding the current step (depth, quantities, etc.)
 */
-LDR.StepHandler = function(opaqueObject, sixteenObject, transObject, loader, partDescs, isForMainModel) {
+LDR.StepHandler = function(manager, partDescs, isForMainModel) {
     // Save parameters:
-    this.opaqueObject = opaqueObject;
-    this.sixteenObject = sixteenObject;
-    this.transObject = transObject;
-    this.loader = loader;
+    this.opaqueObject = manager.opaqueObject;
+    this.sixteenObject = manager.sixteenObject;
+    this.transObject = manager.transObject;
+    this.loader = manager.ldrLoader;
+    this.manager = manager;
     this.partDescs = partDescs;
     this.isForMainModel = isForMainModel; // If true, then prevent stepping to current === -1.
 
     // Build state:
-    this.part = loader.getPartType(partDescs[0].ID);
+    this.part = this.loader.getPartType(partDescs[0].ID);
     this.hasExtraParts = partDescs.length > 1;
     this.rebuild();
 }
@@ -48,8 +49,7 @@ LDR.StepHandler.prototype.rebuild = function() {
         let sh = null;
         if(step.containsNonPartSubModels(this.loader)) { // All are sub models (not parts):
             let subDescs = step.subModels.map(subModel => subModel.placeAt(partDesc));
-            sh = new LDR.StepHandler(this.opaqueObject, this.sixteenObject, this.transObject,
-				     this.loader, subDescs, false);
+            sh = new LDR.StepHandler(this.manager, subDescs, false);
         }
         this.steps.push(new LDR.StepInfo(sh, step.cloneColored(partDesc.c)));
     }
@@ -202,9 +202,11 @@ LDR.StepHandler.prototype.nextStep = function(doNotEraseForSubModels) {
     let meshCollector = step.meshCollector;
     let willStep = !subStepHandler || subStepHandler.isAtPlacementStep();
 
+    this.manager.resetSelectedObjects();
+
     // Special case: Step to placement step.
     if((this.current === this.length-1) && willStep) { 
-	this.updateMeshCollectors(false); // Make whole dtepHandler new (for placement):
+	this.updateMeshCollectors(false); // Make whole stepHandler new (for placement):
 	this.drawExtras();
 	this.current++;
 	return true;
@@ -228,11 +230,13 @@ LDR.StepHandler.prototype.nextStep = function(doNotEraseForSubModels) {
 	let meshCollector = step.meshCollector;
 	if(!meshCollector) {
 	    let pd = this.partDescs[0];
-            meshCollector = new LDR.MeshCollector(this.opaqueObject, this.sixteenObject, this.transObject);
+            meshCollector = new LDR.MeshCollector(this.opaqueObject, this.sixteenObject, this.transObject, this.manager);
 
 	    step.step.generateThreePart(this.loader, pd.c, pd.p, pd.r, true, false, meshCollector);
 	    step.meshCollector = meshCollector;
 	    this.setCurrentBounds(meshCollector.boundingBox);
+
+            meshCollector.setOldValue(false); // Ensure outlines shown.
 
 	    // Helper. Uncomment next line for bounding boxes:
 	    //this.opaqueObject.add(new THREE.Box3Helper(meshCollector.boundingBox, 0xff0000));
@@ -273,11 +277,15 @@ LDR.StepHandler.prototype.prevStep = function(doNotEraseForSubModels) {
 	return false; // Can't move back (also. Prevent walking to pre-step)
     }
 
+    this.manager.resetSelectedObjects();
+
     // Step down from placement step:
     if(this.isAtPlacementStep()) {
-	if(this.hasExtraParts) {
-	    this.steps[this.length].meshCollector.setVisible(false);
+	if(this.hasExtraParts) { // Don't show extra parts:
+            let mc = this.steps[this.length].meshCollector;
+            mc.setVisible(false);
 	}
+
 	// Update all previous steps to be old:
 	for(let i = 0; i < this.length-1; i++) {
             let step = this.steps[i];
@@ -290,6 +298,9 @@ LDR.StepHandler.prototype.prevStep = function(doNotEraseForSubModels) {
 		sh.updateMeshCollectors(true);
 	    }
 	}
+
+        // Update current step to not be old:
+        this.steps[this.length-1].meshCollector.setOldValue(false);
 	
 	this.current--;
 	return true;
@@ -519,7 +530,7 @@ LDR.StepHandler.prototype.setCurrentBounds = function(b) {
 
 LDR.StepHandler.prototype.drawExtras = function() {
     let step = this.steps[this.length];
-    if(!this.hasExtraParts) { // No extra parts to draw: Copy from previous step:
+    if(!this.hasExtraParts) { // No extra parts to draw: Copy bounds from previous step:
 	if(!step.bounds) {
 	    let prevStep = this.steps[this.length-1];
 	    step.accumulatedBounds = prevStep.accumulatedBounds;
@@ -529,7 +540,8 @@ LDR.StepHandler.prototype.drawExtras = function() {
     }
 
     if(!step.meshCollector) { // Not already loaded
-	step.meshCollector = new LDR.MeshCollector(this.opaqueObject, this.sixteenObject, this.transObject);
+	let meshCollector = new LDR.MeshCollector(this.opaqueObject, this.sixteenObject, this.transObject, this.manager);
+        step.meshCollector = meshCollector;
 
 	let prevAccumulatedBounds = new THREE.Box3();
 	prevAccumulatedBounds.copy(this.steps[this.length-1].accumulatedBounds);
@@ -541,6 +553,8 @@ LDR.StepHandler.prototype.drawExtras = function() {
 	    // Here it is not necessary to run any "geometryBuilder.buildPart..." due to all parts having already been loaded when the first submodel was built.
 	    this.part.generateThreePart(this.loader, pd.c, pd.p, pd.r, true, false, step.meshCollector);
 	}
+
+        meshCollector.setOldValue(false); // Ensure outlines shown.
 
 	let b = step.meshCollector.boundingBox;
 	step.accumulatedBounds.expandByPoint(b.min);
@@ -620,15 +634,14 @@ LDR.StepHandler.prototype.updateMeshCollectors = function(old) {
 	    sh.updateMeshCollectors(old);
 	}
     }
-    if(!this.hasExtraParts) {
-        return;
-    }
-    let mc = this.steps[this.length].meshCollector;
-    if(mc) {
-	let tOld = old;
-	if(tOld === undefined) {
-	    tOld = mc.old;
+    if(this.hasExtraParts) {
+        let mc = this.steps[this.length].meshCollector;
+        if(mc) {
+            let tOld = old;
+            if(tOld === undefined) {
+                tOld = mc.old;
+            }
+            mc.draw(tOld);
         }
-	mc.draw(tOld);
     }
 }

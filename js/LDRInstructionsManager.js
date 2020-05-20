@@ -17,13 +17,11 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
     LDR.Colors.canBeOld = true;
 
     this.scene = new THREE.Scene(); // To add stuff to
-    this.scene.background = new THREE.Color( 0xFFFFFF );
-
-    //this.scene.add( new THREE.AxesHelper( 5 ) );
+    //this.scene.add(new THREE.AxesHelper(50));
 
     this.defaultZoom = 1; // Will be overwritten.
     this.currentStep = 1; // Shown current step.
-    this.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000 ); // Orthographics for LEGO
+    this.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000); // Orthographics for LEGO
 
     let pixelRatio = window.devicePixelRatio;
     this.canvas = document.getElementById('main_canvas');
@@ -91,6 +89,9 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
     this.emptyElement = document.getElementById('empty_step');
     this.pliBuilder; // Set in 'onPartsRetrieved'
     this.pliHighlighted; // Set in onPLIClick. Indicates highlighted part for preview.
+    this.outlinePass; // Set in onWindowResize
+    this.composer; // Set in onWindowResize
+    this.resetSelectedObjects();
 
     this.baseObject = new THREE.Group();
     this.opaqueObject = new THREE.Group();
@@ -159,7 +160,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
         
         self.pliBuilder = new LDR.PLIBuilder(self.ldrLoader, self.canEdit, mainModel,
                                              document.getElementById('pli'), self.secondaryRenderer);
-        self.stepHandler = new LDR.StepHandler(self.opaqueObject, self.sixteenObject, self.transObject, self.ldrLoader, [pd], true);
+        self.stepHandler = new LDR.StepHandler(self, [pd], true);
         self.stepHandler.nextStep(false);
 
 	self.realignModel(0);
@@ -372,8 +373,30 @@ LDR.InstructionsManager.prototype.updateCameraZoom = function(zoom) {
     this.camera.updateProjectionMatrix();
 }
 
+LDR.InstructionsManager.prototype.resetSelectedObjects = function() {
+    this.selectedObjects = [];
+    this.inSelectedObjects = {};
+}
+
+LDR.InstructionsManager.prototype.addSelectedObject = function(idx, a) {
+    this.selectedObjects.push(...a);
+    this.inSelectedObjects[idx] = true;
+}
+
+LDR.InstructionsManager.prototype.hasSelectedObject = function(idx) {
+    return this.inSelectedObjects.hasOwnProperty(idx);
+}
+
 LDR.InstructionsManager.prototype.render = function() {
-    this.renderer.render(this.scene, this.camera);
+    if(ldrOptions.showOldColors <= 1) {
+        if(this.outlinePass && this.composer) {
+            this.outlinePass.selectedObjects = this.selectedObjects;
+            this.composer.render();
+        }
+    }
+    else {
+        this.renderer.render(this.scene, this.camera);
+    }
 }
 
 LDR.InstructionsManager.prototype.setBackgroundColor = function(c) {
@@ -381,13 +404,34 @@ LDR.InstructionsManager.prototype.setBackgroundColor = function(c) {
     document.body.style.backgroundColor = '#' + c;
 }
 
-LDR.InstructionsManager.prototype.onWindowResize = function(){
+LDR.InstructionsManager.prototype.buildOutlinePass = function(w, h){
+    this.outlinePass = new OutlinePass(new THREE.Vector2(w, h),
+                                       this.scene, this.camera, this.selectedObjects);
+    this.outlinePass.hiddenEdgeColor.set('#000000');
+    this.outlinePass.edgeStrength = 20;
+
+    if(ldrOptions.showOldColors === 0) {
+        this.outlinePass.visibleEdgeColor.set('#200000');
+    }
+    else {
+        this.outlinePass.visibleEdgeColor.set('#20F000');
+    }
+}
+
+LDR.InstructionsManager.prototype.onWindowResize = function(force){
     this.topButtonsHeight = document.getElementById('top_buttons').offsetHeight;
 
     let w = (window.innerWidth-20);
     let h = (window.innerHeight-this.adPeek);
-    if(this.canvas.width !== w || this.canvas.height !== h) {
+    if(force || this.canvas.width !== w || this.canvas.height !== h) {
         this.renderer.setSize(w, h, true);
+        if(ldrOptions.showOldColors <= 1) {
+            this.composer = new THREE.EffectComposer(this.renderer);
+            this.composer.addPass(new THREE.RenderPass(this.scene, this.camera));
+
+            this.buildOutlinePass(w, h);
+            this.composer.addPass(this.outlinePass);
+        }
     }
     this.camera.left   = -this.canvas.clientWidth*0.95;
     this.camera.right  =  this.canvas.clientWidth*0.95;
@@ -582,6 +626,7 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
     let newPLIH = this.showPLI ? this.pliH : 0;
     
     goBack();
+
     let rotationChanges = !this.currentRotationMatrix.equals(oldRotationMatrix);
     let ignorePos = new THREE.Vector3(); // Ignore
     let newRot = new THREE.Quaternion();
@@ -962,5 +1007,6 @@ LDR.InstructionsManager.prototype.setUpOptions = function() {
                 self.updateUIComponents(true);
             }
             self.ldrButtons.hideElementsAccordingToOptions();
+            self.onWindowResize(true);
         });
 }
