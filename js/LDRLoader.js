@@ -1917,7 +1917,6 @@ THREE.LDRLoader.prototype.purgePart = function(ID) {
         }
         purged[id] = true;
         
-        console.warn('Purging '+id);
         delete this.partTypes[id];
         if(this.mainModel === id) {
             delete this.mainModel;
@@ -2705,13 +2704,11 @@ LDR.ColorManager.prototype.containsTransparentColors = function() {
   - 'ghost': 'Ghosted' parts will be shown by their lines only (no faces).
 */
 LDR.MeshCollectorIdx = 0;
-LDR.MeshCollector = function(opaqueObject, sixteenObject, transObject) {
-    if(!transObject) {
-	throw 'Missing trans object';
-    }
+LDR.MeshCollector = function(opaqueObject, sixteenObject, transObject, outliner) {
     this.opaqueObject = opaqueObject;
     this.sixteenObject = sixteenObject; // To be painted after anything opaque, as it might be trans.
     this.transObject = transObject; // To be painted last.
+    this.outliner = outliner || false; // With outlined objects
 
     this.lineMeshes = []; // {mesh,part,conditional}
     this.triangleMeshes = []; // {mesh,part,parent}
@@ -2769,6 +2766,7 @@ LDR.MeshCollector.prototype.expandBoundingBoxByPoint = function(p) {
     }
     this.boundingBox.expandByPoint(p);
 }
+
 LDR.MeshCollector.prototype.expandBoundingBox = function(boundingBox, m) {
     let b = new THREE.Box3();
     b.copy(boundingBox);
@@ -2787,11 +2785,19 @@ LDR.MeshCollector.prototype.setOldValue = function(old) {
     if(!LDR.Colors.canBeOld) {
 	return;
     }
+    let o = old && ldrOptions.showOldColors === 3;
     for(let i = 0; i < this.lineMeshes.length; i++) {
-	this.lineMeshes[i].mesh.material.uniforms.old.value = old;
+	this.lineMeshes[i].mesh.material.uniforms.old.value = o;
     }
     for(let i = 0; i < this.triangleMeshes.length; i++) {
-	this.triangleMeshes[i].mesh.material.uniforms.old.value = old;
+        this.triangleMeshes[i].mesh.material.uniforms.old.value = o;
+    }
+    if(!old && this.outliner && !this.outliner.hasSelectedObject(this.idx)) {
+        let a = [];
+        for(let i = 0; i < this.triangleMeshes.length; i++) {
+            a.push(this.triangleMeshes[i].mesh);
+        }
+        this.outliner.addSelectedObject(this.idx, a);
     }
 }
 
@@ -2837,9 +2843,7 @@ LDR.MeshCollector.prototype.update = function(old) {
 	    this.colorLinesHighContrast();
         }
     }
-    if(old !== this.old || ldrOptions.showOldColors !== this.showOldColors) {
-	this.setOldValue(old && ldrOptions.showOldColors === 1);
-    }
+    this.setOldValue(old);
     this.updateState(old);
 }
 
