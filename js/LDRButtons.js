@@ -72,7 +72,7 @@ LDR.Buttons = function(actions, element, addTopButtons, homeLink, mainImage, opt
 	$('.ui_control').css('opacity', 1);
         onFadeInComplete();
     };
-    $("#main_canvas_holder, #preview").mousemove(runUIFading);
+    $("#main_canvas, #preview").mousemove(runUIFading);
     $("canvas, .ui_control").on('tap', runUIFading);
     $(".ui_control").click(runUIFading);
 }

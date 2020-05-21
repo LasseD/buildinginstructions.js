@@ -508,7 +508,7 @@ LDR.InstructionsManager.prototype.updatePLI = function(force) {
     let maxWidth = window.innerWidth - e.offsetLeft - 18; // 18 for margins
     let maxHeight = window.innerHeight - 130 - this.adPeek; // 130 for the top buttons + margins
 
-    if(window.innerWidth > window.innerHeight) {
+    if(this.fillHeight()) {
         let w = this.pliW;
         let h = maxHeight;
         this.pliBuilder.drawPLIForStep(true, step, w, h, force);
@@ -528,6 +528,10 @@ LDR.InstructionsManager.prototype.updatePLI = function(force) {
     }
 }
 
+LDR.InstructionsManager.prototype.fillHeight = function() {
+    return window.innerWidth > window.innerHeight;
+}
+
 LDR.InstructionsManager.prototype.updateViewPort = function(overwriteSize) {
     if(this.ignoreViewPortUpdate) {
 	return; // Editor change
@@ -545,7 +549,7 @@ LDR.InstructionsManager.prototype.updateViewPort = function(overwriteSize) {
     if(!overwriteSize && !this.showPLI) {
         // No move
     }
-    else if(this.pliBuilder.fillHeight) {
+    else if(this.fillHeight()) {
         dx += overwriteSize ? overwriteSize[0] : this.pliW;
     }
     else {
@@ -585,7 +589,7 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
     let viewPortWidth = window.innerWidth;
     let viewPortHeight = window.innerHeight - this.adPeek;
     if(this.pliH > 0) { // Adjust for pli.
-        if(this.pliBuilder.fillHeight) {
+        if(this.fillHeight()) {
             viewPortWidth -= this.pliW;
         }
         else {
@@ -638,7 +642,7 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
     let oldDefaultZoom = this.defaultZoom;
     viewPortWidth = window.innerWidth;
     viewPortHeight = window.innerHeight - this.adPeek - this.topButtonsHeight;
-    if(this.pliBuilder.fillHeight) {
+    if(this.fillHeight()) {
         viewPortWidth -= newPLIW;
     }
     else {
