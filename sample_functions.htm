@@ -106,7 +106,6 @@
         document.getElementById('file_content').innerHTML = fileContent;
       }
 
-      var ldrOptions = new LDR.Options(); // Determine how to show lines. Change this in sample_instruction.htm
       ldrLoader = new THREE.LDRLoader(onLoad, null, {saveFileLines:true});
       ldrLoader.load(modelTypeUrl);
 

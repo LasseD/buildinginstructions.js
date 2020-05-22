@@ -127,12 +127,12 @@ LDR.Buttons.prototype.addTopButtonElements = function(actions, element, homeLink
 LDR.Buttons.prototype.hideElementsAccordingToOptions = function() {
     // LR Buttons:
     if(this.backButton && this.nextButton) {
-        if(!this.topButtons || ldrOptions.showLRButtons == 1) { // Normal:
+        if(!this.topButtons || LDR.Options.showLRButtons == 1) { // Normal:
             this.backButton.style.display = 'inline-block'; 
             this.nextButtonLarge.style.display = 'none';
             this.nextButton.style.display = 'block'; 
         }
-        else if(ldrOptions.showLRButtons == 0) { // Large:
+        else if(LDR.Options.showLRButtons == 0) { // Large:
             this.backButton.style.display = 'inline-block'; 
             this.nextButtonLarge.style.display = 'block';
             this.nextButton.style.display = 'none';
@@ -145,14 +145,14 @@ LDR.Buttons.prototype.hideElementsAccordingToOptions = function() {
     }
 
     // Camera Buttons:
-    if(ldrOptions.showCameraButtons == 2) {
+    if(LDR.Options.showCameraButtons == 2) {
 	this.zoomInButtonLarge.style.display = 'none';
 	this.zoomOutButtonLarge.style.display = 'none';
 	this.zoomInButton.style.display = 'none';
 	this.zoomOutButton.style.display = 'none';
 	this.resetCameraButton.style.visibility = 'hidden';
     }
-    else if(ldrOptions.showCameraButtons == 0) {
+    else if(LDR.Options.showCameraButtons == 0) {
 	this.zoomInButtonLarge.style.display = 'none';
 	this.zoomOutButtonLarge.style.display = 'none';
 	this.zoomInButton.style.display = 'inline-block';

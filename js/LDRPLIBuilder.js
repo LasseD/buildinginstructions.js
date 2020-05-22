@@ -13,12 +13,14 @@ LDR.PLIBuilder = function(loader, canEdit, mainModelID, canvas, renderer) {
 
     // Register for options changes:
     let self = this;
-    ldrOptions.listeners.push(function() {
-	if(self.lastStep) {
-	    self.drawPLIForStep(self.fillHeight, self.lastStep,
-				self.lastMaxWidth, self.lastMaxHeight, 0, true);
-	}
-    });
+    if(LDR.Options) {
+        LDR.Options.listeners.push(function() {
+                if(self.lastStep) {
+                    self.drawPLIForStep(self.fillHeight, self.lastStep,
+                                        self.lastMaxWidth, self.lastMaxHeight, 0, true);
+                }
+            });
+    }
 
     // Set up rendering elements:
     this.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
@@ -169,7 +171,7 @@ LDR.PLIBuilder.prototype.createClickMap = function(step) {
 }
 
 LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, maxHeight, force) {
-    let groupParts = !(this.canEdit && ldrOptions.showEditor);
+    let groupParts = !(this.canEdit && LDR.Options && LDR.Options.showEditor);
     // Ensure no re-draw if not necessary:
     if(!force && 
        this.lastStep && this.lastStep.idx === step.idx && this.groupParts === groupParts &&
@@ -272,7 +274,7 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
 	context.fillText(icon.annotation, x, y);
     });
     // Draw highlight for ghosted parts:
-    if(ldrOptions.showEditor) {
+    if(LDR.Options && LDR.Options.showEditor) {
         context.strokeStyle = "#5DD";
         context.lineWidth = '4';
 	let hoveredIcon = null;

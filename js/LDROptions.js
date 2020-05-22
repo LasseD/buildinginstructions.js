@@ -1,6 +1,8 @@
 'use strict';
 
-LDR.Options = function() {
+LDR.Options = {};
+
+LDR.Options.initialize = function() {
     this.listeners = [];
     
     // Default values for options (in case of first visit or no cookies:
@@ -23,7 +25,18 @@ LDR.Options = function() {
     this.studLogo = 0; // 0=off, 1...5=Types of logos from LDraw
 
     // Read values that might be in cookie:
-    this.readOptionsFromCookie();
+    if(document.cookie) {
+        let cookieParts = decodeURIComponent(document.cookie).split(/\s*;\s*/);
+        for(let i = 0; i < cookieParts.length; i++) {
+            let part = cookieParts[i];
+            let equalAt = part.indexOf('=');
+            if(equalAt > 1) {
+                let key = part.substring(0, equalAt);
+                if(this[key] != undefined)
+                    this[key] = parseInt(part.substring(equalAt+1));
+            }
+        } 
+    }
 
     let options = this;
     this.onChange = function(partGeometriesChanged) {
@@ -34,23 +47,9 @@ LDR.Options = function() {
     }
 }
 
-LDR.Options.prototype.readOptionsFromCookie = function() {
-    if(!document.cookie) {
-	return; // Can't read cookie.
-    }
-    let cookieParts = decodeURIComponent(document.cookie).split(/\s*;\s*/);
-    for(let i = 0; i < cookieParts.length; i++) {
-	let part = cookieParts[i];
-	let equalAt = part.indexOf('=');
-	if(equalAt > 1) {
-	    let key = part.substring(0, equalAt);
-	    if(this[key] != undefined)
-		this[key] = parseInt(part.substring(equalAt+1));
-	}
-    } 
-}
+LDR.Options.initialize();
 
-LDR.Options.prototype.saveOptionsToCookie = function() {
+LDR.Options.saveOptionsToCookie = function() {
     let options = this;
     function addToKv(v) {
 	document.cookie = v + '=' + options[v] + '; SameSite; expires=Wed, 3 Jun 2122 12:00:01 UTC; path=/';
@@ -97,7 +96,7 @@ LDR.Options.setOptionsSelected = function(node, callback) {
     }
 }
 
-LDR.Options.prototype.appendHeader = function(optionsBlock) {
+LDR.Options.appendHeader = function(optionsBlock) {
     let headerDiv = document.createElement('div');
     headerDiv.setAttribute('id', 'options_header');
     optionsBlock.appendChild(headerDiv);
@@ -120,7 +119,7 @@ LDR.Options.prototype.appendHeader = function(optionsBlock) {
 
     headerDiv.appendChild(LDR.SVG.makeOptions());
 }
-LDR.Options.prototype.appendFooter = function(optionsBlock) {
+LDR.Options.appendFooter = function(optionsBlock) {
     let div = document.createElement('div');
     div.setAttribute('class', 'options_footer');
     let a = document.createElement('a');
@@ -130,7 +129,7 @@ LDR.Options.prototype.appendFooter = function(optionsBlock) {
     div.appendChild(a);
     a.appendChild(LDR.SVG.makeUpArrow());
 }
-LDR.Options.prototype.appendDescriptionBar = function(optionsBlock, columns, description) {
+LDR.Options.appendDescriptionBar = function(optionsBlock, columns, description) {
     let tr = document.createElement('tr');
     tr.setAttribute('class', 'options_description_header');
     optionsBlock.appendChild(tr);
@@ -145,7 +144,7 @@ LDR.Options.prototype.appendDescriptionBar = function(optionsBlock, columns, des
     td.appendChild(desc);
 }
 
-LDR.Options.prototype.appendOldBrickColorOptions = function(optionsBlock) {
+LDR.Options.appendOldBrickColorOptions = function(optionsBlock) {
     let group = this.addOptionsGroup(optionsBlock, 4, "Highlight New Parts");
     let options = this;
     let onOldBrickChange = function(idx) {
@@ -206,7 +205,7 @@ LDR.Options.prototype.appendOldBrickColorOptions = function(optionsBlock) {
     drawParts(dst, 2, 1, lineColor);
 }
 
-LDR.Options.prototype.appendContrastOptions = function(optionsBlock) {
+LDR.Options.appendContrastOptions = function(optionsBlock) {
     let group = this.addOptionsGroup(optionsBlock, 2, "Lines");
     let options = this;
     let onChange = function(idx) {
@@ -268,7 +267,7 @@ LDR.Options.prototype.appendContrastOptions = function(optionsBlock) {
 /*
   Part color options (points and background color)
 */
-LDR.Options.prototype.appendPartColorOptions = function(optionsBlock) {
+LDR.Options.appendPartColorOptions = function(optionsBlock) {
     let group = this.addOptionsGroup(optionsBlock, 2, "Background and Point Color");
     let options = this;
 
@@ -327,7 +326,7 @@ LDR.Options.prototype.appendPartColorOptions = function(optionsBlock) {
 /*
 Part color options (points and background color)
  */
-LDR.Options.prototype.appendPartPointSizeOptions = function(optionsBlock) {
+LDR.Options.appendPartPointSizeOptions = function(optionsBlock) {
     let group = this.addOptionsGroup(optionsBlock, 5, "Points");
     let options = this;
     let onChange = function(idx) {
@@ -360,7 +359,7 @@ LDR.Options.prototype.appendPartPointSizeOptions = function(optionsBlock) {
     }
 }
 
-LDR.Options.prototype.appendAnimationOptions = function(optionsBlock) {
+LDR.Options.appendAnimationOptions = function(optionsBlock) {
     let group = this.addOptionsGroup(optionsBlock, 3, "Animations");
     let options = this;
     let onAnimationChange = function(idx) {
@@ -464,7 +463,7 @@ LDR.Options.prototype.appendAnimationOptions = function(optionsBlock) {
     }
 }
 
-LDR.Options.prototype.appendShowPLIOptions = function(optionsBlock) {
+LDR.Options.appendShowPLIOptions = function(optionsBlock) {
     console.warn('Show PLI option deprecated');
     return;
     let group = this.addOptionsGroup(optionsBlock, 2, "Parts List");
@@ -516,7 +515,7 @@ LDR.Options.prototype.appendShowPLIOptions = function(optionsBlock) {
     }
 }
 
-LDR.Options.prototype.appendLROptions = function(optionsBlock, ldrButtons) {
+LDR.Options.appendLROptions = function(optionsBlock, ldrButtons) {
     let group = this.addOptionsGroup(optionsBlock, 3, "Button Size");
     let options = this;
     let onLRChange = function(idx) {
@@ -560,7 +559,7 @@ LDR.Options.prototype.appendLROptions = function(optionsBlock, ldrButtons) {
     }
 }
 
-LDR.Options.prototype.appendCameraOptions = function(optionsBlock, ldrButtons) {
+LDR.Options.appendCameraOptions = function(optionsBlock, ldrButtons) {
     console.warn('Camera options deprecated');
     return;
 
@@ -638,7 +637,7 @@ LDR.Options.prototype.appendCameraOptions = function(optionsBlock, ldrButtons) {
     }
 }
 
-LDR.Options.prototype.appendRotationOptions = function(optionsBlock) {
+LDR.Options.appendRotationOptions = function(optionsBlock) {
     let group = this.addOptionsGroup(optionsBlock, 2, "Show FPS and Rotate");
     let options = this;
     let onChange = function(idx) {
@@ -687,7 +686,7 @@ LDR.Options.prototype.appendRotationOptions = function(optionsBlock) {
     }
 }
 
-LDR.Options.prototype.appendStudHighContrastOptions = function(optionsBlock) {
+LDR.Options.appendStudHighContrastOptions = function(optionsBlock) {
     let group = this.addOptionsGroup(optionsBlock, 2, "Contrast on Studs");
     let options = this;
     let onChange = function(idx) {
@@ -721,7 +720,7 @@ LDR.Options.prototype.appendStudHighContrastOptions = function(optionsBlock) {
     }
 }
 
-LDR.Options.prototype.appendStudLogoOptions = function(optionsBlock) {
+LDR.Options.appendStudLogoOptions = function(optionsBlock) {
     let group = this.addOptionsGroup(optionsBlock, 2, "Logo on Studs");
     let options = this;
     let onChange = function(idx) {
@@ -752,7 +751,7 @@ LDR.Options.prototype.appendStudLogoOptions = function(optionsBlock) {
     }
 }
 
-LDR.Options.prototype.createButtons = function(parent, numberOfButtons, initiallySelected, onChange) {
+LDR.Options.createButtons = function(parent, numberOfButtons, initiallySelected, onChange) {
     let ret = [];
 
     for(let i = 0; i < numberOfButtons; i++) {
@@ -769,7 +768,7 @@ LDR.Options.prototype.createButtons = function(parent, numberOfButtons, initiall
     return ret;
 }
 
-LDR.Options.prototype.addOptionsGroup = function(optionsBlock, columns, description) {
+LDR.Options.addOptionsGroup = function(optionsBlock, columns, description) {
     let optionsTable = document.createElement('table');
     optionsTable.setAttribute('class', 'options');
     optionsBlock.appendChild(optionsTable);
@@ -789,7 +788,7 @@ SVG Icon fun below:
 LDR.Options.svgBlockWidth = 30;
 LDR.Options.svgBlockHeight = 25;
 
-LDR.Options.prototype.createSvgBlock = function(x, y, closed, getFillColor, getLineColor, parent) {
+LDR.Options.createSvgBlock = function(x, y, closed, getFillColor, getLineColor, parent) {
     let dx2 = LDR.Options.svgBlockWidth/2; // Half a block width
     let dy = LDR.Options.svgBlockHeight;
     let dy2 = dy*0.3; // dy for moving half a block width.
@@ -832,7 +831,7 @@ LDR.Options.prototype.createSvgBlock = function(x, y, closed, getFillColor, getL
     listener2();
 }
 
-LDR.Options.prototype.createSvgPoints = function(x, y, getColor, parent, size) {
+LDR.Options.createSvgPoints = function(x, y, getColor, parent, size) {
     let dx2 = LDR.Options.svgBlockWidth/2; // Half a block width
     let dy = LDR.Options.svgBlockHeight;
     let dy2 = dy*0.3; // dy for moving half a block width.
@@ -874,7 +873,7 @@ LDR.Options.prototype.createSvgPoints = function(x, y, getColor, parent, size) {
     listener2();
 }
 
-LDR.Options.prototype.createSvgCylinder = function(x, y, highContrast, getFillColor, getLineColor, parent) {
+LDR.Options.createSvgCylinder = function(x, y, highContrast, getFillColor, getLineColor, parent) {
     let dx2 = LDR.Options.svgBlockWidth*0.5; // Half a block width
     let dy = LDR.Options.svgBlockHeight*0.5;
     let dy2 = dy*0.3; // dy for moving half a block width.

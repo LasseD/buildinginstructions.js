@@ -139,7 +139,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
 	    self.hidePliPreview();
             self.hideDone();
         }
-	else if(ldrOptions.showEditor && self.canEdit) { // Send rest to editor if available:
+	else if(LDR.Options && LDR.Options.showEditor && self.canEdit) { // Send rest to editor if available:
 	    self.stepEditor.handleKeyDown(e);
 	}
     }
@@ -225,7 +225,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
 						 self.pliBuilder, removeGeometries,
 						 onEditDone, self.modelID);
             self.stepEditor.createGuiComponents(document.getElementById('editor'));
-            if(ldrOptions.showEditor === 1) {
+            if(LDR.Options && LDR.Options.showEditor === 1) {
                 $("#editor").show();
             }
         }
@@ -245,7 +245,9 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
 	}
     }
     let onStorageReady = function() {
-        LDR.Studs.makeGenerators('', ldrOptions.studHighContrast, ldrOptions.studLogo);
+        if(LDR.Options) {
+            LDR.Studs.makeGenerators('', LDR.Options.studHighContrast, LDR.Options.studLogo);
+        }
         self.ldrLoader = new THREE.LDRLoader(onLoad, self.storage, options);
         if(self.storage) {
             self.storage.retrieveInstructionsFromStorage(self.ldrLoader, onInstructionsLoaded);
@@ -262,7 +264,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
     pli.addEventListener('mouseover', e => self.onPLIMove(e));
     pli.addEventListener('mouseout', () => self.onPLIMove(false));
 
-    if(options.setUpOptions) {
+    if(options.setUpOptions && LDR.Options) {
 	this.setUpOptions();
     }
     this.onWindowResize();
@@ -388,7 +390,7 @@ LDR.InstructionsManager.prototype.hasSelectedObject = function(idx) {
 }
 
 LDR.InstructionsManager.prototype.render = function() {
-    if(ldrOptions.showOldColors <= 1) {
+    if(LDR.Options && LDR.Options.showOldColors <= 1) {
         if(this.outlinePass && this.composer) {
             this.outlinePass.selectedObjects = this.selectedObjects;
             this.composer.render();
@@ -410,7 +412,7 @@ LDR.InstructionsManager.prototype.buildOutlinePass = function(w, h){
     this.outlinePass.hiddenEdgeColor.set('#000000');
     this.outlinePass.edgeStrength = 20;
 
-    if(ldrOptions.showOldColors === 0) {
+    if(LDR.Options && LDR.Options.showOldColors === 0) {
         this.outlinePass.visibleEdgeColor.set('#200000');
     }
     else {
@@ -425,7 +427,7 @@ LDR.InstructionsManager.prototype.onWindowResize = function(force){
     let h = (window.innerHeight-this.adPeek);
     if(force || this.canvas.width !== w || this.canvas.height !== h) {
         this.renderer.setSize(w, h, true);
-        if(ldrOptions.showOldColors <= 1) {
+        if(LDR.Options && LDR.Options.showOldColors <= 1) {
             this.composer = new THREE.EffectComposer(this.renderer);
             this.composer.addPass(new THREE.RenderPass(this.scene, this.camera));
 
@@ -493,7 +495,7 @@ LDR.InstructionsManager.prototype.updateUIComponents = function(force) {
 
 LDR.InstructionsManager.prototype.updatePLI = function(force) {
     let step = this.stepHandler.getCurrentStep();
-    let edit = ldrOptions.showEditor && this.canEdit;
+    let edit = LDR.Options && LDR.Options.showEditor && this.canEdit;
 
     this.showPLI = edit || step.containsPartSubModels(this.ldrLoader);
     let e = this.pliElement;
@@ -681,8 +683,9 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
     
     let animationID;
     let startTime = new Date();
-    let animationTimeRotationMS = rotationChanges ? (2-ldrOptions.showStepRotationAnimations)*300 : 0; // First rotate, 
-    let animationTimePositionMS = positionChanges ? (2-ldrOptions.showStepRotationAnimations)*150 : 0; // then move and zoom
+    let showAnimations = LDR.Options ? LDR.Options.showStepRotationAnimations : 2;
+    let animationTimeRotationMS = rotationChanges ? (2-showAnimations)*300 : 0; // First rotate, 
+    let animationTimePositionMS = positionChanges ? (2-showAnimations)*150 : 0; // then move and zoom
     if(stepDiff != 0 && newLevel !== oldLevel && newLevel-oldLevel === stepDiff) {
         animationTimeRotationMS = 0; // Don't rotate when stepping in.
         animationTimePositionMS = 0;
@@ -752,7 +755,7 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
     }
     
     // Only animate if:
-    if(ldrOptions.showStepRotationAnimations < 2 && // show animations
+    if(showAnimations < 2 && // show animations
        Math.abs(stepDiff) === 1 && // Only stepping a single step &&
        !this.initialConfiguration && // This is not the initial step &&
        (zoomChanges || rotationChanges || positionChanges)) {
@@ -868,7 +871,7 @@ LDR.InstructionsManager.prototype.onPLIClick = function(e) {
             }
         });
 
-    if(this.canEdit && ldrOptions.showEditor) {
+    if(this.canEdit && LDR.Options && LDR.Options.showEditor) {
         icon.part.original.ghost = !icon.part.original.ghost;
         this.stepHandler.updateMeshCollectors();
         this.updateUIComponents(true);
@@ -890,7 +893,7 @@ LDR.InstructionsManager.prototype.onPLIClick = function(e) {
 }
 
 LDR.InstructionsManager.prototype.onPLIMove = function(e) {
-    if(!(this.canEdit && ldrOptions.showEditor && 
+    if(!(this.canEdit && LDR.Options && LDR.Options.showEditor && 
 	 this.pliBuilder && this.pliBuilder.clickMap)) {
         return; // Not applicable.
     }
@@ -971,22 +974,22 @@ LDR.InstructionsManager.prototype.hideDone = function() {
 }
 
 /*
-  Assumes ldrOptions in global scope.
+  Assumes LDR.Options in global scope.
  */
 LDR.InstructionsManager.prototype.setUpOptions = function() {
     let self = this;
     let optionsDiv = document.getElementById('options');
 
-    ldrOptions.appendHeader(optionsDiv);    
-    ldrOptions.appendOldBrickColorOptions(optionsDiv);
-    ldrOptions.appendContrastOptions(optionsDiv);
-    ldrOptions.appendStudHighContrastOptions(optionsDiv);
-    ldrOptions.appendStudLogoOptions(optionsDiv);
-    ldrOptions.appendAnimationOptions(optionsDiv);
-    ldrOptions.appendLROptions(optionsDiv, this.ldrButtons);
+    LDR.Options.appendHeader(optionsDiv);    
+    LDR.Options.appendOldBrickColorOptions(optionsDiv);
+    LDR.Options.appendContrastOptions(optionsDiv);
+    LDR.Options.appendStudHighContrastOptions(optionsDiv);
+    LDR.Options.appendStudLogoOptions(optionsDiv);
+    LDR.Options.appendAnimationOptions(optionsDiv);
+    LDR.Options.appendLROptions(optionsDiv, this.ldrButtons);
 
-    ldrOptions.appendFooter(optionsDiv);
-    ldrOptions.listeners.push(function(partGeometriesChanged) {
+    LDR.Options.appendFooter(optionsDiv);
+    LDR.Options.listeners.push(function(partGeometriesChanged) {
             if(partGeometriesChanged) { // Update all studs:
                 self.ldrLoader.applyOnPartTypes(pt => {
                         if(pt.isPart) {
@@ -1003,8 +1006,8 @@ LDR.InstructionsManager.prototype.setUpOptions = function() {
                     self.stepHandler.updateMeshCollectors();
                     self.updateUIComponents(true);
                 }
-                LDR.Studs.setStuds(self.ldrLoader, ldrOptions.studHighContrast, 
-                                   ldrOptions.studLogo, callBack); // Studs.
+                LDR.Studs.setStuds(self.ldrLoader, LDR.Options.studHighContrast, 
+                                   LDR.Options.studLogo, callBack); // Studs.
             }
             else {
                 self.stepHandler.updateMeshCollectors();

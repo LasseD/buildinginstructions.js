@@ -90,10 +90,10 @@
         onWindowResize();
       }
 
-      var ldrOptions = new LDR.Options(); // Determine how to show lines. See below:
-      ldrOptions.lineContrast = 1; // Set to 0 for high contrast line colors, and 1 for normal line colors.
-      ldrOptions.studHighContrast = 0; // Set to 1 for showing black sides on studs like in official LEGO building instructions. Set to 0 for normal stud colors.
-      ldrOptions.studLogo = 1; // 0 for no logo, 1 to 5 for logos of types 1 to 5.
+      // Determine how to show lines:
+      LDR.Options.lineContrast = 1; // Set to 0 for high contrast line colors, and 1 for normal line colors.
+      LDR.Options.studHighContrast = 0; // Set to 1 for showing black sides on studs like in official LEGO building instructions. Set to 0 for normal stud colors.
+      LDR.Options.studLogo = 1; // 0 for no logo, 1 to 5 for logos of types 1 to 5.
 
       // The following function makes the ldrLoader search through the official
       // and unofficial file structures (unofficial/ and unofficial/) for parts.
@@ -123,8 +123,8 @@
 
       LDR.LDRGeometry = LDR.BFCGeometry; // Enable BFC.
       ldrLoader = new THREE.LDRLoader(onLoad, null, {idToUrl:idToUrl});
-      LDR.Studs.setStuds(ldrLoader, ldrOptions.studHighContrast,
-                         ldrOptions.studLogo, () => ldrLoader.load(partID));
+      LDR.Studs.setStuds(ldrLoader, LDR.Options.studHighContrast,
+                         LDR.Options.studLogo, () => ldrLoader.load(partID));
  </script>
  </body>
 </html>
