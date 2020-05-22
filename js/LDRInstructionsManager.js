@@ -112,7 +112,6 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
     this.currentRotation = false;
     this.initialConfiguration = true;
 
-    this.windowStepCauseByHistoryManipulation = false;
     this.doneShown = false;
 
     this.accHelper;
@@ -176,32 +175,8 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
 
 	// Go to step indicated by parameter:
 	if(stepFromParameters > 1) {
-            self.stepHandler.moveSteps(stepFromParameters-1, () => self.handleStepsWalked());
+            self.stepHandler.moveTo(stepFromParameters, () => self.handleStepsWalked());
         }
-	else {
-            self.ensureSwipeForwardWorks();
-        }
-
-	// Register location changes:
-	window.addEventListener('popstate', function(e) {
-                let step = e.state;
-                if(self.windowStepCauseByHistoryManipulation || step === null) {
-                    //console.log("Ignoring history manipulating step to: " + step);
-                    self.windowStepCauseByHistoryManipulation = false;
-                    return;
-                }
-                let diff = step - self.currentStep;
-                //console.log("Step from window: " + step + ", diff: " + diff);
-                if(diff === 1) {
-                    self.nextStep();
-                }
-                else if(diff === -1) {
-                    self.prevStep();
-                }
-                else {
-                    self.stepHandler.moveSteps(diff, () => self.handleStepsWalked());
-                }
-            });
 
 	// Enable pli preview:
         self.pliPreviewer.enableControls();
@@ -766,16 +741,6 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
     }
 }
 
-    // Ensure mobile users can swipe right for next step:
-LDR.InstructionsManager.prototype.ensureSwipeForwardWorks = function() {
-    window.history.replaceState(this.currentStep, null, this.baseURL + this.currentStep);
-    if(!this.stepHandler.isAtLastStep()) {
-        window.history.pushState(this.currentStep+1, null, this.baseURL + (this.currentStep+1));
-        this.windowStepCauseByHistoryManipulation = true;
-        window.history.go(-1); // Go back again.
-    }
-}
-
 LDR.InstructionsManager.prototype.handleStepsWalked = function() {
     // Helper. Uncomment next lines for step bounding boxes:
     /*if(this.helper) {
@@ -789,7 +754,7 @@ LDR.InstructionsManager.prototype.handleStepsWalked = function() {
     this.baseObject.add(this.accHelper);
     this.baseObject.add(this.helper);*/
     this.currentStep = this.stepHandler.getCurrentStepIndex();
-    this.ensureSwipeForwardWorks();
+    window.history.replaceState(this.currentStep, null, this.baseURL + this.currentStep);
     this.realignModel(0);
     this.onPLIMove(true);
     this.updateUIComponents(false);
@@ -803,10 +768,9 @@ LDR.InstructionsManager.prototype.goToStep = function(step) {
         return; // Don't walk when showing preview.
     }
 
-    let diff = step - this.currentStep;
     console.log("Going to " + step + " from " + this.currentStep);
     let self = this;
-    this.stepHandler.moveSteps(step - self.currentStep, () => self.handleStepsWalked());
+    this.stepHandler.moveTo(step, () => self.handleStepsWalked());
 }
 
 LDR.InstructionsManager.prototype.nextStep = function() {
@@ -990,7 +954,6 @@ LDR.InstructionsManager.prototype.setUpOptions = function() {
     // Other options:
     LDR.Options.appendOldBrickColorOptions(optionsDiv);
     LDR.Options.appendAnimationOptions(optionsDiv);
-    LDR.Options.appendLROptions(optionsDiv, this.ldrButtons);
 
     LDR.Options.appendFooter(optionsDiv);
     LDR.Options.listeners.push(function(partGeometriesChanged) {
@@ -1004,7 +967,7 @@ LDR.InstructionsManager.prototype.setUpOptions = function() {
                 function callBack() {
                     let stepIndex = self.stepHandler.getCurrentStepIndex();
                     self.stepHandler.rebuild();
-                    self.stepHandler.moveSteps(stepIndex, () => {});
+                    self.stepHandler.moveTo(stepIndex, () => {});
                     self.handleStepsWalked();
                     
                     self.stepHandler.updateMeshCollectors();

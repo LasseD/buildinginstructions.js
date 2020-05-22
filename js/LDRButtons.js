@@ -37,14 +37,21 @@ LDR.Buttons = function(actions, element, addTopButtons, homeLink, mainImage, opt
     // Right lower corner buttons:
     if(actions.nextStep) {
         this.nextButton = this.createDiv('next_button', actions.nextStep);
-        this.nextButtonLarge = this.createDiv('next_button_large', actions.nextStep);
-        this.doneButton = this.createDiv('done_button', actions.clickDone);
-        this.nextButton.append(LDR.SVG.makeRightArrow());
-        this.nextButtonLarge.append(LDR.SVG.makeRightArrowLarge());
-        this.doneButton.append(LDR.SVG.makeCheckMark());
-        element.appendChild(this.nextButton);
-        element.appendChild(this.nextButtonLarge);
-        element.appendChild(this.doneButton);
+        this.nextButton.append(LDR.SVG.makeRightArrow(!addTopButtons));
+
+        if(!addTopButtons) {
+            element.appendChild(this.nextButton);
+        }
+        else {
+            this.nextButtonLarge = this.createDiv('next_button_large', actions.nextStep);
+            this.nextButtonLarge.setAttribute('class', 'ui_control');
+
+            this.doneButton = this.createDiv('done_button', actions.clickDone);
+            this.nextButtonLarge.append(LDR.SVG.makeRightArrowLarge());
+            this.doneButton.append(LDR.SVG.makeCheckMark());
+            element.appendChild(this.nextButtonLarge);
+            element.appendChild(this.doneButton);
+        }
     }
 
     if(addTopButtons) {
@@ -117,34 +124,18 @@ LDR.Buttons.prototype.addTopButtonElements = function(actions, element, homeLink
     // Options
     if(options.setUpOptions) {
 	this.optionsButton = this.createDiv('optionsButton');
+        this.optionsButton.setAttribute('class', 'top_button');
 	this.optionsButton.appendChild(LDR.SVG.makeOptions());
 	this.topButtons.appendChild(this.optionsButton);
     }
+
+    this.nextButton.setAttribute('class', 'top_button');
+    this.topButtons.appendChild(this.nextButton);
 
     element.appendChild(this.topButtons);
 }
 
 LDR.Buttons.prototype.hideElementsAccordingToOptions = function() {
-    // LR Buttons:
-    if(this.backButton && this.nextButton) {
-        if(!this.topButtons || LDR.Options.showLRButtons == 1) { // Normal:
-            this.backButton.style.display = 'inline-block'; 
-            this.nextButtonLarge.style.display = 'none';
-            this.nextButton.style.display = 'block'; 
-        }
-        else if(LDR.Options.showLRButtons == 0) { // Large:
-            this.backButton.style.display = 'inline-block'; 
-            this.nextButtonLarge.style.display = 'block';
-            this.nextButton.style.display = 'none';
-        }
-        else { // Normal:
-            this.backButton.style.display = 
-	    this.nextButton.style.display =
-	    this.nextButtonLarge.style.display = 'none';
-        }
-    }
-
-    // Camera Buttons:
     if(LDR.Options.showCameraButtons == 2) {
 	this.zoomInButtonLarge.style.display = 'none';
 	this.zoomOutButtonLarge.style.display = 'none';
@@ -196,20 +187,32 @@ LDR.Buttons.prototype.create = function(type, id, onclick, classA) {
 LDR.Buttons.prototype.atFirstStep = function() {
     this.backButton.style.visibility = 'hidden';
     this.nextButton.style.visibility = 'visible';
-    this.nextButtonLarge.style.visibility = 'visible';
-    this.doneButton.style.visibility = 'hidden';
+    if(this.nextButtonLarge) {
+        this.nextButtonLarge.style.visibility = 'visible';
+    }
+    if(this.doneButton) {
+        this.doneButton.style.visibility = 'hidden';
+    }
 }
 LDR.Buttons.prototype.atLastStep = function() {
     this.backButton.style.visibility = 'visible';
     this.nextButton.style.visibility = 'hidden';
-    this.nextButtonLarge.style.visibility = 'hidden';
-    this.doneButton.style.visibility = 'visible';
+    if(this.nextButtonLarge) {
+        this.nextButtonLarge.style.visibility = 'hidden';
+    }
+    if(this.doneButton) {
+        this.doneButton.style.visibility = 'visible';
+    }
 }
 LDR.Buttons.prototype.atAnyOtherStep = function() {
     this.backButton.style.visibility = 'visible';
     this.nextButton.style.visibility = 'visible';
-    this.nextButtonLarge.style.visibility = 'visible';
-    this.doneButton.style.visibility = 'hidden';
+    if(this.nextButtonLarge) {
+        this.nextButtonLarge.style.visibility = 'visible';
+    }
+    if(this.doneButton) {
+        this.doneButton.style.visibility = 'hidden';
+    }
 }
 LDR.Buttons.prototype.setShownStep = function(step) {
     this.stepInput.value = ""+step;

@@ -36,7 +36,7 @@ LDR.SVG.makeRightArrowLarge = function() {
     g.appendChild(LDR.SVG.makeCircle(100, 100, 99));
     return ret;
 }
-LDR.SVG.makeRightArrow = function() {
+LDR.SVG.makeRightArrow = function(withCircle) {
     let ret = document.createElementNS(LDR.SVG.NS, 'svg');
     ret.setAttribute("class", "next_normal");
     ret.setAttribute("viewBox", "0 0 100 100");
@@ -47,7 +47,9 @@ LDR.SVG.makeRightArrow = function() {
     let pts = "80,50 50,20 50,35 20,35 20,65 50,65 50,80";
     let poly = LDR.SVG.makePolygon(pts);
     g.appendChild(poly);
-    g.appendChild(LDR.SVG.makeCircle(50, 50, 49));
+    if(withCircle) {
+        g.appendChild(LDR.SVG.makeCircle(50, 50, 49));
+    }
     return ret;
 }
 LDR.SVG.makeCheckMark = function() {

@@ -248,6 +248,13 @@ td.list_image {
 #done_button {
   display: none;
 }
+#next_button {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 100px;
+  height: 100px;
+}
 
 /*
   Notes

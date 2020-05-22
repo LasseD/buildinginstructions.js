@@ -503,6 +503,9 @@ LDR.Options.appendShowPLIOptions = function(optionsBlock) {
 }
 
 LDR.Options.appendLROptions = function(optionsBlock, ldrButtons) {
+    console.warn('LR button option deprecated');
+    return;
+
     let group = this.addOptionsGroup(optionsBlock, 3, "Button Size");
     let options = this;
     let onLRChange = function(idx) {
