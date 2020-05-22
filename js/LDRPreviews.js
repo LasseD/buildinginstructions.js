@@ -307,7 +307,6 @@ LDR.Previews.prototype.createOptions = function() {
         LDR.Options.appendContrastOptions(this.optionsEle);
         LDR.Options.appendStudHighContrastOptions(this.optionsEle);
         LDR.Options.appendStudLogoOptions(this.optionsEle);
-        LDR.Options.appendCameraOptions(this.optionsEle, this.ldrButtons);
         LDR.Options.appendFooter(this.optionsEle);
         LDR.Options.listeners.push(force => self.redrawAll(force));
     }

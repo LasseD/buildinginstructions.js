@@ -114,8 +114,7 @@ LDR.StepHandler.prototype.removeGeometries = function() {
 
 LDR.StepHandler.prototype.getCurrentStepIndex = function() {
     if(this.current === -1) {
-        console.warn('Current step called from pre step!');
-        return 1;
+	return this.firstShownIndex-1;
     }
     let subStepHandler = this.steps[this.current].stepHandler;
     if(subStepHandler) {
@@ -484,6 +483,10 @@ LDR.StepHandler.prototype.getBackgroundColorOfCurrentStep = function() {
 }
 
 LDR.StepHandler.prototype.getLevelOfCurrentStep = function() {
+    if(this.current === -1) {
+	console.warn('Level of pre-step is not valid!');
+        return 0;
+    }
     let step = this.steps[this.current];
     let subStepHandler = step.stepHandler;
     if(!subStepHandler || subStepHandler.isAtPlacementStep()) {
@@ -493,7 +496,7 @@ LDR.StepHandler.prototype.getLevelOfCurrentStep = function() {
 }
 
 LDR.StepHandler.prototype.getAccumulatedBounds = function() {
-    if(this.current === -1) {
+    if(this.isAtPreStep()) {
         throw "Can't get bounds for pre step!";
     }
     let step = this.steps[this.current];

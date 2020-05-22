@@ -965,9 +965,8 @@ LDR.InstructionsManager.prototype.setUpOptions = function() {
                     });
 
                 function callBack() {
-                    let stepIndex = self.stepHandler.getCurrentStepIndex();
                     self.stepHandler.rebuild();
-                    self.stepHandler.moveTo(stepIndex, () => {});
+                    self.stepHandler.moveTo(self.currentStep, () => {});
                     self.handleStepsWalked();
                     
                     self.stepHandler.updateMeshCollectors();
