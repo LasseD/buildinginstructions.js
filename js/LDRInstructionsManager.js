@@ -981,10 +981,14 @@ LDR.InstructionsManager.prototype.setUpOptions = function() {
     let optionsDiv = document.getElementById('options');
 
     LDR.Options.appendHeader(optionsDiv);    
-    LDR.Options.appendOldBrickColorOptions(optionsDiv);
+
+    // Toggles:
     LDR.Options.appendContrastOptions(optionsDiv);
     LDR.Options.appendStudHighContrastOptions(optionsDiv);
     LDR.Options.appendStudLogoOptions(optionsDiv);
+
+    // Other options:
+    LDR.Options.appendOldBrickColorOptions(optionsDiv);
     LDR.Options.appendAnimationOptions(optionsDiv);
     LDR.Options.appendLROptions(optionsDiv, this.ldrButtons);
 

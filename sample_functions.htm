@@ -124,17 +124,16 @@
 
         createFunctionButton({checkPartDescription:pd=>pd.c !== 4 ? "Color everything red" : false}, {handlePartDescription:pd => pd.c=4});
 
-        createFunctionButtonFromObject(LDR.OMR.ColorPartsAccordingToYear(2006));
-        createFunctionButtonFromObject(LDR.OMR.ColorPartsAccordingToYear(2007));
-        createFunctionButtonFromObject(LDR.OMR.UpgradeToReplacements());
+        createFunctionButtonFromObject(LDR.OMR.ColorPartsAccordingToYear(2006, ldrLoader));
+        createFunctionButtonFromObject(LDR.OMR.ColorPartsAccordingToYear(2007, ldrLoader));
+        createFunctionButtonFromObject(LDR.OMR.UpgradeToReplacements(ldrLoader));
         //createFunctionButtonFromObject(LDR.OMR.UpgradeToNewPartsBasedOnYear(2020));
-        createFunctionButtonFromObject(LDR.OMR.StandardizeFileNames('6712'));
+        createFunctionButtonFromObject(LDR.OMR.StandardizeFileNames('6712', ldrLoader));
         createFunctionButtonFromObject(LDR.OMR.FixAuthors('Peter Falk [columbo]'));
         createFunctionButtonFromObject(LDR.OMR.SetLDrawOrg(false));
         createFunctionButtonFromObject(LDR.OMR.SetLDrawOrg(true));
         createFunctionButtonFromObject(LDR.OMR.FixLicenses());
-        createFunctionButtonFromObject(LDR.OMR.FixPlacements());
-        createFunctionButtonFromObject(LDR.OMR.InlineUnofficialParts());
+        createFunctionButtonFromObject(LDR.OMR.FixPlacements(ldrLoader));
       }
 
       function ele(type, cls, parent, desc) {
