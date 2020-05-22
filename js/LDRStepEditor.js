@@ -18,6 +18,9 @@
    - save
  */
 LDR.StepEditor = function(loader, stepHandler, pliBuilder, reset, onChange, modelID) {
+    if(!LDR.Options) {
+        throw "Editor only functions when options are enabled.";
+    }
     this.loader = loader;
     this.stepHandler = stepHandler;
     this.pliBuilder = pliBuilder;
@@ -34,15 +37,15 @@ LDR.StepEditor = function(loader, stepHandler, pliBuilder, reset, onChange, mode
     this.nextID = 0;
 
     function showOrHide() {
-        if(ldrOptions.showEditor) {
+        if(LDR.Options.showEditor) {
             $("#editor").show();
         }
         else{
             $("#editor").hide();
         }
     }
-    ldrOptions.listeners.push(showOrHide);
-    showOrHide(ldrOptions);
+    LDR.Options.listeners.push(showOrHide);
+    showOrHide(LDR.Options);
     
     // Private function to make it easier to create GUI components:
     this.makeEle = function(parent, type, cls, onclick, desc, icon, key) {
@@ -167,8 +170,8 @@ LDR.StepEditor.prototype.updateCurrentStep = function() {
 }
 
 LDR.StepEditor.prototype.toggleEnabled = function() {
-    ldrOptions.showEditor = 1-ldrOptions.showEditor;
-    ldrOptions.onChange();
+    LDR.Options.showEditor = 1-LDR.Options.showEditor;
+    LDR.Options.onChange();
 }
 
 LDR.StepEditor.prototype.save = function() {
@@ -1075,7 +1078,7 @@ LDR.MeshCollector.prototype.updateMeshVisibility = function() {
     let old = this.old;
     this.triangleMeshes.forEach(obj => {
 	if(obj.part && obj.part.hoverBox) {
-            obj.part.hoverBox.visible = v && !old && ldrOptions.showEditor && (obj.part && obj.part.original && obj.part.original.ghost) ? true : false;
+            obj.part.hoverBox.visible = v && !old && LDR.Options.showEditor && (obj.part && obj.part.original && obj.part.original.ghost) ? true : false;
 	}
 	obj.mesh.visible = v && (old || !(obj.part && obj.part.original && obj.part.original.hover));
     });

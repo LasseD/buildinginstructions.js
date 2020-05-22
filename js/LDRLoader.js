@@ -2747,17 +2747,17 @@ LDR.MeshCollector.prototype.removeAllMeshes = function() {
 }
 
 /*
-  Sets '.visible' on all meshes according to ldrOptions and 
+  Sets '.visible' on all meshes according to LDR.Options and 
   visibility of this meshCollector.
  */
 LDR.MeshCollector.prototype.updateMeshVisibility = function() {
     let v = this.visible;
-    let lineV = v && ldrOptions.lineContrast !== 2;
+    let lineV = v && LDR.Options && LDR.Options.lineContrast !== 2;
 
     this.lineMeshes.forEach(obj => obj.mesh.visible = lineV);
 
     let old = this.old;
-    this.triangleMeshes.forEach(obj => obj.mesh.visible = v && (old || !(ldrOptions.showEditor && obj.part && obj.part.original && obj.part.original.ghost))); // Do not show faces for ghosted parts.
+    this.triangleMeshes.forEach(obj => obj.mesh.visible = v && (old || !(LDR.Options && LDR.Options.showEditor && obj.part && obj.part.original && obj.part.original.ghost))); // Do not show faces for ghosted parts.
 }
 
 LDR.MeshCollector.prototype.expandBoundingBoxByPoint = function(p) {
@@ -2785,7 +2785,7 @@ LDR.MeshCollector.prototype.setOldValue = function(old) {
     if(!LDR.Colors.canBeOld) {
 	return;
     }
-    let o = old && ldrOptions.showOldColors === 3;
+    let o = old && LDR.Options && LDR.Options.showOldColors === 3;
     for(let i = 0; i < this.lineMeshes.length; i++) {
 	this.lineMeshes[i].mesh.material.uniforms.old.value = o;
     }
@@ -2829,14 +2829,16 @@ LDR.MeshCollector.prototype.colorLinesHighContrast = function() {
 
 LDR.MeshCollector.prototype.updateState = function(old) {
     this.old = old;
-    this.lineContrast = ldrOptions.lineContrast;
-    this.showOldColors = ldrOptions.showOldColors;
+    if(LDR.Options) {
+        this.lineContrast = LDR.Options.lineContrast;
+        this.showOldColors = LDR.Options.showOldColors;
+    }
 }
 
 LDR.MeshCollector.prototype.update = function(old) {
     // Check if lines need to be recolored:
-    if(this.lineContrast !== ldrOptions.lineContrast) {
-	if(ldrOptions.lineContrast === 1) {
+    if(LDR.Options && this.lineContrast !== LDR.Options.lineContrast) {
+	if(LDR.Options.lineContrast === 1) {
 	    this.colorLinesLDraw();
         }
 	else {
@@ -2860,7 +2862,7 @@ LDR.MeshCollector.prototype.overwriteColor = function(color) {
         const m = obj.mesh.material;
         const c = m.colorManager;
 	c.overWrite(color);
-	let colors = !edge || ldrOptions.lineContrast > 0 ? c.shaderColors : c.highContrastShaderColors;
+	let colors = !edge || LDR.Options && LDR.Options.lineContrast > 0 ? c.shaderColors : c.highContrastShaderColors;
 
 	if(colors.length === 1) {
 	    m.uniforms.color.value = colors[0];

@@ -96,9 +96,8 @@
         animateConstruction();
       }
 
-      var ldrOptions = new LDR.Options();
-      ldrOptions.lineContrast = 2; // No lines.
-      ldrOptions.studs = 2; // Logos are made using textures
+      LDR.Options.lineContrast = 2; // No lines.
+      LDR.Options.studs = 2; // Logos are made using textures
 
       let storage; // Make custom storage that attempts to generate parts before fetching them.
       LDR.Studs.makeGenerators('', 0, 2);

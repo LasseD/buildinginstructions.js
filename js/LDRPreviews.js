@@ -116,7 +116,9 @@ LDR.Previews.prototype.draw = function(id) {
 
 	let backupAge = this.ldrLoader.physicalRenderingAge;
 	this.ldrLoader.physicalRenderingAge = 0; // Ensure non-physical renderer is used.
-	ldrOptions.lineContrast = 1;
+	if(LDR.Options) {
+            LDR.Options.lineContrast = 1; // Ensure lines are rendered.
+        }
         pt.generateThreePart(this.ldrLoader, 16, p, r, true, false, mc);
 	this.ldrLoader.physicalRenderingAge = backupAge;
 
@@ -184,7 +186,9 @@ LDR.Previews.prototype.initiate = function() {
     };
 
     let onStorageReady = function() {
-        LDR.Studs.makeGenerators('', ldrOptions.studHighContrast, ldrOptions.studLogo);
+        if(LDR.Options) {
+            LDR.Studs.makeGenerators('', LDR.Options.studHighContrast, LDR.Options.studLogo);
+        }
         
         self.ldrLoader = new THREE.LDRLoader(onLoad, self.storage, self.options);
 
@@ -207,8 +211,10 @@ LDR.Previews.prototype.redrawAll = function(force) {
                 pt.baseObject = pt.pliMC = pt.geometry = null;
             }
         }
-        LDR.Studs.setStuds(this.ldrLoader, ldrOptions.studHighContrast, 
-                           ldrOptions.studLogo, () => {}); // Studs.
+        if(LDR.Options) { // Update studs:
+            LDR.Studs.setStuds(this.ldrLoader, LDR.Options.studHighContrast, 
+                               LDR.Options.studLogo, () => {});
+        }
     }
 
     for(let id in this.rendered) {
@@ -296,15 +302,13 @@ LDR.Previews.prototype.createBigPreview = function() {
 
 LDR.Previews.prototype.createOptions = function() {
     let self = this;
-    if(!this.optionsEle) {
-	return;
+    if(this.optionsEle && LDR.Options) {
+        LDR.Options.appendHeader(this.optionsEle);
+        LDR.Options.appendContrastOptions(this.optionsEle);
+        LDR.Options.appendStudHighContrastOptions(this.optionsEle);
+        LDR.Options.appendStudLogoOptions(this.optionsEle);
+        LDR.Options.appendCameraOptions(this.optionsEle, this.ldrButtons);
+        LDR.Options.appendFooter(this.optionsEle);
+        LDR.Options.listeners.push(force => self.redrawAll(force));
     }
-    
-    ldrOptions.appendHeader(this.optionsEle);
-    ldrOptions.appendContrastOptions(this.optionsEle);
-    ldrOptions.appendStudHighContrastOptions(this.optionsEle);
-    ldrOptions.appendStudLogoOptions(this.optionsEle);
-    ldrOptions.appendCameraOptions(this.optionsEle, this.ldrButtons);
-    ldrOptions.appendFooter(this.optionsEle);
-    ldrOptions.listeners.push(force => self.redrawAll(force));
 }

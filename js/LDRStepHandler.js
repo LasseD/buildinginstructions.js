@@ -13,7 +13,7 @@ If a StepHandler more than one placed part, the color and ID of each part are as
 The builder supports the operations:
 - nextStep: Single step forward (if possible)
 - prevStep: Single step back (if possible)
-- moveSteps: Go forward/back a specific number of steps.
+- moveTo: Go to a specific step.
 - Various methods for trieving information regarding the current step (depth, quantities, etc.)
 */
 LDR.StepHandler = function(manager, partDescs, isForMainModel) {
@@ -113,6 +113,10 @@ LDR.StepHandler.prototype.removeGeometries = function() {
 }
 
 LDR.StepHandler.prototype.getCurrentStepIndex = function() {
+    if(this.current === -1) {
+        console.warn('Current step called from pre step!');
+        return 1;
+    }
     let subStepHandler = this.steps[this.current].stepHandler;
     if(subStepHandler) {
         return subStepHandler.getCurrentStepIndex();
@@ -300,7 +304,12 @@ LDR.StepHandler.prototype.prevStep = function(doNotEraseForSubModels) {
 	}
 
         // Update current step to not be old:
-        this.steps[this.length-1].meshCollector.setOldValue(false);
+        if(this.length > 0) {
+            let step = this.steps[this.length-1];
+            if(step.meshCollector) {
+                step.meshCollector.setOldValue(false);
+            }
+        }
 	
 	this.current--;
 	return true;
@@ -347,19 +356,21 @@ LDR.StepHandler.prototype.stepBack = function() {
     }
 }
 
-LDR.StepHandler.prototype.moveSteps = function(steps, onDone) {
+LDR.StepHandler.prototype.moveTo = function(to, onDone) {
+    let self = this;
+
+    let currentStep = this.getCurrentStepIndex();
+    let steps = to - currentStep;
+
     const oneStep = steps > 0 ? 1 : -1;
-    const self = this;
     let step = steps > 0 ? () => self.nextStep(true) : () => self.prevStep(true);
 
-    let walked = 0;
     while(steps !== 0 && step()) {
-        walked+=oneStep;
         steps-=oneStep;
     }
 
     this.cleanUpAfterWalking();
-    onDone(walked);
+    onDone();
 }
 
 /*

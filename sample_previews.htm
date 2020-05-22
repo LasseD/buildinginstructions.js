@@ -59,7 +59,6 @@
    <div id="options"></div>
 
    <script>
-      var ldrOptions = new LDR.Options(); // Remember to make options available at global level.
       new LDR.Previews({}, document.getElementById('options')).initiate(); // Preview automatically finds all canvases of class 'part_icon' and loads their 'id' as a part into the canvas.
 
       let lastSorterIndex = -1;
@@ -89,7 +88,7 @@
           list.sort(sort);
           lastSorterIndex = index;
         }
-        for (var i = 0; i < list.length; i++) {
+        for (let i = 0; i < list.length; i++) {
           list[i].parentNode.appendChild(list[i]);
         }
       });   

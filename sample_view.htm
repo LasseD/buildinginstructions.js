@@ -83,7 +83,6 @@
         console.log("Model rendered in " + (new Date()-startTime) + "ms.");
       }
 
-      let ldrOptions = new LDR.Options(); // Determine how to show lines, studs, and logos. Change options using sample_instruction.htm
       ldrLoader = new THREE.LDRLoader(onLoad, null, {cleanUpPrimitivesAndSubParts:true});
       ldrLoader.load(model);
  </script>

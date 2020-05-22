@@ -146,7 +146,6 @@
         }
       };
 
-      var ldrOptions = new LDR.Options(); // Used throughout the code base.
       ldrLoader = new THREE.LDRLoader(onLoad, storage, {idToUrl:idToUrl});
       ldrLoader.load(partID);
       //LDR.Studs.setStuds(ldrLoader, 0, 1, () => ldrLoader.load(partID));

@@ -96,8 +96,8 @@ LDR.Colors.buildLineMaterial = function(colorManager, color, conditional) {
     colorManager.overWrite(color);
     colorManager.idMaterial = LDR.ColorMaterialIdx++;
 
-    let colors = (ldrOptions.lineContrast === 0) ? colorManager.highContrastShaderColors : 
-	                                           colorManager.shaderColors;
+    let colors = (LDR.Options && LDR.Options.lineContrast === 0) ?
+      colorManager.highContrastShaderColors : colorManager.shaderColors;
     let len = colors.length;
 
     let uniforms = {};

@@ -71,7 +71,6 @@
 
     <script>
       var modelUrl = 'models/test_assembly2.mpd';
-      var ldrOptions = new LDR.Options();
       var builder = null;
       var ldrLoader;
 
@@ -481,7 +480,7 @@
 
         var storage;
         let onStorageReady = function() {
-          LDR.Studs.makeGenerators('', ldrOptions.studHighContrast, ldrOptions.studLogo);
+          LDR.Studs.makeGenerators('', LDR.Options.studHighContrast, LDR.Options.studLogo);
           ldrLoader = new THREE.LDRLoader(onLoad, storage, {buildAssemblies:true});
           storage.retrieveInstructionsFromStorage(ldrLoader, onInstructionsLoaded);
         }
@@ -493,7 +492,7 @@
 	   var bi = document.getElementById('big_parts');
 	   var lpt = document.getElementById('list_parts_toggle');
            var lp = document.getElementById('list_parts')
-	   if(ldrOptions.partsListType == 0) {
+	   if(LDR.Options.partsListType == 0) {
              bit.setAttribute('class', 'toggle_selected');
              lp.style.display = "none";
 	   }
@@ -510,8 +509,8 @@
 	     bit.setAttribute('class', !showList ? "toggle_selected" : "toggle");
 	     lpt.setAttribute('class', showList ? "toggle_selected" : "toggle");
 
-	     ldrOptions.partsListType = showList ? 1 : 0;
-	     ldrOptions.saveOptionsToCookie();
+	     LDR.Options.partsListType = showList ? 1 : 0;
+	     LDR.Options.saveOptionsToCookie();
 	   }
       </script>
     </div>
@@ -523,12 +522,12 @@
     <div id="options" />
       <script>
     var optionsDiv = document.getElementById('options');
-    ldrOptions.appendHeader(optionsDiv);    
-    ldrOptions.appendContrastOptions(optionsDiv);
-    ldrOptions.appendLROptions(optionsDiv, ldrButtons);
-    ldrOptions.appendCameraOptions(optionsDiv, ldrButtons);
-    ldrOptions.appendFooter(optionsDiv);
-    ldrOptions.listeners.push(() => buildItem(0));
+    LDR.Options.appendHeader(optionsDiv);    
+    LDR.Options.appendContrastOptions(optionsDiv);
+    LDR.Options.appendLROptions(optionsDiv, ldrButtons);
+    LDR.Options.appendCameraOptions(optionsDiv, ldrButtons);
+    LDR.Options.appendFooter(optionsDiv);
+    LDR.Options.listeners.push(() => buildItem(0));
     var lastSorterIndex = -1;
 
     $("span.sorter").click(function() {

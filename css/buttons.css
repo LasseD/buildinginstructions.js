@@ -1,4 +1,4 @@
-#prev_button, #next_button, #next_button_large, #reset_camera_button, #zoom_in_button, #zoom_out_button, #zoom_in_button_large, #zoom_out_button_large, #done_button {
+.top_button, #next_button_large, #reset_camera_button, #zoom_in_button, #zoom_out_button, #zoom_in_button_large, #zoom_out_button_large, #done_button {
     position: relative;
     cursor: pointer;
     /* Prevent text select: */
@@ -16,14 +16,7 @@
     transform: translate(-50%, 0);
     min-width: 300px;
 }
-#lower_right_buttons {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  width: 200px;
-  height: 200px;
-}
-#next_button, #next_button_large, #done_button {
+#next_button_large, #done_button {
   position: absolute;
   right: 0;
   bottom: 0;
@@ -181,7 +174,7 @@ line, polygon, rect, polyline, path, circle, ellipse {
     stroke: black;
 }
 
-@media screen and (max-width: 570px) {
+@media screen and (max-width: 700px) {
   #top_buttons {
     height: 12vw;
   }
@@ -204,7 +197,7 @@ line, polygon, rect, polyline, path, circle, ellipse {
     top: 12vw;
   }
 
-  #lower_right_buttons, #next_button_large svg, #done_button svg, #next_button_large, #done_button {
+  #next_button_large svg, #done_button svg, #next_button_large, #done_button {
     width: 30vw;
     height: 30vw;
   }

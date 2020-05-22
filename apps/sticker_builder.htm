@@ -177,7 +177,7 @@ function onError(obj) {
 /*
   three.js rendering:
  */
-var ldrOptions = new LDR.Options(); LDR.Studs.makeGenerators('', ldrOptions.studHighContrast, ldrOptions.studLogo);  // Determine how to show parts.
+LDR.Studs.makeGenerators('', LDR.Options.studHighContrast, LDR.Options.studLogo); // Determine how to show parts.
 
 // Set up camera:
 var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);

@@ -58,14 +58,12 @@
       let ldrLoader;
       let builder;
 
-      let ldrOptions = new LDR.Options();
-
       // Set up camera:
       let camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
 
       // Set up scene:
       let scene = new THREE.Scene();
-      scene.background = new THREE.Color(ldrOptions.bgColor);
+      scene.background = new THREE.Color(LDR.Options.bgColor);
       let baseObject = new THREE.Group(); // Shown model is added to this.
       scene.add(baseObject);
 
@@ -176,8 +174,8 @@
 	// Red Points:
 	let pointGeometry = new THREE.BufferGeometry();
 	pointGeometry.setAttribute('position', mainModel.geometry.buildVertexAttribute(inv));
-	pointMaterial = new THREE.PointsMaterial({size: ldrOptions.pointSize, color: ldrOptions.pointColor});
-	pointMaterial.visible = ldrOptions.pointSize > 0;
+	pointMaterial = new THREE.PointsMaterial({size: LDR.Options.pointSize, color: LDR.Options.pointColor});
+	pointMaterial.visible = LDR.Options.pointSize > 0;
 	let markerPoints = new THREE.Points(pointGeometry, pointMaterial);
 	baseObject.add(markerPoints);
 
@@ -263,17 +261,17 @@
   <div id="options"></div>
   <script>
     let optionsDiv = document.getElementById('options');
-    ldrOptions.appendHeader(optionsDiv);    
-    ldrOptions.appendPartPointSizeOptions(optionsDiv);
-    ldrOptions.appendPartColorOptions(optionsDiv);
-    ldrOptions.appendContrastOptions(optionsDiv);
-    ldrOptions.appendCameraOptions(optionsDiv, ldrButtons);
-    ldrOptions.appendFooter(optionsDiv);
-    ldrOptions.listeners.push(function() {
-      scene.background = new THREE.Color(ldrOptions.bgColor);
-      pointMaterial.color = new THREE.Color(ldrOptions.pointColor);
-      pointMaterial.visible = ldrOptions.pointSize > 0;
-      pointMaterial.size = ldrOptions.pointSize;
+    LDR.Options.appendHeader(optionsDiv);    
+    LDR.Options.appendPartPointSizeOptions(optionsDiv);
+    LDR.Options.appendPartColorOptions(optionsDiv);
+    LDR.Options.appendContrastOptions(optionsDiv);
+    LDR.Options.appendCameraOptions(optionsDiv, ldrButtons);
+    LDR.Options.appendFooter(optionsDiv);
+    LDR.Options.listeners.push(function() {
+      scene.background = new THREE.Color(LDR.Options.bgColor);
+      pointMaterial.color = new THREE.Color(LDR.Options.pointColor);
+      pointMaterial.visible = LDR.Options.pointSize > 0;
+      pointMaterial.size = LDR.Options.pointSize;
       if(builder) {
         builder.drawAllIcons();
       }
