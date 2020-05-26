@@ -27,3 +27,17 @@ h1 {
 #done_holder .donation_title {
     font-size: 1.2em;
 }
+@media screen and (max-width: 700px) {
+  h1 {
+    font-size: 5vw;
+  }
+  .bar span {
+    font-size: 4vw;
+  }
+  .interaction {
+    font-size: 4vw;
+  }
+  .other_actions a {
+    font-size: 4vw;
+  }
+}

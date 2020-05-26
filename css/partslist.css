@@ -410,3 +410,12 @@ td.list_image {
   color: white;
   background-color: #4BB;
 }
+
+@media screen and (max-width: 750px) {
+    #instructions_link, #overview_link, .other_actions a, .bar span {
+        font-size: 4vw;    
+    }
+    .other_actions, .quick_links {
+	border-spacing: 2vw;
+    }
+}

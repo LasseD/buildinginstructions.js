@@ -579,3 +579,12 @@ a {
 .key a {
   text-decoration: none;
 }
+
+@media screen and (max-width: 800px) {
+    #instructions_link, #edit_link, #parts_list_link, #more_instructions, #more_actions, .key, .other_actions a, .bar span {
+	font-size: 4vw;
+    }
+    .other_actions, .quick_links {
+	border-spacing: 2vw;
+    }
+}

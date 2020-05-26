@@ -413,7 +413,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
                 }
                 saveThisCommentLine = false;
 	    }
-	    else if(parts[1] === "!DATA" && parts.length === 3 && parts[2] === "START") { // Inline texmap :
+	    else if(parts[1] === "!DATA" && parts.length === 3 && parts[2] === "START") { // Inline texmap : https://www.ldraw.org/article/47.html
                 skipPart = true;
                 // Take over parsing in order to read full encoded block:
                 let encodedContent = '';
@@ -429,7 +429,6 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
                     encodedContent += parts[1].substring(2);
                     if(parts.length > 2) encodedContent += parts.slice(2).join('');
                 }
-                console.warn('Inline texmap file encountered - standard not yet finalized, so errors might occur!');
 
                 let detectMimetype = id => id.endsWith('jpg') || id.endsWith('jpeg') ? 'jpeg' : 'png'; // Only png supported according to the spec.
 		let pid = part.ID;
