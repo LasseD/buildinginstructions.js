@@ -200,6 +200,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
     let inHeader = true;
     let hasFILE = false;
     let skipPart = false;
+    let inNoFile = false; // Set to true when "0 NOFILE" is encountered.
 
     // TEXMAP support:
     let texmapPlacement = null;
@@ -221,6 +222,19 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
             parts = parts.slice(2); // Texmap content.
             lineType = parseInt(parts[0]);
         }
+
+	//console.log('Parsing line', i, 'of type', lineType, 'color', colorID, ':', line); // Useful if you encounter parse errors.
+
+	let is = type => (parts.length >= 3 && type === parts[1]);
+
+	if(inNoFile) { // Skip all NOFILE content:
+	    if(is("FILE") || is("!DATA")) { // https://www.ldraw.org/article/47.html
+		inNoFile = false;
+	    }
+	    else {
+		continue;
+	    }
+	}
 
         let colorID;
 	if(lineType !== 0) {
@@ -246,11 +260,6 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
         if(texmapPlacement && texmapPlacement.used) {
             texmapPlacement = null;
         }
-
-	//console.log('Parsing line', i, 'of type', lineType, 'color', colorID, ':', line); // Useful if you encounter parse errors.
-
-	let l3 = parts.length >= 3;
-	let is = type => l3 && type === parts[1];
 
         // Set the model description
         if(!part.modelDescription && modelDescription) {
@@ -335,6 +344,10 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 	    }
 	    else if(is("!CMDLINE")) {
 		part.preferredColor = parseInt(parts[2].substring(2));
+                saveThisCommentLine = false;
+	    }
+	    else if(parts[1] === "NOFILE") { // Skip all NOFILE content:
+		inNoFile = true;
                 saveThisCommentLine = false;
 	    }
 	    else if(parts[1] === "BFC") {
