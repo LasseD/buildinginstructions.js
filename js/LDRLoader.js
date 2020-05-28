@@ -803,7 +803,7 @@ THREE.LDRLoader.prototype.toLDR = function() {
     }
 
     // Inline texmaps:
-    const CHARACTERS_PER_LINE = 76;
+    const CHARACTERS_PER_LINE = 80;
     function outputDataUrl(id, mimetype, content) {
         if(!dataUrlsToOutput.hasOwnProperty(id)) {
             return;

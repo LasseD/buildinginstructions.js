@@ -521,15 +521,14 @@ THREE.LDRLoader.prototype.toLDROMR = function() {
     });
 
     // Inline texmaps:
-    const CHARACTERS_PER_LINE = 76;
+    const CHARACTERS_PER_LINE = 80;
     function outputDataUrl(id, mimetype, content) {
-        ret += "0 FILE " + id + "\r\n";
-        ret += "0 !DATA START\r\n";
+        ret += "0 !DATA " + id + "\r\n";
         let lines = Math.ceil(content.length / CHARACTERS_PER_LINE);
         for(let i = 0; i < content.length; i += CHARACTERS_PER_LINE) {
-            ret += "0 !:" + content.substr(i, CHARACTERS_PER_LINE) + "\r\n";
+            ret += "0 !: " + content.substr(i, CHARACTERS_PER_LINE) + "\r\n";
         }
-        ret += "0 !DATA END\r\n\r\n";
+        ret += "\r\n";
     }
     this.texmapDataurls.forEach(obj => outputDataUrl(obj.id, obj.mimetype, obj.content));
 
