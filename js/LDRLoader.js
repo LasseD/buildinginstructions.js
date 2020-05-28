@@ -107,7 +107,7 @@ THREE.LDRLoader.prototype.load = function(id) {
         }
 	return;
     }
-    //console.log('Loading ' + id + ' (' + urls.join(' or ') + ')');
+    //console.log('Loading', id, urls.join(' or '));
 
     this.partTypes[id] = true; // Temporary value to prevent concurrent fetching over network.
 
@@ -173,7 +173,6 @@ THREE.LDRLoader.prototype.reportProgress = function(id) {
  * data is the plain text file content.
  */
 THREE.LDRLoader.prototype.parse = function(data, defaultID) {
-    //console.log('Parsing', defaultID);
     let parseStartTime = new Date();
     let self = this;
 
@@ -426,21 +425,38 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
                 }
                 saveThisCommentLine = false;
 	    }
-	    else if(parts[1] === "!DATA" && parts.length === 3 && parts[2] === "START") { // Inline texmap : https://www.ldraw.org/article/47.html
-                skipPart = true;
+	    else if(is("!DATA")) { // Inline texmap : https://www.ldraw.org/article/47.html
+                if(parts[2] !== 'START') { // File name on !DATA line (not '0 !DATA START' from preliminary versions):
+                    handleFileLine(parts.slice(2).join(" "));
+                }
+                skipPart = true; // Don't save the texmap as a part.
+
                 // Take over parsing in order to read full encoded block:
                 let encodedContent = '';
                 // Parse encoded content:
+                i++;
                 for(; i < dataLines.length; i++) {
-                    line = dataLines[i]; if(!line) continue;
-                    parts = line.split(' ').filter(x => x !== ''); if(parts.length <= 1) continue; // Empty/ empty comment line
+                    line = dataLines[i];
+                    if(!line) {
+                        continue; // No line
+                    }
+                    parts = line.split(' ').filter(x => x !== '');
+                    if(parts.length <= 1) {
+                        continue; // Empty/ empty comment line
+                    }
                     lineType = parseInt(parts[0]);
-                    if(lineType !== 0) {self.onWarning({message:'Unexpected DATA line type ' + lineType + ' is ignored.', line:i, subModel:part.ID}); continue;}
-                    if(parts.length === 3 && parts[1] === '!DATA' && parts[2] === 'END') break; // Done
-                    if(!parts[1].startsWith('!:')) continue;
+                    if(lineType === 0 && parts.length === 3 && parts[1] === '!DATA' && parts[2] === 'END') {
+                        break; // Special end tag (in case we have encountered a preliminary implementation of inline TEXMAP)
+                    }
+                    if(!(lineType === 0 && parts[1].startsWith('!:'))) {
+                        i--;
+                        break; // Done parsing
+                    }
 
-                    encodedContent += parts[1].substring(2);
-                    if(parts.length > 2) encodedContent += parts.slice(2).join('');
+                    encodedContent += parts[1].substring(2); // In case of '!:CONTENT_WITHHOUT_SPACE' (people forget the space)
+                    if(parts.length > 2) {
+                        encodedContent += parts.slice(2).join(''); // Add remainder of line
+                    }
                 }
 
                 let detectMimetype = id => id.endsWith('jpg') || id.endsWith('jpeg') ? 'jpeg' : 'png'; // Only png supported according to the spec.
@@ -671,7 +687,7 @@ THREE.LDRLoader.prototype.onPartsLoaded = function(loadedParts) {
 
     // Clean up parts and purge those that are empty:
     loadedParts.forEach(pt => pt.cleanUp(self));
-    loadedParts.forEach(pt => {if(pt.steps.length === 0)self.purgePart(pt.ID);});
+    loadedParts.forEach(pt => {if(pt.steps.length === 0 && pt.ID !== 'empty.dat')self.purgePart(pt.ID);});
 
     // Handle assemblies:
     if(this.options.buildAssemblies) {
@@ -751,37 +767,53 @@ THREE.LDRLoader.prototype.toLDR = function() {
     let self = this;
 
     // Part types:
-    let ret = this.getMainModel().toLDR(this);
+    let mainModel = this.getMainModel();
+    let ret = mainModel.toLDR(this);
 
-    let seen = {};
+    let seen = {}, seenDataUrls = {};
+
     function see(id) {
 	if(seen.hasOwnProperty(id)) {
 	    return;
 	}
+
 	seen[id] = true;
 	let pt = self.getPartType(id);
-	pt.steps.forEach(step => step.subModels.forEach(sm => see(sm.ID)));
+        if(!pt.isPart) {
+            pt.steps.forEach(step => step.subModels.forEach(sm => see(sm.ID)));
+        }
     }
-    see(this.mainModel);
+    see(mainModel.ID);
+    mainModel.steps.forEach(step => step.getTexmapPlacements(seenDataUrls));
+    delete seen[mainModel.ID];
 
     this.applyOnPartTypes(pt => {
         if(seen.hasOwnProperty(pt.ID) &&
-	   !(pt.inlined || pt.ID === self.mainModel || pt.isOfficialLDraw())) {
+	   !(pt.inlined || pt.isOfficialLDraw())) {
             ret += pt.toLDR(self);
-	    delete seen[pt.ID];
+            pt.steps.forEach(step => step.getTexmapPlacements(seenDataUrls));
         }
     });
+
+    let dataUrlsToOutput = {};
+    for(let idx in seenDataUrls) {
+        if(seenDataUrls.hasOwnProperty(idx)) {
+            dataUrlsToOutput[seenDataUrls[idx].file] = true;
+        }
+    }
 
     // Inline texmaps:
     const CHARACTERS_PER_LINE = 76;
     function outputDataUrl(id, mimetype, content) {
-        ret += "0 FILE " + id + "\r\n";
-        ret += "0 !DATA START\r\n";
+        if(!dataUrlsToOutput.hasOwnProperty(id)) {
+            return;
+        }
+        ret += "0 !DATA " + id + "\r\n";
         let lines = Math.ceil(content.length / CHARACTERS_PER_LINE);
         for(let i = 0; i < content.length; i += CHARACTERS_PER_LINE) {
-            ret += "0 !:" + content.substr(i, CHARACTERS_PER_LINE) + "\r\n";
+            ret += "0 !: " + content.substr(i, CHARACTERS_PER_LINE) + "\r\n";
         }
-        ret += "0 !DATA END\r\n\r\n";
+        ret += "\r\n";
     }
     this.texmapDataurls.forEach(obj => outputDataUrl(obj.id, obj.mimetype, obj.content));
 
@@ -1359,11 +1391,10 @@ THREE.LDRStep.prototype.getTexmapPlacements = function(seen) {
             return;
         }
         let idx = p.tmp.idx;
-        if(seen.hasOwnProperty(idx)) {
-            return;
+        if(!seen.hasOwnProperty(idx)) {
+            seen[idx] = p.tmp;
+            ret++;
         }
-        seen[idx] = p.tmp;
-        ret++;
     }
     this.subModels.forEach(handle);
     this.triangles.forEach(handle);
