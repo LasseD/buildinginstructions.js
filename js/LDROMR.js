@@ -515,7 +515,7 @@ THREE.LDRLoader.prototype.toLDROMR = function() {
     this.applyOnPartTypes(pt => {
 	if(pt.ID === self.mainModel)
 	    return; // Main model
-        if(!pt.isPart || (pt.isPart && !pt.isOfficialLDraw())) {
+        if(!(pt.isPart && pt.isOfficialLDraw())) {
             ret += pt.toLDR(self); // Non-parts and unofficial parts
         }
     });
