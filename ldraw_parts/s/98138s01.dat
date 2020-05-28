@@ -1,0 +1,21 @@
+0 ~Tile  1 x  1 Round with Groove without Top Face
+0 Name: s\98138s01.dat
+0 Author: Magnus Forsberg [MagFors]
+0 !LDRAW_ORG Subpart UPDATE 2016-01
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+
+0 BFC CERTIFY CCW
+
+0 !HISTORY 2011-12-29 [PTadmin] Official Update 2011-02
+0 !HISTORY 2016-06-17 [MagFors] Reduced the rounded edge to 0.5 ldu
+0 !HISTORY 2016-12-31 [PTadmin] Official Update 2016-01
+
+1 16 0 4 0 1 0 0 0 -1 0 0 0 1 stud4o.dat
+1 16 0 8 0 -1 0 0 0 -1 0 0 0 1 4-4ring8.dat
+1 16 0 7 0 9 0 0 0 1 0 0 0 9 4-4cylo.dat
+1 16 0 7 0 10 0 0 0 1 0 0 0 10 4-4edge.dat
+1 16 0 7 0 -1 0 0 0 -1 0 0 0 1 4-4ring9.dat
+1 16 0 0.5 0 10 0 0 0 6.5 0 0 0 10 4-4cyli.dat
+1 16 0 0 0 0.5 0 0 0 1 0 0 0 0.5 4-4rin18.dat
+1 16 0 0.5 0 -9.5 0 0 0 -9.5 0 0 0 9.5 t02o0526.dat
+1 16 0 0.5 0 9.5 0 0 0 -9.5 0 0 0 -9.5 t02o0526.dat
