@@ -2201,7 +2201,7 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
             material = LDR.Colors.buildStandardMaterial(tc);
 	}
         let mesh = new THREE.Mesh(g.clone(), material); // Using clone to ensure matrix in next line doesn't affect other usages of the geometry.
-        mesh.castShadow = loader.physicalRenderingAge !== 0;
+        mesh.receiveShadow = mesh.castShadow = loader.physicalRenderingAge !== 0;
         mesh.geometry.applyMatrix4(m4);
         //mesh.applyMatrix4(m4); // Doesn't work for all LDraw parts as the matrix needs to be decomposable to position, quaternion and scale. Some rotation matrices in LDraw parts are not decomposable.
         mc.addMesh(tc, mesh, pd);

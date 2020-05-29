@@ -46,7 +46,7 @@ ENV.Scene = function(canvas, color) {
     // Light and background:
     this.hemisphereLight = new THREE.HemisphereLight(0xF4F4FB, 0x30302B, 0.65);
     this.scene.add(this.hemisphereLight);
-    this.scene.background = new THREE.Color(0xDDDDDD);//A0A0A2);
+    this.scene.background = new THREE.Color(0xFBF3FF);
 }
 
 ENV.Scene.prototype.setUpGui = function(setModelColorOriginal) {
@@ -128,6 +128,9 @@ ENV.Scene.prototype.setUpGui = function(setModelColorOriginal) {
                 M.envMapIntensity = m.envMapIntensity;
                 M.transparent = m.transparent;
                 M.opacity = m.opacity;
+                M.shininess = m.shininess;
+                M.reflectivity = m.reflectivity;
+                M.specular = m.specular;
 
                 LDR.Colors.loadTextures(() => {M.normalMap = m.normalMap; M.needsUpdate = true; self.render();});
 		setModelColorOriginal && setModelColorOriginal(idx);
@@ -220,18 +223,18 @@ ENV.Scene.prototype.addPointLight = function() {
 
 ENV.Scene.prototype.addDirectionalLight = function() {
     const dist = this.size.w*1.5;
-    const y = this.size.h*2;
+    const y = this.size.h;
     const diam = this.size.diam;
 
     let light = new THREE.DirectionalLight(0xF6E3FF, 0.4); // color, intensity
-    light.position.set(0.3*dist, 0.3*dist, -0.1*dist);
+    light.position.set(-0.05*dist, y, -0.02*dist);
     light.lookAt(0,0,0);
     
     light.castShadow = true;
     light.shadow.mapSize.width = Math.floor(3*diam); // Adjust according to size!
     light.shadow.mapSize.height = Math.floor(3*diam);
     light.shadow.camera.near = 0.5;
-    light.shadow.camera.far = 3*(dist+y);
+    light.shadow.camera.far = 3.5*(dist+y);
     light.shadow.camera.left = -diam;
     light.shadow.camera.right = diam;
     light.shadow.camera.top = diam;

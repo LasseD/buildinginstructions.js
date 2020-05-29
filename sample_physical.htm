@@ -19,9 +19,15 @@
   <script src="js/three.min.js"></script>
   <script src="js/OrbitControls.js"></script>
   <script src="js/dat.gui.min.js"></script>
+  <script src="js/CopyShader.js"></script>
+  <script src="js/Pass.js"></script>
+  <script src="js/OutlinePass.js"></script>
+  <script src="js/ShaderPass.js"></script>
+  <script src="js/RenderPass.js"></script>
+  <script src="js/MaskPass.js"></script>
+  <script src="js/EffectComposer.js"></script>
   <script src="js/colors.js"></script>
   <script src="js/Scene.js"></script>
-  <script src="js/ClientStorage.js"></script>
   <script src="js/LDROptions.js"></script>
   <script src="js/LDRShaders.js"></script>
   <script src="js/LDRGenerator.js"></script>
@@ -38,10 +44,7 @@
       let model = 'models/corvette_full.mpd';
       //let model = '6091.dat'; // Has overlap of line and conditional line causing trouble for the normal calculation.
       //let model = '85080.dat'; // Has conditional lines partially overlapping with hard corners, also causing issues for normal calculation.
-      //let model = 'models/mf.mpd';
-      //let model = 'models/texmap_dish.ldr';
-      //let model = 'models/488_strip.mpd';
-      //let model = 'models/test0.ldr';
+      //let model = '3024.dat';
 
       // Materials:
       //let model = 'models/luminance.ldr';
@@ -96,31 +99,9 @@
         animateConstruction();
       }
 
-      LDR.Options.lineContrast = 2; // No lines.
-      LDR.Options.studs = 2; // Logos are made using textures
+      LDR.Studs.makeGenerators('', 0, 2); // 0 for no high contrast. 2 for logo on texture.
 
-      let storage; // Make custom storage that attempts to generate parts before fetching them.
-      LDR.Studs.makeGenerators('', 0, 2);
-      storage = {
-        retrievePartsFromStorage: (loader, toBeFetched, onDone) => {
-          let retrieved = [];
-          function attemptGeneratorFirst(id) {
-            let pt = LDR.Generator.make(id);
-            if(pt) {
-              loader.partTypes[id] = pt;
-              pt.steps.forEach(step => step.subModels.forEach(sm => attemptGeneratorFirst(sm.ID)));
-              retrieved.push(id);
-            }
-            else {
-              loader.load(id);
-            }
-          }
-          toBeFetched.forEach(attemptGeneratorFirst);
-          onDone(retrieved);
-        }
-      };
-
-      ldrLoader = new THREE.LDRLoader(onLoad, storage, {physicalRenderingAge:20});
+      ldrLoader = new THREE.LDRLoader(onLoad, null, {physicalRenderingAge:20});
       ldrLoader.load(model);
   </script>
  </body>

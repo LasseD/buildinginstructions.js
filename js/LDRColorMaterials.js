@@ -430,7 +430,7 @@ LDR.Colors.createRandomTexture = function(damage, waves, waveSize, speckle) {
 
 LDR.Colors.envMapPrefix = 'textures/cube/';
 LDR.Colors.textureMaterialPrefix = 'textures/materials/';
-LDR.Colors.listeningMaterials = {trans:[], // Only one trans material.
+LDR.Colors.listeningMaterials = {trans:[], // Only one trans texture.
                                  opaque:[], // -||-
                                  pearl:[],
                                  rubber:[],
@@ -627,7 +627,7 @@ LDR.Colors.buildStandardMaterial = function(colorID, texmap) {
     }
     else if(colorID === 0) {
         registerTextureListener = m => LDR.Colors.listeningMaterials.opaque.push(m);
-        params.specular = 0xFFFFFF; // Increase glare
+        params.specular = 0xDFDFDF; // Increase glare
         params.shininess = 82;
         params.reflectivity = 0.9;
     }
