@@ -381,18 +381,18 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
     b.getSize(size);
 
     // Mark lines shared by lines and conditional lines:
-    let edges = []; // 0/1 => soft, 2 => hard
+    let softEdges = [];
     for(let c in this.conditionalLines) {
 	if(this.conditionalLines.hasOwnProperty(c)) {
             let lines = this.conditionalLines[c];
-            lines.forEach(line => edges[key(line.p1, line.p2)] = true);
+            lines.forEach(line => softEdges[key(line.p1, line.p2)] = true);
         }
     }
     for(let c in this.lines) {
 	if(this.lines.hasOwnProperty(c)) {
             let lines = this.lines[c];
             lines.forEach(line => vertices[line.p1].hard = vertices[line.p2].hard = true);
-            lines.forEach(line => edges[key(line.p1, line.p2)] = false); // This fixes duplicate soft and hard edges.
+            lines.forEach(line => softEdges[key(line.p1, line.p2)] = false); // Some elements have overlappind lines and conditional lines. This reduces the impact of such issues.
         }
     }
     
@@ -414,7 +414,7 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
 
     function renew(i) {
         let v = vertices[i];
-        vertices.push({x:v.x, y:v.y, z:v.z}); // No mark as it is new and will not be visited again.
+        vertices.push({x:v.x, y:v.y, z:v.z}); // No hard/soft marks, as it is new and will not be visited again.
         vLen++;
         return vLen-1;
     }
@@ -422,15 +422,15 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
     function updateTriangleIndices(t) {
         let p1 = t.p1, p2 = t.p2, p3 = t.p3;
         let h1 = vertices[p1].hard, h2 = vertices[p2].hard, h3 = vertices[p3].hard;
-        let k12 = edges[key(p1, p2)], k23 = edges[key(p2, p3)], k31 = edges[key(p3, p1)];
+        let soft12 = softEdges[key(p1, p2)], soft23 = softEdges[key(p2, p3)], soft31 = softEdges[key(p3, p1)];
         
-        if(h1 && !k12 && !k31) {
+        if(h1 && !soft12 && !soft31) {
             t.p1 = renew(t.p1);
         }
-        if(h2 && !k12 && !k23) {
+        if(h2 && !soft12 && !soft23) {
             t.p2 = renew(t.p2);
         }
-        if(h3 && !k23 && !k31) {
+        if(h3 && !soft23 && !soft31) {
             t.p3 = renew(t.p3);
         }
     }
@@ -438,18 +438,18 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
     function updateQuadIndices(t) {
         let p1 = t.p1, p2 = t.p2, p3 = t.p3, p4 = t.p4;
         let h1 = vertices[p1].hard, h2 = vertices[p2].hard, h3 = vertices[p3].hard, h4 = vertices[p4].hard;
-        let k12 = edges[key(p1, p2)], k23 = edges[key(p2, p3)], k34 = edges[key(p3, p4)], k41 = edges[key(p4, p1)];
+        let soft12 = softEdges[key(p1, p2)], soft23 = softEdges[key(p2, p3)], soft34 = softEdges[key(p3, p4)], soft41 = softEdges[key(p4, p1)];
         
-        if(h1 && !k12 && !k41) {
+        if(h1 && !soft12 && !soft41) {
             t.p1 = renew(t.p1);
         }
-        if(h2 && !k12 && !k23) {
+        if(h2 && !soft12 && !soft23) {
             t.p2 = renew(t.p2);
         }
-        if(h3 && !k23 && !k34) {
+        if(h3 && !soft23 && !soft34) {
             t.p3 = renew(t.p3);
         }
-        if(h4 && !k41 && !k34) {
+        if(h4 && !soft41 && !soft34) {
             t.p4 = renew(t.p4);
         }
     }
@@ -586,7 +586,7 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                 if(atLeast3EqualNormals()) { // Just project onto the plane where the normals point the most:
                     // First check if this is a simple rectilinear face:
                     let DX, DY, DZ;
-                    if(vs.some(v => v.o === true)) {
+                    if(vs.some(v => v.o === true)) { // Logo position: Overwrite setUV():
                         let origo = vs.find(v => v.o === true);
                         let anyOther = vs.find(v => v.o !== true);
                         DX = origo.x - anyOther.x;
@@ -634,22 +634,34 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
                 }
 
                 // Math.atan2 -> [-PI;PI], and Math.acos => [0;PI]
-                const PI1 = 0.8 / Math.PI;
-                const PI2 = 0.3 / Math.PI;
-                let toCircle = (y, x) => (Math.atan2(y, x)+Math.PI)*PI2;
-                let toHeight = x => Math.acos(x)*PI1;
-                const C3 = 0.2 / (size.x + size.y + size.z);
-                let dxyz = v => 0.1 + (v.x + v.y + v.z)*C3;
+                const CONST1 = 0.7 / Math.PI;
+                let toCircle = (y, x) => {
+                    let ret = Math.abs(Math.atan2(y, x)) * CONST1; // Circle direction => 70%
+                    return ret;
+                }
+                const CONST3 = 0.3 / (size.x + size.y + size.z);
+                let dxyz = v => 0.1 + (v.x + v.y + v.z)*CONST3; // Scramble 30% offset by vertex position.
+                
+                if(NX < 1e-7 && setUV((v,i) => dxyz(v) + toCircle(ns[i].y, ns[i].z), dx, false) ||
+                   NY < 1e-7 && setUV((v,i) => dxyz(v) + toCircle(ns[i].x, ns[i].z), dy, false) ||
+                   NZ < 1e-7 && setUV((v,i) => dxyz(v) + toCircle(ns[i].x, ns[i].y), dz, false)) {
+                    return;
+                }
 
-                if(NY >= Math.max(NX + NZ)) {
-                    setUV((v,i) => dxyz(v) + toCircle(ns[i].x, ns[i].z),
-                          (v,i) => dxyz(v) + toHeight(ns[i].y), false) ||
+                const CONST2 = 0.7 / Math.PI;
+                let toHeight = x => Math.acos(x)*CONST2; // Height caused by normal turn => 70%
+
+                if(NY <= Math.min(NX, NZ)) {
+                    if(!setUV((v,i) => dxyz(v) + toCircle(ns[i].x, ns[i].z),
+                              (v,i) => dxyz(v) + toHeight(ns[i].y), false)) {
                         setUV(dx, dz, true);
+                    }
                 }
                 else {
-                    setUV((v,i) => dxyz(v) + toCircle(ns[i].x, ns[i].y),
-                          (v,i) => dxyz(v) + toHeight(ns[i].z), false) ||
+                    if(!setUV((v,i) => dxyz(v) + toCircle(ns[i].x, ns[i].y),
+                              (v,i) => dxyz(v) + toHeight(ns[i].z), false)) {
                         setUV(dx, dy, true);
+                    }
                 }
             }
 
