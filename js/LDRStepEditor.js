@@ -359,7 +359,7 @@ LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
             let didModelChange = actualChange(info);
 	    if(didModelChange) {
 		self.stepHandler.rebuild();
-		self.stepHandler.moveSteps(info.stepIndex, () => {});
+		self.stepHandler.moveTo(info.stepIndex);
 	    }
 	    self.onChange();
 	    if(didModelChange) {
@@ -643,7 +643,7 @@ LDR.StepHandler.prototype.colorGhosted = function(c) {
     step.original.subModels.forEach(pd => {if(pd.ghost){pd.c = c};});
 
     this.rebuild();
-    this.moveSteps(stepIndex, () => {});
+    this.moveTo(stepIndex);
     return true;
 }
 

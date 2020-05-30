@@ -175,7 +175,8 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
 
 	// Go to step indicated by parameter:
 	if(stepFromParameters > 1) {
-            self.stepHandler.moveTo(stepFromParameters, () => self.handleStepsWalked());
+            self.stepHandler.moveTo(stepFromParameters);
+	    self.handleStepsWalked();
         }
 
 	// Enable pli preview:
@@ -770,7 +771,8 @@ LDR.InstructionsManager.prototype.goToStep = function(step) {
 
     console.log("Going to " + step + " from " + this.currentStep);
     let self = this;
-    this.stepHandler.moveTo(step, () => self.handleStepsWalked());
+    this.stepHandler.moveTo(step);
+    this.handleStepsWalked();
 }
 
 LDR.InstructionsManager.prototype.nextStep = function() {
@@ -966,7 +968,7 @@ LDR.InstructionsManager.prototype.setUpOptions = function() {
 
                 function callBack() {
                     self.stepHandler.rebuild();
-                    self.stepHandler.moveTo(self.currentStep, () => {});
+                    self.stepHandler.moveTo(self.currentStep);
                     self.handleStepsWalked();
                     
                     self.stepHandler.updateMeshCollectors();

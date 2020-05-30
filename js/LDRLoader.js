@@ -779,7 +779,7 @@ THREE.LDRLoader.prototype.toLDR = function() {
 
 	seen[id] = true;
 	let pt = self.getPartType(id);
-        if(!pt.isPart) {
+        if(!pt.isPart || !(pt.inlined || pt.isOfficialLDraw())) {
             pt.steps.forEach(step => step.subModels.forEach(sm => see(sm.ID)));
         }
     }
