@@ -2194,10 +2194,11 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 	if(loader.physicalRenderingAge === 0) { // Simple rendering:
 	    let triangleColorManager = new LDR.ColorManager();
             triangleColorManager.get(tc); // Ensure color is present.
+            tc = parseInt((tc === '16') ? c : tc);
             material = new LDR.Colors.buildTriangleMaterial(triangleColorManager, c, false);
         }
 	else { // Physical rendering:
-            tc = tc === '16' ? c : tc;
+            tc = parseInt((tc === '16') ? c : tc);
             material = LDR.Colors.buildStandardMaterial(tc);
 	}
         let mesh = new THREE.Mesh(g.clone(), material); // Using clone to ensure matrix in next line doesn't affect other usages of the geometry.
@@ -2214,7 +2215,7 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
         }
         this.geometry.texmapGeometries[idx].forEach(obj => {
             let g = obj.g, c2 = obj.c;
-            let c3 = c2 === '16' ? c : c2;
+            let c3 = parseInt(c2 === '16' ? c : c2);
             let textureFile = LDR.TexmapPlacements[idx].file;
 	    
             let material;
@@ -2768,7 +2769,10 @@ LDR.MeshCollector.prototype.addLines = function(mesh, part, conditional) {
     this.opaqueObject.add(mesh);
 }
 
+LDR.MeshCollector.prototype.addHoverBox = () => {};
+
 LDR.MeshCollector.prototype.addMesh = function(color, mesh, part) {
+    this.addHoverBox(mesh, part);
     let parent;
     if(color === 16) {
 	parent = this.sixteenObject;
@@ -2901,7 +2905,14 @@ LDR.MeshCollector.prototype.overwriteColor = function(color) {
         return;
     }
 
+    const sixteenObject = this.sixteenObject;
+
+    let self = this;
     function handle(obj, edge) {
+	if(obj.hasOwnProperty('parent') && obj.parent !== sixteenObject) {
+	    return; // Not sixteen: Don't overwrite the color.
+	}
+
         const m = obj.mesh.material;
         const c = m.colorManager;
 	c.overWrite(color);
