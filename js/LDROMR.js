@@ -204,7 +204,7 @@ LDR.OMR.FixAuthors = function(expectedAuthor) {
 LDR.OMR.FixTyres = function(ldrLoader) {
     function checkPD(pd) {
 	let pt = ldrLoader.getPartType(pd.ID);
-	return pd.c == 0 && pt.isPart && pt.modelDescription.startsWith('Tyre ');
+	return pd.c == 0 && pt.isPart && pt.modelDescription && pt.modelDescription.startsWith('Tyre ');
     }
 
     let handlers = {handlePartDescription: function(pd) {

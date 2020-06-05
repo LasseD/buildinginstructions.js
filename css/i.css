@@ -482,6 +482,9 @@ label, input, textarea {
 /*
   Messages
  */
+#instructions_messages {
+  font-size: 1.5em;
+}
 .warning, .error {
   display: block;
   padding: 0.5vw;

@@ -1888,7 +1888,7 @@ THREE.LDRPartType = function() {
     this.geometry;
     this.cnt = -1;
     this.cleanSteps = false;
-    this.certifiedBFC;
+    this.certifiedBFC = false;
     this.CCW;
     this.consistentFileAndName;
 
