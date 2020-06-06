@@ -174,7 +174,9 @@ LDR.Buttons.prototype.create = function(type, id, onclick, classA) {
     let ret = document.createElement(type);
     ret.setAttribute('id', id);
     if(onclick) {
-        ret.addEventListener('click', onclick);
+	let semaphore = false;
+        ret.addEventListener('mouseup', e => {if(!semaphore){onclick(e);}semaphore=false;});
+	ret.addEventListener('touchend', e => {semaphore=true;onclick(e);});
     }
     if(classA) {
         ret.setAttribute('class', classA);
