@@ -494,7 +494,7 @@ LDR.InstructionsManager.prototype.updatePLI = function(force) {
         this.pliBuilder.drawPLIForStep(true, step, w, h, force);
         this.dh.style.display = 'inline-block';
 	this.dh.setAttribute('class', 'ui_control');
-        this.dh.style.height = this.pliBuilder.canvas.style.height;
+        this.dh.style.height = this.pliBuilder.canvas.style.height || '100px';
         this.dv.style.display = 'none';
 	this.dv.setAttribute('class', '');
         this.dv.style.width = '0px';
@@ -505,7 +505,7 @@ LDR.InstructionsManager.prototype.updatePLI = function(force) {
         this.pliBuilder.drawPLIForStep(false, step, w, h, force);
         this.dv.style.display = 'block';
 	this.dv.setAttribute('class', 'ui_control');
-        this.dv.style.width = this.pliBuilder.canvas.style.width;
+        this.dv.style.width = this.pliBuilder.canvas.style.width || '100px';
         this.dh.style.display = 'none';
 	this.dh.setAttribute('class', '');
         this.dh.style.height = '0px';
