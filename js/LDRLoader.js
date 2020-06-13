@@ -472,7 +472,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
                     let texture = new THREE.Texture(this);
                     texture.needsUpdate = true;
                     self.texmaps[pid] = texture;
-                    self.texmapListeners[pid].forEach(l => l(texture));
+                    self.texmapListeners[pid].forEach(x => x(texture));
                     self.onProgress(pid);
                 };
                 image.src = dataurl;
@@ -630,7 +630,7 @@ THREE.LDRLoader.prototype.loadTexmaps = function() {
 
         function setTexture(texture, file) {
             self.texmaps[file] = texture;
-            self.texmapListeners[file].forEach(listener => listener(texture));
+            self.texmapListeners[file].forEach(x => x(texture));
         }
         LDR.TexmapPlacements.forEach(tmp => {
                 let file = tmp.file; // TODO: Can't currently handle glossmaps.
@@ -779,7 +779,7 @@ THREE.LDRLoader.prototype.toLDR = function() {
 
 	seen[id] = true;
 	let pt = self.getPartType(id);
-        if(!pt.isPart) {
+        if(!pt.isPart || !(pt.inlined || pt.isOfficialLDraw())) {
             pt.steps.forEach(step => step.subModels.forEach(sm => see(sm.ID)));
         }
     }
@@ -1032,18 +1032,20 @@ THREE.LDRLoader.prototype.pack = function() {
   Part description: a part (ID) placed (position, rotation) with a
   given color (16/24 allowed) and invertCCW to allow for sub-parts in DAT-parts.
 */
-THREE.LDRPartDescription = function(colorID, position, rotation, ID, cull, invertCCW, texmapPlacement) {
+THREE.LDRPartDescription = function(colorID, position, rotation, ID, cull, invertCCW, tmp) {
     this.c = colorID; // LDraw ID. Negative values indicate edge colors - see top description.
     this.p = position; // Vector3
     this.r = rotation; // Matrix3
     this.ID = ID.toLowerCase(); // part.dat lowercase
     this.cull = cull;
     this.invertCCW = invertCCW;
-    this.tmp = texmapPlacement;
+    this.tmp = tmp;
     this.ghost;
     this.original; // If this PD is a colored clone of an original PD.
     this.commentLines = [];
-    texmapPlacement && texmapPlacement.use();
+    if(tmp) {
+        tmp.use();
+    }
 }
 
 THREE.LDRPartDescription.prototype.cloneColored = function(colorID) {
@@ -1059,7 +1061,7 @@ THREE.LDRPartDescription.prototype.cloneColored = function(colorID) {
 	c = -colorID-1;
     }
     let ret = new THREE.LDRPartDescription(c, this.p, this.r, this.ID,
-					   this.cull, this.invertCCW, this.texmapPlacement);
+					   this.cull, this.invertCCW, this.tmp);
     ret.REPLACEMENT_PLI = this.REPLACEMENT_PLI;
     ret.commentLines.push(...this.commentLines);
     ret.original = this;
@@ -1099,7 +1101,7 @@ THREE.LDRPartDescription.prototype.placeAt = function(pd) {
 
     let invert = this.invertCCW === pd.invertCCW;
 
-    let ret = new THREE.LDRPartDescription(c, p, r, this.ID, this.cull, invert, this.texmapPlacement);
+    let ret = new THREE.LDRPartDescription(c, p, r, this.ID, this.cull, invert, this.tmp);
     ret.commentLines.push(...this.commentLines);
     return ret;
 }
@@ -1269,7 +1271,7 @@ THREE.LDRStep.prototype.packInto = function(arrayI, arrayF, arrayS, subModelMap,
             throw "Unknown sub model " + sm.ID + ' not in map!';
         }
         arrayI.push(sm.c);
-        arrayI.push(sm.texmapPlacement ? sm.texmapPlacement.idx : -1);        
+        arrayI.push(sm.tmp ? sm.tmp.idx : -1);        
         arrayI.push((subModelMap[sm.ID] * 4) +
                     (sm.invertCCW ? 2 : 0) +
                     (sm.cull ? 1 : 0)); // Encode these three properties into a single int.
@@ -1888,7 +1890,7 @@ THREE.LDRPartType = function() {
     this.geometry;
     this.cnt = -1;
     this.cleanSteps = false;
-    this.certifiedBFC;
+    this.certifiedBFC = false;
     this.CCW;
     this.consistentFileAndName;
 
@@ -2194,10 +2196,11 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 	if(loader.physicalRenderingAge === 0) { // Simple rendering:
 	    let triangleColorManager = new LDR.ColorManager();
             triangleColorManager.get(tc); // Ensure color is present.
+            tc = parseInt((tc === '16') ? c : tc);
             material = new LDR.Colors.buildTriangleMaterial(triangleColorManager, c, false);
         }
 	else { // Physical rendering:
-            tc = tc === '16' ? c : tc;
+            tc = parseInt((tc === '16') ? c : tc);
             material = LDR.Colors.buildStandardMaterial(tc);
 	}
         let mesh = new THREE.Mesh(g.clone(), material); // Using clone to ensure matrix in next line doesn't affect other usages of the geometry.
@@ -2214,7 +2217,7 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
         }
         this.geometry.texmapGeometries[idx].forEach(obj => {
             let g = obj.g, c2 = obj.c;
-            let c3 = c2 === '16' ? c : c2;
+            let c3 = parseInt(c2 === '16' ? c : c2);
             let textureFile = LDR.TexmapPlacements[idx].file;
 	    
             let material;
@@ -2521,7 +2524,7 @@ LDR.TexmapPlacement.prototype.projectPointToPlane = function(n, p0, p) {
 
 // Use this.p = [p1,p2,p3]
 LDR.TexmapPlacement.prototype.getUVPlanar = function(p) {
-    let toPlane = (n, D) => Math.abs(n.x*p.x + n.y*p.y + n.z*p.z + D);
+    let toPlane = (n, D) => n.x*p.x + n.y*p.y + n.z*p.z + D;
 
     let U = toPlane(this.N1, this.D1) / this.N1LenSq;
     let V = 1 - toPlane(this.N2, this.D2) / this.N2LenSq; // Inversion is required since textures by default are flipped
@@ -2768,7 +2771,10 @@ LDR.MeshCollector.prototype.addLines = function(mesh, part, conditional) {
     this.opaqueObject.add(mesh);
 }
 
+LDR.MeshCollector.prototype.addHoverBox = () => {};
+
 LDR.MeshCollector.prototype.addMesh = function(color, mesh, part) {
+    this.addHoverBox(mesh, part);
     let parent;
     if(color === 16) {
 	parent = this.sixteenObject;
@@ -2901,7 +2907,14 @@ LDR.MeshCollector.prototype.overwriteColor = function(color) {
         return;
     }
 
+    const sixteenObject = this.sixteenObject;
+
+    let self = this;
     function handle(obj, edge) {
+	if(obj.hasOwnProperty('parent') && obj.parent !== sixteenObject) {
+	    return; // Not sixteen: Don't overwrite the color.
+	}
+
         const m = obj.mesh.material;
         const c = m.colorManager;
 	c.overWrite(color);

@@ -204,7 +204,7 @@ LDR.OMR.FixAuthors = function(expectedAuthor) {
 LDR.OMR.FixTyres = function(ldrLoader) {
     function checkPD(pd) {
 	let pt = ldrLoader.getPartType(pd.ID);
-	return pd.c == 0 && pt.isPart && pt.modelDescription.startsWith('Tyre ');
+	return pd.c == 0 && pt.isPart && pt.modelDescription && pt.modelDescription.startsWith('Tyre ');
     }
 
     let handlers = {handlePartDescription: function(pd) {
@@ -438,15 +438,20 @@ LDR.OMR.GetHeaderContent = function(pt) {
 
 	    let idx = 2;
 	    let author = parts[idx++];
-	    while(!author.endsWith(']') && idx < parts.length) { // Combine author parts in case of spaces in user name:
+	    while(!(author.endsWith(']') || author.endsWith('}')) && idx < parts.length) { // Combine author parts in case of spaces in user name:
 		author += ' ' + parts[idx++];
 	    }
-	    if(idx === parts.length || !(author.startsWith('[') && author.endsWith(']'))) {
-		otherLines.push(new LDR.Line0('!HISTORY_LINE_AUTHOR_MALFORMED ' + t));
-		return;
-	    }
 
-	    historyLines.push({date:date, author:author, txt:parts.slice(idx).join(' ')});
+	    if(idx === parts.length) {
+		otherLines.push(new LDR.Line0('!HISTORY_LINE_MISSING_END_BRACKET ' + t));
+	    }
+	    else if((author.startsWith('[') && author.endsWith(']')) ||
+		    (author.startsWith('{') && author.endsWith('}'))) {
+		historyLines.push({date:date, author:author, txt:parts.slice(idx).join(' ')});
+	    }
+	    else {
+		otherLines.push(new LDR.Line0('!HISTORY_LINE_AUTHOR_MALFORMED ' + t));
+	    }
 	}
 	else {
 	    otherLines.push(line0);

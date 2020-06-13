@@ -359,7 +359,7 @@ LDR.StepEditor.prototype.createPartGuiComponents = function(parentEle) {
             let didModelChange = actualChange(info);
 	    if(didModelChange) {
 		self.stepHandler.rebuild();
-		self.stepHandler.moveSteps(info.stepIndex, () => {});
+		self.stepHandler.moveTo(info.stepIndex);
 	    }
 	    self.onChange();
 	    if(didModelChange) {
@@ -643,7 +643,7 @@ LDR.StepHandler.prototype.colorGhosted = function(c) {
     step.original.subModels.forEach(pd => {if(pd.ghost){pd.c = c};});
 
     this.rebuild();
-    this.moveSteps(stepIndex, () => {});
+    this.moveTo(stepIndex);
     return true;
 }
 
@@ -1055,25 +1055,11 @@ LDR.MeshCollector.prototype.addHoverBox = function(mesh, part) {
     this.opaqueObject.add(h);
 }
 
-LDR.MeshCollector.prototype.addMesh = function(color, mesh, part) {
-    this.addHoverBox(mesh, part);
-    let parent;
-    if(color === 16) {
-	parent = this.sixteenObject;
-    }
-    else if(LDR.Colors.isTrans(color)) {
-	parent = this.transObject;
-    }
-    else {
-	parent = this.opaqueObject;
-    }
-    this.triangleMeshes.push({mesh:mesh, part:part, parent:parent});
-    parent.add(mesh);
-}
-
 LDR.MeshCollector.prototype.updateMeshVisibility = function() {
     let v = this.visible;
-    this.lineMeshes.forEach(obj => obj.mesh.visible = v);
+    let lineV = v && LDR.Options && LDR.Options.lineContrast !== 2;
+
+    this.lineMeshes.forEach(obj => obj.mesh.visible = lineV);
 
     let old = this.old;
     this.triangleMeshes.forEach(obj => {

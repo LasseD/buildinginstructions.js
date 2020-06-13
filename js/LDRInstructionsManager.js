@@ -175,7 +175,8 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
 
 	// Go to step indicated by parameter:
 	if(stepFromParameters > 1) {
-            self.stepHandler.moveTo(stepFromParameters, () => self.handleStepsWalked());
+            self.stepHandler.moveTo(stepFromParameters);
+	    self.handleStepsWalked();
         }
 
 	// Enable pli preview:
@@ -478,6 +479,8 @@ LDR.InstructionsManager.prototype.updatePLI = function(force) {
 
     if(!this.showPLI) {
         e.style.display = this.dh.style.display = this.dv.style.display = 'none';
+	this.dh.setAttribute('class', '');
+	this.dv.setAttribute('class', '');
         return;
     }
     e.style.display = 'inline-block';
@@ -490,8 +493,10 @@ LDR.InstructionsManager.prototype.updatePLI = function(force) {
         let h = maxHeight;
         this.pliBuilder.drawPLIForStep(true, step, w, h, force);
         this.dh.style.display = 'inline-block';
-        this.dh.style.height = this.pliBuilder.canvas.style.height;
+	this.dh.setAttribute('class', 'ui_control');
+        this.dh.style.height = this.pliBuilder.canvas.style.height || '100px';
         this.dv.style.display = 'none';
+	this.dv.setAttribute('class', '');
         this.dv.style.width = '0px';
     }
     else {
@@ -499,8 +504,10 @@ LDR.InstructionsManager.prototype.updatePLI = function(force) {
         let h = this.pliH;
         this.pliBuilder.drawPLIForStep(false, step, w, h, force);
         this.dv.style.display = 'block';
-        this.dv.style.width = this.pliBuilder.canvas.style.width;
+	this.dv.setAttribute('class', 'ui_control');
+        this.dv.style.width = this.pliBuilder.canvas.style.width || '100px';
         this.dh.style.display = 'none';
+	this.dh.setAttribute('class', '');
         this.dh.style.height = '0px';
     }
 }
@@ -770,7 +777,8 @@ LDR.InstructionsManager.prototype.goToStep = function(step) {
 
     console.log("Going to " + step + " from " + this.currentStep);
     let self = this;
-    this.stepHandler.moveTo(step, () => self.handleStepsWalked());
+    this.stepHandler.moveTo(step);
+    this.handleStepsWalked();
 }
 
 LDR.InstructionsManager.prototype.nextStep = function() {
@@ -966,7 +974,7 @@ LDR.InstructionsManager.prototype.setUpOptions = function() {
 
                 function callBack() {
                     self.stepHandler.rebuild();
-                    self.stepHandler.moveTo(self.currentStep, () => {});
+                    self.stepHandler.moveTo(self.currentStep);
                     self.handleStepsWalked();
                     
                     self.stepHandler.updateMeshCollectors();

@@ -1139,11 +1139,11 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
     }
 
     // Overwrite texmap placement on primitives:
-    if(pd.texmapPlacement) {
+    if(pd.tmp) {
         function copyDown(ps) {
             for(let c in ps) {
                 if(ps.hasOwnProperty(c)) {
-                    ps[c].forEach(t => t.t = pd.texmapPlacement);
+                    ps[c].forEach(t => t.t = pd.tmp);
                 }
             }
         }

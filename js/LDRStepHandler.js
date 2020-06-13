@@ -369,7 +369,6 @@ LDR.StepHandler.prototype.moveTo = function(to, onDone) {
     }
 
     this.cleanUpAfterWalking();
-    onDone();
 }
 
 /*
