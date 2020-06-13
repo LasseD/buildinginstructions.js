@@ -229,7 +229,8 @@
       }
 
       ldrLoader = new THREE.LDRLoader(onLoad, null, {onError:onError, onWarning:onWarning, saveFileLines:true});
-      ldrLoader.load('3001.dat');
+      //ldrLoader.load('3001.dat');
+      ldrLoader.load('98138lexush.dat');
 
       // Color setup:
       let colorPicker = new LDR.ColorPicker(setColor);
@@ -265,13 +266,14 @@
     LDR.Options.appendPartPointSizeOptions(optionsDiv);
     LDR.Options.appendPartColorOptions(optionsDiv);
     LDR.Options.appendContrastOptions(optionsDiv);
-    LDR.Options.appendCameraOptions(optionsDiv, ldrButtons);
     LDR.Options.appendFooter(optionsDiv);
     LDR.Options.listeners.push(function() {
       scene.background = new THREE.Color(LDR.Options.bgColor);
-      pointMaterial.color = new THREE.Color(LDR.Options.pointColor);
-      pointMaterial.visible = LDR.Options.pointSize > 0;
-      pointMaterial.size = LDR.Options.pointSize;
+      if(pointMaterial) {
+        pointMaterial.color = new THREE.Color(LDR.Options.pointColor);
+        pointMaterial.visible = LDR.Options.pointSize > 0;
+        pointMaterial.size = LDR.Options.pointSize;
+      }
       if(builder) {
         builder.drawAllIcons();
       }

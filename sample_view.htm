@@ -20,11 +20,13 @@
     <script src="js/StudioTexmap.js"></script>
     <script>
       let startTime = new Date();
+      let model;
       // The model to be rendered:
-      let model = 'models/corvette_full.mpd';
-      //let model = 'models/textest3.mpd';
-      //let model = 'models/studio_texmaps1.ldr';
-      //let model = 'models/488_strip.mpd';
+      //model = 'models/corvette_full.mpd';
+      //model = 'models/textest3.mpd';
+      //model = 'models/studio_texmaps1.ldr';
+      //model = 'models/lex.mpd';
+      model = 'models/luminance.ldr';
 
       // Set up camera:
       let camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
@@ -69,7 +71,7 @@
       let ldrLoader;
 
       let onLoad = function() {
-        ldrLoader.generate(4, mc);
+        ldrLoader.generate(16, mc);
 
         // Find center of drawn model:
         let b = mc.boundingBox;
@@ -83,7 +85,7 @@
         console.log("Model rendered in " + (new Date()-startTime) + "ms.");
       }
 
-      ldrLoader = new THREE.LDRLoader(onLoad, null, {cleanUpPrimitivesAndSubParts:true});
+      ldrLoader = new THREE.LDRLoader(onLoad, null, {cleanUpPrimitivesAndSubParts:false});
       ldrLoader.load(model);
  </script>
  </body>
