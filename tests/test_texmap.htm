@@ -19,8 +19,8 @@
   <script>
       let ldrLoader;
 
-      var acceptedColors = [15];//[1, 2, 4, 5, 13, 14, 19, 22, 25, 27, 69, 71, 72, 73, 74, 77, 288, 308, 484];
-      LDR.LDRGeometry.prototype.fromStep = function(loader, step) {
+      var acceptedColors = [1, 2, 4, 5, 13, 14, 19, 22, 25, 27, 69, 71, 72, 73, 74, 77, 288, 308, 484];
+      LDR.LDRGeometry.prototype.fromStepX = function(loader, step) {
         let geometries = [];
 
         ///console.dir(step);
@@ -43,8 +43,8 @@
         this.replaceWith(LDR.mergeGeometries(geometries));
       }
 
-      let model = '6092p01.dat';
-      //let model = 'test_texmap.dat';
+      //let model = '6092p01.dat';
+      let model = 'test_texmap.dat';
 
       // Set up camera:
       let camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);

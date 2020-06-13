@@ -78,7 +78,7 @@
         baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
         //baseObject.add(new THREE.Box3Helper(b, 0x0000FF)); // Uncomment if you want to see the bounding box
 
-	camera.zoom = window.innerWidth/b.min.distanceTo(b.max);
+	camera.zoom = 1.5*window.innerWidth/b.min.distanceTo(b.max);
         onWindowResize();
         console.log("Model rendered in " + (new Date()-startTime) + "ms.");
       }

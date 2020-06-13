@@ -1,11 +1,34 @@
-0 FILE main.ldr
-0 Author: Roland Melkert
-1 4  -40 -20 0  1 0 0  0 0 1  0 1 0 plane.dat
-0
-0 FILE plane.dat
-0 plane texmap test
-0 UNOFFICIAL PART
-0 BFC NOCERTIFY
-0 !TEXMAP START PLANAR  0 0 0  40 0 0  0 0 40  test.png
-4 16  0 0 0  40 0 0  40 0 40  0 0 40
+0 Test file based on Baseplate 32 x 32 Raised with Ramp, Pit and Stairs with Grey Stones Pattern
+0 Name: 6092p01.dat
+0 Author: Alex Taylor [anathema]
+0 !LDRAW_ORG Unofficial_Part
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+
+0 BFC CERTIFY CCW
+
+0 !TEXMAP START PLANAR 0 -20 -160  0 -20 -80  0 0 -160 6092p01pit2side1.png
+3 16 -220 0 -160 -220 0 -80 -230 -40 -80 -230 -40 -160
 0 !TEXMAP END
+
+0 BFC INVERTNEXT
+3 1 0 -20 -160  0 -20 -80  0 0 -160
+
+0 BFC INVERTNEXT
+3 2    -300 -20 -160      -300 -20 -80     -300 0 -160
+
+2 0 -300 -20 -160      0 -20 -160      
+2 4 -300 -20 -80     0  -20 -80    
+2 4 -300 0 -160 0  0 -160
+
+
+
+
+0 The next section also fails:
+
+0 0 !TEXMAP START PLANAR 0 -45 91  0 -45 229  0 0 91 6092p01pit1side1.png
+0 0 BFC INVERTNEXT
+0 1 16 -129 -64 229 -6 9 0 0 64 0 0 -9 6 1-8con0.dat
+0 0 BFC INVERTNEXT
+0 1 16 -129 -64 91 -6 9 0 0 64 0 0 9 -6 1-8con0.dat
+0 4 16 -135 -64 229 -135 -64 91 -120 0 100 -120 0 220
+0 0 !TEXMAP END

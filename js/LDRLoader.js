@@ -2524,7 +2524,7 @@ LDR.TexmapPlacement.prototype.projectPointToPlane = function(n, p0, p) {
 
 // Use this.p = [p1,p2,p3]
 LDR.TexmapPlacement.prototype.getUVPlanar = function(p) {
-    let toPlane = (n, D) => Math.abs(n.x*p.x + n.y*p.y + n.z*p.z + D);
+    let toPlane = (n, D) => n.x*p.x + n.y*p.y + n.z*p.z + D;
 
     let U = toPlane(this.N1, this.D1) / this.N1LenSq;
     let V = 1 - toPlane(this.N2, this.D2) / this.N2LenSq; // Inversion is required since textures by default are flipped
