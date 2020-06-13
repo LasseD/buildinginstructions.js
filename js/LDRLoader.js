@@ -472,7 +472,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
                     let texture = new THREE.Texture(this);
                     texture.needsUpdate = true;
                     self.texmaps[pid] = texture;
-                    self.texmapListeners[pid].forEach(l => l(texture));
+                    self.texmapListeners[pid].forEach(x => x(texture));
                     self.onProgress(pid);
                 };
                 image.src = dataurl;
@@ -630,7 +630,7 @@ THREE.LDRLoader.prototype.loadTexmaps = function() {
 
         function setTexture(texture, file) {
             self.texmaps[file] = texture;
-            self.texmapListeners[file].forEach(listener => listener(texture));
+            self.texmapListeners[file].forEach(x => x(texture));
         }
         LDR.TexmapPlacements.forEach(tmp => {
                 let file = tmp.file; // TODO: Can't currently handle glossmaps.
@@ -1032,18 +1032,20 @@ THREE.LDRLoader.prototype.pack = function() {
   Part description: a part (ID) placed (position, rotation) with a
   given color (16/24 allowed) and invertCCW to allow for sub-parts in DAT-parts.
 */
-THREE.LDRPartDescription = function(colorID, position, rotation, ID, cull, invertCCW, texmapPlacement) {
+THREE.LDRPartDescription = function(colorID, position, rotation, ID, cull, invertCCW, tmp) {
     this.c = colorID; // LDraw ID. Negative values indicate edge colors - see top description.
     this.p = position; // Vector3
     this.r = rotation; // Matrix3
     this.ID = ID.toLowerCase(); // part.dat lowercase
     this.cull = cull;
     this.invertCCW = invertCCW;
-    this.tmp = texmapPlacement;
+    this.tmp = tmp;
     this.ghost;
     this.original; // If this PD is a colored clone of an original PD.
     this.commentLines = [];
-    texmapPlacement && texmapPlacement.use();
+    if(tmp) {
+        tmp.use();
+    }
 }
 
 THREE.LDRPartDescription.prototype.cloneColored = function(colorID) {
@@ -1059,7 +1061,7 @@ THREE.LDRPartDescription.prototype.cloneColored = function(colorID) {
 	c = -colorID-1;
     }
     let ret = new THREE.LDRPartDescription(c, this.p, this.r, this.ID,
-					   this.cull, this.invertCCW, this.texmapPlacement);
+					   this.cull, this.invertCCW, this.tmp);
     ret.REPLACEMENT_PLI = this.REPLACEMENT_PLI;
     ret.commentLines.push(...this.commentLines);
     ret.original = this;
@@ -1099,7 +1101,7 @@ THREE.LDRPartDescription.prototype.placeAt = function(pd) {
 
     let invert = this.invertCCW === pd.invertCCW;
 
-    let ret = new THREE.LDRPartDescription(c, p, r, this.ID, this.cull, invert, this.texmapPlacement);
+    let ret = new THREE.LDRPartDescription(c, p, r, this.ID, this.cull, invert, this.tmp);
     ret.commentLines.push(...this.commentLines);
     return ret;
 }
@@ -1269,7 +1271,7 @@ THREE.LDRStep.prototype.packInto = function(arrayI, arrayF, arrayS, subModelMap,
             throw "Unknown sub model " + sm.ID + ' not in map!';
         }
         arrayI.push(sm.c);
-        arrayI.push(sm.texmapPlacement ? sm.texmapPlacement.idx : -1);        
+        arrayI.push(sm.tmp ? sm.tmp.idx : -1);        
         arrayI.push((subModelMap[sm.ID] * 4) +
                     (sm.invertCCW ? 2 : 0) +
                     (sm.cull ? 1 : 0)); // Encode these three properties into a single int.
