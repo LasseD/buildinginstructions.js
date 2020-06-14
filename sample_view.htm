@@ -8,8 +8,14 @@
  <body>
     <script src="js/three.min.js"></script>
     <script src="js/OrbitControls.js"></script>
+    <script src="js/CopyShader.js"></script>
+    <script src="js/Pass.js"></script>
+    <script src="js/OutlinePass.js"></script>
+    <script src="js/ShaderPass.js"></script>
+    <script src="js/RenderPass.js"></script>
+    <script src="js/MaskPass.js"></script>
+    <script src="js/EffectComposer.js"></script>
     <script src="js/colors.js"></script>
-    <script src="js/ClientStorage.js"></script>
     <script src="js/LDROptions.js"></script>
     <script src="js/LDRShaders.js"></script>
     <script src="js/LDRColorMaterials.js"></script>
@@ -20,13 +26,11 @@
     <script src="js/StudioTexmap.js"></script>
     <script>
       let startTime = new Date();
-      let model;
+
       // The model to be rendered:
-      //model = 'models/corvette_full.mpd';
-      //model = 'models/textest3.mpd';
-      //model = 'models/studio_texmaps1.ldr';
-      //model = 'models/lex.mpd';
-      model = 'models/luminance.ldr';
+      let model = 'models/corvette_full.mpd';
+      //let model = 'models/luminance.ldr';
+      //let model = 'models/tnl.mpd';
 
       // Set up camera:
       let camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
@@ -45,20 +49,35 @@
       let mc = new LDR.MeshCollector(opaqueObject, sixteenObject, transObject);
 
       // Set up renderer:
+      let composer, storage;
       let renderer = new THREE.WebGLRenderer({antialias: true});
       renderer.setPixelRatio(window.devicePixelRatio);
       function render() {
-        renderer.render(scene, camera);
+        if(composer) {
+          composer.render();
+        }
+        else {
+          renderer.render(scene, camera);
+        }
       }
       document.body.appendChild(renderer.domElement);
 
       function onWindowResize(){
-        camera.left = -window.innerWidth;
-        camera.right = window.innerWidth;
-        camera.top = window.innerHeight;
-        camera.bottom = -window.innerHeight;
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        camera.left = -w;
+        camera.right = w;
+        camera.top = h;
+        camera.bottom = -h;
         camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        renderer.setSize(w, h);
+
+        composer = new THREE.EffectComposer(renderer);
+        composer.addPass(new THREE.RenderPass(scene, camera));
+        if(!mc.attachGlowPasses(w, h, composer)) {
+          composer = false; // Nothing glows - just render directly.
+        }
         render();
       }
 
@@ -85,6 +104,7 @@
         console.log("Model rendered in " + (new Date()-startTime) + "ms.");
       }
 
+      LDR.Studs.makeGenerators('', LDR.Options.studHighContrast, LDR.Options.studLogo);
       ldrLoader = new THREE.LDRLoader(onLoad, null, {cleanUpPrimitivesAndSubParts:false});
       ldrLoader.load(model);
  </script>

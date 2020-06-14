@@ -2762,6 +2762,8 @@ LDR.MeshCollector = function(opaqueObject, sixteenObject, transObject, outliner)
     this.old = false;
     this.visible = true;
     this.boundingBox;
+    this.glowObjects = []; // {mesh,color}
+    this.overwrittenColor = -1;
     this.isMeshCollector = true;
     this.idx = LDR.MeshCollectorIdx++;
 }
@@ -2781,12 +2783,54 @@ LDR.MeshCollector.prototype.addMesh = function(color, mesh, part) {
     }
     else if(LDR.Colors.isTrans(color)) {
 	parent = this.transObject;
+        let lum = LDR.Colors.getLuminance(color);
+        if(lum > 0) {
+            this.glowObjects.push({mesh:mesh, color:color});
+        }
     }
     else {
 	parent = this.opaqueObject;
     }
     this.triangleMeshes.push({mesh:mesh, part:part, parent:parent});
     parent.add(mesh);
+}
+
+LDR.MeshCollector.prototype.attachGlowPasses = function(w, h, composer) {
+    let map = {};
+    function add(obj) {
+            let mesh = obj.mesh;
+            let color = obj.color;
+            if(!map.hasOwnProperty(color)) {
+                map[color] = [];
+            }
+            map[color].push(mesh);
+    }
+    this.glowObjects.forEach(add);
+
+    // Add sixteenObject if overwrittenColor has luminance:
+    if(this.overwrittenColor >= 0 && LDR.Colors.getLuminance(this.overwrittenColor) > 0) {
+        add({mesh:this.transObject, color:this.overwrittenColor});
+    }
+    
+    // Build and attach passes:
+    let any = false;
+    for(let color in map) {
+        if(!map.hasOwnProperty(color)) {
+            continue;
+        }
+        any = true;
+        let glowPass = new OutlinePass(new THREE.Vector2(w, h), scene, camera, map[color]);
+        let lum = LDR.Colors.getLuminance(color);
+        glowPass.edgeStrength = 3.0;//lum/5;
+        glowPass.edgeThickness = 3.0;//lum/5;
+        glowPass.edgeGlow = lum/15.0;
+        let edgeColor = LDR.Colors.int2Hex(LDR.Colors.getColorHex(color));
+        glowPass.visibleEdgeColor.set(edgeColor);
+        glowPass.hiddenEdgeColor.set('#000000');
+        composer.addPass(glowPass);
+        //console.log('GLOWPASS', color, lum, map[color].length, edgeColor);
+    }
+    return any;
 }
 
 LDR.MeshCollector.prototype.removeAllMeshes = function() {

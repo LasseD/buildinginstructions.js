@@ -88,6 +88,10 @@ LDR.Colors.isTrans = function(colorID) {
     return LDR.Colors[colorID < 0 ? -colorID-1 : colorID].alpha > 0;
 }
 
+LDR.Colors.getLuminance = function(colorID) {
+    return LDR.Colors[colorID < 0 ? -colorID-1 : colorID].luminance;
+}
+
 LDR.Colors.canBeOld = false;
 
 LDR.ColorMaterialIdx = 0;
