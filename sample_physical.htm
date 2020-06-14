@@ -42,9 +42,9 @@
 
       // Test models:
       let model = 'models/corvette_full.mpd';
+      //let model = 'models/tnl.mpd'; // Has glow in the dark elements.
       //let model = '6091.dat'; // Has overlap of line and conditional line causing trouble for the normal calculation.
       //let model = '85080.dat'; // Has conditional lines partially overlapping with hard corners, also causing issues for normal calculation.
-      //let model = '3024.dat';
 
       // Materials:
       //let model = 'models/luminance.ldr';
@@ -79,11 +79,12 @@
         function animateConstruction() {
           animationID = requestAnimationFrame(animateConstruction);
           if(taskListIdx >= taskList.length) {
-            scene.mc.updateMeshVisibility(); // Hide lines
+            //scene.mc.updateMeshVisibility(); // Hide lines
             LDR.Colors.loadTextures(() => scene.render()); // Ensure that we repaint when textures are loaded.
             cancelAnimationFrame(animationID);
-            scene.setUpGui();
-            console.log("Model rendered after " + (new Date()-startTime) + "ms.");
+            scene.setUpGui(onWindowResize);
+            console.log("Model built after " + (new Date()-startTime) + "ms.");
+            onWindowResize(); // Render
             return; // Done.
           }
 
@@ -92,14 +93,13 @@
             taskList[taskListIdx++]();
           }
 
-          scene.repositionFloor(0.001);
-          scene.render();
+          scene.repositionFloor(0.001); // Ensure the floor is placed just below the model - in case it has increased in size since previous frame.
         }
         onWindowResize(); // Render
         animateConstruction();
       }
 
-      LDR.Studs.makeGenerators('', 0, 2); // 0 for no high contrast. 2 for logo on texture.
+      LDR.Studs.makeGenerators('', 0, 2); // 0 for lines is ignored. 2 for logo on texture.
 
       ldrLoader = new THREE.LDRLoader(onLoad, null, {physicalRenderingAge:20});
       ldrLoader.load(model);

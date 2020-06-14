@@ -637,8 +637,14 @@ LDR.Colors.buildStandardMaterial = function(colorID, texmap) {
     }
     else if(color.alpha > 0) {
         registerTextureListener = m => LDR.Colors.listeningMaterials.trans.push(m);
-        params.shininess = 100;
-        params.reflectivity = 0.8;
+        if(color.luminance > 0) {
+            params.shininess = 100;
+            params.reflectivity = 0.1;
+        }
+        else {
+            params.shininess = 100;
+            params.reflectivity = 0.8;
+        }
     }
     else {
         registerTextureListener = m => LDR.Colors.listeningMaterials.opaque.push(m);
@@ -657,15 +663,12 @@ LDR.Colors.buildStandardMaterial = function(colorID, texmap) {
 
     if(color.alpha > 0) {
         m.transparent = true;
-        m.depthWrite = false;
         m.opacity = color.alpha/255;
+        if(!(color.luminance > 0)) {
+            m.depthWrite = false;
+        }
         // TODO: Use alphaMap or volume shader instead. 
         // https://stackoverflow.com/questions/26588568/volume-rendering-in-webgl and https://threejs.org/examples/webgl2_materials_texture3d.html
-    }
-
-    if(color.luminance > 0) {
-        console.warn('Emissive materials not yet supported. Color: ' + colorID);
-        // TODO: Make emissive.
     }
 
     if(!texmap) {

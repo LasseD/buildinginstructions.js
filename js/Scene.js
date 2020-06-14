@@ -131,6 +131,7 @@ ENV.Scene.prototype.setUpGui = function(setModelColorOriginal) {
                 M.shininess = m.shininess;
                 M.reflectivity = m.reflectivity;
                 M.specular = m.specular;
+                self.mc.overwrittenColor = idx;
 
                 LDR.Colors.loadTextures(() => {M.normalMap = m.normalMap; M.needsUpdate = true; self.render();});
 		setModelColorOriginal && setModelColorOriginal(idx);
@@ -183,7 +184,12 @@ ENV.Scene.prototype.setUpGui = function(setModelColorOriginal) {
 }
 
 ENV.Scene.prototype.render = function() {
-    this.renderer.render(this.scene, this.camera);
+    if(this.composer) {
+        this.composer.render();
+    }
+    else {
+        this.renderer.render(this.scene, this.camera);
+    }
 }
 
 ENV.Scene.prototype.onCameraMoved = function() {
@@ -198,6 +204,13 @@ ENV.Scene.prototype.onCameraMoved = function() {
 ENV.Scene.prototype.onChange = function(eleW, eleH) {
     this.renderer.setSize(eleW, eleH);
     this.camera.aspect = eleW/eleH;
+
+    this.composer = new THREE.EffectComposer(this.renderer);
+    this.composer.addPass(new THREE.RenderPass(this.scene, this.camera));
+    if(!this.mc.attachGlowPasses(eleW, eleH, this.scene, this.camera, this.composer)) {
+        this.composer = null;
+    }
+
     this.onCameraMoved();
 }
 

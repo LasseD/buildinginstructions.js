@@ -75,7 +75,7 @@
 
         composer = new THREE.EffectComposer(renderer);
         composer.addPass(new THREE.RenderPass(scene, camera));
-        if(!mc.attachGlowPasses(w, h, composer)) {
+        if(!mc.attachGlowPasses(w, h, scene, camera, composer)) {
           composer = false; // Nothing glows - just render directly.
         }
         render();

@@ -2795,7 +2795,7 @@ LDR.MeshCollector.prototype.addMesh = function(color, mesh, part) {
     parent.add(mesh);
 }
 
-LDR.MeshCollector.prototype.attachGlowPasses = function(w, h, composer) {
+LDR.MeshCollector.prototype.attachGlowPasses = function(w, h, scene, camera, composer) {
     let map = {};
     function add(obj) {
             let mesh = obj.mesh;
@@ -2809,9 +2809,9 @@ LDR.MeshCollector.prototype.attachGlowPasses = function(w, h, composer) {
 
     // Add sixteenObject if overwrittenColor has luminance:
     if(this.overwrittenColor >= 0 && LDR.Colors.getLuminance(this.overwrittenColor) > 0) {
-        add({mesh:this.transObject, color:this.overwrittenColor});
+        add({mesh:this.sixteenObject, color:this.overwrittenColor});
     }
-    
+
     // Build and attach passes:
     let any = false;
     for(let color in map) {
