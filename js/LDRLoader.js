@@ -2826,9 +2826,9 @@ LDR.attachGlowPassesForObjects = function(map, w, h, scene, camera, composer) {
         any = true;
         let glowPass = new OutlinePass(new THREE.Vector2(w, h), scene, camera, map[color]);
         let lum = LDR.Colors.getLuminance(color);
-        glowPass.edgeStrength = 3.0;//lum/5;
-        glowPass.edgeThickness = 3.0;//lum/5;
-        glowPass.edgeGlow = lum/15.0;
+        //glowPass.edgeStrength = LDR.Colors.canBeOld ? 1.0 : 2.5;//lum/5;
+        glowPass.edgeThickness = LDR.Colors.canBeOld ? 1.0 : 3.5;//lum/5;
+        glowPass.edgeGlow = (LDR.Colors.canBeOld ? 0.03 : 0.01)*lum;
         let edgeColor = LDR.Colors.int2Hex(LDR.Colors.getColorHex(color));
         glowPass.visibleEdgeColor.set(edgeColor);
         glowPass.hiddenEdgeColor.set('#000000');

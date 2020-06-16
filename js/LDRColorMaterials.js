@@ -638,8 +638,9 @@ LDR.Colors.buildStandardMaterial = function(colorID, texmap) {
     else if(color.alpha > 0) {
         registerTextureListener = m => LDR.Colors.listeningMaterials.trans.push(m);
         if(color.luminance > 0) {
-            params.shininess = 100;
-            params.reflectivity = 0.1;
+            createMaterial = p => new THREE.MeshStandardMaterial(p);
+            params.metalness = 0.8; // Due to how standard material is implemented, this causes the elements to show when there is no light.
+            params.roughness = 0.6; // Make the 'metal' material appear like plastic.
         }
         else {
             params.shininess = 100;

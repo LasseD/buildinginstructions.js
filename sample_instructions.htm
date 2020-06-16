@@ -135,7 +135,7 @@
         let stepFromUrl = location.search.substr(1).split('&').map(x => x.split('=')).find(x => x[0] === 'step');
         if(stepFromUrl) step = stepFromUrl[1];
 
-      manager = new LDR.InstructionsManager(model, '#', 21, null, ()=>{}, baseURL, step, options);
+      manager = new LDR.InstructionsManager(model, '#', 14, null, ()=>{}, baseURL, step, options);
       });
     </script>
   </body>
