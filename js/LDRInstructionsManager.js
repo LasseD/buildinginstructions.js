@@ -88,9 +88,9 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
     this.pliElement = document.getElementById('pli');
     this.emptyElement = document.getElementById('empty_step');
     this.pliBuilder; // Set in 'onPartsRetrieved'
-    this.pliHighlighted; // Set in onPLIClick. Indicates highlighted part for preview.
-    this.outlinePass; // Set in onWindowResize
-    this.composer; // Set in onWindowResize
+    this.outlinePass = null; // Set in onWindowResize
+    this.glowPasses = []; // Set in onWindowResize
+    this.composer = null; // Set in onWindowResize
     this.resetSelectedObjects();
 
     this.baseObject = new THREE.Group();
@@ -366,11 +366,11 @@ LDR.InstructionsManager.prototype.hasSelectedObject = function(idx) {
 }
 
 LDR.InstructionsManager.prototype.render = function() {
-    if(LDR.Options && LDR.Options.showOldColors <= 1) {
-        if(this.outlinePass && this.composer) {
+    if(this.composer) {
+        if(this.outlinePass !== null) {
             this.outlinePass.selectedObjects = this.selectedObjects;
-            this.composer.render();
         }
+        this.composer.render();
     }
     else {
         this.renderer.render(this.scene, this.camera);
@@ -403,12 +403,29 @@ LDR.InstructionsManager.prototype.onWindowResize = function(force){
     let h = (window.innerHeight-this.adPeek);
     if(force || this.canvas.width !== w || this.canvas.height !== h) {
         this.renderer.setSize(w, h, true);
+        this.composer = new THREE.EffectComposer(this.renderer);
+        this.composer.addPass(new THREE.RenderPass(this.scene, this.camera));
+        let any = false;
         if(LDR.Options && LDR.Options.showOldColors <= 1) {
-            this.composer = new THREE.EffectComposer(this.renderer);
-            this.composer.addPass(new THREE.RenderPass(this.scene, this.camera));
-
+            any = true;
             this.buildOutlinePass(w, h);
-            this.composer.addPass(this.outlinePass);
+            this.composer.addPass(this.outlinePass);            
+        }
+        else {
+            this.outlinePass = null;
+        }
+
+        if(this.stepHandler) { // Attach glow for all mesh collectors up until this step:
+            let map = {};
+            this.stepHandler.getGlowObjects(map);
+            
+            if(LDR.attachGlowPassesForObjects(map, w, h, this.scene, this.camera, this.composer)) {
+                any = true;
+            }
+        }
+
+        if(!any) {
+            this.composer = null;
         }
     }
     this.camera.left   = -this.canvas.clientWidth*0.95;
@@ -762,6 +779,8 @@ LDR.InstructionsManager.prototype.handleStepsWalked = function() {
     this.baseObject.add(this.helper);*/
     this.currentStep = this.stepHandler.getCurrentStepIndex();
     window.history.replaceState(this.currentStep, null, this.baseURL + this.currentStep);
+
+    this.onWindowResize(true); // Ensure composer and passes are set up correctly.
     this.realignModel(0);
     this.onPLIMove(true);
     this.updateUIComponents(false);
@@ -771,7 +790,7 @@ LDR.InstructionsManager.prototype.handleStepsWalked = function() {
 };
 
 LDR.InstructionsManager.prototype.goToStep = function(step) {
-    if(this.pliHighlighted) {
+    if(this.pliPreviewer.showsSomething()) {
         return; // Don't walk when showing preview.
     }
 
@@ -782,7 +801,7 @@ LDR.InstructionsManager.prototype.goToStep = function(step) {
 }
 
 LDR.InstructionsManager.prototype.nextStep = function() {
-    if(this.pliHighlighted) {
+    if(this.pliPreviewer.showsSomething()) {
         return; // Don't walk when showing preview.
     }
     if(this.stepHandler.isAtLastStep()) {
@@ -794,7 +813,7 @@ LDR.InstructionsManager.prototype.nextStep = function() {
 }
 
 LDR.InstructionsManager.prototype.prevStep = function() {
-    if(this.pliHighlighted) {
+    if(this.pliPreviewer.showsSomething()) {
         return; // Don't walk when showing preview.
     }
 
@@ -849,18 +868,9 @@ LDR.InstructionsManager.prototype.onPLIClick = function(e) {
         this.updateUIComponents(true);
     }
     else { // Show preview if no editor:
-        this.pliPreviewer.scene.remove(this.pliHighlighted);
-        
         let pt = this.pliBuilder.getPartType(icon.partID);
-        this.pliHighlighted = pt.mesh;
-        this.pliPreviewer.scene.add(this.pliHighlighted);
-        
-        pt.pliMC.overwriteColor(icon.part.c);
         this.pliPreviewer.showPliPreview(icon);
-        let b = pt.pliMC.boundingBox;
-        let size = b.min.distanceTo(b.max) * 0.6;
-        this.pliPreviewer.subjectSize = size;
-        this.pliPreviewer.onResize();
+        this.pliPreviewer.setPart(pt, icon.c);
     }
 }
 
@@ -936,8 +946,6 @@ LDR.InstructionsManager.prototype.onPLIMove = function(e) {
 
 LDR.InstructionsManager.prototype.hidePliPreview = function() {
     this.pliPreviewer.hidePliPreview();
-    this.pliPreviewer.scene.remove(this.pliHighlighted);
-    this.pliHighlighted = null;
 }
 
 LDR.InstructionsManager.prototype.hideDone = function() {

@@ -70,7 +70,8 @@
       </div>
 
     <script>
-      var modelUrl = 'models/test_assembly2.mpd';
+      //var modelUrl = 'models/test_assembly2.mpd';
+      var modelUrl = 'models/tnl.mpd';
       var builder = null;
       var ldrLoader;
 
@@ -87,8 +88,14 @@
 
       let canvas = document.getElementById('preview');
       var iconRenderer = new THREE.WebGLRenderer({antialias:true, canvas:canvas});
+      let composer = null;
       function render() {
-        iconRenderer.render(iconScene, iconCamera);
+        if(composer) {
+          composer.render();
+        }
+        else {
+          iconRenderer.render(iconScene, iconCamera);
+        }
       }
       iconRenderer.setPixelRatio(window.devicePixelRatio);
       iconRenderer.setSize(w, h);
@@ -524,8 +531,6 @@
     var optionsDiv = document.getElementById('options');
     LDR.Options.appendHeader(optionsDiv);    
     LDR.Options.appendContrastOptions(optionsDiv);
-    LDR.Options.appendLROptions(optionsDiv, ldrButtons);
-    LDR.Options.appendCameraOptions(optionsDiv, ldrButtons);
     LDR.Options.appendFooter(optionsDiv);
     LDR.Options.listeners.push(() => buildItem(0));
     var lastSorterIndex = -1;

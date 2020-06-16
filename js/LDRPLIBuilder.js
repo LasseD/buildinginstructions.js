@@ -82,7 +82,16 @@ LDR.PLIBuilder.prototype.renderIcon = function(partID, c, w, h) {
 
     this.renderer.setSize(w+1, h+1); // +1 to ensure edges are in frame in case of rounding down.
     this.updateCamera(pt.dx, pt.dy);
-    this.renderer.render(this.scene, this.camera);
+
+    let composer = new THREE.EffectComposer(this.renderer);
+    composer.addPass(new THREE.RenderPass(this.scene, this.camera));
+    if(pt.pliMC.attachGlowPasses(w, h, this.scene, this.camera, composer)) {
+        composer.render();
+    }
+    else {
+        this.renderer.render(this.scene, this.camera);
+    }
+
     this.scene.remove(pt.mesh);
 }
 

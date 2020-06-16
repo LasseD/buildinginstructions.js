@@ -447,6 +447,21 @@ LDR.StepHandler.prototype.getCurrentStep = function() {
     return this.getCurrentStepInfo()[2].step;
 }
 
+LDR.StepHandler.prototype.getGlowObjects = function(map) {
+    for(let i = 0; i <= this.current; i++) {
+        let step = this.steps[i];
+	let mc = step.meshCollector;
+	if(mc) {
+	    mc.getGlowObjects(map);
+	    continue;
+	}
+	let sh = step.stepHandler;
+	if(sh) {
+	    sh.getGlowObjects(map);
+	}
+    }
+}
+
 LDR.StepHandler.prototype.getMultiplierOfCurrentStep = function() {
     let step = this.steps[this.current];
     let subStepHandler = step.stepHandler;

@@ -109,6 +109,7 @@
     <div id="options" /></div>
     <script>
       var model = 'models/corvette_full.mpd';
+      //var model = 'models/tnl.mpd';
       //var model = 'models/test_purging.mpd';
       //var model = 'models/fll.mpd';
       //var model = 'models/spiral.ldr';
@@ -134,7 +135,7 @@
         let stepFromUrl = location.search.substr(1).split('&').map(x => x.split('=')).find(x => x[0] === 'step');
         if(stepFromUrl) step = stepFromUrl[1];
 
-        manager = new LDR.InstructionsManager(model, '#', 14, null, ()=>{}, baseURL, step, options);
+      manager = new LDR.InstructionsManager(model, '#', 21, null, ()=>{}, baseURL, step, options);
       });
     </script>
   </body>

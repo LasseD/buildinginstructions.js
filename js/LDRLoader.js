@@ -2795,8 +2795,11 @@ LDR.MeshCollector.prototype.addMesh = function(color, mesh, part) {
     parent.add(mesh);
 }
 
-LDR.MeshCollector.prototype.attachGlowPasses = function(w, h, scene, camera, composer) {
-    let map = {};
+LDR.MeshCollector.prototype.getGlowObjects = function(map) {
+    if(LDR.Colors.canBeOld && this.old && LDR.Options && LDR.Options.showOldColors === 3) {
+        return; // Don't glow when old.
+    }
+
     function add(obj) {
             let mesh = obj.mesh;
             let color = obj.color;
@@ -2811,7 +2814,9 @@ LDR.MeshCollector.prototype.attachGlowPasses = function(w, h, scene, camera, com
     if(this.overwrittenColor >= 0 && LDR.Colors.getLuminance(this.overwrittenColor) > 0) {
         add({mesh:this.sixteenObject, color:this.overwrittenColor});
     }
+}
 
+LDR.attachGlowPassesForObjects = function(map, w, h, scene, camera, composer) {
     // Build and attach passes:
     let any = false;
     for(let color in map) {
@@ -2831,6 +2836,13 @@ LDR.MeshCollector.prototype.attachGlowPasses = function(w, h, scene, camera, com
         //console.log('GLOWPASS', color, lum, map[color].length, edgeColor);
     }
     return any;
+}
+
+LDR.MeshCollector.prototype.attachGlowPasses = function(w, h, scene, camera, composer) {
+    let map = {};
+    this.getGlowObjects(map);
+
+    return LDR.attachGlowPassesForObjects(map, w, h, scene, camera, composer);
 }
 
 LDR.MeshCollector.prototype.removeAllMeshes = function() {
