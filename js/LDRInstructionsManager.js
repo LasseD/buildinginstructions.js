@@ -868,8 +868,8 @@ LDR.InstructionsManager.prototype.onPLIClick = function(e) {
         this.updateUIComponents(true);
     }
     else { // Show preview if no editor:
-        let pt = this.pliBuilder.getPartType(icon.partID);
         this.pliPreviewer.showPliPreview(icon);
+        let pt = this.pliBuilder.getPartType(icon.partID);
         this.pliPreviewer.setPart(pt, icon.c);
     }
 }
