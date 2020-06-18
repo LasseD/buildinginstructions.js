@@ -53,12 +53,17 @@ LDR.OMR.UpgradeToReplacements = function(ldrLoader) {
     };
 }
 
-LDR.OMR.UpgradeToPartsBasedOnYear = function(year) {
-    let R = {};
+LDR.OMR.UpgradeToPartsBasedOnYear = function(year) {    
+    let RMap = {};
     for(let id in LDR.Replacements) {
 	if(LDR.Replacements.hasOwnProperty(id)) {
 	    let obj = LDR.Replacements[id];
-	    R[obj.part] = {part: id, year:obj.year};
+	    if(obj.hasOwnProperty('phaseIn')) {
+		RMap[obj.part] = {part: id, year:obj.phaseIn};
+	    }
+	    else {
+		RMap[obj.part] = {part: id, year:obj.year};
+	    }
 	}
     }
 
@@ -73,10 +78,10 @@ LDR.OMR.UpgradeToPartsBasedOnYear = function(year) {
 		return ['In ' + year + ', LEGO had replaced some part with newer versions. Click here to set parts as they were in ' + year, id+'.dat', obj.part+'.dat'];
 	    }
 	}
-	if(R.hasOwnProperty(id)) {
-	    let obj = R[id];
+	if(RMap.hasOwnProperty(id)) { // Old model - replace with old before phase-in:
+	    let obj = RMap[id];
 	    if(obj.year > year) {
-		return ['In ' + year + ', LEGO had replaced some part with newer versions. Click here to set parts as they were in ' + year, id+'.dat', obj.part+'.dat'];
+		return ['In ' + year + ', LEGO had not yet started using certain parts. Click here to set parts as they were in ' + year, id+'.dat', obj.part+'.dat'];
 	    }
 	}
 	return false;
@@ -96,8 +101,8 @@ LDR.OMR.UpgradeToPartsBasedOnYear = function(year) {
 		    pd.ID = obj.part + '.dat';
 		}
             }
-            else if(R.hasOwnProperty(id)) {
-                let obj = R[id];
+            if(RMap.hasOwnProperty(id)) {
+                let obj = RMap[id];
 		if(obj.year > year) {
 		    pd.ID = obj.part + '.dat';
 		}
