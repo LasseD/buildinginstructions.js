@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <link href="../css/index.css" rel="stylesheet" type="text/css">
+  <link href="../css/preview.css" rel="stylesheet" type="text/css">
+  <meta name="viewport" content="width=device-width" />
+ </head>
+ <body>
+  <script src="../js/jquery.min.js"></script>
+  <script src="../js/three.min.js"></script>
+  <script src="../js/OrbitControls.js"></script>
+  <script src="../js/colors.js"></script>
+  <script src="../js/LDRShaders.js"></script>    
+  <script src="../js/LDRGenerator.js"></script>
+  <script src="../js/LDRColorMaterials.js"></script>
+  <script src="../js/LDRGeometries.js"></script>
+  <script src="../js/LDRLoader.js"></script>
+  <script src="../js/LDRStuds.js"></script>
+  <script src="../js/LDCadGenerator.js"></script>
+  <!--
+0 FILE rubberBandRound-5.ldr
+0 Name: Sculpted
+0 Author: LDCad
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+0 !CATEGORY technic
+0 !KEYWORDS flexible, band
+0 !LDCAD CONTENT [type=path] [addFallBack=default] [looped=true] [displayKind=mm] [curveStep=0] [displayLenCor=0]
+
+0 !LDCAD PATH_POINT [type=circle] [posOri=0 0 0 1 0 0 0 1 0 0 0 1] [prevCPDist=25] [nextCPDist=25] [cirR=30] [cirDir=xyCW] [prevYRoll=0] [nextYRoll=0]
+0 !LDCAD PATH_POINT [type=circle] [posOri=0 65 105 0 0 -1 0 1 0 1 0 0] [prevCPDist=25] [nextCPDist=25] [cirR=20] [cirDir=xyCW] [prevYRoll=0] [nextYRoll=0]
+0 !LDCAD PATH_POINT [type=circle] [posOri=0 90 0 1 0 0 0 1 0 0 0 1] [prevCPDist=25] [nextCPDist=25] [cirR=38] [cirDir=xyCW] [prevYRoll=0] [nextYRoll=0]
+0 !LDCAD PATH_POINT [type=circle] [posOri=-28 40 0 1 0 0 0 1 0 0 0 1] [prevCPDist=25] [nextCPDist=25] [cirR=9.5] [cirDir=xyCCW] [prevYRoll=0] [nextYRoll=0]
+
+0 !LDCAD PATH_SKIN [donCol=16] [donOri=1 0 0 0 1 0 0 0 1] [donPart=ldcRubberBandRndSeg.dat] [donYSize=400%] [donCen=absCen] [donCenYOfs=0] [donFinScale=fitDon2Seg] [donPlace=deform] [donYAlign=0] [donInline=false] [segSize=100%] [segSizeTol=5%] [segsCnt=0] [segsGrp=0] [segsMaxMerge=10] [segsMrgAng=0] [segsMrgRollAng=0] [segsEdgeDelKind=keepFirstLeft]
+
+0 !LDCAD GENERATED [generator=LDCad 1.6d]
+0 //This is the fallback LDraw content for above PATH configuration.
+0 // Do not edit, any changes will be lost upon regeneration.
+0 // The path is approx 247.28 mm (618.21) and exists out of 128 segments.
+
+0 //Some general hints about the document.
+0 UNOFFICIAL PART
+0 BFC CERTIFY CCW
+
+0 //Some of this content has been generated from other LDraw files, many thanks to all involved.
+0 // Credits for "ldcRubberBandRndSeg.dat":
+0 //  Author: LDCad
+0 // Credits for "ldcCyli8.dat":
+0 //  Author: LDCad
+0 // Credits for "ldcConRing8.dat":
+0 //  Author: LDCad
+
+0 //Segments
+0 // Segment 1, this block is (recursively) generated from "ldcRubberBandRndSeg.dat"
+4 16 -28.272373 -4.257695 1.414214 -28.585787 0 1.414214 -30 0 2 -29.671865 -4.461225 2
+4 16 -27.692686 -4.17339 0 -28 0 0 -28.585787 0 1.414214 -28.272373 -4.257695 1.414214
+4 16 -28.272373 -4.257695 -1.414214 -28.585787 0 -1.414214 -28 0 0 -27.692686 -4.17339 0
+4 16 -29.671865 -4.461225 -2 -30 0 -2 -28.585787 0 -1.414214 -28.272373 -4.257695 -1.414214
+4 16 -31.071358 -4.664755 -1.414214 -31.414213 0 -1.414214 -30 0 -2 -29.671865 -4.461225 -2
+4 16 -31.651045 -4.749061 0 -32 0 0 -31.414213 0 -1.414214 -31.071358 -4.664755 -1.414214
+4 16 -31.071358 -4.664755 1.414214 -31.414213 0 1.414214 -32 0 0 -31.651045 -4.749061 0
+4 16 -29.671865 -4.461225 2 -30 0 2 -31.414213 0 1.414214 -31.071358 -4.664755 1.414214
+5 24 -29.671865 -4.461225 2 -30 0 2 -31.071358 -4.664755 1.414214 -28.272373 -4.257695 1.414214
+   -->
+  <script>
+      let ldrLoader;
+
+      let model = '../models/ldcad_rubber_bands_test.mpd';
+
+      // Set up camera:
+      let camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
+      camera.position.set(10000, 7000, 10000);
+      camera.lookAt(new THREE.Vector3());
+
+      // Set up scene:
+      let scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xFFFFFF);
+
+      let baseObject = new THREE.Group(), opaqueObject = new THREE.Group(), sixteenObject = new THREE.Group(); transObject = new THREE.Group();
+      baseObject.add(opaqueObject); // Draw non-trans before trans.
+      baseObject.add(sixteenObject);
+      baseObject.add(transObject);
+      scene.add(baseObject);
+      let mc = new LDR.MeshCollector(opaqueObject, sixteenObject, transObject);
+
+      // Set up renderer:
+      let renderer = new THREE.WebGLRenderer({antialias: true});
+      renderer.setPixelRatio(window.devicePixelRatio);
+      function render() {
+        renderer.render(scene, camera);
+      }
+      document.body.appendChild(renderer.domElement);
+
+      function onWindowResize(){
+        camera.left = -window.innerWidth;
+        camera.right = window.innerWidth;
+        camera.top = window.innerHeight;
+        camera.bottom = -window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        render();
+      }
+
+      // React to user input:
+      let controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.addEventListener('change', render);
+      window.addEventListener('resize', onWindowResize, false);
+
+      let onLoad = function() {
+        ldrLoader.generate(16, mc);
+
+        // Find center of drawn model:
+        let b = mc.boundingBox;
+        let elementCenter = new THREE.Vector3();
+        b.getCenter(elementCenter);
+        baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
+        //baseObject.add(new THREE.Box3Helper(b, 0x0000FF)); // Uncomment if you want to see the bounding box
+
+	camera.zoom = window.innerWidth/b.min.distanceTo(b.max);
+        onWindowResize();
+
+        console.log('Parts in main model');
+        let a = ldrLoader.getMainModel().steps[0].subModels;
+        function report(sm) {
+          let m = ldrLoader.getPartType(sm.ID);
+          console.log(sm.c,LDR.Colors[sm.c].name,sm.ID,m.isPart);
+        }
+        a.forEach(report);
+      }
+
+      let idToUrl = id => ['../ldraw_parts/' + id,
+                           '../ldraw_unofficial/' + id,
+                           '../ldraw_parts/s/' + id,
+                           '../ldraw_unofficial/s/' + id
+                          ];
+      let idToTextureUrl = id => '../textures/'+id;
+
+      ldrLoader = new THREE.LDRLoader(onLoad, null, {idToUrl:idToUrl, idToTextureUrl:idToTextureUrl, onProgress:onWindowResize});
+      ldrLoader.load(model);
+  </script>
+ </body>
+</html>
