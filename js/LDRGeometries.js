@@ -1001,7 +1001,7 @@ LDR.LDRGeometry.prototype.fromPartType = function(loader, pt) {
         this.fromStep(loader, pt.steps[0]);
     }
     else {
-        console.warn('Expected 1 step. Skipping geometry for ' + pt.ID);
+        console.warn('Expected 1 step, not',pt.steps.length,'Skipping geometry for', pt.ID);
     }
 }
 

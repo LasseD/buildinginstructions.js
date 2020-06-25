@@ -482,6 +482,9 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 	    else if(LDR.STUDIO && LDR.STUDIO.handleCommentLine(part, parts)) {
                 saveThisCommentLine = false;
 	    }
+	    else if(LDR.LDCAD && LDR.LDCAD.handleCommentLine(part, parts)) {
+                saveThisCommentLine = false;
+	    }
 	    else if(parts[1][0] === "!") {
 		if(is("!THEME") ||
 		   is("!HELP") ||
@@ -491,7 +494,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 		   is("!LDCAD") ||
 		   is("!LEOCAD") ||
 		   is("!CATEGORY")) {
-		    // Ignore known commands.
+		    // Simply store known commands as header lines.
 		}
 		else {
 		    invertNext = false;
@@ -603,6 +606,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 
     loadedParts = loadedParts.map(id => self.partTypes[id]); // Map from ID to part type.
 
+    // Studio-specific texmap handling:
     if(LDR.STUDIO) {
 	loadedParts.forEach(part => LDR.STUDIO.handlePart(self, part));
     }
@@ -704,6 +708,11 @@ THREE.LDRLoader.prototype.onPartsLoaded = function(loadedParts) {
 	    }
 	};
 	loadedParts.forEach(handleAssemblies);
+    }
+
+    // LDCad-specific generator handling:
+    if(LDR.LDCAD) {
+	loadedParts.forEach(part => LDR.LDCAD.handlePart(self, part));
     }
 
     if(unloadedPartsList.length > 0) {
@@ -928,13 +937,10 @@ THREE.LDRLoader.prototype.unpack = function(obj) {
 	}
 	if(obj.hasOwnProperty('e'+i)) {
             let encoded = obj['e' + i];
-            pt.certifiedBFC = encoded % 2 === 1;
-            pt.CCW = Math.floor(encoded/2) % 2 === 1;
+            pt.decodeHeader(encoded);
 	}
 	self.partTypes[name] = pt;
     });
-
-    this.onPartsLoaded();
 
     return parts;
 }
@@ -1011,8 +1017,7 @@ THREE.LDRLoader.prototype.pack = function() {
             if(pt.inlined) {
                 ret['n' + idx] = (pt.inlined === 'UNOFFICIAL' ? -1 : pt.inlined);
             }
-	    let headerCode = (pt.CCW ? 2 : 0) + (pt.certifiedBFC ? 1 : 0);
-            ret['e' + idx] = headerCode;
+            ret['e' + idx] = pt.encodeHeader();
 	}
     });
 
@@ -1919,6 +1924,10 @@ THREE.LDRPartType.prototype.canBePacked = function() {
            !this.ldraw_org.startsWith('Unofficial_'); // Double-check that it is official.
 }
 
+THREE.LDRPartType.prototype.encodeHeader = function() {
+    return (this.CCW ? 2 : 0) + (this.certifiedBFC ? 1 : 0);
+}
+
 THREE.LDRPartType.prototype.pack = function(loader) {
     let ret = {};
     let id = this.ID;
@@ -1931,10 +1940,15 @@ THREE.LDRPartType.prototype.pack = function(loader) {
     step0.pack(ret, false); // false = Don't save comment lines for parts.
     // Ignore headers and history to save space.
     ret.md = this.modelDescription;
-    ret.e = (this.CCW ? 2 : 0) + (this.certifiedBFC ? 1 : 0);
+    ret.e = this.encodeHeader();
     ret.d = this.ldraw_org;
 
     return ret;
+}
+
+THREE.LDRPartType.prototype.decodeHeader = function(encoded) {
+    this.certifiedBFC = encoded % 2 === 1;
+    this.CCW = Math.floor(encoded/2) % 2 === 1;
 }
 
 THREE.LDRPartType.prototype.unpack = function(obj) {
@@ -1943,8 +1957,7 @@ THREE.LDRPartType.prototype.unpack = function(obj) {
     let step = new THREE.LDRStep();
     step.unpack(obj);
     this.steps = [step];
-    this.certifiedBFC = obj.e % 2 === 1;
-    this.CCW = Math.floor(obj.e/2) % 2 === 1;
+    this.decodeHeader(obj.e);
     this.inlined = 'IDB';
     this.isPart = true;
     this.ldraw_org = obj.d;

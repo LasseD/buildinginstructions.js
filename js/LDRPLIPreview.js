@@ -124,8 +124,10 @@ LDR.PliPreviewer.prototype.showPliPreview = function(icon) {
             partIdNoDat = partIdNoDat.substring(4);
         }
         let partIdBricklink;
+        let blVisibility = 'hidden';
         if(LDR.BL && LDR.BL.hasOwnProperty(partIdNoDat)) {
             partIdBricklink = LDR.BL[partIdNoDat];
+            blVisibility = 'visible';
         }
         else {
             partIdBricklink = partIdNoDat;
@@ -144,11 +146,13 @@ LDR.PliPreviewer.prototype.showPliPreview = function(icon) {
         
         if(icon.inlined && !isNaN(icon.inlined)) {
             bhA.setAttribute('href', "../p/part.php?user_id=" + icon.inlined + "&id=" + encodeURI(partIdNoDat));
-            blA.style.visibility = "hidden";
+            blA.style.visibility = blVisibility;
         }
         else if(!(icon.ldraw_org && !icon.ldraw_org.startsWith('Unofficial_')) && (icon.inlined === undefined || icon.inlined === 'undefined')) {
+            console.log('HIDE B', icon.ldraw_org, icon.inlined, blVisibility);
+            console.dir(icon);
             bhA.setAttribute('href', "../p/part.php?from=" + this.modelID + "&id=" + encodeURI(partIdNoDat));
-            blA.style.visibility = "hidden";
+            blA.style.visibility = blVisibility;
         }
         else {
             bhA.setAttribute('href', '../p/' + partIdNoDat);

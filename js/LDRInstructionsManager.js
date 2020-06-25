@@ -143,8 +143,14 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
 	}
     }
     document.onkeydown = handleKeyDown;
+
+    let onPartsLoadedCalled = true; // Default: Assume parser calls onPartsLoaded
       
     let onLoad = function() {
+        if(!onPartsLoadedCalled) {
+            self.ldrLoader.onPartsLoaded();
+        }
+
         console.log("Done loading at " + (new Date()-startTime) + "ms.");
 
 	// Ensure replaced parts are substituted:
@@ -209,6 +215,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
 
     let onInstructionsLoaded = function(ok, parts) {
 	if(ok) {
+            onPartsLoadedCalled = false; // Because instructions could be fetched from storage
 	    if(parts.length === 0) {
 		onLoad(); // Done!
 	    }
