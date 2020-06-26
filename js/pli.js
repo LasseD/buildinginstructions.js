@@ -1,4 +1,4 @@
-/* THIS FILE IS AUTO GENERATED FROM BRICKHUB.ORG - 2020-06-25 02:16:02 */
+/* THIS FILE IS AUTO GENERATED FROM BRICKHUB.ORG - 2020-06-26 15:21:06 */
 LDR.PLI={
 '11211':[0.9659,-0.2588,0,0.25,0.933,-0.2588,0.067,0.25,0.9659],
 '2444':[1,0,0,0,-1,-0,0,0,-1],
@@ -203,6 +203,7 @@ LDR.Assemblies={
 LDR.Replacements={
 '2905':{part:"99773",year:2017,phaseIn:2009},
 '32123b':{part:"32123a",year:2008},
+'3326a':{part:"62519",year:2009,phaseIn:2008},
 '3647':{part:"10928",year:2017,phaseIn:2008},
 '3648a':{part:"3648b",year:1999,phaseIn:1993},
 '3650a':{part:"3650c",year:1998,phaseIn:1985},

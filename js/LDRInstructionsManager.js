@@ -149,6 +149,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
     let onLoad = function() {
         if(!onPartsLoadedCalled) {
             self.ldrLoader.onPartsLoaded();
+	    onPartsLoadedCalled = true;
         }
 
         console.log("Done loading at " + (new Date()-startTime) + "ms.");
