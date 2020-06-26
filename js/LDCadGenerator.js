@@ -53,6 +53,9 @@ THREE.LDRPartType.prototype.encodeHeader = function() {
 
 THREE.LDRPartType.prototype.decodeHeader = function(encoded) {
     this.ldCadGenerated = Math.floor(encoded/4) % 2 === 1;
+    if(this.ldCadGenerated) {
+        this.computeIsPart = () => true;
+    }
     this.certifiedBFC = encoded % 2 === 1;
     this.CCW = Math.floor(encoded/2) % 2 === 1;
 }

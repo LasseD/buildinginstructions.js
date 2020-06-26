@@ -149,8 +149,6 @@ LDR.PliPreviewer.prototype.showPliPreview = function(icon) {
             blA.style.visibility = blVisibility;
         }
         else if(!(icon.ldraw_org && !icon.ldraw_org.startsWith('Unofficial_')) && (icon.inlined === undefined || icon.inlined === 'undefined')) {
-            console.log('HIDE B', icon.ldraw_org, icon.inlined, blVisibility);
-            console.dir(icon);
             bhA.setAttribute('href', "../p/part.php?from=" + this.modelID + "&id=" + encodeURI(partIdNoDat));
             blA.style.visibility = blVisibility;
         }
