@@ -1,6 +1,11 @@
 'use strict';
 
-LDR.Generator = {}; // Generator namespace
+/**
+LDRGenerator defines the LDR.Generator namespace and is used for quick generation of LDraw primitives, such as simple circles, cylinders and discs.
+ */
+LDR.Generator = {
+
+};
 
 LDR.Generator.map = {
     '1-4edge.dat': () => LDR.Generator.makeCircle4(1),
@@ -20,7 +25,7 @@ LDR.Generator.map = {
     '4-4cyls.dat': () => LDR.Generator.makeCylinderSloped(4),
     '1-4disc.dat': () => LDR.Generator.makeDisc(1),
     '2-4disc.dat': () => LDR.Generator.makeDisc(2),
-    //'3-4disc.dat': () => LDR.Generator.makeDisc(3), // TODO Check that this is correct!
+    '3-4disc.dat': () => LDR.Generator.makeDisc(3),
     '4-4disc.dat': () => LDR.Generator.makeDisc(4),
     '2-4ring1.dat': () => LDR.Generator.makeRing(2, 1),
     '4-4ring2.dat': () => LDR.Generator.makeRing(4, 2),
