@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <meta charset=utf-8>
+  <title>Test of studs - simple renderer</title>
+  <meta name="viewport" content="width=device-width" />
+ </head>
+ <body>
+  <script src="../js/jquery.min.js"></script>
+  <script src="../js/three.min.js"></script>
+  <script src="../js/OrbitControls.js"></script>
+  <script src="../js/CopyShader.js"></script>
+  <script src="../js/Pass.js"></script>
+  <script src="../js/OutlinePass.js"></script>
+  <script src="../js/ShaderPass.js"></script>
+  <script src="../js/RenderPass.js"></script>
+  <script src="../js/MaskPass.js"></script>
+  <script src="../js/EffectComposer.js"></script>
+  <script src="../js/colors.js"></script>
+  <script src="../js/Scene.js"></script>    
+  <script src="../js/LDRShaders.js"></script>
+  <script src="../js/LDRGenerator.js"></script>
+  <script src="../js/LDRColorMaterials.js"></script>
+  <script src="../js/LDRGeometries.js"></script>
+  <script src="../js/LDRLoader.js"></script>
+  <script src="../js/LDRStuds.js"></script>
+  <script>
+      //let model = '4755.dat'; // El
+      //let model = 'stugp01-1x2.dat'; // p01
+      //let model = '6541.dat'; // 2
+      let model = '4032a.dat'; // 6
+      //let model = 'stug10-2x2.dat'; // 10
+      //let model = '4773a.dat'; // 13
+      //let model = '92947.dat'; // 15
+      //let model = 's/6042s01.dat'; // 17
+
+      // Set up camera:
+      let camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
+      camera.position.set(10000, 7000, 10000);
+      camera.lookAt(new THREE.Vector3());
+
+      // Set up scene:
+      let scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xFFFFFF);
+
+      let baseObject = new THREE.Group(), opaqueObject = new THREE.Group(), sixteenObject = new THREE.Group(); transObject = new THREE.Group();
+      baseObject.add(opaqueObject); // Draw non-trans before trans.
+      baseObject.add(sixteenObject);
+      baseObject.add(transObject);
+      scene.add(baseObject);
+      let mc = new LDR.MeshCollector(opaqueObject, sixteenObject, transObject);
+
+      // Set up renderer:
+      let composer, storage;
+      let renderer = new THREE.WebGLRenderer({antialias: true});
+      renderer.setPixelRatio(window.devicePixelRatio);
+      function render() {
+        if(composer) {
+          composer.render();
+        }
+        else {
+          renderer.render(scene, camera);
+        }
+      }
+      document.body.appendChild(renderer.domElement);
+
+      function onWindowResize(){
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        camera.left = -w;
+        camera.right = w;
+        camera.top = h;
+        camera.bottom = -h;
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(w, h);
+
+        composer = new THREE.EffectComposer(renderer);
+        composer.addPass(new THREE.RenderPass(scene, camera));
+        if(!mc.attachGlowPasses(w, h, scene, camera, composer)) {
+          composer = false; // Nothing glows - just render directly.
+        }
+        render();
+      }
+
+      // React to user input:
+      let controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.addEventListener('change', render);
+      window.addEventListener('resize', onWindowResize, false);
+
+      // Three.js loader for LDraw models:
+      let ldrLoader;
+      let idToUrl = id => ['../ldraw_parts/' + id, '../ldraw_parts/' + id];
+
+      let onLoad = function() {
+        ldrLoader.generate(16, mc);
+
+        // Find center of drawn model:
+        let b = mc.boundingBox;
+        let elementCenter = new THREE.Vector3();
+        b.getCenter(elementCenter);
+        baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
+
+	camera.zoom = 1.5*window.innerWidth/b.min.distanceTo(b.max);
+        onWindowResize();
+      }
+
+      LDR.Studs.makeGenerators('', 0, 1);
+      ldrLoader = new THREE.LDRLoader(onLoad, null, {idToUrl:idToUrl, cleanUpPrimitivesAndSubParts:false});
+      ldrLoader.load(model);
+ </script>
+ </body>
+</html>
