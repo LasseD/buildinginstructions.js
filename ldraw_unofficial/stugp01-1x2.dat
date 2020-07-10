@@ -1,0 +1,10 @@
+0 Stud with Dot Pattern Group  1 x  2
+0 Name: stugp01-1x2.dat
+0 Author: Steffen [Steffen]
+0 !LDRAW_ORG Unofficial_Primitive
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+
+0 BFC CERTIFY CCW
+
+1 16 -10 0 0 1 0 0 0 1 0 0 0 1 studp01.dat
+1 16  10 0 0 1 0 0 0 1 0 0 0 1 studp01.dat

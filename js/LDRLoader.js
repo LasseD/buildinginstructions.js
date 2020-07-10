@@ -61,7 +61,7 @@ THREE.LDRLoader = function(onLoad, storage, options) {
             let stillToBeFetched = [];
             let added = {};
             toBeFetched.forEach(id => {
-                    if(added.hasOwnProperty(id) || self.partTypes.hasOwnProperty(id)) {
+                    if(added.hasOwnProperty(id)) {
                         return; // Already seen.
                     }
                     added[id] = true;
