@@ -19,8 +19,7 @@
     <script src="../js/ClientStorage.js"></script>
     <script src="../js/LDRLoader.js"></script>
     <script>
-      let partID = 'connhol3.dat';
-      let color = 16;
+      let partID = '3001.dat';
 
       // Set up camera:
       var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
@@ -132,21 +131,21 @@
         if(pt.steps.length === 0) {
           return; // Empty - just make empty.
         }
+
         if(pt.IS_MAIN_MODEL) { // Harlequin the triangles and quads:
           pt.steps.forEach(step => {
-            step.quads.forEach(quad => quad.colorID = acceptedColors[Math.floor(Math.random() * acceptedColors.length)]);
-            step.triangles.forEach(triangle => triangle.colorID = acceptedColors[Math.floor(Math.random() * acceptedColors.length)]);
-            step.subModels.forEach(sm => sm.colorID = acceptedColors[Math.floor(Math.random() * acceptedColors.length)]);
+            step.quads.forEach(quad => quad.c = acceptedColors[Math.floor(Math.random() * acceptedColors.length)]);
+            step.triangles.forEach(triangle => triangle.c = acceptedColors[Math.floor(Math.random() * acceptedColors.length)]);
+            step.subModels.forEach(sm => sm.c = acceptedColors[Math.floor(Math.random() * acceptedColors.length)]);
           });
         }
 
-        pt.steps.forEach(step => {
-            let g = new LDR.LDRGeometry();
-            g.fromStep(loader, step);
-            geometries.push(g);
-        });
-
-        this.replaceWith(LDR.mergeGeometries(geometries));
+        if(pt.steps.length === 1) {
+          this.fromStep(loader, pt.steps[0]);
+        }
+        else {
+          console.warn('Expected 1 step, not',pt.steps.length,'Skipping geometry for', pt.ID);
+        }
       }
 
       let storage;
