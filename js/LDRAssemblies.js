@@ -17,15 +17,13 @@ LDR.AssemblyManager = function(loader) {
     this.partTypeHandlers = {};
 
     // Build the lookup map:
-    this.map = {};
+    this.map = {}; // [{id,c,key}]
 
     function addToMap(mainPart, obj) {
-        if(self.map.hasOwnProperty(mainPart)) {
-            self.map[mainPart].push(obj);
+        if(!self.map.hasOwnProperty(mainPart)) {
+            self.map[mainPart] = [];
         }
-        else {
-            self.map[mainPart] = [obj];
-        }
+        self.map[mainPart].push(obj);
     }
 
     for(ID in LDR.Assemblies) {
@@ -121,7 +119,6 @@ LDR.AssemblyManager = function(loader) {
         let obj = {ID:ID,c:16,keys:keys};
         addToMap(torso.ID, obj);
     }
-    //loader.applyOnPartTypes(pt => pt.steps.forEach(handleTorsosInStep));
 }
 
 LDR.AssemblyManager.prototype.handleStep = function(step) {
@@ -131,7 +128,7 @@ LDR.AssemblyManager.prototype.handleStep = function(step) {
     // First find all sub models that are main models of assemblies:
     function handleSubModel(sm, idx) {
         if(sm.REPLACEMENT_PLI || !self.map.hasOwnProperty(sm.ID)) {
-            return; // Not part of an assembly.
+            return; // Skip when already handled or not relevant.
         }
 
         let aList = self.map[sm.ID];

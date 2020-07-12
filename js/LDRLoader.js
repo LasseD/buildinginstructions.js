@@ -708,7 +708,7 @@ THREE.LDRLoader.prototype.onPartsLoaded = function(loadedParts) {
     loadedParts.forEach(pt => {if(pt.steps.length === 0 && pt.ID !== 'empty.dat')self.purgePart(pt.ID);});
 
     // Handle assemblies:
-    if(this.options.buildAssemblies) {
+    if(LDR.AssemblyManager && this.options.buildAssemblies) {
 	if(!this.assemblyManager) {
             this.assemblyManager = new LDR.AssemblyManager(this);
 	}
@@ -751,7 +751,7 @@ THREE.LDRLoader.prototype.getPartType = function(id) {
 
 THREE.LDRLoader.prototype.setPartType = function(pt) {
     this.partTypes[pt.ID] = pt;
-    if(this.options.buildAssemblies) {
+    if(LDR.AssemblyManager && this.options.buildAssemblies) {
 	if(!this.assemblyManager) {
             this.assemblyManager = new LDR.AssemblyManager(this);
 	}
@@ -976,14 +976,20 @@ THREE.LDRLoader.prototype.pack = function() {
 	names.push(id);
 	let pt = self.getPartType(id);
 	if(pt && !pt.canBePacked()) { // Only (loaded) parts are packed:
-	    scanNames(pt);
+	    scanNamesForPT(pt);
 	}
     }
-    function scanNames(pt) {
-	pt.steps.forEach(step => step.subModels.forEach(sm => scanName(sm.ID)));
+    function scanNamesForSM(sm) {
+        scanName(sm.ID);
+        if(sm.REPLACEMENT_PLI && sm.REPLACEMENT_PLI !== true) {
+            scanName(sm.REPLACEMENT_PLI);
+        }
     }
-    scanNames(mainModel);
-    LDR.TexmapPlacements.forEach(tmp => tmp.fallback.subModels.forEach(sm => scanName(sm.ID)));
+    let scanNamesForStep = step => step.subModels.forEach(scanNamesForSM);
+    let scanNamesForPT = pt => pt.steps.forEach(scanNamesForStep);
+
+    scanNamesForPT(mainModel);
+    LDR.TexmapPlacements.forEach(tmp => scanNamesForStep(tmp.fallback));
 
     let ret = {names:names.join('¤')};
     let arrayF = [], arrayI = [], arrayS = [];
@@ -1557,9 +1563,9 @@ THREE.LDRStep.prototype.countParts = function(loader) {
     let cnt = 0;
 
     this.subModels.forEach(function(subModel) {
-	if(subModel.REPLACEMENT_PLI === true) {
-	    return;
-	}
+        if(subModel.REPLACEMENT_PLI === true) {
+            return;
+        }
         let pt = loader.getPartType(subModel.ID);
 	if(!pt) {
 	    console.warn("Unknown part type: " + subModel.ID);
@@ -1633,7 +1639,7 @@ THREE.LDRStep.prototype.cleanUp = function(loader, newSteps) {
 }
 
 THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, rotation, cull, invertCCW, mc, taskList) {
-    //console.log("STEP: Creating three part for " + this.subModels.length + " sub models in color " + colorID + ", cull: " + cull + ", invertion: " + invertCCW);
+    //console.log("STEP: Creating three part.", this.subModels.length, "sub models in color", colorID, ", cull:", cull, ", invertion:", invertCCW);
     let ownInversion = (rotation.determinant() < 0) !== invertCCW; // Adjust for inversed matrix!
     
     function transformColor(subColorID) {

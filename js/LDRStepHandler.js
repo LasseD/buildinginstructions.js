@@ -196,7 +196,7 @@ LDR.StepHandler.prototype.computeCameraPositionRotation = function(defaultMatrix
  If stepping into a sub model: 
   - Ghost everything earlier (show again once sub-model is done)
 */
-LDR.StepHandler.prototype.nextStep = function(doNotEraseForSubModels) {
+LDR.StepHandler.prototype.nextStep = function(skipDrawing) {
     if(this.isAtPlacementStep() || (this.isForMainModel && this.isAtLastStep())) {
 	return false; // Dont walk past placement step.
     }
@@ -233,10 +233,9 @@ LDR.StepHandler.prototype.nextStep = function(doNotEraseForSubModels) {
 	let meshCollector = step.meshCollector;
 	if(!meshCollector) {
 	    let pd = this.partDescs[0];
-            meshCollector = new LDR.MeshCollector(this.opaqueObject, this.sixteenObject, this.transObject, this.manager);
+            step.meshCollector = meshCollector = new LDR.MeshCollector(this.opaqueObject, this.sixteenObject, this.transObject, this.manager);
 
 	    step.step.generateThreePart(this.loader, pd.c, pd.p, pd.r, true, false, meshCollector);
-	    step.meshCollector = meshCollector;
 	    this.setCurrentBounds(meshCollector.boundingBox);
 
             meshCollector.setOldValue(false); // Ensure outlines shown.
@@ -244,7 +243,7 @@ LDR.StepHandler.prototype.nextStep = function(doNotEraseForSubModels) {
 	    // Helper. Uncomment next line for bounding boxes:
 	    //this.opaqueObject.add(new THREE.Box3Helper(meshCollector.boundingBox, 0xff0000));
 	}
-	else {
+	else if(!skipDrawing) {
 	    meshCollector.draw(false); // New part is not 'old'.
 	    meshCollector.setVisible(true);
 	}
@@ -252,11 +251,11 @@ LDR.StepHandler.prototype.nextStep = function(doNotEraseForSubModels) {
     else { // LDR sub-models:
 	if(subStepHandler.current === -1) {
 	    // We have just stepped into this sub-model: Set all previous steps to invisible (they are already marked as old):
-	    if(!doNotEraseForSubModels) {
+	    if(!skipDrawing) {
 		this.setVisibleUpTo(false, this.current);
             }
 	}
-	subStepHandler.nextStep(doNotEraseForSubModels);
+	subStepHandler.nextStep(skipDrawing);
 	if(subStepHandler.isAtPlacementStep()) {
 	    // Add bounds:
 	    if(!step.bounds) {
@@ -264,7 +263,7 @@ LDR.StepHandler.prototype.nextStep = function(doNotEraseForSubModels) {
 		this.setCurrentBounds(b);
 	    }
 
-	    if(!doNotEraseForSubModels) {
+	    if(!skipDrawing) {
 		this.setVisibleUpTo(true, this.current); // Show the invisible steps again.
 	    }
 	}
@@ -275,7 +274,7 @@ LDR.StepHandler.prototype.nextStep = function(doNotEraseForSubModels) {
 /*
  takes a step back in the building instructions (see nextStep()).
 */
-LDR.StepHandler.prototype.prevStep = function(doNotEraseForSubModels) {
+LDR.StepHandler.prototype.prevStep = function(skipDrawing) {
     if(this.isAtPreStep()) {
 	return false; // Can't move back (also. Prevent walking to pre-step)
     }
@@ -284,7 +283,7 @@ LDR.StepHandler.prototype.prevStep = function(doNotEraseForSubModels) {
 
     // Step down from placement step:
     if(this.isAtPlacementStep()) {
-	if(this.hasExtraParts) { // Don't show extra parts:
+	if(!skipDrawing && this.hasExtraParts) { // Don't show extra parts:
             let mc = this.steps[this.length].meshCollector;
             mc.setVisible(false);
 	}
@@ -314,20 +313,23 @@ LDR.StepHandler.prototype.prevStep = function(doNotEraseForSubModels) {
 	return true;
     }
 
+    // Not at placement step:
     let step = this.steps[this.current];
     let subStepHandler = step.stepHandler;
     if(!subStepHandler) { // Remove standard step:
     	let meshCollector = step.meshCollector;
-	meshCollector.setVisible(false);
+        if(!skipDrawing) {
+            meshCollector.setVisible(false);
+        }
 	this.stepBack();
     }
     else { // There is a subStepHandler, so we have to step inside of it:
-	if(subStepHandler.isAtPlacementStep() && !doNotEraseForSubModels) {
+	if(subStepHandler.isAtPlacementStep() && !skipDrawing) {
 	    this.setVisibleUpTo(false, this.current);
 	}
-	subStepHandler.prevStep(doNotEraseForSubModels);
+	subStepHandler.prevStep(skipDrawing);
 	if(subStepHandler.isAtPreStep()) {
-	    if(!doNotEraseForSubModels) {
+	    if(!skipDrawing) {
 		this.setVisibleUpTo(true, this.current);
             }
 	    this.stepBack();
@@ -374,11 +376,11 @@ LDR.StepHandler.prototype.moveTo = function(to, onDone) {
 /*
 This function is for setting correct visibility after having stepped without updating visibilities:
 */
-LDR.StepHandler.prototype.cleanUpAfterWalking = function(level = 0) {
+LDR.StepHandler.prototype.cleanUpAfterWalking = function() {
     let step = this.current === -1 ? new LDR.StepInfo() : this.steps[this.current];
     let subStepHandler = step.stepHandler;
     if(subStepHandler) {
-	subStepHandler.cleanUpAfterWalking(level+1); // Clean up visiility of all sub models.
+	subStepHandler.cleanUpAfterWalking(); // Clean up visiility of all sub models.
     }
 
     if(subStepHandler && !subStepHandler.isAtPlacementStep()) {

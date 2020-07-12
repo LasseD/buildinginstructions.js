@@ -2,7 +2,7 @@
 
 LDR.STORAGE = function(onReady) {
     let self = this;
-    this.req = indexedDB.open("ldraw", 8);
+    this.req = indexedDB.open("ldraw", 9);
 
     this.req.onupgradeneeded = function(event) {
 	const db = event.target.result;
@@ -28,7 +28,10 @@ LDR.STORAGE = function(onReady) {
 	    // step culling moved to lines
 	}
 	if(event.oldVersion < 8) {
-            // Moved comments to lines of type 1
+            // Moved comments to lines of type 1.
+	}
+	if(event.oldVersion < 9) {
+            // Added assembies to list of parts used in instructions. This fixes bug where storage is used to load model when at a sub model, thus causing double rendering due to asynchroneous fetching from indexedDB... that took 4 days to debug.
 	    var pStore = this.transaction.objectStore("parts");
 	    pStore.clear();
 	    var iStore = this.transaction.objectStore("instructions");
