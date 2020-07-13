@@ -205,7 +205,7 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
     // Find, sort and set up icons to show:
     this.createClickMap(step);
     let textHeight = (!fillHeight ? maxHeight : maxWidth) / Math.sqrt(this.clickMap.length) * 0.19;
-    let [W,H] = Algorithm.PackPlis(fillHeight, maxWidth-4, maxHeight-4, this.clickMap, textHeight);
+    let [W,H] = Algorithm.PackPlis(fillHeight, maxWidth-4, maxHeight-8, this.clickMap, textHeight);
     const DPR = window.devicePixelRatio;
     if(fillHeight) {
         let h = Math.max(100, 12+H);
@@ -271,7 +271,7 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
 	context.beginPath();
 	context.fillStyle = "#CFF";
 	if(icon.desc && icon.desc.startsWith('Technic Axle')) {
-	    context.arc(x+w*0.45, y+h*0.5, w*0.7, 0, 2*Math.PI, false);
+	    context.arc(x+w*0.45, y+h*0.55, h*(0.15 + len*0.18), 0, 2*Math.PI, false);
         }
 	else {
 	    context.rect(x, y, w, h);
