@@ -27,6 +27,9 @@ LDR.Measurer = function(camera) {
 
 LDR.getScreenSize = function() {
     const root = document.documentElement;
+    if(!(root && root.clientWidth && root.clientHeight)) {
+        return [window.outerWidth, window.outerHeight];
+    }
     return [root.clientWidth, root.clientHeight];
 }
 

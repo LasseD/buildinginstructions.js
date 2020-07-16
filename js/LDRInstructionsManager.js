@@ -491,6 +491,7 @@ LDR.InstructionsManager.prototype.updateUIComponents = function(force) {
     this.updatePLI(force);
     this.updateViewPort();
     this.updateCameraZoom();
+
     this.render();
     this.stepEditor && this.stepEditor.updateCurrentStep();
 }
@@ -512,7 +513,7 @@ LDR.InstructionsManager.prototype.updatePLI = function(force = false, quick = fa
     e.style.display = 'inline-block';
     
     let [maxWidth,maxHeight] = LDR.getScreenSize();
-    maxWidth -= e.offsetLeft;
+    maxWidth *= 0.95;//e.offsetLeft + 20;
     maxHeight -= 130 + this.adPeek; // 130 for the top buttons + margins
     
     if(this.fillHeight()) {
@@ -520,7 +521,7 @@ LDR.InstructionsManager.prototype.updatePLI = function(force = false, quick = fa
         let h = maxHeight;
         if(quick) {
             this.pliBuilder.canvas.width = w*window.devicePixelRatio;
-            this.pliBuilder.canvas.style.width = maxWidth+"px";
+            this.pliBuilder.canvas.style.width = w+"px";
         }
         else {
             this.pliBuilder.drawPLIForStep(true, step, w, h, force);

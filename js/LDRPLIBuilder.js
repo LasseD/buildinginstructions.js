@@ -72,7 +72,6 @@ LDR.PLIBuilder.prototype.updateCamera = function(w, h) {
 }
 
 LDR.PLIBuilder.prototype.renderIcon = function(partID, c, w, h) {
-    //console.log('Rendering',partID,c);
     let pt = this.getPartType(partID);
 
     pt.pliMC.overwriteColor(c);
@@ -84,8 +83,8 @@ LDR.PLIBuilder.prototype.renderIcon = function(partID, c, w, h) {
     this.updateCamera(pt.dx, pt.dy);
 
     let composer = new THREE.EffectComposer(this.renderer);
-    composer.addPass(new THREE.RenderPass(this.scene, this.camera));
-    if(pt.pliMC.attachGlowPasses(w, h, this.scene, this.camera, composer)) {
+    if(pt.pliMC.attachGlowPasses(w, h, this.scene, this.camera, composer)) { 
+        composer.addPass(new THREE.RenderPass(this.scene, this.camera));
         composer.render();
     }
     else {
@@ -243,8 +242,11 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
         self.renderIcon(icon.partID, icon.c, w, h);
 	context.drawImage(self.renderer.domElement, x, y);
 	
-        // Code below is to highlight PLI boundary lines:
+        // Hack to ensure it works on Android:
+        [w, h] = LDR.getScreenSize();
+        this.renderer.setSize(w, h, true);
     }
+
     // Draw multipliers:
     context.fillStyle = "#000";
     context.lineWidth = "1";

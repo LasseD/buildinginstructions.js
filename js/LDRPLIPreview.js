@@ -169,6 +169,10 @@ LDR.PliPreviewer.prototype.showPliPreview = function(icon) {
 }
 
 LDR.PliPreviewer.prototype.hidePliPreview = function() {
+    // Hack to ensure it works on Android:
+    [w, h] = LDR.getScreenSize();
+    this.renderer.setSize(w, h, true);
+
     this.clear();
     let fadeOutTime = 400;
     $('#preview_holder, #preview_background, #preview').fadeOut(fadeOutTime);
