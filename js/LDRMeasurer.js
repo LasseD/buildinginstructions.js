@@ -25,6 +25,11 @@ LDR.Measurer = function(camera) {
     this.m.multiply(this.camera.matrixWorldInverse);
 }
 
+LDR.getScreenSize = function() {
+    const root = document.documentElement;
+    return [root.clientWidth, root.clientHeight];
+}
+
 /**
    Measure the screen size of the object using the vertices of the bounding box.
    Useful for displaying full models on screen.

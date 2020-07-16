@@ -84,7 +84,7 @@ body {
   cursor: col-resize;
   border-left: 2px solid black;
   cursor: col-resize;
-  width: 1vw;
+  width: 2vw;
   margin-bottom: 2px;
 }
 #pli_drag_vertical {

@@ -55,14 +55,15 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
     this.adPeek = options.hasOwnProperty('adPeek') ? options.adPeek : 0;
 
     // PLIW either from storage or params:
+    let [allW, allH] = LDR.getScreenSize();
     let storagePLIW = localStorage.getItem('pliW');
     if(storagePLIW !== null && storagePLIW >= 0) {
         this.pliW = storagePLIW;
     }
     else {
-        this.pliW = (window.innerWidth-20) * this.pliMaxWidthPercentage/100;
+        this.pliW = allW * this.pliMaxWidthPercentage/100;
     }
-    let clampW = () => self.pliW = Math.min(Math.max(self.pliW, 0), window.innerWidth-70);
+    let clampW = () => self.pliW = Math.min(Math.max(self.pliW, 0), allW-70);
     clampW();
 
     let storagePLIH = localStorage.getItem('pliH');
@@ -71,9 +72,9 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
         this.pliH = storagePLIH;
     }
     else {
-        this.pliH = (window.innerHeight-this.adPeek) * this.pliMaxHeightPercentage/100;
+        this.pliH = (allH-this.adPeek) * this.pliMaxHeightPercentage/100;
     }
-    let clampH = () => self.pliH = Math.min(Math.max(self.pliH, 0), window.innerHeight-self.adPeek-50);
+    let clampH = () => self.pliH = Math.min(Math.max(self.pliH, 0), allH-self.adPeek-50);
     clampH();
 
     this.lastRefresh = new Date();
@@ -138,7 +139,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
 	    self.hidePliPreview();
             self.hideDone();
         }
-	else if(LDR.Options && LDR.Options.showEditor && self.canEdit) { // Send rest to editor if available:
+	else if(self.stepEditor && LDR.Options && LDR.Options.showEditor && self.canEdit) { // Send rest to editor if available:
 	    self.stepEditor.handleKeyDown(e);
 	}
     }
@@ -267,7 +268,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
     let x, y, pliW, pliH;
     let mouseStart = e => {x = e.clientX; y = e.clientY; pliH = self.pliH; pliW = self.pliW};
     let touchStart = e => {if(e.touches.length > 0) {x = e.touches[0].pageX; y = e.touches[0].pageY; pliH = self.pliH; pliW = self.pliW}};
-    let stop = e => {resizingV = resizingH = false;};
+    let stop = e => {resizingV = resizingH = false; self.onWindowResize()};
 
     // Start:
     this.dv.addEventListener('mousedown', () => resizingV = true);
@@ -289,7 +290,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
                 self.pliW = newW;
                 clampW();
                 localStorage.setItem('pliW', self.pliW);
-                self.onWindowResize();
+                self.updatePLI(false, true);
             }
 	    return true;
         }
@@ -299,7 +300,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
                 self.pliH = newH;
                 clampH();
                 localStorage.setItem('pliH', self.pliH);
-                self.onWindowResize();
+                self.updatePLI(false, true);
             }
 	    return true;
         }
@@ -407,8 +408,8 @@ LDR.InstructionsManager.prototype.buildOutlinePass = function(w, h){
 LDR.InstructionsManager.prototype.onWindowResize = function(force){
     this.topButtonsHeight = document.getElementById('top_buttons').offsetHeight;
 
-    let w = (window.innerWidth-20);
-    let h = (window.innerHeight-this.adPeek);
+    let [w, h] = LDR.getScreenSize();
+    h -= this.adPeek;
     if(force || this.canvas.width !== w || this.canvas.height !== h) {
         this.renderer.setSize(w, h, true);
         this.composer = new THREE.EffectComposer(this.renderer);
@@ -494,7 +495,7 @@ LDR.InstructionsManager.prototype.updateUIComponents = function(force) {
     this.stepEditor && this.stepEditor.updateCurrentStep();
 }
 
-LDR.InstructionsManager.prototype.updatePLI = function(force) {
+LDR.InstructionsManager.prototype.updatePLI = function(force = false, quick = false) {
     let step = this.stepHandler.getCurrentStep();
     let edit = LDR.Options && LDR.Options.showEditor && this.canEdit;
 
@@ -510,16 +511,23 @@ LDR.InstructionsManager.prototype.updatePLI = function(force) {
     }
     e.style.display = 'inline-block';
     
-    let maxWidth = window.innerWidth - e.offsetLeft - 18; // 18 for margins
-    let maxHeight = window.innerHeight - 130 - this.adPeek; // 130 for the top buttons + margins
-
+    let [maxWidth,maxHeight] = LDR.getScreenSize();
+    maxWidth -= e.offsetLeft;
+    maxHeight -= 130 + this.adPeek; // 130 for the top buttons + margins
+    
     if(this.fillHeight()) {
         let w = this.pliW;
         let h = maxHeight;
-        this.pliBuilder.drawPLIForStep(true, step, w, h, force);
+        if(quick) {
+            this.pliBuilder.canvas.width = w*window.devicePixelRatio;
+            this.pliBuilder.canvas.style.width = maxWidth+"px";
+        }
+        else {
+            this.pliBuilder.drawPLIForStep(true, step, w, h, force);
+        }
         this.dh.style.display = 'inline-block';
 	this.dh.setAttribute('class', 'ui_control');
-        this.dh.style.height = this.pliBuilder.canvas.style.height || '100px';
+        this.dh.style.height = this.pliBuilder.canvas.style.height || '40vh';
         this.dv.style.display = 'none';
 	this.dv.setAttribute('class', '');
         this.dv.style.width = '0px';
@@ -527,10 +535,16 @@ LDR.InstructionsManager.prototype.updatePLI = function(force) {
     else {
         let w = maxWidth;
         let h = this.pliH;
-        this.pliBuilder.drawPLIForStep(false, step, w, h, force);
+        if(quick) {
+            this.pliBuilder.canvas.height = h*window.devicePixelRatio;
+            this.pliBuilder.canvas.style.height = h+"px";
+        }
+        else {
+            this.pliBuilder.drawPLIForStep(false, step, w, h, force);
+        }
         this.dv.style.display = 'block';
 	this.dv.setAttribute('class', 'ui_control');
-        this.dv.style.width = this.pliBuilder.canvas.style.width || '100px';
+        this.dv.style.width = this.pliBuilder.canvas.style.width || '40vw';
         this.dh.style.display = 'none';
 	this.dh.setAttribute('class', '');
         this.dh.style.height = '0px';
@@ -538,7 +552,8 @@ LDR.InstructionsManager.prototype.updatePLI = function(force) {
 }
 
 LDR.InstructionsManager.prototype.fillHeight = function() {
-    return window.innerWidth > window.innerHeight;
+    let [w, h] = LDR.getScreenSize();
+    return w > h;
 }
 
 LDR.InstructionsManager.prototype.updateViewPort = function(overwriteSize) {
@@ -595,8 +610,8 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
         };
     }
     
-    let viewPortWidth = window.innerWidth;
-    let viewPortHeight = window.innerHeight - this.adPeek;
+    let [viewPortWidth, viewPortHeight] = LDR.getScreenSize();
+    viewPortHeight -= this.adPeek;
     if(this.pliH > 0) { // Adjust for pli.
         if(this.fillHeight()) {
             viewPortWidth -= this.pliW;
@@ -649,16 +664,17 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
     let positionChanges = !oldPosition.equals(newPosition) || oldPLIW !== newPLIW || oldPLIH !== newPLIH;
     
     let oldDefaultZoom = this.defaultZoom;
-    viewPortWidth = window.innerWidth;
-    viewPortHeight = window.innerHeight - this.adPeek - this.topButtonsHeight;
+    [viewPortWidth, viewPortHeight] = LDR.getScreenSize();
+    viewPortHeight -= this.adPeek + this.topButtonsHeight;
     if(this.fillHeight()) {
         viewPortWidth -= newPLIW;
     }
     else {
         viewPortHeight -= newPLIH;
     }
-    let scaleX = (window.innerWidth) / viewPortWidth * 1.1; // 1.1 to scale down a bit
-    let scaleY = (window.innerHeight - this.adPeek) / viewPortHeight * 1.1;
+    let [allW, allH] = LDR.getScreenSize();
+    let scaleX = allW / viewPortWidth * 1.1; // 1.1 to scale down a bit
+    let scaleY = (allH - this.adPeek) / viewPortHeight * 1.1;
     if(dx*scaleX > dy*scaleY) {
         this.defaultZoom = 2*this.camera.zoom/(dx*scaleX);
     }

@@ -35,8 +35,9 @@ LDR.PliPreviewer.prototype.render = function() {
 }
 
 LDR.PliPreviewer.prototype.onResize = function() {
-    let w = window.innerWidth*0.80;
-    let h = window.innerHeight-180;
+    let [w, h] = LDR.getScreenSize();
+    w *= 0.80;
+    h -= 180;
 
     this.renderer.setSize(w, h);
     this.renderer.domElement.parentElement.style.width = w + "px";

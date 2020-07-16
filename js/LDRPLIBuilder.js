@@ -182,7 +182,7 @@ LDR.PLIBuilder.prototype.createClickMap = function(step) {
 LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, maxHeight, force) {
     let groupParts = !(this.canEdit && LDR.Options && LDR.Options.showEditor);
     // Ensure no re-draw if not necessary:
-    if(!force && 
+    if(!force &&
        this.lastStep && this.lastStep.idx === step.idx && this.groupParts === groupParts &&
        this.lastMaxWidth === maxWidth && this.lastMaxHeight === maxHeight &&
        this.fillHeight === fillHeight) {
