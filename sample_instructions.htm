@@ -9,7 +9,7 @@
     <link href="css/options.css" rel="stylesheet" type="text/css" />
     <meta name="viewport" content="width=device-width" />
   </head>
-  <body>
+  <body onLoad="main()">
     <script src="js/jquery.min.js"></script>
     <script src="js/three.min.js"></script>
     <script src="js/OrbitControls.js"></script>
@@ -110,6 +110,7 @@
     <div id="options" /></div>
     <script>
       var model = 'models/corvette_full.mpd';
+      //var model = 'models/spiral_sub.mpd';
       //var model = 'models/ldcad_motor_test.mpd';
       //var model = 'models/test_spike_philo.mpd';
       //var model = 'models/tnl.mpd';
@@ -117,12 +118,12 @@
       //var model = 'models/fll.mpd';
       //var model = 'models/spiral.ldr';
 
-      var baseURL = 'sample_instructions.htm?step='; // Change this line so it fits the page that renders instructions for you (probably not 'sample_instructions.htm')
+      const baseURL = 'sample_instructions.htm?step='; // Change this line so it fits the page that renders instructions for you (probably not 'sample_instructions.htm')
       var manager;
 
-      $(function() {
+      function main() {
         let options = {
-          canEdit: false, // Show editor options
+          canEdit: true, // Show editor options
           buildAssemblies: true, // Assemble parts, such as minifig torsos and legs
           key: model,
           adPeek: 0, // Show a bar below to contain editor options - set to roughly 120 if canEdit is set to true
@@ -136,10 +137,12 @@
         // Get the requested step from the query parameters:
         let step = 1;
         let stepFromUrl = location.search.substr(1).split('&').map(x => x.split('=')).find(x => x[0] === 'step');
-        if(stepFromUrl) step = stepFromUrl[1];
+        if(stepFromUrl) {
+          step = stepFromUrl[1];
+        }
 
-      manager = new LDR.InstructionsManager(model, '#', 14, null, ()=>{}, baseURL, step, options);
-      });
+        manager = new LDR.InstructionsManager(model, '#', 16, null, ()=>{}, baseURL, step, options);
+      };
     </script>
   </body>
 </html>

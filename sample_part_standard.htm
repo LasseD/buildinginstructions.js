@@ -19,6 +19,16 @@
     <script src="js/ClientStorage.js"></script>
     <script src="js/LDRLoader.js"></script>
     <script>
+
+LDR.InstructionsManager.prototype.render = function() {
+  let [w, h] = LDR.getScreenSize();
+  h -= this.adPeek;
+  this.renderer.setSize(w, h, true);
+  this.controls.dollyIn(0.1);
+
+  this.renderer.render(this.scene, this.camera);
+}
+
       let partID = '44375bps0.dat'; // Set the part to load here. 
       //let partID = 'stud-logo.dat';
       //let partID = '18675ps2.dat';
@@ -26,9 +36,6 @@
 
       // Set up camera:
       var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
-      camera.position.set(10000, 7000, 10000);
-      camera.lookAt(new THREE.Vector3());
-      let measurer = new LDR.Measurer(camera); // Used for making the shown part fill the renderer.
 
       // Set up scene:
       var scene = new THREE.Scene();
@@ -82,16 +89,25 @@
         baseObject.add(sixteenObject);
         baseObject.add(transObject);
         scene.add(baseObject);
-        var mc = new LDR.MeshCollector(opaqueObject, sixteenObject, transObject);
+        let mc = new LDR.MeshCollector(opaqueObject, sixteenObject, transObject);
 
         // Generate the mesh:
         pt.generateThreePart(ldrLoader, color, origo, inv, true, false, mc);
 
         // Find center of drawn model:
-        var b = mc.boundingBox;
-        var elementCenter = new THREE.Vector3();
+        let b = mc.boundingBox;
+
+        let elementCenter = new THREE.Vector3();
         b.getCenter(elementCenter);
         baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
+
+        let size = new THREE.Vector3();
+        b.getSize(size);
+        size = Math.sqrt(size.x*size.x + size.y*size.y + size.z*size.z);
+
+        camera.position.set(size*10/7, size, size*10/7);
+        camera.lookAt(new THREE.Vector3());
+        let measurer = new LDR.Measurer(camera); // Used for making the shown part fill the renderer.
 
         let [dx,dy] = measurer.measure(b, baseObject.matrixWorld);
 	camera.zoom = 1.6*Math.min(window.innerWidth/dx, window.innerHeight/dy); // 1.6 to make the part not fill the full element. Use 2.0 to max it out.

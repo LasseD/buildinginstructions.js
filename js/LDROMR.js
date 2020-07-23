@@ -361,10 +361,10 @@ LDR.OMR.StandardizeFileNames = function(setNumber, ldrLoader) {
 }
 
 /**
-   In 2007 LEGO started using new brown and gray colors.
+   In 2004 LEGO started using new brown and gray colors.
    Some LDraw editors default to old gray colors.
    These functions fix colors that were involved in this color change: 
-   If the year given as parameter is before 2007, old colors will be used, while newer models will 
+   If the year given as parameter is before 2004, old colors will be used, while newer models will 
    be changed to use new colors.
    Colors involved are brown, gray and dark gray.
  */
@@ -375,11 +375,11 @@ LDR.OMR.ColorPartsAccordingToYear = function(year, ldrLoader) {
         }
     }
 
-    if(year >= 2007) {
+    if(year >= 2004) {
 	let map = {'6':70,'7':71,'8':72};
         function title(pd, c) {
 	    let pd2 = pd.cloneColored(16); pd2.c = c;
-	    return ['In 2007 LEGO started using new brown and gray colors. Click here to make all parts use the new colors', pd.toLDR(ldrLoader), pd2.toLDR(ldrLoader)];
+	    return ['In 2004 LEGO started using new brown and gray colors. Click here to make all parts use the new colors', pd.toLDR(ldrLoader), pd2.toLDR(ldrLoader)];
 	}
         return {
             checkers: {checkPartDescription: pd => (pd.c===6||pd.c===7||pd.c===8) ? title(pd, map[pd.c]) : false},
@@ -390,7 +390,7 @@ LDR.OMR.ColorPartsAccordingToYear = function(year, ldrLoader) {
 	let map = {'70':6,'71':7,'72':8};
         function title(pd, c) {
 	    let pd2 = pd.cloneColored(16); pd2.c = c;
-	    return ['Before 2007 LEGO used old brown and gray colors. Click here to make all parts use the old colors as they were in ' + year, pd.toLDR(ldrLoader), pd2.toLDR(ldrLoader)];
+	    return ['Before 2004 LEGO used old brown and gray colors. Click here to make all parts use the old colors as they were in ' + year, pd.toLDR(ldrLoader), pd2.toLDR(ldrLoader)];
 	}
         return {
             checkers: {checkPartDescription: pd => (pd.c===70||pd.c===71||pd.c===72) ? title(pd, map[pd.c]) : false},
