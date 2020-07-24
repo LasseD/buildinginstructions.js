@@ -33,6 +33,18 @@ ENV.Scene = function(canvas, color) {
     this.orbitControls.screenSpacePanning = true;
     
     // Rendering elements:
+    this.reset();
+
+    // Light and background:
+    this.hemisphereLight = new THREE.HemisphereLight(0xF4F4FB, 0x30302B, 0.65);
+    this.scene.add(this.hemisphereLight);
+    this.scene.background = new THREE.Color(0xFBF3FF);
+}
+
+ENV.Scene.prototype.reset = function() {
+    if(this.baseObject) {
+        this.scene.remove(this.baseObject);
+    }
     this.baseObject = new THREE.Group();
     let opaqueObject = new THREE.Group();
     let sixteenObject = new THREE.Group();
@@ -42,11 +54,6 @@ ENV.Scene = function(canvas, color) {
     this.baseObject.add(transObject);
     this.scene.add(this.baseObject);
     this.mc = new LDR.MeshCollector(opaqueObject, sixteenObject, transObject);
-
-    // Light and background:
-    this.hemisphereLight = new THREE.HemisphereLight(0xF4F4FB, 0x30302B, 0.65);
-    this.scene.add(this.hemisphereLight);
-    this.scene.background = new THREE.Color(0xFBF3FF);
 }
 
 ENV.Scene.prototype.setUpGui = function(setModelColorOriginal) {
