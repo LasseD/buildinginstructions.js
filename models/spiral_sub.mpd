@@ -1,0 +1,22 @@
+0 FILE spiral_sub.ldr
+0 MAIN
+0 Name: spiral_sub.ldr
+0 Author: Lasse Deleuran [Lasse Deleuran]
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+1 1 0 -24 0 1 0 0 0 1 0 0 0 1 x.ldr
+1 1 0 -24 0 1 0 0 0 1 0 0 0 1 x.ldr
+1 2 0 -24 0 1 0 0 0 1 0 0 0 1 x.ldr
+1 16 0 -24 0 1 0 0 0 1 0 0 0 1 x.ldr
+0 STEP
+1 1 0 -24 0 1 0 0 0 1 0 0 0 1 x.ldr
+1 2 0 -24 0 1 0 0 0 1 0 0 0 1 x.ldr
+1 16 0 -24 0 1 0 0 0 1 0 0 0 1 x.ldr
+1 3 0 0 20 1 0 0 0 1 0 0 0 1 3001.dat
+
+0 FILE x.ldr
+0 x
+0 Name: x.ldr
+0 Author: Lasse Deleuran [Lasse Deleuran]
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+1 1 0 0 0 1 0 0 0 1 0 0 0 1 3001.dat
+1 16 -20 -48 -40 1 0 0 0 1 0 0 0 1 3001.dat
