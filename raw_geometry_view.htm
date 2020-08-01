@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8" />
+    <title>LDraw Raw Geometry Instructions Viewer</title>
+    <link href="css/instructions.css" rel="stylesheet" type="text/css" />
+    <link href="css/buttons.css" rel="stylesheet" type="text/css" />
+    <link href="css/options.css" rel="stylesheet" type="text/css" />
+    <meta name="viewport" content="width=device-width" />
+  </head>
+  <body onLoad="main()">
+    <script src="js/jquery.min.js"></script>
+    <script src="js/three.min.js"></script>
+    <script src="js/OrbitControls.js"></script>
+    <script src="js/CopyShader.js"></script>
+    <script src="js/Pass.js"></script>
+    <script src="js/OutlinePass.js"></script>
+    <script src="js/ShaderPass.js"></script>
+    <script src="js/RenderPass.js"></script>
+    <script src="js/MaskPass.js"></script>
+    <script src="js/EffectComposer.js"></script>
+    <script src="js/colors.js"></script>
+    <script src="js/LDRShaders.js"></script>    
+    <script src="js/LDRColorMaterials.js"></script>
+    <script src="js/LDRSVG.js"></script>
+    <script src="js/LDROptions.js"></script>
+    <script src="js/LDRGeometries.js"></script>
+    <script src="js/LDRLoader.js"></script>
+    <script src="js/LDRStepHandler.js"></script>
+    <script src="js/LDRButtons.js"></script>
+    <script src="js/LDRMeasurer.js"></script>
+    <script src="js/LDRInstructionsManager.js"></script>
+    <script src="js/GeometryPacking.js"></script>
+
+    <div id="main_canvas_holder">
+     <canvas id="main_canvas"></canvas>
+     <div id="instructions_decorations">
+      <span class="decoration_holder">
+       <div id="multiplier">x1</div>
+      </span>
+      <span class="decoration_holder">
+       <div id="rotator">
+         <svg viewbox="-52,-52,104,104" fill="none" stroke="black" stroke-width="12">
+          <g id="full_arrow">
+           <path id="half_arrow" d="M 25,-14 40,-10 48,-23 M 40,-10 C 30,-50 -30,-50 -40,-10 M 40,-10 Z" />
+           <g transform="scale(-1 -1)">
+            <use xlink:href="#half_arrow"/>
+           </g>
+          </g>
+          <animateTransform 
+           xlink:href="#full_arrow"
+           attributeName="transform" 
+           attributeType="XML"
+           id="rotator_animation"
+           type="rotate"
+           from="0 0 0"
+           to="180 0 0"
+           dur="0.4s"
+           begin="0"
+           repeatCount="1"
+           fill="freeze" />
+         </svg>
+       </div>
+      </span>
+     </div>
+    </div>
+    <div id="options" /></div>
+    <script>
+      var model = 'models/raw.ldgeo';
+
+      const baseURL = 'raw_geometry_view.htm?step=';
+      var manager;
+
+      THREE.LDRLoader = THREE.LDRGeometryLoader; // Overwrite internal loader for manager.
+
+      function main() {
+        let options = {
+          setUpOptions: true, // Show button options below.
+          showStudsOptions: false,
+          showNumberOfSteps: true,
+        };
+
+        // Get the requested step from the query parameters:
+        let stepFromUrl = location.search.substr(1).split('&').map(x => x.split('=')).find(x => x[0] === 'step');
+        let step = stepFromUrl ? stepFromUrl[1] : 1;
+
+        manager = new LDR.InstructionsManager(model, '#', 0, null, ()=>{}, baseURL, step, options);
+      };
+    </script>
+  </body>
+</html>

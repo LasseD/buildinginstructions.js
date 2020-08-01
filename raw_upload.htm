@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+ <head>
+    <meta charset=utf-8>
+    <title>LDraw to Raw Geometry File Conversion</title>
+    <meta name="viewport" content="width=device-width" />
+    <style>
+      body {
+        font-family: "Arial","Helvetica",sans-serif;
+        padding: 0;
+        margin: 0;
+        background-color: #EEE;
+      }
+      h1, h3 {
+        text-transform: uppercase;
+        display: block;
+        text-align: center;
+        margin: 0;
+        padding: 0.5em;
+        font-size: 2em;
+      }
+      h1 {
+        background-color: #000;
+        color: white;
+      }
+      h3 {
+        background-color: #9D9;
+      }
+      .section {
+        display: block;
+        margin: 0.5em;
+      }
+      .desc {
+        margin: 0.5em;
+      }
+      .choice {
+        display: table;
+        margin: 0.5em;
+      }
+      .choice, textarea, button {
+        display: block;
+        width: 95%;
+      }
+      button {
+        height: 4em;
+      }
+      #contact {
+        margin: 2em;
+        text-align: center;
+      }
+      .error, .warning {
+        display: block;
+        margin: 1em;
+        padding: 0.5em;
+        font-weight: bold;
+      }
+      .error {
+        border: 0.2em solid red;
+      }
+      .warning {
+        border: 0.2em solid orange;
+      }
+      canvas {
+        display: block;
+        margin: auto;
+      }
+      .download {
+        display: block;
+        margin: 1em;
+        text-align: center;
+        padding: 0.5em;
+        border: 1px solid black;
+        background-color: white;
+        color: black;
+        text-decoration: none;
+      }
+    </style>
+ </head>
+ <body>
+    <script src="js/jquery.min.js"></script>
+    <script src="js/three.min.js"></script>
+    <script src="js/OrbitControls.js"></script>
+    <script src="js/colors.js"></script>
+    <script src="js/LDROptions.js"></script>
+    <script src="js/LDRShaders.js"></script>
+    <script src="js/LDRColorMaterials.js"></script>
+    <script src="js/LDRGeometries.js"></script>
+    <script src="js/LDRStepHandler.js"></script>
+    <script src="js/LDRLoader.js"></script>
+    <script src="js/LDRGenerator.js"></script>
+    <script src="js/LDRStuds.js"></script>
+    <script src="js/GeometryPacking.js"></script>
+  
+    <h1>LDraw to Raw Geometry File Conversion</h1>
+
+    <h3>Select the LDraw file (.ldr or .mpd)</h3>
+  <div class="section">
+   <span class="choice">
+    <label for="file">File</label>
+    <input id="file" name="file" type="file" onchange="readFromFile(event);" />
+   </span>
+
+   <div id="warnings"></div>
+   <div id="errors"></div>
+
+   <canvas id="preview"></canvas>
+  </div>
+
+  <h3>Preview and Upload or Download</h3>
+  <div class="section">
+   <span class="desc">
+     If the file looks alright above, then please press "Upload" to upload to the server or "Download" to save locally.
+   </span>
+   <span class="choice">
+     <button onclick="upload();">Upload</button>
+     <a href="#" class="download" id="download_content">Download</a>
+   </span>
+  </div>
+
+  <div id="contact">
+    The viewer is from <a href="https://github.com/LasseD/buildinginstructions.js">buildinginstructions.js</a> which is in the public domain.
+    <a href="https://github.com/mrdoob/three.js">three.js and OrbitControls.js</a> use the MIT license.
+  </div>
+
+  <script>
+/*
+  Warnings and errors:
+ */
+function resetWarningsAndErrors() {
+  $('#warnings').empty();
+  $('#errors').empty();
+}
+function onWarning(obj) {
+  let message = obj.message + ' on line ' + obj.line;
+
+  console.dir(obj);
+
+  message = message.replace('<', '&lt;');
+
+  var span = document.createElement('span');
+  span.setAttribute('class', 'warning');
+  span.innerHTML = message;
+  $('#warnings').append(span);
+}
+function onError(obj) {
+  var span = document.createElement('span');
+  span.setAttribute('class', 'error');
+  span.innerHTML = obj.message;
+  $('#errors').empty().append(span);
+}
+
+/*
+  three.js rendering:
+ */
+LDR.Options.studLogo = 0;
+LDR.Studs.makeGenerators('', 0, 0); // Simple studs. No logo.
+
+// Set up camera:
+var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
+camera.position.set(10000, 7000, 10000);
+camera.lookAt(0, 0, 0);
+
+// Set up scene:
+var scene = new THREE.Scene();
+scene.background = new THREE.Color(0xFFFFFF);
+var baseObject;
+
+// Set up renderer:
+let canvas = document.getElementById('preview');
+var renderer = new THREE.WebGLRenderer({antialias:true, canvas:canvas});
+renderer.setPixelRatio(window.devicePixelRatio);
+
+function render() {
+  renderer.render(scene, camera);
+}
+
+var w, h;
+function onWindowResize(){
+  w = window.innerHeight * 0.7;
+  h = window.innerWidth * 0.7;
+  w = h = Math.min(w, h);
+  camera.left = -w;
+  camera.right = w;
+  camera.top = h;
+  camera.bottom = -h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+  render();
+}
+window.addEventListener('resize', onWindowResize, false);
+onWindowResize();
+
+// React to user input:
+let controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.addEventListener('change', render);
+
+let ldrLoader, content;
+
+function onLoad() {
+    if(!ldrLoader.mainModel) {
+      onError({message:'A valid model was not selected. Nothing will be shown'});
+      return;
+    }
+
+    if(baseObject) {
+      scene.remove(baseObject);
+    }
+    baseObject = new THREE.Group();
+    let oo = new THREE.Group();
+    let so = new THREE.Group();
+    let to = new THREE.Group();
+    baseObject.add(oo);
+    baseObject.add(so);
+    baseObject.add(to);
+    scene.add(baseObject);
+    let manager = {
+      opaqueObject: oo,
+      sixteenObject: so,
+      transObject: to,
+      ldrLoader: ldrLoader,
+      resetSelectedObjects: () => {}
+    };
+
+    // Ensure replaced parts are substituted:
+    ldrLoader.substituteReplacementParts();
+
+    // Pack:
+    content = ldrLoader.geoPack();
+
+    // Output:
+    let e = document.getElementById('download_content');
+
+    let url = window.URL.createObjectURL(content);
+  
+    e.href = url;
+    e.target = '_blank';
+    e.setAttribute('download', 'raw.ldgeo');
+
+    // Show:
+    let mc = new LDR.MeshCollector(oo, so, to);
+    ldrLoader.generate(0, mc);
+
+    // Find center of drawn model:
+    let b = mc.boundingBox;
+    let elementCenter = new THREE.Vector3(); b.getCenter(elementCenter);
+    baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
+
+    camera.zoom = 1.5*window.innerWidth/b.min.distanceTo(b.max);
+    onWindowResize();
+}
+
+function upload() {
+  /// TODO: Upload button was pressed. Add implementation here.
+}
+
+/*
+  Converting
+ */
+function run(ldr) {
+  resetWarningsAndErrors();
+
+  // Find file name:
+  ldrLoader = new THREE.LDRLoader(onLoad, null, {onError:onError, onWarning:onWarning, onProgress:render, saveFileLines:false});
+  ldrLoader.parse(ldr, 'main.ldr');
+  ldrLoader.reportProgress('main.ldr');
+}
+
+function readFromFile(event) {
+  var reader = new FileReader();
+  reader.onload = function(){
+    run(reader.result);
+  };
+  reader.readAsText(event.target.files[0]);
+}
+  </script>
+ </body>
+</html>

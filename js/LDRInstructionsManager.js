@@ -28,8 +28,10 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
     this.renderer = new THREE.WebGLRenderer({antialias:true, canvas:this.canvas});
     this.renderer.setPixelRatio(pixelRatio);
     this.secondaryCanvas = document.getElementById('secondary_canvas');
-    this.secondaryRenderer = new THREE.WebGLRenderer({antialias:true, canvas:this.secondaryCanvas, alpha:true});
-    this.secondaryRenderer.setPixelRatio(pixelRatio);
+    if(this.secondaryCanvas) {
+        this.secondaryRenderer = new THREE.WebGLRenderer({antialias:true, canvas:this.secondaryCanvas, alpha:true});
+        this.secondaryRenderer.setPixelRatio(pixelRatio);
+    }
 
     let canvasHolder = document.getElementById('main_canvas_holder');
     let actions = {
@@ -102,7 +104,9 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
     this.baseObject.add(this.sixteenObject);
     this.baseObject.add(this.transObject);
     this.scene.add(this.baseObject);
-    this.pliPreviewer = new LDR.PliPreviewer(modelID, this.secondaryCanvas, this.secondaryRenderer);
+    if(this.secondaryCanvas) {
+        this.pliPreviewer = new LDR.PliPreviewer(modelID, this.secondaryCanvas, this.secondaryRenderer);
+    }
 
     this.showPLI = false;
     this.hovered = false;
@@ -165,8 +169,10 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
         
         let pd = new THREE.LDRPartDescription(self.modelColor, origo, inv, mainModel, false);
         
-        self.pliBuilder = new LDR.PLIBuilder(self.ldrLoader, self.canEdit, mainModel,
-                                             document.getElementById('pli'), self.secondaryRenderer);
+        if(this.secondaryCanvas) {
+            self.pliBuilder = new LDR.PLIBuilder(self.ldrLoader, self.canEdit, mainModel,
+                                                 document.getElementById('pli'), self.secondaryRenderer);
+        }
         self.stepHandler = new LDR.StepHandler(self, [pd], true);
         self.stepHandler.nextStep(false);
 
@@ -188,7 +194,9 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
         }
 
 	// Enable pli preview:
-        self.pliPreviewer.enableControls();
+        if(self.pliPreviewer) {
+            self.pliPreviewer.enableControls();
+        }
 
         // Enable editor:
         if(self.canEdit) {
@@ -230,7 +238,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
 	}
     }
     let onStorageReady = function() {
-        if(LDR.Options) {
+        if(LDR.Options && LDR.Studs) {
             LDR.Studs.makeGenerators('', LDR.Options.studHighContrast, LDR.Options.studLogo);
         }
         self.ldrLoader = new THREE.LDRLoader(onLoad, self.storage, options);
@@ -244,13 +252,15 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
 
     // Set up PLI interactions:
     let pli = document.getElementById("pli");
-    pli.addEventListener('click', e => self.onPLIClick(e));
-    pli.addEventListener('mousemove', e => self.onPLIMove(e));
-    pli.addEventListener('mouseover', e => self.onPLIMove(e));
-    pli.addEventListener('mouseout', () => self.onPLIMove(false));
+    if(pli) {
+        pli.addEventListener('click', e => self.onPLIClick(e));
+        pli.addEventListener('mousemove', e => self.onPLIMove(e));
+        pli.addEventListener('mouseover', e => self.onPLIMove(e));
+        pli.addEventListener('mouseout', () => self.onPLIMove(false));
+    }
 
     if(options.setUpOptions && LDR.Options) {
-	this.setUpOptions();
+	this.setUpOptions(options);
     }
     this.onWindowResize();
     if(LDR.STORAGE) {
@@ -260,61 +270,63 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
         onStorageReady();
     }
 
-    // Set up PLI size drag:
-    this.dh = document.getElementById('pli_drag_horizontal');
-    this.dv = document.getElementById('pli_drag_vertical');
-    let p = document.getElementById('instructions_decorations');
-    let resizingV = false, resizingH = false;
-    let x, y, pliW, pliH;
-    let mouseStart = e => {x = e.clientX; y = e.clientY; pliH = self.pliH; pliW = self.pliW};
-    let touchStart = e => {if(e.touches.length > 0) {x = e.touches[0].pageX; y = e.touches[0].pageY; pliH = self.pliH; pliW = self.pliW}};
-    let stop = e => {resizingV = resizingH = false; self.onWindowResize()};
-
-    // Start:
-    this.dv.addEventListener('mousedown', () => resizingV = true);
-    this.dv.addEventListener('touchstart', () => resizingV = true);
-    this.dh.addEventListener('mousedown', () => resizingH = true);
-    this.dh.addEventListener('touchstart', () => resizingH = true);
-    p.addEventListener('mousedown', mouseStart);
-    p.addEventListener('touchstart', touchStart);
-
-    // Stop:
-    p.addEventListener('mouseup', stop);
-    p.addEventListener('touchend', stop);
-
-    // Move:
-    function resize(x2, y2) {
-        if(resizingH) {
-            let newW = pliW + (x2-x);
-            if(self.pliW != newW) {
-                self.pliW = newW;
-                clampW();
-                localStorage.setItem('pliW', self.pliW);
-                self.updatePLI(false, true);
+    if(pli) {
+        // Set up PLI size drag:
+        this.dh = document.getElementById('pli_drag_horizontal');
+        this.dv = document.getElementById('pli_drag_vertical');
+        let p = document.getElementById('instructions_decorations');
+        let resizingV = false, resizingH = false;
+        let x, y, pliW, pliH;
+        let mouseStart = e => {x = e.clientX; y = e.clientY; pliH = self.pliH; pliW = self.pliW};
+        let touchStart = e => {if(e.touches.length > 0) {x = e.touches[0].pageX; y = e.touches[0].pageY; pliH = self.pliH; pliW = self.pliW}};
+        let stop = e => {resizingV = resizingH = false; self.onWindowResize()};
+        
+        // Start:
+        this.dv.addEventListener('mousedown', () => resizingV = true);
+        this.dv.addEventListener('touchstart', () => resizingV = true);
+        this.dh.addEventListener('mousedown', () => resizingH = true);
+        this.dh.addEventListener('touchstart', () => resizingH = true);
+        p.addEventListener('mousedown', mouseStart);
+        p.addEventListener('touchstart', touchStart);
+        
+        // Stop:
+        p.addEventListener('mouseup', stop);
+        p.addEventListener('touchend', stop);
+        
+        // Move:
+        function resize(x2, y2) {
+            if(resizingH) {
+                let newW = pliW + (x2-x);
+                if(self.pliW != newW) {
+                    self.pliW = newW;
+                    clampW();
+                    localStorage.setItem('pliW', self.pliW);
+                    self.updatePLI(false, true);
+                }
+                return true;
             }
-	    return true;
-        }
-        if(resizingV) {
-            let newH = pliH + (y2-y);
-            if(self.pliH != newH) {
-                self.pliH = newH;
-                clampH();
-                localStorage.setItem('pliH', self.pliH);
-                self.updatePLI(false, true);
+            if(resizingV) {
+                let newH = pliH + (y2-y);
+                if(self.pliH != newH) {
+                    self.pliH = newH;
+                    clampH();
+                    localStorage.setItem('pliH', self.pliH);
+                    self.updatePLI(false, true);
+                }
+                return true;
             }
-	    return true;
+            return false;
         }
-	return false;
+        p.addEventListener('mousemove', e => resize(e.clientX, e.clientY));
+        p.addEventListener('touchmove', e => {
+                if(e.touches.length > 0 && resize(e.touches[0].pageX, e.touches[0].pageY)) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            });
     }
-    p.addEventListener('mousemove', e => resize(e.clientX, e.clientY));
-    p.addEventListener('touchmove', e => {
-        if(e.touches.length > 0 && resize(e.touches[0].pageX, e.touches[0].pageY)) {
-	    e.preventDefault();
-	    e.stopPropagation();
-        }
-    });
 }
-
+    
 LDR.InstructionsManager.prototype.updateRotator = function(zoom) {
     let rotator = document.getElementById("rotator");
     let showRotator = this.stepHandler.getShowRotatorForCurrentStep();
@@ -500,14 +512,18 @@ LDR.InstructionsManager.prototype.updatePLI = function(force = false, quick = fa
     let step = this.stepHandler.getCurrentStep();
     let edit = LDR.Options && LDR.Options.showEditor && this.canEdit;
 
-    this.showPLI = edit || step.containsPartSubModels(this.ldrLoader);
+    this.showPLI = this.secondaryCanvas && (edit || step.containsPartSubModels(this.ldrLoader));
     let e = this.pliElement;
-    this.emptyElement.style.display = (!edit || this.showPLI || step.containsNonPartSubModels(this.ldrLoader)) ? 'none' : 'inline-block';
+    if(this.emptyElement) {
+        this.emptyElement.style.display = (!edit || this.showPLI || step.containsNonPartSubModels(this.ldrLoader)) ? 'none' : 'inline-block';
+    }
 
     if(!this.showPLI) {
-        e.style.display = this.dh.style.display = this.dv.style.display = 'none';
-	this.dh.setAttribute('class', '');
-	this.dv.setAttribute('class', '');
+        if(e && this.dh && this.dv) {
+            e.style.display = this.dh.style.display = this.dv.style.display = 'none';
+            this.dh.setAttribute('class', '');
+            this.dv.setAttribute('class', '');
+        }
         return;
     }
     e.style.display = 'inline-block';
@@ -815,7 +831,7 @@ LDR.InstructionsManager.prototype.handleStepsWalked = function() {
 };
 
 LDR.InstructionsManager.prototype.goToStep = function(step) {
-    if(this.pliPreviewer.showsSomething()) {
+    if(this.pliPreviewer && this.pliPreviewer.showsSomething()) {
         return; // Don't walk when showing preview.
     }
 
@@ -826,7 +842,7 @@ LDR.InstructionsManager.prototype.goToStep = function(step) {
 }
 
 LDR.InstructionsManager.prototype.nextStep = function() {
-    if(this.pliPreviewer.showsSomething()) {
+    if(this.pliPreviewer && this.pliPreviewer.showsSomething()) {
         return; // Don't walk when showing preview.
     }
     if(this.stepHandler.isAtLastStep()) {
@@ -838,7 +854,7 @@ LDR.InstructionsManager.prototype.nextStep = function() {
 }
 
 LDR.InstructionsManager.prototype.prevStep = function() {
-    if(this.pliPreviewer.showsSomething()) {
+    if(this.pliPreviewer && this.pliPreviewer.showsSomething()) {
         return; // Don't walk when showing preview.
     }
 
@@ -981,7 +997,7 @@ LDR.InstructionsManager.prototype.hideDone = function() {
 /*
   Assumes LDR.Options in global scope.
  */
-LDR.InstructionsManager.prototype.setUpOptions = function() {
+LDR.InstructionsManager.prototype.setUpOptions = function(options) {
     let self = this;
     let optionsDiv = document.getElementById('options');
 
@@ -989,8 +1005,10 @@ LDR.InstructionsManager.prototype.setUpOptions = function() {
 
     // Toggles:
     LDR.Options.appendContrastOptions(optionsDiv);
-    LDR.Options.appendStudHighContrastOptions(optionsDiv);
-    LDR.Options.appendStudLogoOptions(optionsDiv);
+    if(!(options.hasOwnProperty('showStudsOptions') && !options.showStudsOptions)) {
+        LDR.Options.appendStudHighContrastOptions(optionsDiv);
+        LDR.Options.appendStudLogoOptions(optionsDiv);
+    }
 
     // Other options:
     LDR.Options.appendOldBrickColorOptions(optionsDiv);
