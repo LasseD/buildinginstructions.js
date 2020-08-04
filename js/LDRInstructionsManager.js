@@ -169,7 +169,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
         
         let pd = new THREE.LDRPartDescription(self.modelColor, origo, inv, mainModel, false);
         
-        if(this.secondaryCanvas) {
+        if(self.secondaryCanvas) {
             self.pliBuilder = new LDR.PLIBuilder(self.ldrLoader, self.canEdit, mainModel,
                                                  document.getElementById('pli'), self.secondaryRenderer);
         }
