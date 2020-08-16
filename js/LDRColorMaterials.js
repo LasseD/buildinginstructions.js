@@ -589,8 +589,8 @@ LDR.Colors.buildStandardMaterial = function(colorID, texmap) {
             params.envMapIntensity = 1.0;
             
             let m = color.material.substring('MATERIAL '.length);
-            if(m.startsWith('SPECKLE FRACTION ')) {
-                m = m.substring('SPECKLE FRACTION '.length).split(' ');
+            if(m.startsWith('SPECKLE VALUE ')) {
+                m = m.substring('SPECKLE VALUE #XXXXXX FRACTION '.length).split(' '); // TODO: Incorporate color/value
                 if(m.length === 5) {
                     if(!LDR.Colors.speckleInfo.hasOwnProperty(colorID)) {
                         let fraction = parseFloat(m[0]);
@@ -605,14 +605,25 @@ LDR.Colors.buildStandardMaterial = function(colorID, texmap) {
                     console.warn('Failed to parse speckle definition for color ' + colorID + ': ' + m.join('/'));
                 }
             }
-            else if(m.startsWith('GLITTER FRACTION ')) {
-                m = m.substring('GLITTER FRACTION '.length).split(' ');
+            else if(m.startsWith('GLITTER VALUE ')) {
+                m = m.substring('GLITTER VALUE #XXXXXX FRACTION '.length).split(' '); // TODO: Incorporate color/value
                 if(m.length === 5) {
                     if(!LDR.Colors.speckleInfo.hasOwnProperty(colorID)) {
                         let fraction = parseFloat(m[0]);
                         //let vFraction = parseFloat(m[2]); // Volume fraction is ignored as the material only has an affect on the surface, not the interior.
                         let size = parseInt(m[4]);
                         LDR.Colors.speckleInfo[colorID] = {fraction:fraction, minSize:size, maxSize:size};
+                        LDR.Colors.listeningMaterials.speckle[colorID] = [];
+                    }
+                    registerTextureListener = m => LDR.Colors.listeningMaterials.speckle[colorID].push(m);
+                }
+                else if(m.length === 7) {
+                    if(!LDR.Colors.speckleInfo.hasOwnProperty(colorID)) {
+                        let fraction = parseFloat(m[0]);
+                        //let vFraction = parseFloat(m[2]); // Volume fraction is ignored as the material only has an affect on the surface, not the interior.
+                        let minSize = parseInt(m[4]);
+                        let maxSize = parseInt(m[6]);
+                        LDR.Colors.speckleInfo[colorID] = {fraction:fraction, minSize:minSize, maxSize:maxSize};
                         LDR.Colors.listeningMaterials.speckle[colorID] = [];
                     }
                     registerTextureListener = m => LDR.Colors.listeningMaterials.speckle[colorID].push(m);
