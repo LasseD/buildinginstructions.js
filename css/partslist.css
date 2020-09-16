@@ -68,13 +68,13 @@ table tr.partline:nth-child(2n+3) {
 table tr.partline:nth-child(2n+2) {
   background-color: #DDD;
 }
-table tr.checked_partline:nth-child(2n+2) {
+table tr.checked:nth-child(2n+2) {
   background-color: #AFA;
 }
-table tr.checked_partline:nth-child(2n+3) {
+table tr.checked:nth-child(2n+3) {
   background-color: #CFC;
 }
-tr.partline td:first-child, tr.checked_partline td:first-child {
+tr.partline td:first-child {
     cursor: pointer;
 }
 td {
