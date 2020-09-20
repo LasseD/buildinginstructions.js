@@ -113,6 +113,9 @@ THREE.LDRLoader = function(onLoad, storage, options) {
  */
 THREE.LDRLoader.prototype.load = function(id) {
     let urls = this.idToUrl(id);
+    if(urls.length === 0) {
+	return; // No URL to load.
+    }
     id = id.toLowerCase().replace('\\', '/'); // Sanitize id. 
 
     if(this.partTypes[id]) { // Already loaded
@@ -121,7 +124,7 @@ THREE.LDRLoader.prototype.load = function(id) {
         }
 	return;
     }
-    //console.log('Loading', id, urls.join(' or '));
+    //console.log('Loading ' + id + ' -> ' + urls.join(' or '));
 
     this.partTypes[id] = true; // Temporary value to prevent concurrent fetching over network.
 
@@ -618,7 +621,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
         loadedParts.push(part.ID);
     }
 
-    loadedParts = loadedParts.map(id => self.partTypes[id]); // Map from ID to part type.
+    loadedParts = loadedParts.map(id => self.getPartType(id)); // Map from ID to part type.
 
     // Studio-specific texmap handling:
     if(LDR.STUDIO) {
@@ -740,8 +743,15 @@ THREE.LDRLoader.prototype.getPartType = function(id) {
 	if(LDR.Generator && (pt = LDR.Generator.make(id))) {
 	    return this.partTypes[id] = pt;
 	}
-        return null;
+
+	if(!id.endsWith('.ldr') && this.partTypes.hasOwnProperty(id + '.ldr')) {
+	    id += '.ldr'; // Studio 2.0 sometimes does not include '.ldr'... because why would you follow a consistent and public standard when you can substitude it with your own inconsistent mess?
+	}
+	else {
+            return null; // Not found
+	}
     }
+
     let pt = this.partTypes[id];
     if(pt === true) {
         return null;
@@ -775,14 +785,10 @@ THREE.LDRLoader.prototype.getMainModel = function() {
 
 THREE.LDRLoader.prototype.applyOnPartTypes = function(f) {
     for(let id in this.partTypes) {
-        if(!this.partTypes.hasOwnProperty(id)) {
-            continue;
+        let pt = this.getPartType(id);
+        if(pt) {
+            f(pt);
         }
-        let pt = this.partTypes[id];
-        if(pt === true) {
-            continue;
-        }
-        f(pt);
     }
 }
 
