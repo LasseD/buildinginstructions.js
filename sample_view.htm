@@ -6,31 +6,23 @@
   <meta name="viewport" content="width=device-width" />
  </head>
  <body>
-    <script src="js/three.min.js"></script>
-    <script src="js/OrbitControls.js"></script>
-    <script src="js/CopyShader.js"></script>
-    <script src="js/Pass.js"></script>
-    <script src="js/OutlinePass.js"></script>
-    <script src="js/ShaderPass.js"></script>
-    <script src="js/RenderPass.js"></script>
-    <script src="js/MaskPass.js"></script>
-    <script src="js/EffectComposer.js"></script>
-    <script src="js/colors.js"></script>
-    <script src="js/LDROptions.js"></script>
-    <script src="js/LDRShaders.js"></script>
-    <script src="js/LDRColorMaterials.js"></script>
-    <script src="js/LDRGeometries.js"></script>
-    <script src="js/LDRLoader.js"></script>
+    <!-- Three.js core libraries. three.min.js is required for rendering, while OrbitControls.js is used for user input -->
+    <script src="js/three.min.js"></script><script src="js/OrbitControls.js"></script>
+
+    <!-- Three.js libraries for supporting Outline Pass -->
+    <script src="js/CopyShader.js"></script><script src="js/Pass.js"></script><script src="js/OutlinePass.js"></script><script src="js/ShaderPass.js"></script><script src="js/RenderPass.js"></script><script src="js/MaskPass.js"></script><script src="js/EffectComposer.js"></script>
+
+    <!-- buildinginstructions.js core libraries. All required. -->
+    <script src="js/colors.js"></script><script src="js/LDRShaders.js"></script><script src="js/LDRColorMaterials.js"></script><script src="js/LDRGeometries.js"></script><script src="js/LDRLoader.js"></script>
+
+    <!-- buildinginstructions.js optional libraries: Generator.js for quick creation of some primitives. Required for studs.js which can create customized studs. StudioTexmap.js allows for Studio 2.0-created files -->    
     <script src="js/LDRGenerator.js"></script>
     <script src="js/LDRStuds.js"></script>
     <script src="js/StudioTexmap.js"></script>
-    <script>
-      let startTime = new Date();
 
-      // The model to be rendered:
-      let model = 'models/corvette_full.mpd';
+    <script>      
+      let model = 'models/corvette_full.mpd'; // The model to be rendered:
       //let model = 'models/luminance.ldr';
-      //let model = 'models/tnl.mpd';
 
       // Set up camera:
       let camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
@@ -42,25 +34,16 @@
       scene.background = new THREE.Color(0xFFFFFF);
 
       let baseObject = new THREE.Group(), opaqueObject = new THREE.Group(), sixteenObject = new THREE.Group(); transObject = new THREE.Group();
-      baseObject.add(opaqueObject); // Draw non-trans before trans.
-      baseObject.add(sixteenObject);
-      baseObject.add(transObject);
-      scene.add(baseObject);
+      baseObject.add(opaqueObject); baseObject.add(sixteenObject); baseObject.add(transObject); scene.add(baseObject); // Draw non-trans before trans.
       let mc = new LDR.MeshCollector(opaqueObject, sixteenObject, transObject);
 
       // Set up renderer:
-      let composer, storage;
+      let composer = null, storage;
       let renderer = new THREE.WebGLRenderer({antialias: true});
       renderer.setPixelRatio(window.devicePixelRatio);
-      function render() {
-        if(composer) {
-          composer.render();
-        }
-        else {
-          renderer.render(scene, camera);
-        }
-      }
       document.body.appendChild(renderer.domElement);
+
+      let render = () => composer === null ? renderer.render(scene, camera) : composer.render();
 
       function onWindowResize(){
         const w = window.innerWidth;
@@ -76,7 +59,7 @@
         composer = new THREE.EffectComposer(renderer);
         composer.addPass(new THREE.RenderPass(scene, camera));
         if(!mc.attachGlowPasses(w, h, scene, camera, composer)) {
-          composer = false; // Nothing glows - just render directly.
+          composer = null; // Nothing glows - just render directly.
         }
         render();
       }
@@ -101,10 +84,9 @@
 
 	camera.zoom = 1.5*window.innerWidth/b.min.distanceTo(b.max);
         onWindowResize();
-        console.log("Model rendered in " + (new Date()-startTime) + "ms.");
       }
 
-      LDR.Studs.makeGenerators('', LDR.Options.studHighContrast, LDR.Options.studLogo);
+      LDR.Studs.makeGenerators('', 0, 0);
       ldrLoader = new THREE.LDRLoader(onLoad, null, {cleanUpPrimitivesAndSubParts:false});
       ldrLoader.load(model);
  </script>
