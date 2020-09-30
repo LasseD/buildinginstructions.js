@@ -55,7 +55,7 @@ LDR.vertexEqual = function(a, b) {
 }
 
 LDR.LDRGeometry = function() {
-    this.vertices = []; // Sorted (x,y,z,o), where 'o' is a LEGO-logo indicator.
+    this.vertices = []; // Sorted {x,y,z,o}, where 'o' is a LEGO-logo indicator.
     this.lines = {}; // c -> [{p1,p2},...] (color -> indices)
     this.conditionalLines = {}; // c -> [{p1,p2,p3,p4},...]
     this.triangles = {}; // c -> [{p1,p2,p3},...]
@@ -77,11 +77,13 @@ LDR.LDRGeometry = function() {
  */
 LDR.LDRGeometry.prototype.buildVertexAttribute = function(r) {
     let vertices = [];
-    this.vertices.forEach(v => {
-            let p = new THREE.Vector3(v.x, v.y, v.z);
-            p.applyMatrix3(r);
-            vertices.push(p.x, p.y, p.z);
-        });
+    let p = new THREE.Vector3(); // Outside of the loop for performance.
+    for(let i = 0; i < this.vertices.length; i++) {
+        let v = this.vertices[i];
+        p.set(v.x, v.y, v.z);
+        p.applyMatrix3(r);
+        vertices.push(p.x, p.y, p.z);
+    };
     return new THREE.Float32BufferAttribute(vertices, 3);
 }
 
