@@ -20,7 +20,9 @@
     <script src="js/LDRStuds.js"></script>
     <script src="js/StudioTexmap.js"></script>
 
-    <script>      
+    <script>
+      let startTime = new Date();
+      
       let model = 'models/corvette_full.mpd'; // The model to be rendered:
       //let model = 'models/luminance.ldr';
 
@@ -84,6 +86,8 @@
 
 	camera.zoom = 1.5*window.innerWidth/b.min.distanceTo(b.max);
         onWindowResize();
+
+        console.log("Model rendered in " + (new Date()-startTime) + "ms.");
       }
 
       LDR.Studs.makeGenerators('', 0, 0);
