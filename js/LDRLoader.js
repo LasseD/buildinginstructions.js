@@ -2111,9 +2111,6 @@ THREE.LDRPartType.prototype.ensureGeometry = function(loader) {
     }
     this.geometry = new LDR.LDRGeometry();
     this.geometry.fromPartType(loader, this);
-    if(loader.cleanUpPrimitivesAndSubParts) {
-	this.removePrimitivesAndSubParts(loader);
-    }
 }
 
 THREE.LDRPartType.prototype.removePrimitivesAndSubParts = function(loader, parentID) {
@@ -2135,9 +2132,12 @@ THREE.LDRPartType.prototype.removePrimitivesAndSubParts = function(loader, paren
     }
     this.steps.forEach(step => step.subModels && step.subModels.forEach(handleSM));
 
-    // Perform cleanup only if no references left:
+    // Perform cleanup only if no part type references this:
     if(this.references === 0) {
 	delete this.steps;
+        if(this.geometry) {
+            this.geometry.cleanTempData();
+        }
     }
 }
 
@@ -2199,6 +2199,9 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
     }
     else {
         this.geometry.buildPhysicalGeometriesAndColors();
+    }
+    if(loader.cleanUpPrimitivesAndSubParts) {
+	this.removePrimitivesAndSubParts(loader);
     }
     
     let m4 = new THREE.Matrix4();
@@ -2879,7 +2882,6 @@ LDR.attachGlowPassesForObjects = function(map, w, h, scene, camera, composer) {
         glowPass.visibleEdgeColor.set(edgeColor);
         glowPass.hiddenEdgeColor.set('#000000');
         composer.addPass(glowPass);
-        //console.log('GLOWPASS', color, lum, map[color].length, edgeColor);
     }
     return any;
 }

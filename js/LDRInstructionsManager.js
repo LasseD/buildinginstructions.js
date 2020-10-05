@@ -158,6 +158,15 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
 	// Ensure replaced parts are substituted:
 	self.ldrLoader.substituteReplacementParts();
 
+        // After part substitution, set back-references so parts can be cleaned up:
+        if(options.cleanUpPrimitivesAndSubParts) {
+	    self.ldrLoader.applyOnPartTypes(pt => {
+                if(pt.isPart) {
+                    pt.setReferencedFrom(self.ldrLoader);
+                }
+            });
+        }        
+        
         // Find what should be built for first step:
         let mainModel = self.ldrLoader.mainModel;
         let origo = new THREE.Vector3();

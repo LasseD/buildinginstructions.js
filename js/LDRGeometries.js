@@ -55,6 +55,7 @@ LDR.vertexEqual = function(a, b) {
 }
 
 LDR.LDRGeometry = function() {
+    // Temp data for geometry construction:
     this.vertices = []; // Sorted {x,y,z,o}, where 'o' is a LEGO-logo indicator.
     this.lines = {}; // c -> [{p1,p2},...] (color -> indices)
     this.conditionalLines = {}; // c -> [{p1,p2,p3,p4},...]
@@ -62,12 +63,14 @@ LDR.LDRGeometry = function() {
     this.triangles2 = {}; // Triangles without culling
     this.quads = {}; // c -> [{p1,p2,p3,p4},...]
     this.quads2 = {}; // Quads without culling.
-    // geometries:
-    this.lineColorManager;
+    
+    // Built geometries:
+    this.lineColorManager; // Due to triangle geometries being divided up, only a color manager for lines is necessary.
     this.lineGeometry;
+    this.conditionalLineGeometry;
     this.triangleGeometries = {}; // c -> geometry
     this.texmapGeometries = {}; // texmapID -> [{c,g}] Populated with one geometry pr TEXMAP START command.
-    this.conditionalLineGeometry;
+
     this.geometriesBuilt = false;
     this.boundingBox = new THREE.Box3();
 }
@@ -173,9 +176,11 @@ LDR.LDRGeometry.prototype.buildGeometriesAndColors = function() {
 	return; // Already built.
     }
     let self = this;
+    
+    // Handle line colors and vertices:
     this.buildGeometriesAndColorsForLines();
 
-    // Now handle triangle colors and vertices:
+    // Handle triangle colors and vertices:
     let allTriangleColors = [];
     let seen = {};
     function getColorsFrom(p) {
@@ -228,6 +233,7 @@ LDR.LDRGeometry.prototype.buildGeometriesAndColors = function() {
     allTriangleColors.forEach(c => self.buildTexmapGeometriesForColor(c));
 
     this.geometriesBuilt = true;
+    this.cleanTempData();
 }
 
 LDR.LDRGeometry.prototype.buildTexmapGeometriesForColor = function(c) {
@@ -681,9 +687,8 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
     // Handle texmap geometries:
     allTriangleColors.forEach(c => self.buildTexmapGeometriesForColor(c));
 
-    this.geometriesBuilt = true;
-    
-    //this.cleanTempData();
+    this.geometriesBuilt = true;    
+    this.cleanTempData();
 }
 
 LDR.LDRGeometry.prototype.cleanTempData = function() {
