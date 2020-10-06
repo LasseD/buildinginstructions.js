@@ -20,15 +20,6 @@
     <script src="js/LDRLoader.js"></script>
     <script>
 
-LDR.InstructionsManager.prototype.render = function() {
-  let [w, h] = LDR.getScreenSize();
-  h -= this.adPeek;
-  this.renderer.setSize(w, h, true);
-  this.controls.dollyIn(0.1);
-
-  this.renderer.render(this.scene, this.camera);
-}
-
       let partID = '44375bps0.dat'; // Set the part to load here. 
       //let partID = 'stud-logo.dat';
       //let partID = '18675ps2.dat';
