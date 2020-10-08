@@ -1,37 +1,41 @@
 'use strict';
 
+LDR.Colors.HIGH_CONTRAST_WHITE = new THREE.Vector4(1, 1, 1, 1);
+LDR.Colors.HIGH_CONTRAST_RED = new THREE.Vector4(1, 0, 0, 1);
+LDR.Colors.HIGH_CONTRAST_BLACK = new THREE.Vector4(0, 0, 0, 1);
 LDR.Colors.getHighContrastColor4 = function(colorID) {
+    if(colorID < 0) {
+        colorID = -1-colorID; // Only edge colors are of interest for high contrast.
+    }
     if(colorID === 0 || colorID === 256 || colorID === 64 || colorID === 32 || colorID === 83) {
-	return new THREE.Vector4(1, 1, 1, 1);
+	return LDR.Colors.HIGH_CONTRAST_WHITE;
     }
     else if(colorID === 272 || colorID === 70) {
-        return new THREE.Vector4(1, 0, 0, 1);
+        return LDR.Colors.HIGH_CONTRAST_RED;
     } 
     else {
-        return new THREE.Vector4(0, 0, 0, 1);
+        return LDR.Colors.HIGH_CONTRAST_BLACK;
     }
 }
 
 LDR.Colors.getColor4 = function(colorID) {
-    let colorObject = LDR.Colors[colorID >= 0 ? colorID : -colorID - 1];
+    const EDGE = colorID < 0;
+    let colorObject = LDR.Colors[EDGE ? -1-colorID : colorID];
     if(!colorObject) {
 	throw "Unknown color: " + colorID;
     }
-    let color = new THREE.Color(colorID >= 0 ? colorObject.value : 
-				(colorObject.edge ? colorObject.edge : 0x333333));
-    let alpha = colorObject.alpha ? colorObject.alpha/256.0 : 1;
-    return new THREE.Vector4(color.r, color.g, color.b, alpha);
-}
-
-LDR.Colors.getDesaturatedColor4 = function(colorID) {
-    let colorObject = LDR.Colors[colorID >= 0 ? colorID : -colorID - 1];
-    if(!colorObject) {
-	throw "Unknown color: " + colorID;
+    
+    let key = EDGE ? 'EDG' : 'VAL';
+    if(colorObject.hasOwnProperty(key)) {
+        return colorObject[key];
     }
-    let color = LDR.Colors.desaturateThreeColor(colorID >= 0 ? colorObject.value : 
-				(colorObject.edge ? colorObject.edge : 0x333333));
+    
+    let color = new THREE.Color(EDGE ? (colorObject.edge ? colorObject.edge : 0x333333) : colorObject.value);
+				
     let alpha = colorObject.alpha ? colorObject.alpha/256.0 : 1;
-    return new THREE.Vector4(color.r, color.g, color.b, alpha);
+    let ret = new THREE.Vector4(color.r, color.g, color.b, alpha);
+    colorObject[key] = ret;
+    return ret;
 }
 
 LDR.Colors.getColorHex = function(colorID) {
@@ -64,26 +68,6 @@ LDR.Colors.int2Hex = function(i) {
     return ret;
 }
 
-LDR.Colors.desaturateThreeColor = function(hex) {
-    let threeColor = new THREE.Color(hex);
-    let hsl = {};
-    threeColor.getHSL(hsl);
-
-    if(hsl.l == 0) {
-	hsl.l = 0.3;
-    }
-    else {
-	hsl.l *= 0.7;
-    }
-
-    threeColor.setHSL(hsl.h, hsl.s, hsl.l);
-    return threeColor;
-}
-
-LDR.Colors.desaturateColor = function(hex) {
-    return LDR.Colors.desaturateThreeColor(hex).getHex();
-}
-
 LDR.Colors.isTrans = function(colorID) {
     return LDR.Colors[colorID < 0 ? -colorID-1 : colorID].alpha > 0;
 }
@@ -95,70 +79,51 @@ LDR.Colors.getLuminance = function(colorID) {
 LDR.Colors.canBeOld = false;
 
 LDR.ColorMaterialIdx = 0;
-LDR.Colors.buildLineMaterial = function(colorManager, color, conditional) {
-    colorManager = colorManager.clone();
-    colorManager.overWrite(color);
-    colorManager.idMaterial = LDR.ColorMaterialIdx++;
-
-    let colors = (LDR.Options && LDR.Options.lineContrast === 0) ?
-      colorManager.highContrastShaderColors : colorManager.shaderColors;
-    let len = colors.length;
+LDR.Colors.buildLineMaterial = function(c, conditional) {
+    let color = (LDR.Options && LDR.Options.lineContrast === 0) ?
+        LDR.Colors.getHighContrastColor4(c) : LDR.Colors.getColor4(c);
 
     let uniforms = {};
     if(LDR.Colors.canBeOld) {
 	uniforms['old'] = {value: false};
     }
-    if(len > 1) {
-	uniforms['colors'] = {type: 'v4v', value: colors};
-    }
-    else {
-	uniforms['color'] = {type: 'v4', value: colors[0]};
-    }
+    uniforms['color'] = {type: 'v4', value: color};
+
     let ret = new THREE.RawShaderMaterial( {
 	uniforms: uniforms,
 	vertexShader: (conditional ? 
-	    LDR.Shader.createConditionalVertexShader(LDR.Colors.canBeOld, colors, true) : 
-            LDR.Shader.createSimpleVertexShader(LDR.Colors.canBeOld, colors, true, true, false)),
+	    LDR.Shader.createConditionalVertexShader(true) : 
+            LDR.Shader.createSimpleVertexShader(true, true, false)),
 	fragmentShader: (conditional ? 
 	    LDR.Shader.AlphaTestFragmentShader :
 	    LDR.Shader.SimpleFragmentShader),
 	transparent: false,
 	visible: true
     });
-    ret.colorManager = colorManager;
     return ret;
 }
 
-LDR.Colors.buildTriangleMaterial = function(colorManager, color, texmap) {
-    colorManager = colorManager.clone();
-    colorManager.overWrite(color);
-    let colors = colorManager.shaderColors;
-    let len = colors.length;
+LDR.Colors.buildTriangleMaterial = function(c, texmap) {
+    let color4 = LDR.Colors.getColor4(c);
 
     let uniforms = {};
     if(LDR.Colors.canBeOld) {
 	uniforms['old'] = {value: false};
     }
-    if(len > 1) {
-	uniforms['colors'] = {type: 'v4v', value: colors};
-    }
-    else {
-	uniforms['color'] = {type: 'v4', value: colors[0]};
-    }
+    uniforms['color'] = {type: 'v4', value: color4};
     if(texmap && texmap !== true) {
         uniforms['map'] = {type: 't', value: texmap};
     }
 
-    let isTrans = colorManager.containsTransparentColors();
+    const isTrans = LDR.Colors.isTrans(c);
 
     let ret = new THREE.RawShaderMaterial({
 	uniforms: uniforms,
-	vertexShader: LDR.Shader.createSimpleVertexShader(LDR.Colors.canBeOld, colors, false, false, texmap),
+	vertexShader: LDR.Shader.createSimpleVertexShader(false, false, texmap),
 	fragmentShader: texmap ? LDR.Shader.TextureFragmentShader : LDR.Shader.SimpleFragmentShader,
 	transparent: isTrans,
         depthWrite: !isTrans
     });
-    ret.colorManager = colorManager;
     return ret;
 }
 
