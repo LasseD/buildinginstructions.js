@@ -36,7 +36,7 @@ LDR.Studs.makeGenerators = function(force, highContrast, logoType) {
     }
     LDR.Studs.all.forEach(f => {
         let pt = f(highContrast, logoType, force);
-        //pt.references++; // Ensure steps are not deleted.
+
         LDR.Generator.map[pt.ID] = () => pt;
     });
 }
