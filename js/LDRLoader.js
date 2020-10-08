@@ -1659,8 +1659,6 @@ THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, 
     }
 
     // Handle sub models:
-    let p = new THREE.Vector3(); // Moved object initialization out of the loop.
-    let r = new THREE.Matrix3(); // Moved object initialization out of the loop.
     for(let i = 0; i < this.subModels.length; i++) {
         let sm = this.subModels[i];
 	let smInversion = invertCCW !== sm.invertCCW;
@@ -1683,10 +1681,12 @@ THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, 
             }
 	}
 
+        let p = new THREE.Vector3();
 	p.copy(sm.p);
 	p.applyMatrix3(rotation);
 	p.add(position);
 
+        let r = new THREE.Matrix3();
 	r.multiplyMatrices(rotation, sm.r);
 
 	pt.generateThreePart(loader, c, p, r, smCull, smInversion, mc, sm, taskList);
