@@ -1648,55 +1648,49 @@ THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, 
     //console.log("STEP: Creating three part.", this.subModels.length, "sub models in color", colorID, ", cull:", cull, ", invertion:", invertCCW);
     let ownInversion = (rotation.determinant() < 0) !== invertCCW; // Adjust for inversed matrix!
     
-    function transformColor(subColorID) {
-	if(subColorID === 16) {
+    function transformColor(c) {
+	if(c === 16) {
 	    return colorID; // Main color
         }
-	else if(subColorID === 24) {
+	else if(c === 24) {
 	    return colorID < 0 ? colorID : -colorID-1; // Edge color
         }
-	return subColorID;
+	return c;
     }
 
-    function transformPoint(p) {
-	let ret = new THREE.Vector3(p.x, p.y, p.z);
-	ret.applyMatrix3(rotation);
-	ret.add(position);
-	return ret;
-    }
-    
-    function handleSubModel(subModelDesc) {
-	let subModelInversion = invertCCW !== subModelDesc.invertCCW;
-	let subModelCull = subModelDesc.cull && cull; // Cull only if both sub model, this step and the inherited cull info is true!
+    // Handle sub models:
+    let p = new THREE.Vector3(); // Moved object initialization out of the loop.
+    let r = new THREE.Matrix3(); // Moved object initialization out of the loop.
+    for(let i = 0; i < this.subModels.length; i++) {
+        let sm = this.subModels[i];
+	let smInversion = invertCCW !== sm.invertCCW;
+	let smCull = sm.cull && cull; // Cull only if both sub model, this step and the inherited cull info is true!
 
-	let subModelColor = transformColor(subModelDesc.c);
+	let c = transformColor(sm.c);
 	
-	let subModel = loader.getPartType(subModelDesc.ID);
-	if(!subModel) {
-	    loader.onError({message:"Unloaded sub model!", subModel:subModelDesc.ID});
+	let pt = loader.getPartType(sm.ID);
+	if(!pt) {
+	    loader.onError({message:"Unloaded sub model!", subModel:sm.ID});
 	    return;
 	}
-	if(subModel.replacement) {
-	    let replacementSubModel = loader.getPartType(subModel.replacement);
-	    if(!replacementSubModel) {
-		throw { 
-		    name: "UnloadedSubmodelException", 
-		    level: "Severe",
-		    message: "Unloaded replaced sub model: " + subModel.replacement + " replacing " + subModelDesc.ID,
-		    htmlMessage: "Unloaded replaced sub model: " + subModel.replacement + " replacing " + subModelDesc.ID,
-		    toString:    function(){return this.name + ": " + this.message;} 
-		};
+	if(pt.replacement) {
+	    let replacementSubModel = loader.getPartType(pt.replacement);
+	    if(replacementSubModel) {
+	        pt = replacementSubModel;
 	    }
-	    subModel = replacementSubModel;
+            else {
+                loader.onError({message:"Unloaded replaced sub model: " + pt.replacement + " replacing " + sm.ID, subModel:pt.ID});
+            }
 	}
-	let nextPosition = transformPoint(subModelDesc.p);
-	let nextRotation = new THREE.Matrix3();
-	nextRotation.multiplyMatrices(rotation, subModelDesc.r);
-	subModel.generateThreePart(loader, subModelColor, nextPosition, nextRotation, subModelCull, subModelInversion, mc, subModelDesc, taskList);
+
+	p.copy(sm.p);
+	p.applyMatrix3(rotation);
+	p.add(position);
+
+	r.multiplyMatrices(rotation, sm.r);
+
+	pt.generateThreePart(loader, c, p, r, smCull, smInversion, mc, sm, taskList);
     }
-    
-    // Add submodels:
-    this.subModels.forEach(handleSubModel);
 }
 
 LDR.Line0 = function(txt) {
@@ -2195,15 +2189,25 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
     }
 
     if(loader.physicalRenderingAge === 0) {
-        this.geometry.buildGeometriesAndColors();
+        this.geometry.buildGeometries();
     }
     else {
-        this.geometry.buildPhysicalGeometriesAndColors();
+        this.geometry.buildPhysicalGeometries();
     }
     if(loader.cleanUpPrimitivesAndSubParts) {
 	this.removePrimitivesAndSubParts(loader);
     }
     
+    function transformColor(tc) {
+	if(tc === '16') {
+	    return c; // Main color
+        }
+	else if(tc === '24') {
+	    return c === 16 ? 24 : (c < 0 ? c : -c-1); // Edge color
+        }
+	return parseInt(tc);
+    }
+
     let m4 = new THREE.Matrix4();
     let m3e = r.elements;
     m4.set(
@@ -2213,18 +2217,28 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 	0, 0, 0, 1
     );
     
-    if(this.geometry.lineGeometry) {
-	let material = new LDR.Colors.buildLineMaterial(this.geometry.lineColorManager, c, false);
-	let normalLines = new THREE.LineSegments(this.geometry.lineGeometry, material);
+    for(let tc in this.geometry.lineGeometries) {
+	if(!this.geometry.lineGeometries.hasOwnProperty(tc)) {
+	    continue;
+	}
+        let c3 = transformColor(tc);
+
+	let material = new LDR.Colors.buildLineMaterial(c3, false);
+	let normalLines = new THREE.LineSegments(this.geometry.lineGeometries[tc], material);
 	normalLines.applyMatrix4(m4);
-	mc.addLines(normalLines, pd, false);
+	mc.addLines(c3, normalLines, pd, false);
     }
     
-    if(this.geometry.conditionalLineGeometry) {
-	let material = new LDR.Colors.buildLineMaterial(this.geometry.lineColorManager, c, true);
-	let conditionalLines = new THREE.LineSegments(this.geometry.conditionalLineGeometry, material);
+    for(let tc in this.geometry.conditionalLineGeometries) {
+	if(!this.geometry.conditionalLineGeometries.hasOwnProperty(tc)) {
+	    continue;
+	}
+        let c3 = transformColor(tc);
+
+	let material = new LDR.Colors.buildLineMaterial(c3, true);
+	let conditionalLines = new THREE.LineSegments(this.geometry.conditionalLineGeometries[tc], material);
 	conditionalLines.applyMatrix4(m4);
-	mc.addLines(conditionalLines, pd, true);
+	mc.addLines(c3, conditionalLines, pd, true);
     }
     
     // Normal triangle geometries:
@@ -2232,24 +2246,21 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 	if(!this.geometry.triangleGeometries.hasOwnProperty(tc)) {
 	    continue;
 	}
+        let c3 = transformColor(tc);
 	let g = this.geometry.triangleGeometries[tc];
 
 	let material;
 	if(loader.physicalRenderingAge === 0) { // Simple rendering:
-	    let triangleColorManager = new LDR.ColorManager();
-            triangleColorManager.get(tc); // Ensure color is present.
-            tc = parseInt((tc === '16') ? c : tc);
-            material = new LDR.Colors.buildTriangleMaterial(triangleColorManager, c, false);
+            material = new LDR.Colors.buildTriangleMaterial(c3, false);
         }
 	else { // Physical rendering:
-            tc = parseInt((tc === '16') ? c : tc);
-            material = LDR.Colors.buildStandardMaterial(tc);
+            material = LDR.Colors.buildStandardMaterial(c3, false);
 	}
         let mesh = new THREE.Mesh(g.clone(), material); // Using clone to ensure matrix in next line doesn't affect other usages of the geometry.
         mesh.receiveShadow = mesh.castShadow = loader.physicalRenderingAge !== 0;
         mesh.geometry.applyMatrix4(m4);
         //mesh.applyMatrix4(m4); // Doesn't work for all LDraw parts as the matrix needs to be decomposable to position, quaternion and scale. Some rotation matrices in LDraw parts are not decomposable.
-        mc.addMesh(tc, mesh, pd);
+        mc.addMesh(c3, mesh, pd);
     }
 
     let self = this;
@@ -2259,15 +2270,13 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
         }
         this.geometry.texmapGeometries[idx].forEach(obj => {
             let g = obj.g, c2 = obj.c;
-            let c3 = parseInt(c2 === '16' ? c : c2);
+            let c3 = transformColor(c2);
             let textureFile = LDR.TexmapPlacements[idx].file;
 	    
             let material;
             let buildMaterial, setMap;
             if(loader.physicalRenderingAge === 0) {
-		let triangleColorManager = new LDR.ColorManager();
-		triangleColorManager.get(c2); // Ensure color is present.
-                buildMaterial = t => LDR.Colors.buildTriangleMaterial(triangleColorManager, c3, t);
+                buildMaterial = t => LDR.Colors.buildTriangleMaterial(c3, t);
                 setMap = t => material.uniforms.map = {type:'t',value:t};
             }
             else {
@@ -2698,91 +2707,6 @@ LDR.TexmapPlacement.prototype.toLDR = function(lines, loader) {
     return ret;
 }
 
-LDR.ColorManager = function() {
-    this.shaderColors = []; // [] => Vector4
-    this.highContrastShaderColors = []; // [] => Vector4
-    this.map = {}; // colorID -> floatColor
-    this.sixteen = -1;
-    this.edgeSixteen = -1;
-    this.anyTransparentColors = false;
-    this.mainColorIsTransparent = false;
-}
-
-LDR.ColorManager.prototype.clone = function() {
-    let ret = new LDR.ColorManager();
-    ret.shaderColors.push(...this.shaderColors);
-    ret.highContrastShaderColors.push(...this.highContrastShaderColors);
-    ret.sixteen = this.sixteen;
-    ret.edgeSixteen = this.edgeSixteen;
-    ret.anyTransparentColors = this.anyTransparentColors;
-    ret.mainColorIsTransparent = this.mainColorIsTransparent;
-    for(let c in this.map) {
-        if(this.map.hasOwnProperty(c))
-            ret.map[c] = this.map[c];
-    }
-    return ret;
-}
-
-LDR.ColorManager.prototype.overWrite = function(id) {
-    if(this.sixteen === -1 && this.edgeSixteen === -1) {
-	return;
-    }
-
-    let isEdge = id < 0;
-    let lowID = isEdge ? -id-1 : id;
-    let colorObject = LDR.Colors[lowID];
-    if(!colorObject) {
-        throw "Unknown color: " + id;
-    }
-    let alpha = colorObject.alpha ? colorObject.alpha/256.0 : 1;
-    this.mainColorIsTransparent = alpha < 1;
-    
-    if(this.sixteen >= 0) {
-        let color = new THREE.Color(isEdge ? colorObject.edge : colorObject.value);
-        this.shaderColors[this.sixteen] = new THREE.Vector4(color.r, color.g, color.b, alpha);
-    }
-    if(this.edgeSixteen >= 0) {
-        let color = new THREE.Color(colorObject.edge);
-        this.shaderColors[this.edgeSixteen] = new THREE.Vector4(color.r, color.g, color.b, 1); // Drop alpha from edge lines to increase contrast.
-        this.highContrastShaderColors[this.edgeSixteen] = LDR.Colors.getHighContrastColor4(lowID);
-    }
-
-    this.lastSet = id;
-}
-
-LDR.ColorManager.prototype.get = function(id) {
-    let f = this.map[id];
-    if(f) {
-        return f;
-    }
-    if(id == 16) {
-        this.sixteen = this.shaderColors.length;
-    }
-    else if(id == 10016 || id == 24) {
-        this.edgeSixteen = this.shaderColors.length;
-    }
-    
-    let isEdge = id < 0;
-    let lowID = isEdge ? -id-1 : id;
-    let colorObject = LDR.Colors[lowID];
-    if(!colorObject) {
-        throw "Unknown color " + lowID + " from " + id;
-    }
-    let color = new THREE.Color(isEdge ? colorObject.edge : colorObject.value);
-    let alpha = colorObject.alpha ? colorObject.alpha/256.0 : 1;
-    this.anyTransparentColors = (this.anyTransparentColors || (alpha < 1))
-    
-    f = this.shaderColors.length + 0.1;
-    this.map[id] = f;
-    this.shaderColors.push(new THREE.Vector4(color.r, color.g, color.b, alpha));
-    this.highContrastShaderColors.push(LDR.Colors.getHighContrastColor4(lowID));
-    return f;
-}
-
-LDR.ColorManager.prototype.containsTransparentColors = function() {
-    return this.anyTransparentColors || this.mainColorIsTransparent;
-}
-
 /*
   MeshCollector holds references to meshes (and similar Three.js structures for lines).
   A Mesh Collector handles updates of meshes. This includes;
@@ -2798,8 +2722,8 @@ LDR.MeshCollector = function(opaqueObject, sixteenObject, transObject, outliner)
     this.transObject = transObject; // To be painted last.
     this.outliner = outliner || false; // With outlined objects
 
-    this.lineMeshes = []; // {mesh,part,conditional}
-    this.triangleMeshes = []; // {mesh,part,parent}
+    this.lineMeshes = []; // {color,originalColor,mesh,part,conditional}
+    this.triangleMeshes = []; // {color,originalColor,mesh,part,parent}
 
     this.old = false;
     this.visible = true;
@@ -2810,8 +2734,8 @@ LDR.MeshCollector = function(opaqueObject, sixteenObject, transObject, outliner)
     this.idx = LDR.MeshCollectorIdx++;
 }
 
-LDR.MeshCollector.prototype.addLines = function(mesh, part, conditional) {
-    this.lineMeshes.push({mesh:mesh, part:part, conditional:conditional});
+LDR.MeshCollector.prototype.addLines = function(color, mesh, part, conditional) {
+    this.lineMeshes.push({color:color, originalColor:color, mesh:mesh, part:part, conditional:conditional});
     this.opaqueObject.add(mesh);
 }
 
@@ -2833,7 +2757,7 @@ LDR.MeshCollector.prototype.addMesh = function(color, mesh, part) {
     else {
 	parent = this.opaqueObject;
     }
-    this.triangleMeshes.push({mesh:mesh, part:part, parent:parent});
+    this.triangleMeshes.push({color:color, mesh:mesh, part:part, parent:parent});
     parent.add(mesh);
 }
 
@@ -2904,10 +2828,9 @@ LDR.MeshCollector.prototype.removeAllMeshes = function() {
   visibility of this meshCollector.
  */
 LDR.MeshCollector.prototype.updateMeshVisibility = function() {
-    let v = this.visible;
-    let lineV = v && LDR.Options && LDR.Options.lineContrast !== 2;
+    const v = this.visible;
 
-    this.lineMeshes.forEach(obj => obj.mesh.visible = lineV);
+    this.lineMeshes.forEach(obj => obj.mesh.visible = v);
 
     let old = this.old;
     this.triangleMeshes.forEach(obj => obj.mesh.visible = v && (old || !(LDR.Options && LDR.Options.showEditor && obj.part && obj.part.original && obj.part.original.ghost))); // Do not show faces for ghosted parts.
@@ -2956,28 +2879,16 @@ LDR.MeshCollector.prototype.setOldValue = function(old) {
 
 LDR.MeshCollector.prototype.colorLinesLDraw = function() {
     this.lineMeshes.forEach(mesh => {
-            let m = mesh.mesh.material;
-            let colors = m.colorManager.shaderColors;
-            if(colors.length === 1) {
-                m.uniforms.color.value = colors[0];
-            }
-            else {
-                m.uniforms.colors.value = colors;
-            }
-        });
+        let m = mesh.mesh.material;
+        m.uniforms.color.value = LDR.Colors.getColor4(mesh.color);
+    });
 }
 
 LDR.MeshCollector.prototype.colorLinesHighContrast = function() {
     this.lineMeshes.forEach(mesh => {
-            let m = mesh.mesh.material;
-            let colors = m.colorManager.highContrastShaderColors;
-            if(colors.length === 1) {
-                m.uniforms.color.value = colors[0];
-            }
-            else {
-                m.uniforms.colors.value = colors;
-            }
-        });
+        let m = mesh.mesh.material;
+        m.uniforms.color.value = LDR.Colors.getHighContrastColor4(mesh.color);
+    });
 }
 
 LDR.MeshCollector.prototype.updateState = function(old) {
@@ -3002,44 +2913,33 @@ LDR.MeshCollector.prototype.update = function(old) {
     this.updateState(old);
 }
 
-/*
-  This is a temporary function used by single parts render. 
-  To be decomissioned when colors are moved to an attribute.
- */
 LDR.MeshCollector.prototype.overwriteColor = function(color) {
     if(this.overwrittenColor === color) {
         return;
     }
 
-    const sixteenObject = this.sixteenObject;
-
-    let self = this;
     function handle(obj, edge) {
-	if(obj.hasOwnProperty('parent') && obj.parent !== sixteenObject) {
-	    return; // Not sixteen: Don't overwrite the color.
+	if(edge ? (obj.originalColor !== 24) : (obj.originalColor === 16)) {
+	    return; // Not 16, so don't overwrite the color.
 	}
+        let c = edge ? -1-color : color;
+
+        let color4 = edge && LDR.Options && LDR.Options.lineContrast === 0 ? LDR.Colors.getHighContrastColor4(c) : LDR.Colors.getColor4(c);
 
         const m = obj.mesh.material;
-        const c = m.colorManager;
-	c.overWrite(color);
-	let colors = !edge || LDR.Options && LDR.Options.lineContrast > 0 ? c.shaderColors : c.highContrastShaderColors;
+        
+	m.uniforms.color.value = color4;
+        obj.color = c;
 
-	if(colors.length === 1) {
-	    m.uniforms.color.value = colors[0];
-        }
-	else {
-	    m.uniforms.colors.value = colors;
-        }
 	if(!edge) {
-	    let isTrans = c.containsTransparentColors();
+	    let isTrans = LDR.Colors.isTrans(color);
 	    m.depthWrite = !isTrans; // Set depth write only for opaque materials.
 	    m.transparent = isTrans;
 	}
     }
 
     for(let i = 0; i < this.triangleMeshes.length; i++) {
-	let mesh = this.triangleMeshes[i];
-	handle(mesh, false);
+	handle(this.triangleMeshes[i], false);
     }
     for(let i = 0; i < this.lineMeshes.length; i++) {
 	handle(this.lineMeshes[i], true);

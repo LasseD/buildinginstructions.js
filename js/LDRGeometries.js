@@ -65,9 +65,8 @@ LDR.LDRGeometry = function() {
     this.quads2 = {}; // Quads without culling.
     
     // Built geometries:
-    this.lineColorManager; // Due to triangle geometries being divided up, only a color manager for lines is necessary.
-    this.lineGeometry;
-    this.conditionalLineGeometry;
+    this.lineGeometries = {}; // c -> geometry
+    this.conditionalLineGeometries = {}; // c -> geometry
     this.triangleGeometries = {}; // c -> geometry
     this.texmapGeometries = {}; // texmapID -> [{c,g}] Populated with one geometry pr TEXMAP START command.
 
@@ -75,110 +74,72 @@ LDR.LDRGeometry = function() {
     this.boundingBox = new THREE.Box3();
 }
 
-/*
-  Used for showing points where all vertices are.
- */
-LDR.LDRGeometry.prototype.buildVertexAttribute = function(r) {
-    let vertices = [];
-    let p = new THREE.Vector3(); // Outside of the loop for performance.
-    for(let i = 0; i < this.vertices.length; i++) {
-        let v = this.vertices[i];
-        p.set(v.x, v.y, v.z);
-        p.applyMatrix3(r);
-        vertices.push(p.x, p.y, p.z);
-    };
-    return new THREE.Float32BufferAttribute(vertices, 3);
+LDR.LDRGeometry.prototype.buildLineGeometries = function(vertexAttribute) {
+    for(let c in this.lines) {
+	if(!this.lines.hasOwnProperty(c)) {
+            continue;            
+        }
+
+        let lineIndices = [];
+        let lines = this.lines[c];
+        for(let i = 0; i < lines.length; i++) {
+	    let line = lines[i];
+            lineIndices.push(line.p1, line.p2);
+        }
+        this.lineGeometries[c] = this.buildGeometry(lineIndices, vertexAttribute);
+    }
 }
 
-LDR.LDRGeometry.prototype.buildGeometriesAndColorsForLines = function() {
-    this.lineColorManager = new LDR.ColorManager();
-
-    // Vertices for the geometries have size 3 for single color geometries and size 4 for multi-colored (they include color indices as fourth component):
-    // First handle line vertices:
-    let allLineColors = [];
-    for(let c in this.lines) {
-	if(this.lines.hasOwnProperty(c)) {
-            allLineColors.push(c);
-        }
-    }
-    for(let c in this.conditionalLines) {
-	if(!this.lines.hasOwnProperty(c) && this.conditionalLines.hasOwnProperty(c)) {
-            allLineColors.push(c);
-        }
-    }
-
-    var self = this;
-    let colorIdx = 0;
-    let handleVertex = function(vertices, idx, fc) {
-	let v = self.vertices[idx];
-	if(v.c !== colorIdx) {
-	    v.c = colorIdx;
-	    v.idx = vertices.length/4;
-	    vertices.push(v.x, v.y, v.z, fc);
-	}
-	return v.idx;
-    }
-
-    let lineVertexAttribute, lineVertices = [], lineIndices = [];
-    if(allLineColors.length === 1) {
-	let c = allLineColors[0];
-	this.lineColorManager.get(c); // Ensure color is present.
-	this.vertices.forEach(v => lineVertices.push(v.x, v.y, v.z));
-	lineVertexAttribute = new THREE.Float32BufferAttribute(lineVertices, 3);
-	// No need to update indices of lines.
-	if(this.lines.hasOwnProperty(c)) {
-	    this.lines[c].forEach(line => lineIndices.push(line.p1, line.p2));
-	}
-    }
-    else if(allLineColors.length > 1) {
-	/*
-	  Duplicate vertices for each color.
-	 */
-	for(let c in this.lines) {
-            colorIdx++;
-	    if(!this.lines.hasOwnProperty(c)) {
-		continue;
-	    }
-	    let fc = this.lineColorManager.get(c);
-
-	    this.lines[c].forEach(line => {
-                    lineIndices.push(handleVertex(lineVertices, line.p1, fc)); // Update indices
-                    lineIndices.push(handleVertex(lineVertices, line.p2, fc));
-                });
-	}
-	lineVertexAttribute = new THREE.Float32BufferAttribute(lineVertices, 4);
-    }
-    this.lineGeometry = this.buildGeometry(lineIndices, lineVertexAttribute);
-
-    // Conditional lines:
-    let conditionalLines = [];
+LDR.LDRGeometry.prototype.buildConditionalLineGeometries = function(vertexAttribute) {
     for(let c in this.conditionalLines) {
 	if(!this.conditionalLines.hasOwnProperty(c)) {
-	    continue;
-	}
-	let fc = this.lineColorManager.get(c);
-	this.conditionalLines[c].forEach(p => {
-                let p1 = this.vertices[p.p1];
-                let p2 = this.vertices[p.p2];
-                let p3 = this.vertices[p.p3];
-                let p4 = this.vertices[p.p4];
-                conditionalLines.push({p1:p1, p2:p2, p3:p3, p4:p4, fc:fc});
-            });
+            continue;
+        }
+        let conditionalLines = this.conditionalLines[c];
+
+        let g = new THREE.BufferGeometry();
+        let p1s = [], p2s = [], p3s = [], p4s = [];
+
+        // Now handle conditional lines:
+        for(let i = 0; i < conditionalLines.length; i++) {
+	    let p = conditionalLines[i]; // {p1, p2, p3, p4}
+            let p1 = this.vertices[p.p1];
+            let p2 = this.vertices[p.p2];
+            let p3 = this.vertices[p.p3];
+            let p4 = this.vertices[p.p4];
+            
+	    p1s.push(p1.x, p1.y, p1.z, p2.x, p2.y, p2.z); // 2 points => 1 line in shader.
+	    p2s.push(p2.x, p2.y, p2.z, p1.x, p1.y, p1.z); // Counter points for calculations
+	    p3s.push(p3.x, p3.y, p3.z, p3.x, p3.y, p3.z); // p3's
+	    p4s.push(p4.x, p4.y, p4.z, p4.x, p4.y, p4.z); // p4's
+        }
+        g.setAttribute('position', new THREE.Float32BufferAttribute(p1s, 3));
+        g.setAttribute('p2', new THREE.Float32BufferAttribute(p2s, 3));
+        g.setAttribute('p3', new THREE.Float32BufferAttribute(p3s, 3));
+        g.setAttribute('p4', new THREE.Float32BufferAttribute(p4s, 3));
+        this.conditionalLineGeometries[c] = g;
     }
-    this.buildGeometryForConditionalLines(allLineColors.length > 1, conditionalLines);
 }
 
 /*
   Build geometries and color managers for standard (quick draw) drawing (seen in building instructions and parts lists)
  */
-LDR.LDRGeometry.prototype.buildGeometriesAndColors = function() {
+LDR.LDRGeometry.prototype.buildGeometries = function() {
     if(this.geometriesBuilt) {
 	return; // Already built.
     }
     let self = this;
     
-    // Handle line colors and vertices:
-    this.buildGeometriesAndColorsForLines();
+    let lineVertices = [];
+    for(let i = 0; i < this.vertices.length; i++) {
+        let v = this.vertices[i];
+        lineVertices.push(v.x, v.y, v.z);
+    }
+    let vertexAttribute = new THREE.Float32BufferAttribute(lineVertices, 3);
+
+    // Handle lines:
+    this.buildLineGeometries(vertexAttribute);
+    this.buildConditionalLineGeometries(vertexAttribute);
 
     // Handle triangle colors and vertices:
     let allTriangleColors = [];
@@ -371,7 +332,7 @@ THREE.BufferGeometry.prototype.computeVertexNormals = function() {
    This function also computes normals and UV's to be used by standard materials.
  */
 LDR.LDRGeometry.UV_WarningWritten = false;
-LDR.LDRGeometry.prototype.buildPhysicalGeometriesAndColors = function() {
+LDR.LDRGeometry.prototype.buildPhysicalGeometries = function() {
     if(this.geometriesBuilt) {
 	return;
     }
@@ -712,35 +673,6 @@ LDR.LDRGeometry.prototype.buildGeometry = function(indices, vertexAttribute) {
     return g;
 }
 
-LDR.LDRGeometry.prototype.buildGeometryForConditionalLines = function(multiColored, conditionalLines) {
-    if(conditionalLines.length === 0) {
-	return;
-    }
-    this.conditionalLineGeometry = new THREE.BufferGeometry();
-    let p1s = [], p2s = [], p3s = [], p4s = [], colorIndices = [];
-
-    // Now handle conditional lines:
-    for(let i = 0; i < conditionalLines.length; i++) {
-	let line = conditionalLines[i]; // {p1, p2, p3, p4, fc}
-        let p1 = line.p1, p2 = line.p2, p3 = line.p3, p4 = line.p4;
-
-	p1s.push(p1.x, p1.y, p1.z, p2.x, p2.y, p2.z); // 2 points => 1 line in shader.
-	p2s.push(p2.x, p2.y, p2.z, p1.x, p1.y, p1.z); // Counter points for calculations
-	p3s.push(p3.x, p3.y, p3.z, p3.x, p3.y, p3.z); // p3's
-	p4s.push(p4.x, p4.y, p4.z, p4.x, p4.y, p4.z); // p4's
-	if(multiColored) {
-	    colorIndices.push(line.fc, line.fc); // 2 points.
-        }
-    }
-    this.conditionalLineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(p1s, 3));
-    this.conditionalLineGeometry.setAttribute('p2', new THREE.Float32BufferAttribute(p2s, 3));
-    this.conditionalLineGeometry.setAttribute('p3', new THREE.Float32BufferAttribute(p3s, 3));
-    this.conditionalLineGeometry.setAttribute('p4', new THREE.Float32BufferAttribute(p4s, 3));
-    if(multiColored) {
-	this.conditionalLineGeometry.setAttribute('colorIndex', new THREE.BufferAttribute(new Float32Array(colorIndices), 1));
-    }
-}
-
 LDR.LDRGeometry.prototype.replaceWith = function(g) {
     this.vertices = g.vertices;
     this.lines = g.lines;
@@ -1004,11 +936,8 @@ LDR.LDRGeometry.prototype.fromStep = function(loader, step) {
 }
 
 LDR.LDRGeometry.prototype.fromPartType = function(loader, pt) {
-    if(pt.steps.length === 1) {
-        this.fromStep(loader, pt.steps[0]);
-    }
-    else {
-        console.warn('Expected 1 step, not',pt.steps.length,'Skipping geometry for', pt.ID);
+    for(let i = 0; i < pt.steps.length; i++) {
+        this.fromStep(loader, pt.steps[i]);
     }
 }
 

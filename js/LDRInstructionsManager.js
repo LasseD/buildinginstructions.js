@@ -1007,29 +1007,14 @@ LDR.InstructionsManager.prototype.setUpOptions = function() {
 
     LDR.Options.appendFooter(optionsDiv);
     LDR.Options.listeners.push(function(partGeometriesChanged) {
-            if(partGeometriesChanged) { // Update all studs:
-                self.ldrLoader.applyOnPartTypes(pt => {
-                        if(pt.isPart) {
-                            pt.geometry = pt.mesh = null;
-                        }
-                    });
-
-                function callBack() {
-                    self.stepHandler.rebuild();
-                    self.stepHandler.moveTo(self.currentStep);
-                    self.handleStepsWalked();
-                    
-                    self.stepHandler.updateMeshCollectors();
-                    self.updateUIComponents(true);
-                }
-                LDR.Studs.setStuds(self.ldrLoader, LDR.Options.studHighContrast, 
-                                   LDR.Options.studLogo, callBack); // Studs.
-            }
-            else {
-                self.stepHandler.updateMeshCollectors();
-                self.updateUIComponents(true);
-            }
-            self.ldrButtons.hideElementsAccordingToOptions();
-            self.onWindowResize(true);
-        });
+        if(partGeometriesChanged) {
+            location.reload(); // Geometries have been deleted due to optimizations, so reload the page.
+        }
+        else {
+            self.stepHandler.updateMeshCollectors();
+            self.updateUIComponents(true);
+        }
+        self.ldrButtons.hideElementsAccordingToOptions();
+        self.onWindowResize(true);
+    });
 }

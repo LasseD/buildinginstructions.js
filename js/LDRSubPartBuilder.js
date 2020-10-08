@@ -394,3 +394,30 @@ LDR.SubPartBuilder.prototype.drawAllIcons = function() {
     this.redPoints.visible = false;
     this.baseMC.setVisible(true);
 }
+
+// Ensure LDR geometries want to play ball:
+LDR.LDRGeometry.prototype.cleanTempData = function() {
+    //delete this.vertices; // We need this!
+    delete this.lines;
+    delete this.conditionalLines;
+    delete this.quads;
+    delete this.quads2;
+    delete this.triangles;
+    delete this.triangles2;
+}
+
+/*
+  Apply matrix r.
+  Used for showing vertex positions.
+ */
+LDR.LDRGeometry.prototype.buildVertexAttribute = function(r) {
+    let vertices = [];
+    let p = new THREE.Vector3(); // Outside of the loop for performance.
+    for(let i = 0; i < this.vertices.length; i++) {
+        let v = this.vertices[i];
+        p.set(v.x, v.y, v.z);
+        p.applyMatrix3(r);
+        vertices.push(p.x, p.y, p.z);
+    };
+    return new THREE.Float32BufferAttribute(vertices, 3);
+}

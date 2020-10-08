@@ -109,6 +109,30 @@
     </div>
     <div id="options" /></div>
     <script>
+      /**
+         Space optimization. Chrome snapshots on last page:
+         - No optimization:
+          - 8.8 MB Typed Arrays
+          - 4.7 MB JS Arrays
+          - 2.2 MB Strings
+         - Clean up geometries:
+          - 8.5 MB Typed Arrays
+          - 3.1 MB JS Arrays
+          - 1.5 MB Strings
+         - No color attributes and no color managers:
+          - 8.8 MB Typed Arrays 
+          - 2.7 MB JS Arrays
+          - 1.5 MB Strings
+         - No 'stud.dat':
+          - 6.4 MB Typed Arrays
+          - 3.0 MB JS Arrays
+          - 2.1 MB Strings
+         - No 'stud*':
+          - 3.1 MB Typed Arrays
+          - 2.7 MB JS Arrays
+          - 2.0 MB Strings
+       */
+      
       var model = 'models/corvette_full.mpd';
       //var model = 'models/spiral_sub.mpd';
       //var model = 'models/ldcad_motor_test.mpd';
@@ -122,26 +146,27 @@
       var manager;
 
       function main() {
-        let options = {
-          canEdit: true, // Show editor options
-          buildAssemblies: true, // Assemble parts, such as minifig torsos and legs
-          key: model,
-          adPeek: 0, // Show a bar below to contain editor options - set to roughly 120 if canEdit is set to true
-          setUpOptions: true, // Show button options below.
-          showNumberOfSteps: true,
-          pliMaxWidthPercentage: 30, // The maximum width of the PLI box in percentage of the screen width when the PLI box is shown on the left side.
-          pliMaxHeightPercentage: 30, // The maximum height of the PLI box in percentage of the screen height when the PLI box is shown on top.
-          timestamp: '1970-01-01 00:00:00' // Ensure that model can be retrieved from InstancedDB
-        };
+          let options = {
+              canEdit: true, // Show editor options
+              buildAssemblies: true, // Assemble parts, such as minifig torsos and legs
+              key: model,
+              adPeek: 0, // Show a bar below to contain editor options - set to roughly 120 if canEdit is set to true
+              setUpOptions: true, // Show button options below.
+              showNumberOfSteps: true,
+              pliMaxWidthPercentage: 30, // The maximum width of the PLI box in percentage of the screen width when the PLI box is shown on the left side.
+              pliMaxHeightPercentage: 30, // The maximum height of the PLI box in percentage of the screen height when the PLI box is shown on top.
+              timestamp: '1970-01-01 00:00:00', // Ensure that model can be retrieved from InstancedDB
+              cleanUpPrimitivesAndSubParts: true
+          };
 
-        // Get the requested step from the query parameters:
-        let step = 1;
-        let stepFromUrl = location.search.substr(1).split('&').map(x => x.split('=')).find(x => x[0] === 'step');
-        if(stepFromUrl) {
-          step = stepFromUrl[1];
-        }
-
-        manager = new LDR.InstructionsManager(model, '#', 16, null, ()=>{}, baseURL, step, options);
+          // Get the requested step from the query parameters:
+          let step = 1;
+          let stepFromUrl = location.search.substr(1).split('&').map(x => x.split('=')).find(x => x[0] === 'step');
+          if(stepFromUrl) {
+              step = stepFromUrl[1];
+          }
+          
+          manager = new LDR.InstructionsManager(model, '#', 14, null, ()=>{}, baseURL, step, options);
       };
     </script>
   </body>
