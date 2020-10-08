@@ -61,22 +61,22 @@ THREE.LDRLoader = function(onLoad, storage, options) {
             let stillToBeFetched = [];
             let added = {};
             toBeFetched.forEach(id => {
-                    if(added.hasOwnProperty(id)) {
-                        return; // Already seen.
-                    }
-                    added[id] = true;
+                if(added.hasOwnProperty(id)) {
+                    return; // Already seen.
+                }
+                added[id] = true;
 
-                    let pt = LDR.Generator.make(id)
-                    if(pt) {
-                        loader.setPartType(pt);
-                        // Check for sub-models:
-                        pt.steps.forEach(step => step.subModels.forEach(sm => stillToBeFetched.push(sm.ID)));
-                        improved = true;
-                    }
-                    else {
-                        stillToBeFetched.push(id);
-                    }
-                });
+                let pt = LDR.Generator.make(id);
+                if(pt) {
+                    loader.setPartType(pt);
+                    // Check for sub-models:
+                    pt.steps.forEach(step => step.subModels.forEach(sm => stillToBeFetched.push(sm.ID)));
+                    improved = true;
+                }
+                else {
+                    stillToBeFetched.push(id);
+                }
+            });
             toBeFetched = stillToBeFetched;
         }
         onDone(toBeFetched);
@@ -754,7 +754,7 @@ THREE.LDRLoader.prototype.getPartType = function(id) {
 
     let pt = this.partTypes[id];
     if(pt === true) {
-        return null;
+        return null; // Not yet loaded
     }
     return pt;
 }

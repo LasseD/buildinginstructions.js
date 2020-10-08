@@ -36,7 +36,6 @@ LDR.Studs.makeGenerators = function(force, highContrast, logoType) {
     }
     LDR.Studs.all.forEach(f => {
         let pt = f(highContrast, logoType, force);
-
         LDR.Generator.map[pt.ID] = () => pt;
     });
 }
