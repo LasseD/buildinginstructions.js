@@ -341,9 +341,6 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 	    }
 	    else if(is("Name:")) {
 		part.name = parts.slice(2).join(" ");
-		if(part.ID === part.name) { // Consistent 'FILE' and 'Name:' lines.
-		    part.consistentFileAndName = true;
-		}
                 saveThisCommentLine = false;
 	    }
 	    else if(is("Author:")) {
@@ -520,7 +517,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 	    }
 	    else {
 		invertNext = false;
-		modelDescription = line.substring(2);
+		modelDescription = line.substring(2).trim();
                 if(inHeader) {
                     saveThisCommentLine = false; // modelDescription is expected to be the description line in the header, so do not save it.
                 }
@@ -1063,7 +1060,7 @@ THREE.LDRLoader.prototype.pack = function() {
   Part description: a part (ID) placed (position, rotation) with a
   given color (16/24 allowed) and invertCCW to allow for sub-parts in DAT-parts.
 */
-THREE.LDRPartDescription = function(colorID, position, rotation, ID, cull, invertCCW, tmp) {
+THREE.LDRPartDescription = function(colorID, position, rotation, ID, cull, invertCCW, tmp = null) {
     this.c = colorID; // LDraw ID. Negative values indicate edge colors - see top description.
     this.p = position; // Vector3
     this.r = rotation; // Matrix3
@@ -1517,25 +1514,25 @@ THREE.LDRStep.prototype.addSubModel = function(subModel) {
     this.subModels.push(subModel);
 }
 
-THREE.LDRStep.prototype.addLine = function(c, p1, p2, texmapPlacement) {
+THREE.LDRStep.prototype.addLine = function(c, p1, p2, texmapPlacement = null) {
     this.hasPrimitives = true;
     this.lines.push(new LDR.Line2(c, p1, p2, texmapPlacement));
     texmapPlacement && texmapPlacement.use();
 }
 
-THREE.LDRStep.prototype.addTriangle = function(c, p1, p2, p3, cull, invert, texmapPlacement) {
+THREE.LDRStep.prototype.addTriangle = function(c, p1, p2, p3, cull = true, invert = false, texmapPlacement = null) {
     this.hasPrimitives = true;
     this.triangles.push(new LDR.Line3(c, p1, p2, p3, cull, invert, texmapPlacement));
     texmapPlacement && texmapPlacement.use();
 }
 
-THREE.LDRStep.prototype.addQuad = function(c, p1, p2, p3, p4, cull, invert, texmapPlacement) {
+THREE.LDRStep.prototype.addQuad = function(c, p1, p2, p3, p4, cull = true, invert = false, texmapPlacement = null) {
     this.hasPrimitives = true;
     this.quads.push(new LDR.Line4(c, p1, p2, p3, p4, cull, invert, texmapPlacement));
     texmapPlacement && texmapPlacement.use();
 }
 
-THREE.LDRStep.prototype.addConditionalLine = function(c, p1, p2, p3, p4, texmapPlacement) {
+THREE.LDRStep.prototype.addConditionalLine = function(c, p1, p2, p3, p4, texmapPlacement = null) {
     this.hasPrimitives = true;
     this.conditionalLines.push(new LDR.Line5(c, p1, p2, p3, p4, texmapPlacement));
     texmapPlacement && texmapPlacement.use();    
@@ -1724,7 +1721,7 @@ THREE.Matrix3.prototype.toLDR = function() {
     return rowMajor.map(LDR.convertFloat).join(' ');
 }
 
-LDR.Line2 = function(c, p1, p2, tmp) {
+LDR.Line2 = function(c, p1, p2, tmp = null) {
     this.c = c;
     this.p1 = p1;
     this.p2 = p2;
@@ -1756,7 +1753,7 @@ LDR.Line2.prototype.toLDR = function() {
     return '2 ' + this.c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + '\r\n';
 }
 
-LDR.Line3 = function(c, p1, p2, p3, cull, invert, tmp) {
+LDR.Line3 = function(c, p1, p2, p3, cull, invert, tmp = null) {
     this.c = c;
     if(invert) {
         this.p1 = p3;
@@ -1807,7 +1804,7 @@ LDR.Line3.prototype.toLDR = function() {
     return '3 ' + this.c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + ' ' + this.p3.toLDR() + '\r\n';
 }
 
-LDR.Line4 = function(c, p1, p2, p3, p4, cull, invert, tmp) {
+LDR.Line4 = function(c, p1, p2, p3, p4, cull, invert, tmp = null) {
     this.c = c;
     if(invert) {
         this.p1 = p4;
@@ -1862,7 +1859,7 @@ LDR.Line4.prototype.toLDR = function() {
     return '4 ' + this.c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + ' ' + this.p3.toLDR() + ' ' + this.p4.toLDR() + '\r\n';
 }
 
-LDR.Line5 = function(c, p1, p2, p3, p4, tmp) {
+LDR.Line5 = function(c, p1, p2, p3, p4, tmp = null) {
     this.c = c;
     this.p1 = p1;
     this.p2 = p2;
@@ -1917,7 +1914,6 @@ THREE.LDRPartType = function() {
     this.cleanSteps = false;
     this.certifiedBFC = false;
     this.CCW;
-    this.consistentFileAndName;
 
     // To support early cleanup:
     this.referencedFrom = {};

@@ -107,7 +107,7 @@ LDR.AssemblyManager = function(loader) {
         torsoPT.license = 'Redistributable under CCAL version 2.0 : see CAreadme.txt';
         torsoPT.ldraw_org = 'Unofficial_Part';
         torsoPT.inlined = 'GENERATED';
-        torsoPT.cleanSteps = torsoPT.certifiedBFC = torsoPT.CCW = torsoPT.consistentFileAndName = true;
+        torsoPT.cleanSteps = torsoPT.certifiedBFC = torsoPT.CCW = true;
         torsoPT.steps = [torsoStep];
         torsoPT.isPart = true;
         self.loader.partTypes[ID] = torsoPT;
