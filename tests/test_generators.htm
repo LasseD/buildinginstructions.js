@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <h3>Checking generated part types</h3>
+    <script src="../js/jquery.min.js"></script>
+    <script src="../js/three.min.js"></script>
+    <script src="../js/colors.js"></script>
+    <script src="../js/LDRLoader.js"></script>
+    <script src="../js/LDRGenerator.js"></script>
+    <script>
+      //LDR.convertFloat = x => x; // Don't hide anything in console.
+      
+      function cmp(a, b, name) {
+          if(a[name] === b[name]) {
+              return true;
+          }
+          return "Mismatch on " + name + ". Found '" + a[name] + "'. Expected '" + b[name] + "'";
+      }
+      function cmpMany(a, b, names) {
+          for(let i = 0; i < names.length; i++) {
+              let ret = cmp(a, b, names[i]);
+              if(ret !== true) {
+                  return ret;
+              }
+          }
+          return true;
+      }
+      function cmpManyEq(a, b, names) {
+          for(let i = 0; i < names.length; i++) {
+              let name = names[i];
+              let ret = a[name].equals(b[name]);
+              if(ret !== true) {
+                  return ret;
+              }
+          }
+          return true;
+      }
+      function cmpArrays(a, b, name) {
+          a = a[name];
+          b = b[name];
+          
+          if(a.length !== b.length) {
+              return 'Mismatching sizes of ' + name + ': ' + a.length + ' != ' + b.length;
+          }
+          for(let i = 0; i < a.length; i++) {
+              ret = a[i].equals(b[i]);
+              if(ret !== true) {
+                  return '[' + i + ']:' + ret;
+              }
+          }
+          return true;
+      }
+      function cmpManyArraysSorted(a, b, names) {
+          for(let i = 0; i < names.length; i++) {
+              let name = names[i];
+              a[name] = a[name].sort((a,b) => a.compareTo(b));
+              b[name] = b[name].sort((a,b) => a.compareTo(b));
+              
+              let ret = cmpArrays(a, b, name);
+              if(ret !== true) {
+                  return name + ': ' + ret;
+              }
+          }
+          return true;
+      }
+
+      const EPS = 0.0002;
+      function equalsEPS(a, b) {
+          return Math.abs(a-b) <= EPS;
+      }
+      function manyEqualsEPS(a, b, names) {
+          for(let i = 0; i < names.length; i++) {
+              let name = names[i];
+              if(!equalsEPS(a[name], b[name])) {
+                  return name + ': ' + a[name] + ' != ' + b[name];
+              }
+          }
+          return true;
+      }
+
+      THREE.Vector3.prototype.equals = function(v) {          
+          return manyEqualsEPS(this, v, ['x', 'y', 'z']);
+      }
+          
+      THREE.Vector3.prototype.lessThan = function(v) {
+          let x1 = LDR.convertFloat(this.x);
+          let y1 = LDR.convertFloat(this.y);
+          let z1 = LDR.convertFloat(this.z);
+          let x2 = LDR.convertFloat(v.x);
+          let y2 = LDR.convertFloat(v.y);
+          let z2 = LDR.convertFloat(v.z);
+          
+          if(x1 < x2) {
+              return true;
+          }
+          else if(x1 === x2) {
+              if(y1 < y2) {
+                  return true;
+              }
+              else if(y1 === y2) {
+                  return z1 < z2;
+              }
+          }
+          return false;
+      }
+
+      THREE.Vector3.prototype.compareTo = function(v) {          
+          if(this.lessThan(v)) {
+              return -1;
+          }
+          if(v.lessThan(this)) {
+              return 1;
+          }
+          return 0;
+      }
+      
+      THREE.Matrix3.prototype.equals = function(m) {
+          if(this.toLDR() !== m.toLDR()) {
+              return this.toLDR() + " != " + m.toLDR();
+          }
+          return true;
+      }
+      
+      LDR.Line2.prototype.equals = function(x) {
+          let ret = cmpMany(this, x, ['c','tmp']);
+          if(ret !== true) {
+              return 'Line - ' + ret;
+          }
+          return cmpManyEq(this, x, ['p1', 'p2']);
+      }
+
+      function arrayCompareTo(a, b, names) {
+          for(let i = 0; i < names.length; i++) {
+              let name = names[i];
+              let ret = a[name].compareTo(b[name]);
+              if(ret !== 0) {
+                  return ret; // -1, 0 or 1
+              }
+          }
+          return 0;
+      }
+
+      LDR.Line2.prototype.compareTo = function(x) {
+          return arrayCompareTo(this, x, ['p1', 'p2']);
+      }
+
+      LDR.Line3.prototype.equals = function(x) {
+          let ret = cmpMany(this, x, ['c','tmp','cull']);
+          if(ret !== true) {
+              return 'Triangle - ' + ret;
+          }
+          return cmpManyEq(this, x, ['p1', 'p2', 'p3']);
+      }
+
+      LDR.Line3.prototype.compareTo = function(x) {
+          return arrayCompareTo(this, x, ['p1', 'p2', 'p3']);
+      }
+
+      LDR.Line4.prototype.equals = function(x) {
+          let ret = cmpMany(this, x, ['c','tmp','cull']);
+          if(ret !== true) {
+              return 'Quad - ' + ret;
+          }
+          return cmpManyEq(this, x, ['p1', 'p2', 'p3', 'p4']);
+      }
+
+      LDR.Line4.prototype.compareTo = function(x) {
+          return arrayCompareTo(this, x, ['p1', 'p2', 'p3', 'p4']);
+      }
+
+      LDR.Line5.prototype.equals = function(x) {
+          let ret = cmpMany(this, x, ['c','tmp']);
+          if(ret !== true) {
+              return 'Conditional line - ' + ret;
+          }
+          return cmpManyEq(this, x, ['p1', 'p2', 'p3', 'p4']);
+      }
+
+      LDR.Line5.prototype.compareTo = function(x) {
+          if(this.p4.lessThan(this.p3)) { // Needed for post-creation conditional line updates in some generated parts.
+              let tmp = this.p4;
+              this.p4 = this.p3;
+              this.p3 = tmp;
+          }
+          
+          return arrayCompareTo(this, x, ['p1', 'p2', 'p3', 'p4']);
+      }
+
+      THREE.LDRPartDescription.prototype.equals = function(pd) {
+          let ret = cmpMany(this, pd, ['c','ID','cull','invertCCW','tmp']);
+          if(ret !== true) {
+              return 'Part description - ' + ret;
+          }
+          ret = cmpArrays(this, pd, 'commentLines');
+          if(ret !== true) {
+              return 'Part description - ' + ret;
+          }
+          return cmpManyEq(this, pd, ['p', 'r']);
+      }
+      
+      THREE.LDRStep.prototype.equals = function(s) {
+          let ret = cmpMany(this, s, ['hasPrimitives','rotation']);
+          if(ret !== true) {
+              return ret;
+          }
+          ret = cmpManyArraysSorted(this, s, ['lines', 'triangles', 'quads', 'conditionalLines']);
+          if(ret !== true) {
+              return ret;
+          }
+          return cmpArrays(this, s, 'subModels');
+      }
+
+      THREE.LDRStep.prototype.addTriangle = function(c, p1, p2, p3, cull = true, invert = false, texmapPlacement = null) {
+          this.hasPrimitives = true;
+
+          // Ensure triangles are ordered:
+          if(p1.lessThan(p2) && p1.lessThan(p3)) {
+              this.triangles.push(new LDR.Line3(c, p1, p2, p3, cull, invert, texmapPlacement));
+          }
+          else if(p2.lessThan(p1) && p2.lessThan(p3)) {
+              this.triangles.push(new LDR.Line3(c, p2, p3, p1, cull, invert, texmapPlacement));
+          }
+          else {
+              this.triangles.push(new LDR.Line3(c, p3, p1, p2, cull, invert, texmapPlacement));
+          }
+
+          texmapPlacement && texmapPlacement.use();
+      }
+
+      THREE.LDRPartType.prototype.equals = function(pt) {
+          let ret = cmpMany(this, pt, ['name',
+                                       'ID',
+                                       'modelDescription',
+                                       'license',
+                                       'lastRotation',
+                                       'replacement',
+                                       //'ldraw_org', // Generated do not include the date.
+                                       'cleanSteps',
+                                       'CCW'
+                                      ]);
+          if(ret !== true) {
+              return ret;
+          }
+          ret = cmpArrays(this, pt, 'steps');
+          return ret;
+      }
+      
+      THREE.LDRStep.prototype.addQuad = function(c, p1, p2, p3, p4, cull = true, invert = false, texmapPlacement = null) {
+          this.hasPrimitives = true;
+
+          // Ensure triangles are ordered:
+          if(p1.lessThan(p2) && p1.lessThan(p3) && p1.lessThan(p4)) {
+              this.quads.push(new LDR.Line4(c, p1, p2, p3, p4, cull, invert, texmapPlacement));
+          }
+          else if(p2.lessThan(p1) && p2.lessThan(p3) && p2.lessThan(p4)) {
+              this.quads.push(new LDR.Line4(c, p2, p3, p4, p1, cull, invert, texmapPlacement));
+          }
+          else if(p3.lessThan(p1) && p3.lessThan(p2) && p3.lessThan(p4)) {
+              this.quads.push(new LDR.Line4(c, p3, p4, p1, p2, cull, invert, texmapPlacement));
+          }
+          else {
+              this.quads.push(new LDR.Line4(c, p4, p1, p2, p3, cull, invert, texmapPlacement));
+          }
+
+          texmapPlacement && texmapPlacement.use();
+      }
+
+      THREE.LDRStep.prototype.addConditionalLine = function(c, p1, p2, p3, p4, texmapPlacement = null) {
+          this.hasPrimitives = true;
+
+          if(p4.lessThan(p3)) {
+              let tmp = p3;
+              p3 = p4;
+              p4 = tmp;
+          }
+          if(p2.lessThan(p1)) {
+              let tmp = p1;
+              p1 = p2;
+              p2 = tmp;
+          }
+          this.conditionalLines.push(new LDR.Line5(c, p1, p2, p3, p4, texmapPlacement));
+
+          texmapPlacement && texmapPlacement.use();    
+      }
+
+      let charsLoaded = 0, filesLoaded = 0;
+
+      THREE.LDRLoader.prototype.load = function(id) {
+          let urls = this.idToUrl(id);
+          if(urls.length === 0) {
+	      return; // No URL to load.
+          }
+          id = id.toLowerCase().replace('\\', '/'); // Sanitize id. 
+
+          if(this.partTypes[id]) { // Already loaded
+              if(this.partTypes[id] !== true) {
+                  this.reportProgress(id);
+              }
+	      return;
+          }
+          //console.log('Loading ' + id + ' -> ' + urls.join(' or '));
+
+          this.partTypes[id] = true; // Temporary value to prevent concurrent fetching over network.
+
+          let self = this;
+          let onFileLoaded = function(text) {
+	      self.parse(text, id);
+              charsLoaded += text.length;
+              filesLoaded++;
+	      self.unloadedFiles--; // Warning - might have concurrency issue when two threads simultaneously update this!
+	      self.reportProgress(id);
+              console.log(charsLoaded + ' chars loaded after ' + filesLoaded + ' files (' + id + ')');
+          }
+
+          let urlID = 0;
+          let onError = function(event) {
+              urlID++;
+              if(urlID < urls.length) {
+                  self.loader.load(urls[urlID], onFileLoaded, undefined, onError);
+              }
+              else {
+                  self.unloadedFiles--; // Can't load this.
+  	          self.reportProgress(id);
+                  self.onError({message:event.currentTarget?event.currentTarget.statusText:'Error during loading', subModel:id});
+              }
+          }
+
+          this.unloadedFiles++;
+          this.loader.load(urls[urlID], onFileLoaded, undefined, onError);
+      };      
+
+      function report(msg) {
+          let div = document.createElement('div');
+          div.innerHTML = msg;
+          document.body.appendChild(div);
+      }
+      
+      let idToUrl = id => ['../official/p/' + id,
+                           '../official/parts/' + id,
+                           '../official/parts/s/' + id,
+                           '../unofficial/p/' + id,
+                           '../unofficial/parts/' + id,
+                           '../unofficial/parts/s/' + id
+                          ];
+
+      for(let id in LDR.Generator.map) {
+          if(!LDR.Generator.map.hasOwnProperty(id)) {
+              continue;
+          }
+          let generated = LDR.Generator.make(id+'.dat');
+          
+          let ldrLoader;
+          function checkLoaded() {
+              let loaded = ldrLoader.getPartType(generated.ID);
+              let cmp = loaded.equals(generated);
+              if(cmp === true) {
+                  report(generated.ID + ": OK");                  
+              }
+              else {
+                  console.log(generated.ID + ' Generated vs loaded:');
+                  console.log(generated.steps[0].toLDR(ldrLoader, null, true));
+                  console.dir(loaded.steps[0].toLDR(ldrLoader, null, true));
+                  report(generated.ID + ": " + cmp);                  
+              }
+          }
+          ldrLoader = new THREE.LDRLoader(checkLoaded, null, {idToUrl:idToUrl});
+          ldrLoader.load(generated.ID);       
+      }
+  </script>
+ </body>
+</html>

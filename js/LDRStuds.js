@@ -35,8 +35,8 @@ LDR.Studs.makeGenerators = function(force, highContrast, logoType) {
         return;
     }
     LDR.Studs.all.forEach(f => {
-        let pt = f(highContrast, logoType, force);
-        LDR.Generator.map[pt.ID] = () => pt;
+        let [pt,id] = f(highContrast, logoType, force);
+        LDR.Generator.map[id] = () => pt;
     });
 }
 
@@ -82,8 +82,7 @@ LDR.Studs.setStuds = function(loader, highContrast, logoType, onDone) {
 }
 
 LDR.Studs.makeStud1 = function(highContrast, logoType, force, withoutBaseEdge) {
-    let pt = LDR.Generator.makeP('Stud' + (withoutBaseEdge ? ' without Base Edges':''), withoutBaseEdge ? 'studa.dat' : 'stud.dat');
-    let step = new THREE.LDRStep();
+    let [pt,step] = LDR.Generator.makePT('Stud' + (withoutBaseEdge ? ' without Base Edges':''));
 
     // Common positions and rotations:
     let p0 = new THREE.Vector3();
@@ -92,13 +91,13 @@ LDR.Studs.makeStud1 = function(highContrast, logoType, force, withoutBaseEdge) {
     let p4 = new THREE.Vector3(0, -4, 0);
     let r64 = LDR.Generator.makeR(6, -4);
     if(!withoutBaseEdge) {
-	step.addSubModel(new THREE.LDRPartDescription(16, p0, r61, force+'4-4edge.dat', true, false));
+	step.asm(p0, r61, force+'4-4edge');
     }
 
     // Stud type one actually uses a 4-4cylc.dat, but then high contrast does not work!
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r61, force+'4-4edge.dat', true, false));
+    step.asm(p4, r61, force+'4-4edge');
 
-    let logoSM = new THREE.LDRPartDescription(16, p4, r61, force+'4-4disc.dat', true, false);;
+    let logoSM = new THREE.LDRPartDescription(16, p4, r61, force+'4-4disc.dat', true, false);
     step.addSubModel(logoSM);
     if(logoType === 2) {
         logoSM.logoPosition = p4;
@@ -106,24 +105,22 @@ LDR.Studs.makeStud1 = function(highContrast, logoType, force, withoutBaseEdge) {
 
     // Cylinder:
     if(highContrast) {
-        step.addSubModel(new THREE.LDRPartDescription(0, p0, r64, force+'4-4cyli2.dat', true, false));
+        step.asm(p0, r64, force+'4-4cyli2', 0);
     }
     else {
-        step.addSubModel(new THREE.LDRPartDescription(16, p0, r64, force+'4-4cyli.dat', true, false));
+        step.asm(p0, r64, force+'4-4cyli');
     }
 
     // Logo:
     if(logoType === 1) {
-        step.addSubModel(new THREE.LDRPartDescription(16, p4, r11, 'logo.dat', true, false));
+        step.asm(p4, r11, 'logo');
     }
 
-    pt.steps.push(step);
-    return pt;
+    return [pt, withoutBaseEdge ? 'studa' : 'stud'];
 }
 
 LDR.Studs.makeStud2a = function(highContrast, force) {
-    let pt = LDR.Generator.makeP('Stud Open without Base Edges', 'stud2a.dat');
-    let step = new THREE.LDRStep();
+    let [pt,step] = LDR.Generator.makePT('Stud Open without Base Edges');
     
     let p0 = new THREE.Vector3();
     let p4 = new THREE.Vector3(0, -4, 0);
@@ -133,24 +130,22 @@ LDR.Studs.makeStud2a = function(highContrast, force) {
     let r64 = LDR.Generator.makeR(6, 4);
     let r21 = LDR.Generator.makeR(2, 1);
 
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r41, force+'4-4edge.dat', true, false));
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r61, force+'4-4edge.dat', true, false));
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r44, force+'4-4cyli2.dat', true, true)); // inverted. Consider if the conditional lines should be included ot not.
+    step.asm(p4, r41, force+'4-4edge');
+    step.asm(p4, r61, force+'4-4edge');
+    step.asm(p4, r44, force+'4-4cyli2', 16, true, true); // inverted. Consider if the conditional lines should be included ot not.
     if(highContrast) {
-        step.addSubModel(new THREE.LDRPartDescription(0, p4, r64, force+'4-4cyli2.dat', true, false));
+        step.asm(p4, r64, force+'4-4cyli2', 0);
     }
     else {
-        step.addSubModel(new THREE.LDRPartDescription(16, p4, r64, force+'4-4cyli.dat', true, false));
+        step.asm(p4, r64, force+'4-4cyli');
     }
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r21, force+'4-4ring2.dat', true, false));
+    step.asm(p4, r21, force+'4-4ring2');
 
-    pt.steps.push(step);
-    return pt;
+    return [pt,'stud2a'];
 }
 
 LDR.Studs.makeStud2 = function(highContrast, logoType, force) {
-    let pt = LDR.Generator.makeP('Stud Open', 'stud2.dat');
-    let step = new THREE.LDRStep();
+    let [pt,step] = LDR.Generator.makePT('Stud Open');
 
     let p0 = new THREE.Vector3();
     let p4 = new THREE.Vector3(0, -4, 0);
@@ -159,26 +154,26 @@ LDR.Studs.makeStud2 = function(highContrast, logoType, force) {
     let r44 = LDR.Generator.makeR(4, 4);
     let r64 = LDR.Generator.makeR(6, 4);
     let r21 = LDR.Generator.makeR(2, 1);
-
-    step.addSubModel(new THREE.LDRPartDescription(16, p0, r41, force+'4-4edge.dat', true, false));
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r61, force+'4-4edge.dat', true, false));
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r21, force+'4-4ring2.dat', true, false));
+    
+    step.asm(p0, r41, force+'4-4edge');
+    step.asm(p4, r61, force+'4-4edge');
+    step.asm(p4, r21, force+'4-4ring2');
     if(highContrast) {
-        step.addSubModel(new THREE.LDRPartDescription(0, p4, r64, force+'4-4cyli2.dat', true, false));
+        step.asm(p4, r64, force+'4-4cyli2', 0);
     }
     else {
-        step.addSubModel(new THREE.LDRPartDescription(16, p4, r64, force+'4-4cyli.dat', true, false));
+        step.asm(p4, r64, force+'4-4cyli');
     }
-
-    step.addSubModel(new THREE.LDRPartDescription(16, p0, r61, force+'4-4edge.dat', true, false));
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r41, force+'4-4edge.dat', true, false));
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r44, force+'4-4cyli2.dat', true, true)); // inverted. Consider if the conditional lines should be included ot not.
+    
+    step.asm(p0, r61, force+'4-4edge');
+    step.asm(p4, r41, force+'4-4edge');
+    step.asm(p4, r44, force+'4-4cyli2', 16, true, true); // inverted. Consider if the conditional lines should be included ot not.
 
     // Logo:
     if(logoType === 1) {
         // 1 16 0 0 0 0.6 0 0 0 1 0 0 0 0.6 logo.dat:
         let r061 = LDR.Generator.makeR(0.6, 1);
-        step.addSubModel(new THREE.LDRPartDescription(16, p0, r061, 'logo.dat', true, false));
+        step.asm(p0, r061, 'logo');
     }
     else if(logoType === 2) {
         let p5 = new THREE.Vector3(0, -0.5, 0);
@@ -188,13 +183,11 @@ LDR.Studs.makeStud2 = function(highContrast, logoType, force) {
         logoSM.logoPosition = p5;
     }
 
-    pt.steps.push(step);
-    return pt;
+    return [pt, 'stud2'];
 }
 
 LDR.Studs.makeStudP01 = function(highContrast, logoType, force) {
-    let pt = LDR.Generator.makeP('Stud with Dot Pattern', 'studp01.dat');
-    let step = new THREE.LDRStep();
+    let [pt,step] = LDR.Generator.makePT('Stud with Dot Pattern');
 
     // Common positions and rotations:
     let p0 = new THREE.Vector3();
@@ -205,17 +198,17 @@ LDR.Studs.makeStudP01 = function(highContrast, logoType, force) {
     let r21 = LDR.Generator.makeR(2, 1);
     let r41 = LDR.Generator.makeR(4, 1);
 
-    step.addSubModel(new THREE.LDRPartDescription(16, p0, r61, force+'4-4edge.dat', true, false));
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r61, force+'4-4edge.dat', true, false));
+    step.asm(p0, r61, force+'4-4edge');
+    step.asm(p4, r61, force+'4-4edge');
     if(highContrast) {
-        step.addSubModel(new THREE.LDRPartDescription(0, p0, r64, force+'4-4cyli2.dat', true, false));
+        step.asm(p0, r64, force+'4-4cyli2', 0);
     }
     else {
-        step.addSubModel(new THREE.LDRPartDescription(16, p0, r64, force+'4-4cyli.dat', true, false));
+        step.asm(p0, r64, force+'4-4cyli');
     }
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r21, force+'4-4ring2.dat', true, false));
+    step.asm(p4, r21, force+'4-4ring2');
 
-    let logoSM = new THREE.LDRPartDescription(16, p4, r41, force+'4-4disc.dat', true, false);;
+    let logoSM = new THREE.LDRPartDescription(16, p4, r41, force+'4-4disc.dat', true, false);
     step.addSubModel(logoSM);
     if(logoType === 2) {
         logoSM.logoPosition = p4;
@@ -224,40 +217,38 @@ LDR.Studs.makeStudP01 = function(highContrast, logoType, force) {
     // Logo:
     if(logoType === 1) {
 	let r11 = LDR.Generator.makeR(1, 1);
-        step.addSubModel(new THREE.LDRPartDescription(16, p4, r11, 'logo.dat', true, false));
+        step.asm(p4, r11, 'logo');
     }
     
-    pt.steps.push(step);
-    return pt;
+    return [pt, 'studp01.dat'];
 }
 
 LDR.Studs.makeStudEl = function(highContrast, logoType, force) {
-    let pt = LDR.Generator.makeP('Stud with Electric Contact', 'studel.dat');
-    let step = new THREE.LDRStep();
+    let [pt,step] = LDR.Generator.makePT('Stud with Electric Contact');
 
     // Common positions and rotations:
     let p0 = new THREE.Vector3();
     let p3 = new THREE.Vector3(0, -3, 0);
     let p4 = new THREE.Vector3(0, -4, 0);
 
-    let contrastColor = highContrast ? 0 : 16;
+    let cc = highContrast ? 0 : 16;
 
     let r61 = LDR.Generator.makeR(6, 1);
-    step.addSubModel(new THREE.LDRPartDescription(16, p0, r61, force+'4-4edge.dat', true, false));
+    step.asm(p0, r61, force+'4-4edge');
 
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r61, force+'4-4edge.dat', true, false));
+    step.asm(p4, r61, force+'4-4edge');
 
     let r063 = new THREE.Matrix3(); r063.set(0, 0, 6, 0, -3, 0, -6, 0, 0);
-    step.addSubModel(new THREE.LDRPartDescription(contrastColor, p0, r063, force+'3-4cyli.dat', true, false));
+    step.asm(p0, r063, force+'3-4cyli', cc);
 
     let r061 = new THREE.Matrix3(); r061.set(0, 0, 6, 0, -1, 0, -6, 0, 0);
-    step.addSubModel(new THREE.LDRPartDescription(contrastColor, p3, r061, force+'4-4cyli.dat', true, false));
+    step.asm(p3, r061, force+'4-4cyli', cc);
 
     let r63 = LDR.Generator.makeR(-6, -3);
-    step.addSubModel(new THREE.LDRPartDescription(494, p0, r63, force+'1-4cyli.dat', true, false));
+    step.asm(p0, r63, force+'1-4cyli', 494);
 
     let rn61 = LDR.Generator.makeR(-6, 1);
-    step.addSubModel(new THREE.LDRPartDescription(16, p3, rn61, force+'1-4edge.dat', true, false));
+    step.asm(p3, rn61, force+'1-4edge');
 
     step.addLine(24, new THREE.Vector3(-6, 0, 0), new THREE.Vector3(-6, -3, 0));
 
@@ -272,31 +263,58 @@ LDR.Studs.makeStudEl = function(highContrast, logoType, force) {
     // Logo:
     if(logoType === 1) {
 	let r11 = new THREE.Matrix3(); r11.set(0, 0, -1, 0, 1, 0, 1, 0, 0);
-        step.addSubModel(new THREE.LDRPartDescription(16, p4, r11, 'logo.dat', true, false));
+        step.asm(p4, r11, 'logo');
     }
     
-    pt.steps.push(step);
-    return pt;
+    return [pt, 'studel.dat'];
+}
+
+THREE.LDRStep.prototype.acl = function(lines) {
+    for(let i = 0; i < lines.length; i+=12) {
+	this.addConditionalLine(24,
+				new THREE.Vector3(lines[i], lines[i+1], lines[i+2]),
+				new THREE.Vector3(lines[i+3], lines[i+4], lines[i+5]),
+				new THREE.Vector3(lines[i+6], lines[i+7], lines[i+8]),
+				new THREE.Vector3(lines[i+9], lines[i+10], lines[i+11]));
+    }
+}
+
+THREE.LDRStep.prototype.at = function(triangles, color = 16) {
+    for(let i = 0; i < triangles.length; i+=9) {
+	this.addTriangle(color,
+			 new THREE.Vector3(triangles[i], triangles[i+1], triangles[i+2], true),
+			 new THREE.Vector3(triangles[i+3], triangles[i+4], triangles[i+5], true),
+			 new THREE.Vector3(triangles[i+6], triangles[i+7], triangles[i+8]), true);
+    }
+}
+
+THREE.LDRStep.prototype.aq = function(quads, color = 16) {
+    for(let i = 0; i < quads.length; i+=12) {
+	this.addQuad(color,
+		     new THREE.Vector3(quads[i], quads[i+1], quads[i+2]),
+		     new THREE.Vector3(quads[i+3], quads[i+4], quads[i+5]),
+		     new THREE.Vector3(quads[i+6], quads[i+7], quads[i+8]),
+		     new THREE.Vector3(quads[i+9], quads[i+10], quads[i+11]),
+		     true);
+    }
 }
 
 LDR.Studs.makeStud10 = function(highContrast, logoType, force) {
-    let pt = LDR.Generator.makeP('Stud For Round 2 x 2 Parts', 'stud10.dat');
-    let step = new THREE.LDRStep();
-    let contrastColor = highContrast ? 0 : 16;
+    let [pt,step] = LDR.Generator.makePT('Stud For Round 2 x 2 Parts');
+    let cc = highContrast ? 0 : 16;
 
     // Lines:
-    LDR.Generator.addLinesToStep(step, [6, 0, 0, 5.6145, 0, 1.9397,
-					1.9387, 0, 5.6145, 0, 0, 6,
-					5.6145, -4, 1.9397, 5.6145, 0, 1.9397,
-					6, -4, 0, 5.6145, -4, 1.9397,
-					5.6145, -4, 1.9397, 4.142, -4, 4.142,
-					4.142, -4, 4.142, 1.9397, -4, 5.6145,
-					1.9397, -4, 5.6145, 0, -4, 6,
-					1.9397, -4, 5.6145, 1.9387, 0, 5.6145]);
-    LDR.Generator.addConditionalLinesToStep(step, [
-	4.142,-4,4.142,4.142,0,4.142,1.9397,-4,5.6145,5.6145,-4,1.9397,
-	6,-4,0,6,0,0,5.5434,-4,-2.2962,5.6145,-4,1.9397,
-	0,-4,6,0,0,6,1.9397,-4,5.6145,-2.2962,-4,5.5434]);
+    step.al([6, 0, 0, 5.6145, 0, 1.9397,
+	     1.9387, 0, 5.6145, 0, 0, 6,
+	     5.6145, -4, 1.9397, 5.6145, 0, 1.9397,
+	     6, -4, 0, 5.6145, -4, 1.9397,
+	     5.6145, -4, 1.9397, 4.142, -4, 4.142,
+	     4.142, -4, 4.142, 1.9397, -4, 5.6145,
+	     1.9397, -4, 5.6145, 0, -4, 6,
+	     1.9397, -4, 5.6145, 1.9387, 0, 5.6145]);
+    step.acl([4.142,-4,4.142,4.142,0,4.142,1.9397,-4,5.6145,5.6145,-4,1.9397,
+	      6,-4,0,6,0,0,5.5434,-4,-2.2962,5.6145,-4,1.9397,
+	      0,-4,6,0,0,6,1.9397,-4,5.6145,-2.2962,-4,5.5434]);
 
     // Common positions and rotations:
     let p0 = new THREE.Vector3();
@@ -305,9 +323,9 @@ LDR.Studs.makeStud10 = function(highContrast, logoType, force) {
     let r61 = new THREE.Matrix3(); r61.set(0, 0, -6, 0, 1, 0, 6, 0, 0);
 
     // Sub parts:
-    step.addSubModel(new THREE.LDRPartDescription(contrastColor, p4, r64, force+'3-4cyli.dat', true, false));
-    step.addSubModel(new THREE.LDRPartDescription(16, p0, r61, force+'3-4edge.dat', true, false));
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r61, force+'3-4edge.dat', true, false));
+    step.asm(p4, r64, force+'3-4cyli', cc);
+    step.asm(p0, r61, force+'3-4edge');
+    step.asm(p4, r61, force+'3-4edge');
 
     let logoSM = new THREE.LDRPartDescription(16, p4, r61, force+'3-4disc.dat', true, false);
     step.addSubModel(logoSM);
@@ -318,29 +336,27 @@ LDR.Studs.makeStud10 = function(highContrast, logoType, force) {
     // Logo:
     if(logoType === 1) {
 	let r11 = new THREE.Matrix3(); r11.set(1, 0, 0, 0, 1, 0, 0, 0, 1);
-        step.addSubModel(new THREE.LDRPartDescription(16, p4, r11, 'logo.dat', true, false));
+        step.asm(p4, r11, 'logo');
     }
 
     // Triangles:
-    LDR.Generator.addTrianglesToStep(step, [6,-4,0,5.6145,-4,1.9397,0,-4,0,
-					    5.6145,-4,1.9397,4.142,-4,4.142,0,-4,0,
-					    4.142,-4,4.142,1.9397,-4,5.6145,0,-4,0,
-					    1.9397,-4,5.6145,0,-4,6,0,-4,0], 16);
+    step.at([6,-4,0,5.6145,-4,1.9397,0,-4,0,
+	     5.6145,-4,1.9397,4.142,-4,4.142,0,-4,0,
+	     4.142,-4,4.142,1.9397,-4,5.6145,0,-4,0,
+	     1.9397,-4,5.6145,0,-4,6,0,-4,0], 16);
     
     // Quads:
-    LDR.Generator.addQuadsToStep(step, [6,0,0,5.6145,0,1.9397,5.6145,-4,1.9397,6,-4,0,
-					5.6145,0,1.9397,4.142,0,4.142,4.142,-4,4.142,5.6145,-4,1.9397,
-					4.142,0,4.142,1.9387,0,5.6145,1.9397,-4,5.6145,4.142,-4,4.142,
-					1.9387,0,5.6145,0,0,6,0,-4,6,1.9397,-4,5.6145], contrastColor);
-
-    pt.steps.push(step);
-    return pt;
+    step.aq([6,0,0,5.6145,0,1.9397,5.6145,-4,1.9397,6,-4,0,
+	     5.6145,0,1.9397,4.142,0,4.142,4.142,-4,4.142,5.6145,-4,1.9397,
+	     4.142,0,4.142,1.9387,0,5.6145,1.9397,-4,5.6145,4.142,-4,4.142,
+	     1.9387,0,5.6145,0,0,6,0,-4,6,1.9397,-4,5.6145], cc);
+    
+    return [pt, 'stud10.dat'];
 }
 
 LDR.Studs.makeStud15 = function(highContrast, logoType, force) {
-    let pt = LDR.Generator.makeP('Stud for Round 2 x 2 Parts, 1 Face, Complete Edges', 'stud15.dat');
-    let step = new THREE.LDRStep();
-    let contrastColor = highContrast ? 0 : 16;
+    let [pt,step] = LDR.Generator.makePT('Stud for Round 2 x 2 Parts, 1 Face, Complete Edges');
+    let cc = highContrast ? 0 : 16;
 
     // Common positions and rotations:
     let p0 = new THREE.Vector3();
@@ -349,15 +365,15 @@ LDR.Studs.makeStud15 = function(highContrast, logoType, force) {
     let r61 = new THREE.Matrix3(); r61.set(0, 0, -6, 0, 1, 0, 6, 0, 0);
 
     // Sub parts:
-    step.addSubModel(new THREE.LDRPartDescription(16, p0, r61, force+'3-4edge.dat', true, false));
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r61, force+'3-4edge.dat', true, false));
+    step.asm(p0, r61, force+'3-4edge');
+    step.asm(p4, r61, force+'3-4edge');
     let r0 = new THREE.Matrix3(); r0.set(-0.9694, -1.542, 0, 0, 0, -2, 0.1928, -7.7548, 0);
-    step.addSubModel(new THREE.LDRPartDescription(contrastColor, new THREE.Vector3(0.9694, -2, 5.8072), r0, force+'rect2p.dat', true, false));
+    step.asm(new THREE.Vector3(0.9694, -2, 5.8072), r0, force+'rect2p', cc);
     let r1 = new THREE.Matrix3(); r1.set(0, -1.0502, -1.8379, 2, 0, 0, 0, -1.0502, 1.8379);
-    step.addSubModel(new THREE.LDRPartDescription(contrastColor, new THREE.Vector3(3.7766, -2, 3.7766), r1, force+'rect3.dat', true, false));
+    step.asm(new THREE.Vector3(3.7766, -2, 3.7766), r1, force+'rect3', cc);
     let r2 = new THREE.Matrix3(); r2.set(0, -7.7548, -0.1928, 2, 0, 0, 0, -1.542, 0.9694);
-    step.addSubModel(new THREE.LDRPartDescription(contrastColor, new THREE.Vector3(5.8072, -2, 0.9694), r2, force+'rect3.dat', true, false));
-    step.addSubModel(new THREE.LDRPartDescription(contrastColor, p4, r64, force+'3-4cyli.dat', true, false));
+    step.asm(new THREE.Vector3(5.8072, -2, 0.9694), r2, force+'rect3', cc);
+    step.asm(p4, r64, force+'3-4cyli', cc);
 
     let logoSM = new THREE.LDRPartDescription(16, p4, r61, force+'3-4disc.dat', true, false);
     step.addSubModel(logoSM);
@@ -368,22 +384,19 @@ LDR.Studs.makeStud15 = function(highContrast, logoType, force) {
     // Logo:
     if(logoType === 1) {
 	let r11 = new THREE.Matrix3(); r11.set(1, 0, 0, 0, 1, 0, 0, 0, 1);
-        step.addSubModel(new THREE.LDRPartDescription(16, p4, r11, 'logo.dat', true, false));
+        step.asm(p4, r11, 'logo');
     }
 
-    LDR.Generator.addTrianglesToStep(step, [6, -4, 0, 0, -4, 6, 0, -4, 0], 16);
-    LDR.Generator.addQuadsToStep(step, [0, -4, 6, 6, -4, 0, 5.6145, -4, 1.9387, 1.9387, -4, 5.6145], 16);
-    LDR.Generator.addConditionalLinesToStep(step, [6,-4,0,6,0,0,5.6145,-4,1.9387,5.5434,0,-2.2962,
-						   0,-4,6,0,0,6,1.9387,-4,5.6145,-2.2962,0,5.5434]);
-
-    pt.steps.push(step);
-    return pt;
+    step.at([6, -4, 0, 0, -4, 6, 0, -4, 0], 16);
+    step.aq([0, -4, 6, 6, -4, 0, 5.6145, -4, 1.9387, 1.9387, -4, 5.6145], 16);
+    step.acl([6,-4,0,6,0,0,5.6145,-4,1.9387,5.5434,0,-2.2962,
+	      0,-4,6,0,0,6,1.9387,-4,5.6145,-2.2962,0,5.5434]);
+    return [pt, 'stud15.dat'];
 }
 
 LDR.Studs.makeStud17 = function(highContrast, logoType, force, withoutBaseEdges) {
-    let pt = LDR.Generator.makeP('Stud Open For Octagonal Parts' + (withoutBaseEdges ? ' without Base Edges' : ''), (withoutBaseEdges ? 'stud17a.dat' : 'stud17.dat'));
-    let step = new THREE.LDRStep();
-    let contrastColor = highContrast ? 0 : 16;
+    let [pt,step] = LDR.Generator.makePT('Stud Open For Octagonal Parts' + (withoutBaseEdges ? ' without Base Edges' : ''));
+    let cc = highContrast ? 0 : 16;
 
     // Common positions and rotations:
     let p0 = new THREE.Vector3();
@@ -392,42 +405,42 @@ LDR.Studs.makeStud17 = function(highContrast, logoType, force, withoutBaseEdges)
     let r41 = LDR.Generator.makeR(4, 1);
 
     // Sub parts:
-    step.addSubModel(new THREE.LDRPartDescription(contrastColor, p4, r44, force+'4-4cyli.dat', true, true));
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r41, force+'4-4edge.dat', true, false));
+    step.asm(p4, r44, force+'4-4cyli.dat', cc, true, true);
+    step.asm(p4, r41, force+'4-4edge');
     let r0 = new THREE.Matrix3(); r0.set(2.296, 0, -5.543, 0, 1, 0, 5.543, 0, 2.296);
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r0, force+'7-8edge.dat', true, false));
+    step.asm(p4, r0, force+'7-8edge');
     let r1 = new THREE.Matrix3(); r1.set(2.296, 0, -5.543, 0, 4, 0, 5.543, 0, 2.296);
-    step.addSubModel(new THREE.LDRPartDescription(contrastColor, p4, r1, force+'7-8cyli.dat', true, false));
+    step.asm(p4, r1, force+'7-8cyli', cc);
     let r2 = new THREE.Matrix3(); r2.set(0.765, 0, -1.848, 0, 1, 0, 1.848, 0, 0.765);
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r2, force+'2-4ring2.dat', true, false));
+    step.asm(p4, r2, force+'2-4ring2');
     let r3 = new THREE.Matrix3(); r3.set(-0.765, 0, 1.848, 0, 1, 0, -1.848, 0, -0.765);
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r3, force+'3-8ring2.dat', true, false));
+    step.asm(p4, r3, force+'3-8ring2');
 
     if(!withoutBaseEdges) {
-	step.addSubModel(new THREE.LDRPartDescription(16, p0, r41, force+'4-4edge.dat', true, false));
+	step.asm(p0, r41, force+'4-4edge');
 
 	let r4 = new THREE.Matrix3(); r4.set(2.296, 0, -5.543, 0, 1, 0, 5.543, 0, 2.296);
-	step.addSubModel(new THREE.LDRPartDescription(16, p4, r4, force+'7-8edge.dat', true, false));
-	LDR.Generator.addLinesToStep(step, [2.296,0,5.543,2.78,0,5.22,
-					    5.22,0,2.78,5.543,0,2.296]);
+	step.asm(p4, r4, force+'7-8edge');
+	step.al([2.296,0,5.543,2.78,0,5.22,
+		 5.22,0,2.78,5.543,0,2.296]);
     }
 
-    LDR.Generator.addLinesToStep(step, [2.78,-4,5.22,5.22,-4,2.78,
-					2.296,-4,5.543,2.78,-4,5.22,
-					5.22,-4,2.78,5.543,-4,2.296]);
-    LDR.Generator.addTrianglesToStep(step, [5.22,-4,2.78,2.78,-4,5.22,2.828,-4,2.828], 16);
-    LDR.Generator.addQuadsToStep(step, [2.78,0,5.22,2.78,-4,5.22,5.22,-4,2.78,5.22,0,2.78,
-					2.296,0,5.543,2.296,-4,5.543,2.78,-4,5.22,2.78,0,5.22,
-					5.543,-4,2.296,5.543,0,2.296,5.22,0,2.78,5.22,-4,2.78], contrastColor);
-    LDR.Generator.addQuadsToStep(step, [2.296,-4,5.543,1.531,-4,3.696,2.828,-4,2.828,2.78,-4,5.22,
-					3.696,-4,1.531,5.543,-4,2.296,5.22,-4,2.78,2.828,-4,2.828], 16);
-    LDR.Generator.addConditionalLinesToStep(step, [5.22,-4,2.78,5.22,0,2.78,2.78,-4,5.22,5.543,-4,2.296,
-						   2.78,-4,5.22,2.78,0,5.22,5.22,-4,2.78,2.296,-4,5.543,
-						   2.296,-4,5.543,2.296,0,5.543,2.78,-4,5.22,0,-4,6,
-						   5.543,-4,2.296,5.543,0,2.296,5.22,-4,2.78,6,-4,0]);
+    step.al([2.78,-4,5.22,5.22,-4,2.78,
+	     2.296,-4,5.543,2.78,-4,5.22,
+	     5.22,-4,2.78,5.543,-4,2.296]);
+    step.at([5.22,-4,2.78,2.78,-4,5.22,2.828,-4,2.828], 16);
+    step.aq([2.78,0,5.22,2.78,-4,5.22,5.22,-4,2.78,5.22,0,2.78,
+	     2.296,0,5.543,2.296,-4,5.543,2.78,-4,5.22,2.78,0,5.22,
+	     5.543,-4,2.296,5.543,0,2.296,5.22,0,2.78,5.22,-4,2.78], cc);
+    step.aq([2.296,-4,5.543,1.531,-4,3.696,2.828,-4,2.828,2.78,-4,5.22,
+	     3.696,-4,1.531,5.543,-4,2.296,5.22,-4,2.78,2.828,-4,2.828], 16);
+    step.acl([5.22,-4,2.78,5.22,0,2.78,2.78,-4,5.22,5.543,-4,2.296,
+	      2.78,-4,5.22,2.78,0,5.22,5.22,-4,2.78,2.296,-4,5.543,
+	      2.296,-4,5.543,2.296,0,5.543,2.78,-4,5.22,0,-4,6,
+	      5.543,-4,2.296,5.543,0,2.296,5.22,-4,2.78,6,-4,0]);
     if(!withoutBaseEdges && logoType === 1) {
         let r061 = LDR.Generator.makeR(0.6, 1);
-        step.addSubModel(new THREE.LDRPartDescription(16, p0, r061, 'logo.dat', true, false));
+        step.asm(p0, r061, 'logo');
     }
     else if(logoType === 2) {
         let p5 = new THREE.Vector3(0, -0.5, 0);
@@ -435,32 +448,29 @@ LDR.Studs.makeStud17 = function(highContrast, logoType, force, withoutBaseEdges)
         logoSM.logoPosition = p5;
         step.addSubModel(logoSM);
     }
-
-    pt.steps.push(step);
-    return pt;
+    return [pt, (withoutBaseEdges ? 'stud17a.dat' : 'stud17.dat')];
 }
 
 LDR.Studs.makeStud13 = function(highContrast, logoType, force) {
-    let pt = LDR.Generator.makeP('Stud for Electric Light & Sound Brick  2 x  2 x  1.333', 'stud13.dat');
-    let step = new THREE.LDRStep();
-    let contrastColor = highContrast ? 0 : 16;
+    let [pt,step] = LDR.Generator.makePT('Stud for Electric Light & Sound Brick  2 x  2 x  1.333');
+    let cc = highContrast ? 0 : 16;
 
-    LDR.Generator.addLinesToStep(step, [6,0,0,5.782,0,1.095,
-					5.782,0,1.095,1.095,0,5.782,
-					1.095,0,5.782,0,0,6,
-					5.782,0,1.095,5.782,-4,1.095,
-					1.095,0,5.782,1.095,-4,5.782,
-					6,-4,0,5.782,-4,1.095,
-					5.782,-4,1.095,1.095,-4,5.782,
-					1.095,-4,5.782,0,-4,6]);
-    LDR.Generator.addQuadsToStep(step, [6,-4,0,6,0,0,5.782,0,1.095,5.782,-4,1.095,
-					1.095,0,5.782,1.095,-4,5.782,5.782,-4,1.095,5.782,0,1.095,
-					1.095,-4,5.782,1.095,0,5.782,0,0,6,0,-4,6], contrastColor);
-    LDR.Generator.addTrianglesToStep(step, [6,-4,0,5.782,-4,1.095,0,-4,0,
-					    5.782,-4,1.095,1.095,-4,5.782,0,-4,0,
-					    0,-4,6,0,-4,0,1.095,-4,5.782], 16);
-    LDR.Generator.addConditionalLinesToStep(step, [6,0,0,6,-4,0,5.782,0,1.095,5.543,-4,-2.296,
-						   0,0,6,0,-4,6,1.095,0,5.782,-2.296,-4,5.543]);
+    step.al([6,0,0,5.782,0,1.095,
+	     5.782,0,1.095,1.095,0,5.782,
+	     1.095,0,5.782,0,0,6,
+	     5.782,0,1.095,5.782,-4,1.095,
+	     1.095,0,5.782,1.095,-4,5.782,
+	     6,-4,0,5.782,-4,1.095,
+	     5.782,-4,1.095,1.095,-4,5.782,
+	     1.095,-4,5.782,0,-4,6]);
+    step.aq([6,-4,0,6,0,0,5.782,0,1.095,5.782,-4,1.095,
+	     1.095,0,5.782,1.095,-4,5.782,5.782,-4,1.095,5.782,0,1.095,
+	     1.095,-4,5.782,1.095,0,5.782,0,0,6,0,-4,6], cc);
+    step.at([6,-4,0,5.782,-4,1.095,0,-4,0,
+	     5.782,-4,1.095,1.095,-4,5.782,0,-4,0,
+	     0,-4,6,0,-4,0,1.095,-4,5.782], 16);
+    step.acl([6,0,0,6,-4,0,5.782,0,1.095,5.543,-4,-2.296,
+	      0,0,6,0,-4,6,1.095,0,5.782,-2.296,-4,5.543]);
 
     // Common positions and rotations:
     let p0 = new THREE.Vector3();
@@ -469,9 +479,9 @@ LDR.Studs.makeStud13 = function(highContrast, logoType, force) {
     let r61 = new THREE.Matrix3(); r61.set(0, 0, -6, 0, 1, 0, 6, 0, 0);
 
     // Sub parts:
-    step.addSubModel(new THREE.LDRPartDescription(contrastColor, p4, r64, force+'3-4cyli.dat', true, false));
-    step.addSubModel(new THREE.LDRPartDescription(16, p0, r61, force+'3-4edge.dat', true, false));
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r61, force+'3-4edge.dat', true, false));
+    step.asm(p4, r64, force+'3-4cyli', cc);
+    step.asm(p0, r61, force+'3-4edge');
+    step.asm(p4, r61, force+'3-4edge');
 
     let logoSM = new THREE.LDRPartDescription(16, p4, r61, force+'3-4disc.dat', true, false);
     step.addSubModel(logoSM);
@@ -482,24 +492,21 @@ LDR.Studs.makeStud13 = function(highContrast, logoType, force) {
     // Logo:
     if(logoType === 1) {
 	let r11 = new THREE.Matrix3(); r11.set(1, 0, 0, 0, 1, 0, 0, 0, 1);
-        step.addSubModel(new THREE.LDRPartDescription(16, p4, r11, 'logo.dat', true, false));
+        step.asm(p4, r11, 'logo');
     }
-
-    pt.steps.push(step);
-    return pt;
+    return [pt, 'stud13.dat'];
 }
 
 LDR.Studs.makeStud6 = function(highContrast, logoType, force, withoutBaseEdges) {
-    let pt = LDR.Generator.makeP('Stud Open For Round 2x2 Parts' + (withoutBaseEdges ? ' without Base Edges' : ''), withoutBaseEdges ? 'stud6a.dat' : 'stud6.dat');
-    let step = new THREE.LDRStep();
-    let contrastColor = highContrast ? 0 : 16;
+    let [pt,step] = LDR.Generator.makePT('Stud Open For Round 2x2 Parts' + (withoutBaseEdges ? ' without Base Edges' : ''));
+    let cc = highContrast ? 0 : 16;
 
-    LDR.Generator.addLinesToStep(step, [5.6145,-4,1.9397,5.6145,0,1.9397,
-					6,-4,0,5.6145,-4,1.9397,
-					5.6145,-4,1.9397,4.142,-4,4.142,
-					4.142,-4,4.142,1.9387,-4,5.6145,
-					1.9387,-4,5.6145,0,-4,6,
-					1.9387,-4,5.6145,1.9387,0,5.6145]);
+    step.al([5.6145,-4,1.9397,5.6145,0,1.9397,
+	     6,-4,0,5.6145,-4,1.9397,
+	     5.6145,-4,1.9397,4.142,-4,4.142,
+	     4.142,-4,4.142,1.9387,-4,5.6145,
+	     1.9387,-4,5.6145,0,-4,6,
+	     1.9387,-4,5.6145,1.9387,0,5.6145]);
 
     // Common positions and rotations:
     let p0 = new THREE.Vector3(0, 0, 0);
@@ -510,37 +517,37 @@ LDR.Studs.makeStud6 = function(highContrast, logoType, force, withoutBaseEdges) 
     let r61 = new THREE.Matrix3(); r61.set(0, 0, -6, 0, 1, 0, 6, 0, 0);
     let r64 = new THREE.Matrix3(); r64.set(0, 0, -6, 0, 4, 0, 6, 0, 0);
 
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r61, force+'3-4edge.dat', true, false));
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r41, force+'4-4edge.dat', true, false));
-    step.addSubModel(new THREE.LDRPartDescription(contrastColor, p4, r44, force+'4-4cyli.dat', true, true));
+    step.asm(p4, r61, force+'3-4edge');
+    step.asm(p4, r41, force+'4-4edge');
+    step.asm(p4, r44, force+'4-4cyli', cc, true, true);
     let r021 = new THREE.Matrix3(); r021.set(0, 0, -2, 0, 1, 0, 2, 0, 0);
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r021, force+'1-4ring2.dat', true, false));
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, r21, force+'1-4ring2.dat', true, false));
+    step.asm(p4, r021, force+'1-4ring2');
+    step.asm(p4, r21, force+'1-4ring2');
     let x021 = new THREE.Matrix3(); x021.set(0, 0, 2, 0, 1, 0, -2, 0, 0);
-    step.addSubModel(new THREE.LDRPartDescription(16, p4, x021, force+'1-4ring2.dat', true, false));
-    step.addSubModel(new THREE.LDRPartDescription(contrastColor, p4, r64, force+'3-4cyli.dat', true, false));
+    step.asm(p4, x021, force+'1-4ring2');
+    step.asm(p4, r64, force+'3-4cyli', cc);
 
     if(!withoutBaseEdges) {
-	step.addSubModel(new THREE.LDRPartDescription(16, p0, r41, force+'4-4edge.dat', true, false));
-	step.addSubModel(new THREE.LDRPartDescription(16, p0, r61, force+'3-4edge.dat', true, false));
+	step.asm(p0, r41, force+'4-4edge');
+	step.asm(p0, r61, force+'3-4edge');
 
-	LDR.Generator.addLinesToStep(step, [6,0,0,5.6145,0,1.9397,
-					    1.9387,0,5.6145,0,0,6]);
+	step.al([6,0,0,5.6145,0,1.9397,
+		 1.9387,0,5.6145,0,0,6]);
     }
 
-    LDR.Generator.addQuadsToStep(step, [6,-4,0,5.615,-4,1.94,3.695,-4,1.531,4,-4,0,
-					5.615,-4,1.94,4.142,-4,4.142,2.828,-4,2.828,3.695,-4,1.531,
-					4.142,-4,4.142,1.94,-4,5.615,1.531,-4,3.695,2.828,-4,2.828,
-					1.94,-4,5.615,0,-4,6,0,-4,4,1.531,-4,3.695], 16);
-    LDR.Generator.addQuadsToStep(step, [6,0,0,5.6145,0,1.9397,5.6145,-4,1.9397,6,-4,0,
-					5.6145,0,1.9397,4.142,0,4.142,4.142,-4,4.142,5.6145,-4,1.9397,
-					4.142,0,4.142,1.9387,0,5.6145,1.9387,-4,5.6145,4.142,-4,4.142,
-					1.9387,0,5.6145,0,0,6,0,-4,6,1.9387,-4,5.6145], contrastColor);
-    LDR.Generator.addConditionalLinesToStep(step, [4.142,-4,4.142,4.142,0,4.142,2.2962,-4,5.5434,5.5434,-4,2.2962]);
+    step.aq([6,-4,0,5.615,-4,1.94,3.695,-4,1.531,4,-4,0,
+	     5.615,-4,1.94,4.142,-4,4.142,2.828,-4,2.828,3.695,-4,1.531,
+	     4.142,-4,4.142,1.94,-4,5.615,1.531,-4,3.695,2.828,-4,2.828,
+	     1.94,-4,5.615,0,-4,6,0,-4,4,1.531,-4,3.695], 16);
+    step.aq([6,0,0,5.6145,0,1.9397,5.6145,-4,1.9397,6,-4,0,
+	     5.6145,0,1.9397,4.142,0,4.142,4.142,-4,4.142,5.6145,-4,1.9397,
+	     4.142,0,4.142,1.9387,0,5.6145,1.9387,-4,5.6145,4.142,-4,4.142,
+	     1.9387,0,5.6145,0,0,6,0,-4,6,1.9387,-4,5.6145], cc);
+    step.acl([4.142,-4,4.142,4.142,0,4.142,2.2962,-4,5.5434,5.5434,-4,2.2962]);
 
     if(!withoutBaseEdges && logoType === 1) {
         let r061 = LDR.Generator.makeR(0.6, 1);
-        step.addSubModel(new THREE.LDRPartDescription(16, p0, r061, 'logo.dat', true, false));
+        step.asm(p0, r061, 'logo');
     }
     else if(logoType === 2) {
         let p5 = new THREE.Vector3(0, -0.5, 0);
@@ -548,7 +555,5 @@ LDR.Studs.makeStud6 = function(highContrast, logoType, force, withoutBaseEdges) 
         logoSM.logoPosition = p5;
         step.addSubModel(logoSM);
     }
-
-    pt.steps.push(step);
-    return pt;
+    return [pt, withoutBaseEdges ? 'stud6a.dat' : 'stud6.dat'];
 }

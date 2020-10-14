@@ -1,12 +1,14 @@
-0 ~Dish  6 x  6 Inverted - No Studs with Handle with Hatch Pattern -  Half
+0 ~Dish  6 x  6 Inverted - No Studs with Handle with TIE Fighter Hatch Pattern - Half
 0 Name: s\18675ps2s01.dat
 0 Author: Evert-Jan Boer [ejboer]
-0 !LDRAW_ORG Subpart UPDATE 2018-02
+0 !LDRAW_ORG Subpart UPDATE 2020-01
 0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
 
 0 BFC CERTIFY CCW
 
 0 !HISTORY 2018-12-08 [PTadmin] Official Update 2018-02
+0 !HISTORY 2020-03-22 [cwdee] Update description
+0 !HISTORY 2020-06-28 [PTadmin] Official Update 2020-01
 
 4 16 -7.83 4 59.484 -7.047 -0.1 53.5356 0 -0.1 54 0 4 60
 4 16 -15.528 4 57.954 -13.9752 -0.1 52.1586 -7.047 -0.1 53.5356 -7.83 4 59.484

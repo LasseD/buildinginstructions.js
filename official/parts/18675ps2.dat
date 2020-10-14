@@ -1,14 +1,16 @@
-0 Dish  6 x  6 Inverted - No Studs with Handle with Hatch Pattern
+0 Dish  6 x  6 Inverted - No Studs with Handle with TIE Fighter Hatch Pattern
 0 Name: 18675ps2.dat
 0 Author: Evert-Jan Boer [ejboer]
-0 !LDRAW_ORG Part UPDATE 2018-02
+0 !LDRAW_ORG Part UPDATE 2020-01
 0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
 
 0 BFC CERTIFY CCW
 
-0 !KEYWORDS TIE Fighter, Star Wars, First Order, 18576pb06
+0 !KEYWORDS Star Wars, First Order, BrickLink 18675pb06
 
 0 !HISTORY 2018-12-08 [PTadmin] Official Update 2018-02
+0 !HISTORY 2020-03-22 [cwdee] Update description
+0 !HISTORY 2020-06-28 [PTadmin] Official Update 2020-01
 
 1 16 0 0 0 1 0 0 0 1 0 0 0 1 s\18675s01.dat
 1 16 0 0 0 1 0 0 0 1 0 0 0 1 s\18675ps2s01.dat
