@@ -198,16 +198,28 @@
           return cmpManyEq(this, pd, ['p', 'r']);
       }
       
+      THREE.LDRPartDescription.prototype.compareTo = function(pd) {
+          if(this.c !== pd.c) {
+              return this.c < pd.c;
+          }
+          if(this.p.lessThan(pd.p)) {
+              return -1;
+          }
+          if(pd.p.lessThan(this.p)) {
+              return 1;
+          }
+          if(this.ID != pd.ID) {
+              return this.ID < pd.ID;
+          }
+          return this.r.compareTo(pd.r);
+      }
+
       THREE.LDRStep.prototype.equals = function(s) {
           let ret = cmpMany(this, s, ['hasPrimitives','rotation']);
           if(ret !== true) {
               return ret;
           }
-          ret = cmpManyArraysSorted(this, s, ['lines', 'triangles', 'quads', 'conditionalLines']);
-          if(ret !== true) {
-              return ret;
-          }
-          return cmpArrays(this, s, 'subModels');
+          return cmpManyArraysSorted(this, s, ['lines', 'triangles', 'quads', 'conditionalLines', 'subModels']);
       }
 
       THREE.LDRStep.prototype.addTriangle = function(c, p1, p2, p3, cull = true, invert = false, texmapPlacement = null) {
