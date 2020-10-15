@@ -7,9 +7,15 @@
     <script src="../js/colors.js"></script>
     <script src="../js/LDRLoader.js"></script>
     <script src="../js/LDRGenerator.js"></script>
+    <style>
+      span {
+          background-color: #7F7;
+          padding: 0.2em;
+          margin: 0.1em;
+          display: inline-block;
+      }
+    </style>
     <script>
-      //LDR.convertFloat = x => x; // Don't hide anything in console.
-      
       function cmp(a, b, name) {
           if(a[name] === b[name]) {
               return true;
@@ -341,8 +347,8 @@
           this.loader.load(urls[urlID], onFileLoaded, undefined, onError);
       };      
 
-      function report(msg) {
-          let div = document.createElement('div');
+      function report(msg, t) {
+          let div = document.createElement(t);
           div.innerHTML = msg;
           document.body.appendChild(div);
       }
@@ -366,13 +372,13 @@
               let loaded = ldrLoader.getPartType(generated.ID);
               let cmp = loaded.equals(generated);
               if(cmp === true) {
-                  report(generated.ID + ": OK");                  
+                  report(generated.ID, 'span');                  
               }
               else {
                   console.log(generated.ID + ' Generated vs loaded:');
                   console.log(generated.steps[0].toLDR(ldrLoader, null, true));
                   console.dir(loaded.steps[0].toLDR(ldrLoader, null, true));
-                  report(generated.ID + ": " + cmp);                  
+                  report(generated.ID + ": " + cmp, 'div');                  
               }
           }
           ldrLoader = new THREE.LDRLoader(checkLoaded, null, {idToUrl:idToUrl});

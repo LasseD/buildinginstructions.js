@@ -41,7 +41,12 @@ LDR.Generator = {
     },
     R: function(a, b) {
         let ret = new THREE.Matrix3();
-        ret.set(a, 0, 0, 0, b, 0, 0, 0, a)
+        ret.set(a, 0, 0, 0, b, 0, 0, 0, a);
+        return ret;
+    },
+    R2: function(a, b, c) {
+        let ret = new THREE.Matrix3();
+        ret.set(0, 0, a, 0, b, 0, c, 0, 0);
         return ret;
     },
     f2s: function(f) {
@@ -213,7 +218,11 @@ LDR.Generator = {
         return pt;
     },
     stug: function(X, Y, suffix = '', sub = 1) {
-        const NAMES = {'':'', '2':'Open ', '3':'Tube Solid ', '4':'Tube Open '};
+        const NAMES = {'':'',
+                       '2':'Open ',
+                       '3':'Tube Solid ',
+                       '4':'Tube Open ',
+                       'p01':'with Dot Pattern '};
         let [pt,step] = this.pT('Stud ' + NAMES[suffix] + 'Group ' + this.pad2(X) + ' x ' + this.pad2(Y));
                                 
         for(let x = 0; x*sub < X; x++) {
@@ -227,6 +236,18 @@ LDR.Generator = {
                 }
             }
         }
+        return pt;
+    },
+    stug2: function(suffix) {
+        const NAMES = {10:'Curved',15:'Straight'};
+        let [pt,step] = this.pT('Stud Group Truncated Laterally ' + NAMES[suffix] + ' 40D for Round 2 x 2 Parts');
+
+        step.asm(this.V(-10,0,-10), this.R(-1,1), 'stud' + suffix);
+        step.asm(this.V(-10,0,10), this.R2(-1,1,1), 'stud' + suffix);
+        step.asm(this.V(10,0,-10), this.R2(1,1,-1), 'stud' + suffix);
+
+        step.asm(this.V(10,0,10), null, 'stud' + suffix);
+
         return pt;
     },
     logoPositions: [[-2,-4,2,-5,2,-3.5] // L
@@ -357,6 +378,18 @@ LDR.Generator = {
         'stug4-2x2': X => X.stug(2, 2, '4'),
         'stug4-3x3': X => X.stug(3, 3, '4'),
         'stug4-4x4': X => X.stug(4, 4, '4', 2),
+        'stug4-6x6': X => X.stug(6, 6, '4', 3),
+        'stug4a': X => X.alias('stug2-4x4'),
+        'stug5': X => X.alias('stug-5x5'),
+        'stug6': X => X.alias('stug-6x6'),
+        'stug7': X => X.alias('stug-7x7'),
+        'stug8': X => X.alias('stug-8x8'),
+        'stug9': X => X.alias('stug-9x9'),
+        'stug10-2x2': X => X.stug2(10),
+        'stug15-2x2': X => X.stug2(15),
+        'stugp01-1x3': X => X.stug(1, 3, 'p01'),
+        'stugp01-1x6': X => X.stug(1, 6, 'p01'),
+        'stugp01-1x10': X => X.stug(1, 10, 'p01'),
 
         'logo': X => X.logo1(),
         'empty': X => X.empty()
