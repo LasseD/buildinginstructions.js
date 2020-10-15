@@ -34,10 +34,10 @@ LDR.Generator = {
         pt.ldraw_org = 'Primitive';
         pt.cleanSteps = pt.certifiedBFC = pt.CCW = pt.isPart = true;
         
-        let step = new THREE.LDRStep();
-        pt.steps.push(step); // No need to user 'addStep()' for primitives.
+        let s = new THREE.LDRStep();
+        pt.steps.push(s); // No need to user 'addStep()' for primitives.
 
-        return [pt,step];
+        return [pt,s];
     },
     R: function(a, b) {
         let ret = new THREE.Matrix3();
@@ -62,32 +62,32 @@ LDR.Generator = {
         return pt;
     },
     alias: function(to) {
-        let [pt,step] = this.pT("~Moved to " + to);
-        step.asm(null, null, to);
+        let [pt,s] = this.pT("~Moved to " + to);
+        s.asm(null, null, to);
         pt.replacement = to + '.dat';
         return pt;
     },
     
     cylClosed: function(sections) {
-        let [pt,step] = this.pT('Cylinder Closed ' + this.f2s(sections*0.25));
+        let [pt,s] = this.pT('Cylinder Closed ' + this.f2s(sections*0.25));
         let p0 = this.V();
         let p1 = this.V(0, 1, 0);
         let r = this.R(1, 1);
         
-        step.asm(p0, r, sections+'-4edge');
-        step.asm(p1, r, sections+'-4edge');
-        step.asm(p0, r, sections+'-4disc');
-        step.asm(p0, r, sections+'-4cyli');
+        s.asm(p0, r, sections+'-4edge');
+        s.asm(p1, r, sections+'-4edge');
+        s.asm(p0, r, sections+'-4disc');
+        s.asm(p0, r, sections+'-4cyli');
         return pt;
     },
     edge: function(N, D) {
-        let [pt,step] = this.pT('Circle ' + this.f2s(N*1.0/D));
+        let [pt,S] = this.pT('Circle ' + this.f2s(N*1.0/D));
         let prev = this.V(1, 0, 0);
         for(let i = 1; i <= 16/D*N; i++) {
             let angle = i*Math.PI/8;
             let c = Math.cos(angle), s = Math.sin(angle);
             let p = this.V(c, 0, s);
-            step.addLine(24, prev, p);
+            S.addLine(24, prev, p);
             prev = p;
         }
         return pt;
@@ -97,7 +97,7 @@ LDR.Generator = {
         if(!cond) {
             desc += ' without Conditional Lines';
         }
-        let [pt,step] = this.pT(desc);
+        let [pt,S] = this.pT(desc);
         
         let p0 = this.V(1, 0, 0), p1 = this.V(1, 1, 0);
         let angle = Math.PI/8;
@@ -107,10 +107,10 @@ LDR.Generator = {
 
         if(cond && sections < 4) { // Add conditional line in beginning:
             if(flip) {
-                step.addConditionalLine(24, p0, p1, next1, this.V(1, 1, -.4142)); // I have no idea why 2-4cyli.dat is this irregular.
+                S.addConditionalLine(24, p0, p1, next1, this.V(1, 1, -.4142)); // I have no idea why 2-4cyli.dat is this irregular.
             }
             else {
-                step.addConditionalLine(24, p0, p1, next0, this.V(1, 0, -1));
+                S.addConditionalLine(24, p0, p1, next0, this.V(1, 0, -1));
             }
         }
         let prev0;
@@ -125,19 +125,19 @@ LDR.Generator = {
             next0 = this.V(c, 0, s);
             next1 = this.V(c, 1, s);
 
-            step.addQuad(16, prev1, p1, p0, prev0);
+            S.addQuad(16, prev1, p1, p0, prev0);
 
             if(cond) {
                 if(flip) {
-                    step.addConditionalLine(24, p0, p1, next1, prev1);
+                    S.addConditionalLine(24, p0, p1, next1, prev1);
                 }
                 else {
-                    step.addConditionalLine(24, p0, p1, next0, prev0);
+                    S.addConditionalLine(24, p0, p1, next0, prev0);
                 }
             }
         }
         if(cond && sections < 4) { // Fix last conditional line to align with orthogonal wall:
-            let last = step.conditionalLines[step.conditionalLines.length-1];
+            let last = S.conditionalLines[S.conditionalLines.length-1];
             if(flip) { // Irregular 2-4cyli.dat
                 last.p3 = this.V(c, 1, -s);
                 last.p4 = this.V(-1, 1, -.4141);
@@ -150,7 +150,7 @@ LDR.Generator = {
         return pt;
     },
     cylSloped: function(N, lastNext) {
-        let [pt,step] = this.pT('Cylinder Sloped ' + this.f2s(N*0.25));
+        let [pt,S] = this.pT('Cylinder Sloped ' + this.f2s(N*0.25));
 
         let p0 = this.V(1, 0, 0), p1 = this.V(1, 0, 0);
         let angle = Math.PI/8;
@@ -169,17 +169,17 @@ LDR.Generator = {
             next1 = this.V(c, 1-c, s);
 
             if(i === 2) {
-                step.addTriangle(16, prev1, p1, p0);
+                S.addTriangle(16, prev1, p1, p0);
             }
             else if(i === 17) {
-                step.addTriangle(16, prev1, p1, prev0);
+                S.addTriangle(16, prev1, p1, prev0);
             }
             else {
-                step.addQuad(16, prev1, p1, p0, prev0);
+                S.addQuad(16, prev1, p1, p0, prev0);
             }
             
             if(p0.y !== p1.y) {
-                step.addConditionalLine(24, p0, p1, prev0, next0);
+                S.addConditionalLine(24, p0, p1, prev0, next0);
             }
         }
         if(lastNext) {
@@ -189,20 +189,20 @@ LDR.Generator = {
         return pt;
     },
     disc: function(sections) {
-        let [pt,step] = this.pT('Disc ' + this.f2s(sections*0.25));
+        let [pt,S] = this.pT('Disc ' + this.f2s(sections*0.25));
         let zero = this.V(0, 0, 0);
         let prev = this.V(1, 0, 0);
         for(let i = 1; i <= 4*sections; i++) {
             let angle = i*Math.PI/8;
             let c = Math.cos(angle), s = Math.sin(angle);
             let p = this.V(c, 0, s);
-            step.addTriangle(16, zero, prev, p);
+            S.addTriangle(16, zero, prev, p);
             prev = p;
         }
         return pt;
     },
     ring: function(N, D, size) {
-        let [pt,step] = this.pT('Ring  ' + size + ' x ' + this.f2s(1.0/D*N));
+        let [pt,S] = this.pT('Ring  ' + size + ' x ' + this.f2s(1.0/D*N));
         let SIZE = size+1;
         let prev1 = this.V(size, 0, 0);
         let prev2 = this.V(SIZE, 0, 0);
@@ -211,7 +211,7 @@ LDR.Generator = {
             let c = Math.cos(angle), s = Math.sin(angle);
             let p1 = this.V(SIZE*c, 0, SIZE*s);
             let p2 = this.V(size*c, 0, size*s);
-            step.addQuad(16, prev2, p1, p2, prev1);
+            S.addQuad(16, prev2, p1, p2, prev1);
             prev1 = p2;
             prev2 = p1;
         }
@@ -223,16 +223,16 @@ LDR.Generator = {
                        '3':'Tube Solid ',
                        '4':'Tube Open ',
                        'p01':'with Dot Pattern '};
-        let [pt,step] = this.pT('Stud ' + NAMES[suffix] + 'Group ' + this.pad2(X) + ' x ' + this.pad2(Y));
+        let [pt,s] = this.pT('Stud ' + NAMES[suffix] + 'Group ' + this.pad2(X) + ' x ' + this.pad2(Y));
                                 
         for(let x = 0; x*sub < X; x++) {
             for(let y = 0; y*sub < Y; y++) {
                 let p = this.V(20*y*sub - Y*10 + 10*sub, 0, 20*x*sub - X*10 + 10*sub);
                 if(sub === 1 && sub === 1) {
-                    step.asm(p, null, 'stud' + suffix);
+                    s.asm(p, null, 'stud' + suffix);
                 }
                 else {
-                    step.asm(p, null, 'stug' + suffix + '-' + sub + 'x' + sub);
+                    s.asm(p, null, 'stug' + suffix + '-' + sub + 'x' + sub);
                 }
             }
         }
@@ -240,13 +240,22 @@ LDR.Generator = {
     },
     stug2: function(suffix) {
         const NAMES = {10:'Curved',15:'Straight'};
-        let [pt,step] = this.pT('Stud Group Truncated Laterally ' + NAMES[suffix] + ' 40D for Round 2 x 2 Parts');
+        let [pt,s] = this.pT('Stud Group Truncated Laterally ' + NAMES[suffix] + ' 40D for Round 2 x 2 Parts');
 
-        step.asm(this.V(-10,0,-10), this.R(-1,1), 'stud' + suffix);
-        step.asm(this.V(-10,0,10), this.R2(-1,1,1), 'stud' + suffix);
-        step.asm(this.V(10,0,-10), this.R2(1,1,-1), 'stud' + suffix);
+        s.asm(this.V(-10,0,-10), this.R(-1,1), 'stud' + suffix);
+        s.asm(this.V(-10,0,10), this.R2(-1,1,1), 'stud' + suffix);
+        s.asm(this.V(10,0,-10), this.R2(1,1,-1), 'stud' + suffix);
 
-        step.asm(this.V(10,0,10), null, 'stud' + suffix);
+        s.asm(this.V(10,0,10), null, 'stud' + suffix);
+
+        return pt;
+    },
+    stug4: function(x) {
+        let [pt,s] = this.pT('Stud Tube Open Group  ' + x + ' x  ' + x);
+        x--;
+        s.asm(this.V(-10,0,-10), null, 'stug4-' + x + 'x' + x);
+        s.asm(this.V(-10,0,10*x), null, 'stug4-1x' + x);
+        s.asm(this.V(10*x,0,0), this.R2(-1,1,1), 'stug4-1x' + (x+1));
 
         return pt;
     },
@@ -259,12 +268,12 @@ LDR.Generator = {
                     [-1.5,4.75,-2,4.5,-2,3.5,-1.5,3,1.5,2.25,2,2.5,2,3.5,1.5,4,-1.5,4.75] // O
                    ], // Logo positions copied from logo.dat by Paul Easter [pneaster]
     logo1: function() {
-        let [pt,step] = this.pT('LEGO Logo for Studs - Non-3D Thin Lines');
+        let [pt,s] = this.pT('LEGO Logo for Studs - Non-3D Thin Lines');
         pt.ldraw_org = 'Unofficial_Primitive';
 
         this.logoPositions.forEach(letter => {
 	    for(let i = 2; i < letter.length; i+=2) {
-	        step.al([letter[i-2], 0, letter[i-1], letter[i], 0, letter[i+1]]);
+	        s.al([letter[i-2], 0, letter[i-1], letter[i], 0, letter[i+1]]);
 	    }
         });
         return pt;
@@ -378,7 +387,9 @@ LDR.Generator = {
         'stug4-2x2': X => X.stug(2, 2, '4'),
         'stug4-3x3': X => X.stug(3, 3, '4'),
         'stug4-4x4': X => X.stug(4, 4, '4', 2),
+        'stug4-5x5': X => X.stug4(5),
         'stug4-6x6': X => X.stug(6, 6, '4', 3),
+        'stug4-7x7': X => X.stug4(7),
         'stug4a': X => X.alias('stug2-4x4'),
         'stug5': X => X.alias('stug-5x5'),
         'stug6': X => X.alias('stug-6x6'),

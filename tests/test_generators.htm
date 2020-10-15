@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <body>
-    <h3>Checking generated part types</h3>
+    <h3 id="title">Checking generated part types</h3>
     <script src="../js/jquery.min.js"></script>
     <script src="../js/three.min.js"></script>
     <script src="../js/colors.js"></script>
@@ -327,7 +327,7 @@
               filesLoaded++;
 	      self.unloadedFiles--; // Warning - might have concurrency issue when two threads simultaneously update this!
 	      self.reportProgress(id);
-              console.log(charsLoaded + ' chars loaded after ' + filesLoaded + ' files (' + id + ')');
+              document.getElementById('title').innerHTML = 'Checked ' + filesLoaded + ' generated part types. Combined size of original files: ' + charsLoaded;
           }
 
           let urlID = 0;
