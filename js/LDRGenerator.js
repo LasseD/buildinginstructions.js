@@ -12,6 +12,23 @@ THREE.LDRStep.prototype.al = function(lines) {
 		     LDR.Generator.V(lines[i+3], lines[i+4], lines[i+5]));
     }
 }
+THREE.LDRStep.prototype.at = function(triangles) {
+    for(let i = 0; i < triangles.length; i+=9) {
+	this.addTriangle(16,
+		         LDR.Generator.V(triangles[i], triangles[i+1], triangles[i+2]),
+		         LDR.Generator.V(triangles[i+3], triangles[i+4], triangles[i+5]),
+		         LDR.Generator.V(triangles[i+6], triangles[i+7], triangles[i+8]));
+    }
+}
+THREE.LDRStep.prototype.aq = function(quads) {
+    for(let i = 0; i < quads.length; i+=12) {
+	this.addQuad(16,
+		     LDR.Generator.V(quads[i], quads[i+1], quads[i+2]),
+		     LDR.Generator.V(quads[i+3], quads[i+4], quads[i+5]),
+		     LDR.Generator.V(quads[i+6], quads[i+7], quads[i+8]),
+		     LDR.Generator.V(quads[i+9], quads[i+10], quads[i+11]));
+    }
+}
 THREE.LDRStep.prototype.asm = function(p = null, r = null, id = '', c = 16, cull = true, ccw = false) {
     if(p === null) {
         p = LDR.Generator.V(0, 0, 0);
@@ -250,6 +267,18 @@ LDR.Generator = {
 
         return pt;
     },
+    stug3: function(S, px1, px2, X, py, Y = 'stud', y = 1) {
+        let [pt,s] = this.pT('Stud Group  ' + S + ' x  ' + S);
+                                
+        s.asm(this.V(px1, 0, px2), null, 'stug-' + X + 'x' + X);
+        for(let x = 0; x < (S/y)-1; x++) {
+            s.asm(this.V(10*(y-S + 2*x*y), 0, py), null, Y);
+        }
+        for(let x = 0; x < (S/y); x++) {
+            s.asm(this.V((S-y)*10, 0, 10*(y-S + 2*x*y)), null, Y);
+        }
+        return pt;
+    },
     stug4: function(x) {
         let [pt,s] = this.pT('Stud Tube Open Group  ' + x + ' x  ' + x);
         x--;
@@ -257,6 +286,12 @@ LDR.Generator = {
         s.asm(this.V(-10,0,10*x), null, 'stug4-1x' + x);
         s.asm(this.V(10*x,0,0), this.R2(-1,1,1), 'stug4-1x' + (x+1));
 
+        return pt;
+    },
+    triangle: function() {
+        let [pt,s] = this.pT('Triangle');
+        s.at([0,0,0,1,0,0,0,0,1]);
+        s.al([0,0,0,1,0,0, 1,0,0,0,0,1, 0,0,1,0,0,0]);
         return pt;
     },
     logoPositions: [[-2,-4,2,-5,2,-3.5] // L
@@ -339,12 +374,15 @@ LDR.Generator = {
         'stug-4x1': X => X.stug(4, 1),
         'stug-4x4': X => X.stug(4, 4, '', 2),
         'stug-5x1': X => X.stug(5, 1),
+        'stug-5x5': X => X.stug3(5, -10, -10, 4, 40),
         'stug-6x1': X => X.stug(6, 1),
         'stug-6x6': X => X.stug(6, 6, '', 3),
         'stug-7x1': X => X.stug(7, 1),
+        'stug-7x7': X => X.stug3(7, -10, 10, 6, -60),
         'stug-8x1': X => X.stug(8, 1),
         'stug-8x8': X => X.stug(8, 8, '', 4),
         'stug-9x1': X => X.stug(9, 1),
+        'stug-9x9': X => X.stug3(9, -30, -30, 6, 60, 'stug-3x3', 3),
         'stug-10x1': X => X.stug(10, 1),
         'stug-11x1': X => X.stug(11, 1),
         'stug-12x1': X => X.stug(12, 1),
@@ -403,7 +441,8 @@ LDR.Generator = {
         'stugp01-1x10': X => X.stug(1, 10, 'p01'),
 
         'logo': X => X.logo1(),
-        'empty': X => X.empty()
+        'empty': X => X.empty(),
+        'triangle': X => X.triangle(),
     },
     make: function(id) {
         let sid = id.substring(0, id.length-4);
