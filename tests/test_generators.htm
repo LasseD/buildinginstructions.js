@@ -358,13 +358,14 @@
           document.body.appendChild(div);
       }
       
-      let idToUrl = id => ['../official/p/' + id,
-                           '../official/parts/' + id,
-                           '../official/parts/s/' + id,
-                           '../unofficial/p/' + id,
-                           '../unofficial/parts/' + id,
-                           '../unofficial/parts/s/' + id
-                          ];
+      let idToUrl = id => (id === 'logo.dat') ? ['../unofficial/p/'+id] :
+          ['../official/p/' + id,
+           '../official/parts/' + id,
+           '../official/parts/s/' + id,
+           '../unofficial/p/' + id,
+           '../unofficial/parts/' + id,
+           '../unofficial/parts/s/' + id
+          ];
 
       for(let id in LDR.Generator.map) {
           if(!LDR.Generator.map.hasOwnProperty(id)) {
