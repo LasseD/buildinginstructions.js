@@ -919,7 +919,7 @@ LDR.LDRGeometry.prototype.fromQuads = function(cull, ps) {
 */
 LDR.LDRGeometry.prototype.fromStep = function(loader, step) {
     let geometries = [];
-    if(step.hasPrimitives) {
+    if(step.hasPrimitives()) {
         let g = new LDR.LDRGeometry();
 	g.fromPrimitives(step.lines, step.conditionalLines, step.triangles, step.quads);
         geometries.push(g);

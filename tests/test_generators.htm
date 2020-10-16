@@ -221,7 +221,7 @@
       }
 
       THREE.LDRStep.prototype.equals = function(s) {
-          let ret = cmpMany(this, s, ['hasPrimitives','rotation']);
+          let ret = cmp(this, s, 'rotation');
           if(ret !== true) {
               return ret;
           }
@@ -229,8 +229,6 @@
       }
 
       THREE.LDRStep.prototype.addTriangle = function(c, p1, p2, p3, cull = true, invert = false, texmapPlacement = null) {
-          this.hasPrimitives = true;
-
           // Ensure triangles are ordered:
           if(p1.lessThan(p2) && p1.lessThan(p3)) {
               this.triangles.push(new LDR.Line3(c, p1, p2, p3, cull, invert, texmapPlacement));
@@ -264,8 +262,6 @@
       }
       
       THREE.LDRStep.prototype.addQuad = function(c, p1, p2, p3, p4, cull = true, invert = false, texmapPlacement = null) {
-          this.hasPrimitives = true;
-
           // Ensure triangles are ordered:
           if(p1.lessThan(p2) && p1.lessThan(p3) && p1.lessThan(p4)) {
               this.quads.push(new LDR.Line4(c, p1, p2, p3, p4, cull, invert, texmapPlacement));
@@ -283,9 +279,18 @@
           texmapPlacement && texmapPlacement.use();
       }
 
-      THREE.LDRStep.prototype.addConditionalLine = function(c, p1, p2, p3, p4, texmapPlacement = null) {
-          this.hasPrimitives = true;
+      THREE.LDRStep.prototype.addLine = function(c, p1, p2, texmapPlacement = null) {
+          if(p2.lessThan(p1)) {
+              let tmp = p1;
+              p1 = p2;
+              p2 = tmp;
+          }
+          this.lines.push(new LDR.Line2(c, p1, p2, texmapPlacement));
 
+          texmapPlacement && texmapPlacement.use();    
+      }
+
+      THREE.LDRStep.prototype.addConditionalLine = function(c, p1, p2, p3, p4, texmapPlacement = null) {
           if(p4.lessThan(p3)) {
               let tmp = p3;
               p3 = p4;

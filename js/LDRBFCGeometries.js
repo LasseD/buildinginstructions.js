@@ -342,7 +342,7 @@ LDR.BFCGeometry.prototype.fromQuads = function(cull, ps) {
 */
 LDR.BFCGeometry.prototype.fromStep = function(loader, step) {
     let geometries = [];
-    if(step.hasPrimitives) {
+    if(step.hasPrimitives()) {
         let g = new LDR.BFCGeometry();
 	g.fromPrimitives(step.lines, step.conditionalLines, step.triangles, step.quads);
         geometries.push(g);

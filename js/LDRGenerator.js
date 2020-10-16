@@ -84,7 +84,7 @@ LDR.Generator = {
         pt.replacement = to + '.dat';
         return pt;
     },
-    
+
     cylClosed: function(sections) {
         let [pt,s] = this.pT('Cylinder Closed ' + this.f2s(sections*0.25));
         let p0 = this.V();
@@ -313,7 +313,34 @@ LDR.Generator = {
         });
         return pt;
     },    
+    rect: function(hx, name) {
+        let [pt,s] = this.pT('Rectangle' + (name ? (' with ' + name) : ''));
+        if(hx & 1) {
+            s.aq([-1,0,1,-1,0,-1,1,0,-1,1,0,1]);
+        }
+        if(hx & 2) {
+            s.al([1,0,1,-1,0,1]);
+        }
+        if(hx & 4) {
+            s.al([-1,0,1,-1,0,-1]);
+        }
+        if(hx & 8) {
+            s.al([-1,0,-1,1,0,-1]);
+        }
+        if(hx & 16) {
+            s.al([1,0,-1,1,0,1]);
+        }
+        return pt;
+    },
     map: {
+        'rect': X => X.rect(31),
+        'rect1': X => X.rect(17, '1 Edge'),
+        'rect2a': X => X.rect(19, '2 Adjacent Edges'),
+        'rect2p': X => X.rect(11, '2 Parallel Edges'),
+        'rect3': X => X.rect(23, '3 Edges'),
+        'recte3': X => X.rect(22, '3 Edges'),
+        'recte3': X => X.rect(30, '4 Edges'),
+            
         '1-4edge': X => X.edge(1, 4),
         '2-4edge': X => X.edge(2, 4),
         '3-4edge': X => X.edge(3, 4),

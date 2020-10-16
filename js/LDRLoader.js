@@ -1230,7 +1230,6 @@ THREE.LDRStepRotation.prototype.getRotationMatrix = function(defaultMatrix) {
 THREE.LDRStepIdx = 0;
 THREE.LDRStep = function() {
     this.idx = THREE.LDRStepIdx++;
-    this.hasPrimitives = false;
     this.subModels = []; // THREE.LDRPartDescription
     this.lines = []; // LDR.Line2
     this.conditionalLines = []; // LDR.Line5
@@ -1239,6 +1238,10 @@ THREE.LDRStep = function() {
     this.rotation = null; // THREE.LDRStepRotation
     this.cnt = -1;
     this.original; // THREE.LDRStep
+}
+
+THREE.LDRStep.prototype.hasPrimitives = function() {
+    return this.lines.length > 0 || this.conditionalLines.length > 0 || this.triangles.length > 0 || this.quads.length > 0;
 }
 
 THREE.LDRStep.prototype.pack = function(obj, saveCommentLines) {
@@ -1397,7 +1400,6 @@ THREE.LDRStep.prototype.unpackFrom = function(arrayI, arrayF, arrayS, idxI, idxF
         let ret = [];
         let numPrimitives = arrayI[idxI++];
         for(let i = 0; i < numPrimitives; i++) {
-            self.hasPrimitives = true;
             let p = makeLine();
             [idxI, idxF] = p.unpackFrom(arrayI, arrayF, idxI, idxF, texmapPlacementMap);
 	    ensureColor(p.c);
@@ -1434,12 +1436,11 @@ THREE.LDRStep.prototype.getTexmapPlacements = function(seen) {
 }
 
 THREE.LDRStep.prototype.cloneColored = function(colorID) {
-    if(this.hasPrimitives) {
+    if(this.hasPrimitives()) {
         throw "Cannot clone step with primitives!";
     }
     let ret = new THREE.LDRStep();
 
-    ret.hasPrimitives = false;
     ret.subModels = this.subModels.map(subModel => subModel.cloneColored(colorID));
     ret.rotation = this.rotation;
     ret.cnt = this.cnt;
@@ -1507,7 +1508,7 @@ THREE.LDRStep.prototype.toLDR = function(loader, prevStepRotation, isLastStep) {
 }
 
 THREE.LDRStep.prototype.isEmpty = function() {
-    return this.subModels.length === 0 && !this.hasPrimitives;
+    return this.subModels.length === 0 && !this.hasPrimitives();
 }
 
 THREE.LDRStep.prototype.addSubModel = function(subModel) {
@@ -1515,25 +1516,21 @@ THREE.LDRStep.prototype.addSubModel = function(subModel) {
 }
 
 THREE.LDRStep.prototype.addLine = function(c, p1, p2, texmapPlacement = null) {
-    this.hasPrimitives = true;
     this.lines.push(new LDR.Line2(c, p1, p2, texmapPlacement));
     texmapPlacement && texmapPlacement.use();
 }
 
 THREE.LDRStep.prototype.addTriangle = function(c, p1, p2, p3, cull = true, invert = false, texmapPlacement = null) {
-    this.hasPrimitives = true;
     this.triangles.push(new LDR.Line3(c, p1, p2, p3, cull, invert, texmapPlacement));
     texmapPlacement && texmapPlacement.use();
 }
 
 THREE.LDRStep.prototype.addQuad = function(c, p1, p2, p3, p4, cull = true, invert = false, texmapPlacement = null) {
-    this.hasPrimitives = true;
     this.quads.push(new LDR.Line4(c, p1, p2, p3, p4, cull, invert, texmapPlacement));
     texmapPlacement && texmapPlacement.use();
 }
 
 THREE.LDRStep.prototype.addConditionalLine = function(c, p1, p2, p3, p4, texmapPlacement = null) {
-    this.hasPrimitives = true;
     this.conditionalLines.push(new LDR.Line5(c, p1, p2, p3, p4, texmapPlacement));
     texmapPlacement && texmapPlacement.use();    
 }
@@ -1593,7 +1590,7 @@ THREE.LDRStep.prototype.countParts = function(loader) {
   this.rotation = null;
  */
 THREE.LDRStep.prototype.cleanUp = function(loader, newSteps) {
-    if(this.isEmpty() || this.hasPrimitives) {
+    if(this.isEmpty() || this.hasPrimitives()) {
         newSteps.push(this);
         return; // Primitive-containing or empty step - just keep existing.
     }
@@ -2318,7 +2315,7 @@ THREE.LDRPartType.prototype.computeIsPart = function(loader) {
         return false; // No steps in parts.
     }
     let s = this.steps[0];
-    if(s.hasPrimitives) {
+    if(s.hasPrimitives()) {
         return true; // Contains line, triangle or quad primitives.
     }
 
@@ -2358,7 +2355,7 @@ THREE.LDRPartType.prototype.isReplacedPart = function() {
 	return false; // Not a part
     }
     let step = this.steps[0];
-    if(step.hasPrimitives || step.subModels.length !== 1) {
+    if(step.hasPrimitives() || step.subModels.length !== 1) {
 	return false; // Has primitives or is not consisting of a single sub model.
     }
     let sm = step.subModels[0];
