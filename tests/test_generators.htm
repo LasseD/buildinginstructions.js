@@ -70,9 +70,9 @@
           return true;
       }
 
-      const EPS = 0.0002;
+      const EPS = 0.001;
       function equalsEPS(a, b) {
-          return Math.abs(a-b) <= EPS;
+          return (a === 0 ? Math.abs(b) : Math.abs((a-b)/a)) <= EPS;
       }
       function manyEqualsEPS(a, b, names) {
           for(let i = 0; i < names.length; i++) {
