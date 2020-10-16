@@ -50,7 +50,7 @@ LDR.Generator = {
         pt.inlined = 'GENERATED';
         pt.ldraw_org = 'Primitive';
         pt.cleanSteps = pt.certifiedBFC = pt.CCW = pt.isPart = true;
-        
+
         let s = new THREE.LDRStep();
         pt.steps.push(s); // No need to user 'addStep()' for primitives.
 
@@ -90,7 +90,7 @@ LDR.Generator = {
         let p0 = this.V();
         let p1 = this.V(0, 1, 0);
         let r = this.R(1, 1);
-        
+
         s.asm(p0, r, sections+'-4edge');
         s.asm(p1, r, sections+'-4edge');
         s.asm(p0, r, sections+'-4disc');
@@ -127,7 +127,7 @@ LDR.Generator = {
             desc += ' without Conditional Lines';
         }
         let [pt,S] = this.pT(desc);
-        
+
         let p0 = this.V(1, 0, 0), p1 = this.V(1, 1, 0);
         let angle = Math.PI/8;
         let c = Math.cos(angle), s = Math.sin(angle);
@@ -206,7 +206,7 @@ LDR.Generator = {
             else {
                 S.addQuad(16, prev1, p1, p0, prev0);
             }
-            
+
             if(p0.y !== p1.y) {
                 S.addConditionalLine(24, p0, p1, prev0, next0);
             }
@@ -214,7 +214,7 @@ LDR.Generator = {
         if(lastNext) {
             next0.copy(lastNext);
         }
-        
+
         return pt;
     },
     disc: function(sections) {
@@ -269,7 +269,7 @@ LDR.Generator = {
                        '4':'Tube Open ',
                        'p01':'with Dot Pattern '};
         let [pt,s] = this.pT('Stud ' + NAMES[suffix] + 'Group ' + this.pad2(X) + ' x ' + this.pad2(Y));
-                                
+
         for(let x = 0; x*sub < X; x++) {
             for(let y = 0; y*sub < Y; y++) {
                 let p = this.V(20*y*sub - Y*10 + 10*sub, 0, 20*x*sub - X*10 + 10*sub);
@@ -297,7 +297,7 @@ LDR.Generator = {
     },
     stug3: function(S, px1, px2, X, py, Y = 'stud', y = 1) {
         let [pt,s] = this.pT('Stud Group  ' + S + ' x  ' + S);
-                                
+
         s.asm(this.V(px1, 0, px2), null, 'stug-' + X + 'x' + X);
         for(let x = 0; x < (S/y)-1; x++) {
             s.asm(this.V(10*(y-S + 2*x*y), 0, py), null, Y);
@@ -340,7 +340,7 @@ LDR.Generator = {
 	    }
         });
         return pt;
-    },    
+    },
     rect: function(hx, name, prefix = '') {
         let [pt,s] = this.pT('Rectangle' + (name ? (prefix + ' with ' + name) : ''));
         if(hx & 1) {
@@ -384,12 +384,12 @@ LDR.Generator = {
         '9-16edge': X => X.edge(9, 16),
         '11-16edge': X => X.edge(11, 16),
         '13-16edge': X => X.edge(13, 16),
-        
+
         '48\\1-3edge': X => X.e48(1, 3),
         '48\\1-4edge': X => X.e48(1, 4),
-        '48\\1-6edge': X => X.e48(1, 6),            
-        '48\\1-8edge': X => X.e48(1, 8),            
-        '48\\1-12edge': X => X.e48(1, 12),            
+        '48\\1-6edge': X => X.e48(1, 6),
+        '48\\1-8edge': X => X.e48(1, 8),
+        '48\\1-12edge': X => X.e48(1, 12),
         '48\\1-16edge': X => X.e48(1, 16),
         '48\\1-24edge': X => X.e48(1, 24),
         '48\\1-48edge': X => X.e48(1, 48),
@@ -424,7 +424,7 @@ LDR.Generator = {
         '1-4cylc': X => X.cylClosed(1),
         '2-4cylc': X => X.cylClosed(2),
         '4-4cylc': X => X.cylClosed(4),
-        
+
         '1-4cyls': X => X.cylSloped(1, X.V(-1, 0, 1)),
         '2-4cyls': X => X.cylSloped(2, X.V(-1, 0, -1)),
         '4-4cyls': X => X.cylSloped(4),
@@ -569,9 +569,9 @@ LDR.Generator = {
         '4-4ring3': X => X.ri(4, 4, 3),
         '4-4ring4': X => X.ri(4, 4, 4),
         '4-4ring5': X => X.ri(4, 4, 5),
-        '4-4ring6': X => X.ri(4, 4, 6),    
-        '4-4ring7': X => X.ri(4, 4, 7),    
-        '4-4ring8': X => X.ri(4, 4, 8),    
+        '4-4ring6': X => X.ri(4, 4, 6),
+        '4-4ring7': X => X.ri(4, 4, 7),
+        '4-4ring8': X => X.ri(4, 4, 8),
         '4-4ring9': X => X.ri(4, 4, 9),
         '4-4rin10': X => X.ri(4, 4, 10),
         '4-4rin11': X => X.ri(4, 4, 11),
@@ -596,7 +596,7 @@ LDR.Generator = {
         '4-4rin32': X => X.ri(4, 4, 32),
         '4-4rin33': X => X.ri(4, 4, 33),
         '4-4rin34': X => X.ri(4, 4, 34),
-        '4-4ring35': X => X.ri(4, 4, 35),    
+        '4-4ring35': X => X.ri(4, 4, 35),
         '4-4rin36': X => X.ri(4, 4, 36),
         '4-4rin37': X => X.ri(4, 4, 37),
         '4-4rin38': X => X.ri(4, 4, 38),
@@ -616,17 +616,17 @@ LDR.Generator = {
         '4-4rin78': X => X.ri(4, 4, 78),
         '4-4rin79': X => X.ri(4, 4, 79),
         '4-4rin85': X => X.ri(4, 4, 85),
-        '4-4ring101': X => X.ri(4, 4, 101),    
+        '4-4ring101': X => X.ri(4, 4, 101),
         '5-8ring1': X => X.ri(5, 8, 1),
         '5-8ring2': X => X.ri(5, 8, 2),
         '5-8ring3': X => X.ri(5, 8, 3),
         '5-8ring4': X => X.ri(5, 8, 4),
         '5-8ring6': X => X.ri(5, 8, 6),
         '5-8ring10': X => X.ri(5, 8, 10),
-        '5-16ring1': X => X.ri(5, 16, 1),    
-        '5-16rin2': X => X.ri(5, 16, 2),    
-        '5-16rin3': X => X.ri(5, 16, 3),    
-        '5-16rin5': X => X.ri(5, 16, 5),    
+        '5-16ring1': X => X.ri(5, 16, 1),
+        '5-16rin2': X => X.ri(5, 16, 2),
+        '5-16rin3': X => X.ri(5, 16, 3),
+        '5-16rin5': X => X.ri(5, 16, 5),
         '5-16ring12': X => X.ri(5, 16, 12),
         '7-8ring1': X => X.ri(7, 8, 1),
         '7-8ring2': X => X.ri(7, 8, 2),
@@ -910,7 +910,7 @@ LDR.Generator = {
         '48\\7-48rin5': X => X.r48(7, 48, 5),
         '48\\7-48ring10': X => X.r48(7, 48, 10),
         '48\\7-48ring80': X => X.r48(7, 48, 80),
-        
+
         'stug-1x2': X => X.stug(1, 2),
         'stug-1x3': X => X.stug(1, 3),
         'stug-1x4': X => X.stug(1, 4),
