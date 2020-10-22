@@ -79,14 +79,20 @@ LDR.Generator = {
         return pt;
     },
     alias: function(to) {
-        let [pt,s] = this.pT("~Moved to " + to);
+        let [pt,s] = this.pT('~Moved to ' + to);
         s.asm(null, null, to);
         pt.replacement = to + '.dat';
         return pt;
     },
+    obsolete: function() {
+        let [pt,s] = this.pT('~Obsolete file');
+        s.asm(null, null, 'empty');
+        pt.replacement = 'empty.dat';
+        return pt;
+    },
 
     cylClosed: function(sections) {
-        let [pt,s] = this.pT('Cylinder Closed ' + this.f2s(sections*0.25));
+        let [pt,s] = this.pT('Cylinder Closed ' + this.f2s(sections*.25));
         let p0 = this.V();
         let p1 = this.V(0, 1, 0);
         let r = this.R(1, 1);
@@ -178,8 +184,76 @@ LDR.Generator = {
         }
         return pt;
     },
+    con0: function(N, D = 4) {
+        let [pt,S] = this.pT('Cone  0 x ' + this.f2s(N*1.0/D));
+
+        const P = this.V(0, 1, 0);
+        let p = this.V(1, 0, 0);
+        let angle = Math.PI/8;
+        let c = Math.cos(angle), s = Math.sin(angle);
+        let next = this.V(c, 0, s);
+        let prev = (N === 2) ? this.V(c, 0, -s) : this.V(1, 0, -.3);
+
+        if(N < D) {
+            S.addConditionalLine(24, P, p, next, prev);
+        }
+        for(let i = 2; i < N*16/D + 2; i++) {
+            prev = p;
+            p = next;
+            angle = i*Math.PI/8;
+            c = Math.cos(angle);
+            s = Math.sin(angle);
+            next = this.V(c, 0, s);
+
+            S.addTriangle(16, P, p, prev);
+            S.addConditionalLine(24, P, p, next, prev);
+        }
+        if(N*2 < D) {
+            if(D === 8) {
+                next.set(.495, 0, .9192);
+            }
+            else {
+                next.set(-.3, 0, 1);
+            }
+        }
+        return pt;
+    },
+    con: function(N, D, r, x1, z1, x2, z2) {
+        let [pt,S] = this.pT('Cone ' + this.pad2(r) + ' x ' + this.f2s(N*1.0/D));
+        const R = r+1;
+        
+        let p1 = this.V(r, 1, 0), p0 = this.V(R, 0, 0);
+        let angle = Math.PI/8;
+        let c = Math.cos(angle), s = Math.sin(angle);
+        let next0 = this.V(R*c, 0, R*s), next1 = this.V(r*c, 1, r*s);
+        let prev1 = this.V(x1, 1, z1);
+
+        if(N < D) {
+            S.addConditionalLine(24, p1, p0, next1, prev1);
+        }
+        for(let i = 2; i < N*16/D + 2; i++) {
+            let prev0 = p0;
+            prev1 = p1;
+            p0 = next0;
+            p1 = next1;
+
+            angle = i*Math.PI/8;
+            c = Math.cos(angle);
+            s = Math.sin(angle);
+
+            next1 = this.V(r*c, 1, r*s);
+            next0 = this.V(R*c, 0, R*s);
+
+            S.addQuad(16, p0, prev0, prev1, p1);
+            S.addConditionalLine(24, p1, p0, next1, prev1);
+        }
+        if(N < D) {
+            next1.set(x2, 1, z2);
+        }
+        return pt;
+    },
     cylSloped: function(N, lastNext) {
-        let [pt,S] = this.pT('Cylinder Sloped ' + this.f2s(N*0.25));
+        let [pt,S] = this.pT('Cylinder Sloped ' + this.f2s(N*.25));
 
         let p0 = this.V(1, 0, 0), p1 = this.V(1, 0, 0);
         let angle = Math.PI/8;
@@ -218,7 +292,7 @@ LDR.Generator = {
         return pt;
     },
     disc: function(sections) {
-        let [pt,S] = this.pT('Disc ' + this.f2s(sections*0.25));
+        let [pt,S] = this.pT('Disc ' + this.f2s(sections*.25));
         let zero = this.V(0, 0, 0);
         let prev = this.V(1, 0, 0);
         for(let i = 1; i <= 4*sections; i++) {
@@ -326,7 +400,7 @@ LDR.Generator = {
                     ,
                     [-2,0,-2,-2,2,-3,2,-1],[0,-1,0,-2.5], // E (Divided due to middle line)
                     ,
-                    [-1.5,2.25,-2,2,-2,1,-1.5,0.5,1.5,-0.25,2,0,2,1,1.5,1.5,0,2,0,1] //G
+                    [-1.5,2.25,-2,2,-2,1,-1.5,.5,1.5,-.25,2,0,2,1,1.5,1.5,0,2,0,1] //G
                     ,
                     [-1.5,4.75,-2,4.5,-2,3.5,-1.5,3,1.5,2.25,2,2.5,2,3.5,1.5,4,-1.5,4.75] // O
                    ], // Logo positions copied from logo.dat by Paul Easter [pneaster]
@@ -360,7 +434,94 @@ LDR.Generator = {
         }
         return pt;
     },
+    bx: function(h1, h2, name) {
+        let [pt,s] = this.pT('Box ' + name);
+        let e = [ [1,1,1, -1,1,1], // 1
+                  [-1,1,1, -1,1,-1], // 2
+                  [-1,1,-1, 1,1,-1], // 4
+                  [1,1,-1, 1,1,1], // 8
+                  [1,-1,1, -1,-1,1], // 16
+                  [-1,-1,1, -1,-1,-1], // 32
+                  [-1,-1,-1, 1,-1,-1], // 64
+                  [1,-1,-1, 1,-1,1], // 128
+                  [1,-1,1, 1,1,1], // 256
+                  [-1,-1,1, -1,1,1], // 512
+                  [1,-1,-1, 1,1,-1], // 1024
+                  [-1,-1,-1, -1,1,-1] ]; // 2048
+        for(let i = 0, j = 1; i < e.length; i++, j*=2) {
+            if(h1 & j) {
+                s.al(e[i]);
+            }
+        }
+        let q = [ [1,1,1, 1,1,-1, -1,1,-1, -1,1,1], // 1
+                  [-1,-1,-1, 1,-1,-1, 1,-1,1, -1,-1,1], // 2
+                  [-1,-1,1, 1,-1,1, 1,1,1, -1,1,1], // 4
+                  [-1,-1,-1, -1,-1,1, -1,1,1, -1,1,-1], // 8
+                  [1,-1,-1, -1,-1,-1, -1,1,-1, 1,1,-1], // 16
+                  [1,-1,1, 1,-1,-1, 1,1,-1, 1,1,1] ]; // 32
+        for(let i = 0, j = 1; i < q.length; i++, j*=2) {
+            if(h2 & j) {
+                s.aq(q[i]);
+            }
+        }
+        return pt;
+    },
+    bx2: function(h1, h2, name) {
+        let [pt,s] = this.pT('Box ' + name);
+        let e = [ [1,1,1, -1,1,1], // 1
+                  [-1,1,1, -1,1,-1], // 2
+                  [-1,1,-1, 1,1,-1], // 4
+                  [1,1,-1, 1,1,1], // 8
+                  [1,0,1, -1,0,1], // 16
+                  [-1,0,1, -1,0,-1], // 32
+                  [-1,0,-1, 1,0,-1], // 64
+                  [1,0,-1, 1,0,1], // 128
+                  [1,0,1, 1,1,1], // 256
+                  [-1,0,1, -1,1,1], // 512
+                  [1,0,-1, 1,1,-1], // 1024
+                  [-1,0,-1, -1,1,-1] ]; // 2048
+        for(let i = 0, j = 1; i < e.length; i++, j*=2) {
+            if(h1 & j) {
+                s.al(e[i]);
+            }
+        }
+        let q = [ [ -1,1,1,   1,1,1,   1,1,-1, -1,1,-1], // 1
+                  [ -1,1,1,  -1,0,1,   1,0,1,   1,1,1], // 2
+                  [ -1,1,-1, -1,0,-1, -1,0,1,  -1,1,1], // 4
+                  [  1,1,-1,  1,0,-1, -1,0,-1, -1,1,-1], // 8
+                  [  1,1,1,   1,0,1,   1,0,-1,  1,1,-1] ]; // 16
+        for(let i = 0, j = 1; i < q.length; i++, j*=2) {
+            if(h2 & j) {
+                s.aq(q[i]);
+            }
+        }
+        return pt;
+    },
     map: {
+        // All boxes:
+        'box': X => X.bx(4095, 63, '6 (six faces)'),
+        'box0': X => X.bx(4095, 0, 'with 0 Faces and All Edges'),
+        'box2-5': X => X.bx(799, 5, 'with 2 Faces without 5 Edges'),
+        'box2-7': X => X.bx(779, 5, 'with 2 Faces without 7 Edges'),
+        'box2-9': X => X.bx(265, 5, 'with 2 Faces without 9 Edges'),
+        'box2-9p': X => X.bx(21, 5, 'with 2 Faces with 3 Parallel Edges'),
+        'box2-11': X => X.bx(1, 5, 'with 2 Faces without 11 Edges'),
+        'box3-3': X => X.bx(1951, 37, 'with 3 Adjacent Faces and 3 Missing Edges'),
+        'box3-5a': X => X.bx(923, 37, 'with 3 Adjacent Faces without 5 Adjacent Edges'),
+        'box3-7a': X => X.bx(409, 37, 'with 3 Adjacent Faces without 7 Adjacent Edges'),
+        'box3-9a': X => X.bx(265, 37, 'with 3 Adjacent Faces without 9 Adjacent Edges'),
+        'box3-12': X => X.bx(0, 37, 'with 3 Adjacent Faces without Any Edges'),
+        'box3#8p': X => X.obsolete(),
+        'box3u2p': X => X.bx2(3935, 11, 'with 3 Faces without 2 Parallel Edges'),
+        'box3u4a': X => X.bx2(3855, 11, 'with 3 Faces without 4 Adjacent Edges'),
+        'box3u4p': X => X.bx2(3925, 11, 'with 3 Faces without 4 Parallel Edges'),
+        'box3u5p': X => X.bx2(2647, 11, 'with 3 Faces without 5 Edges'),
+        'box3u10p': X => X.bx2(5, 11, 'with 3 Faces without 10 Parallel Edges'),
+        'box3u12': X => X.bx2(0, 11, 'with 3 Parallel Faces without Any Edges'),
+        //'box5': X => X.bx2(2047, 63, 'with 5 Faces and All Edges'),
+        //'box5-1': X => X.bx2(0, 'with 5 Faces without 1 Edge'),
+/*        
+        // All rectangles:
         'rect': X => X.rect(31),
         'rect1': X => X.rect(17, '1 Edge'),
         'rect2a': X => X.rect(19, '2 Adjacent Edges'),
@@ -369,6 +530,7 @@ LDR.Generator = {
         'recte3': X => X.rect(22, '3 Edges', ' Empty'),
         'recte4': X => X.rect(30, '4 Edges', ' Empty'),
 
+        // All Circles:
         '1-4edge': X => X.edge(1, 4),
         '2-4edge': X => X.edge(2, 4),
         '3-4edge': X => X.edge(3, 4),
@@ -435,6 +597,61 @@ LDR.Generator = {
         '3-4disc': X => X.disc(3),
         '4-4disc': X => X.disc(4),
 
+        // TODO: All cones:
+        '1-4con0': X => X.con0(1),
+        '1-4con1': X => X.con(1, 4, 1, 1, -.4142, -.4142, 1),
+
+        '1-8con0': X => X.con0(1, 8),
+
+        '1-16con1': X => X.con(1, 16, 1, .92388, -.382683, .7071, .7071),
+
+        '2-4con0': X => X.con0(2),
+        '2-4con1': X => X.con(2, 4, 1, 1, -.4142, -1, -.4142),
+        
+        '4-4con0': X => X.con0(4),
+        '4-4con1': X => X.con(4, 4, 1),
+        '4-4con2': X => X.con(4, 4, 2),
+        '4-4con3': X => X.con(4, 4, 3),
+        '4-4con4': X => X.con(4, 4, 4),
+        '4-4con5': X => X.con(4, 4, 5),
+        '4-4con6': X => X.con(4, 4, 6),
+        '4-4con7': X => X.con(4, 4, 7),
+        '4-4con8': X => X.con(4, 4, 8),
+        '4-4con9': X => X.con(4, 4, 9),
+        '4-4con10': X => X.con(4, 4, 10),
+        '4-4con11': X => X.con(4, 4, 11),
+        '4-4con12': X => X.con(4, 4, 12),
+        '4-4con13': X => X.con(4, 4, 13),
+        '4-4con14': X => X.con(4, 4, 14),
+        '4-4con15': X => X.con(4, 4, 15),
+        '4-4con16': X => X.con(4, 4, 16),
+        '4-4con17': X => X.con(4, 4, 17),
+        '4-4con18': X => X.con(4, 4, 18),
+        '4-4con19': X => X.con(4, 4, 19),
+        '4-4con20': X => X.con(4, 4, 20),
+        '4-4con21': X => X.con(4, 4, 21),
+        '4-4con22': X => X.con(4, 4, 22),
+        '4-4con24': X => X.con(4, 4, 24),
+        '4-4con25': X => X.con(4, 4, 25),
+        '4-4con28': X => X.con(4, 4, 28),
+        '4-4con29': X => X.con(4, 4, 29),
+        '4-4con30': X => X.con(4, 4, 30),
+        '4-4con32': X => X.con(4, 4, 32),
+        '4-4con33': X => X.con(4, 4, 33),
+        '4-4con35': X => X.con(4, 4, 35),
+        '4-4con36': X => X.con(4, 4, 36),
+        '4-4con41': X => X.con(4, 4, 41),
+        '4-4con42': X => X.con(4, 4, 42),
+        '4-4con43': X => X.con(4, 4, 43),
+        '4-4con46': X => X.con(4, 4, 46),
+        '4-4con47': X => X.con(4, 4, 47),
+        '4-4con48': X => X.con(4, 4, 48),
+        '4-4con61': X => X.con(4, 4, 61),
+        '4-4con80': X => X.con(4, 4, 80),
+        '4-4con81': X => X.con(4, 4, 81),
+        '4-4con95': X => X.con(4, 4, 95),
+
+        // All rings:
         '1-4ring1': X => X.ri(1, 4, 1),
         '1-4ring2': X => X.ri(1, 4, 2),
         '1-4ring3': X => X.ri(1, 4, 3),
@@ -469,7 +686,7 @@ LDR.Generator = {
         '1-8ring2': X => X.ri(1, 8, 2),
         '1-8ring3': X => X.ri(1, 8, 3),
         '1-8ring4': X => X.ri(1, 8, 4),
-        '1-8ring5': X => X.ri(1, 8, 5, 'Ring  5 x 0.25'),
+        '1-8ring5': X => X.ri(1, 8, 5), // USE THE FOLLOWING UNTIL the LDraw fix of the part is official: 'Ring  5 x 0.25'),
         '1-8ring6': X => X.ri(1, 8, 6),
         '1-8ring7': X => X.ri(1, 8, 7),
         '1-8ring8': X => X.ri(1, 8, 8),
@@ -911,6 +1128,7 @@ LDR.Generator = {
         '48\\7-48ring10': X => X.r48(7, 48, 10),
         '48\\7-48ring80': X => X.r48(7, 48, 80),
 
+        // All stud groups:
         'stug-1x2': X => X.stug(1, 2),
         'stug-1x3': X => X.stug(1, 3),
         'stug-1x4': X => X.stug(1, 4),
@@ -995,9 +1213,10 @@ LDR.Generator = {
         'stugp01-1x6': X => X.stug(1, 6, 'p01'),
         'stugp01-1x10': X => X.stug(1, 10, 'p01'),
 
+        // Commonly used misc. part types:
         'logo': X => X.logo1(),
         'empty': X => X.empty(),
-        'triangle': X => X.triangle(),
+        'triangle': X => X.triangle(),//*/
     },
     make: function(id) {
         let sid = id.substring(0, id.length-4);

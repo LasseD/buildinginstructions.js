@@ -188,6 +188,11 @@
               this.p4 = this.p3;
               this.p3 = tmp;
           }
+          if(x.p4.lessThan(x.p3)) { // Needed for post-creation conditional line updates in some generated parts.
+              let tmp = x.p4;
+              x.p4 = x.p3;
+              x.p3 = tmp;
+          }
           
           return arrayCompareTo(this, x, ['p1', 'p2', 'p3', 'p4']);
       }
@@ -357,9 +362,9 @@
           div.innerHTML = msg;
           document.body.appendChild(div);
       }
-      
+
       let idToUrl = id => (id === 'logo.dat') ? ['../unofficial/p/'+id] :
-          ['../official/p/' + id,
+          ['../official/p/' + encodeURIComponent(id), // Ensure box3#8p.dat works
            '../official/parts/' + id,
            '../official/parts/s/' + id,
            '../unofficial/p/' + id,
