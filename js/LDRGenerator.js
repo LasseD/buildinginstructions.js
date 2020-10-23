@@ -2,31 +2,33 @@
 
 /**
    LDRGenerator defines the LDR.Generator namespace and is used for quick generation of LDraw primitives, such as simple circles, cylinders and discs.
+   See https://www.ldraw.org/library/primref/ for an overview.
+   Low-resolution primitives are not included since these are not used in parts. There are 91 low-resolution primitives as of the 2020-02 update from LDraw.
  */
 
 // Helper functions:
-THREE.LDRStep.prototype.al = function(lines) {
-    for(let i = 0; i < lines.length; i+=6) {
+THREE.LDRStep.prototype.al = function(x) {
+    for(let i = 0; i < x.length; i+=6) {
 	this.addLine(24,
-		     LDR.Generator.V(lines[i], lines[i+1], lines[i+2]),
-		     LDR.Generator.V(lines[i+3], lines[i+4], lines[i+5]));
+		     LDR.Generator.V(x[i], x[i+1], x[i+2]),
+		     LDR.Generator.V(x[i+3], x[i+4], x[i+5]));
     }
 }
-THREE.LDRStep.prototype.at = function(triangles) {
-    for(let i = 0; i < triangles.length; i+=9) {
+THREE.LDRStep.prototype.at = function(t) {
+    for(let i = 0; i < t.length; i+=9) {
 	this.addTriangle(16,
-		         LDR.Generator.V(triangles[i], triangles[i+1], triangles[i+2]),
-		         LDR.Generator.V(triangles[i+3], triangles[i+4], triangles[i+5]),
-		         LDR.Generator.V(triangles[i+6], triangles[i+7], triangles[i+8]));
+		         LDR.Generator.V(t[i], t[i+1], t[i+2]),
+		         LDR.Generator.V(t[i+3], t[i+4], t[i+5]),
+		         LDR.Generator.V(t[i+6], t[i+7], t[i+8]));
     }
 }
-THREE.LDRStep.prototype.aq = function(quads) {
-    for(let i = 0; i < quads.length; i+=12) {
+THREE.LDRStep.prototype.aq = function(q) {
+    for(let i = 0; i < q.length; i+=12) {
 	this.addQuad(16,
-		     LDR.Generator.V(quads[i], quads[i+1], quads[i+2]),
-		     LDR.Generator.V(quads[i+3], quads[i+4], quads[i+5]),
-		     LDR.Generator.V(quads[i+6], quads[i+7], quads[i+8]),
-		     LDR.Generator.V(quads[i+9], quads[i+10], quads[i+11]));
+		     LDR.Generator.V(q[i], q[i+1], q[i+2]),
+		     LDR.Generator.V(q[i+3], q[i+4], q[i+5]),
+		     LDR.Generator.V(q[i+6], q[i+7], q[i+8]),
+		     LDR.Generator.V(q[i+9], q[i+10], q[i+11]));
     }
 }
 THREE.LDRStep.prototype.asm = function(p = null, r = null, id = '', c = 16, cull = true, ccw = false) {
@@ -117,6 +119,7 @@ LDR.Generator = {
     },
     e48: function(N, D) {
         let [pt,S] = this.pT('Hi-Res Circle ' + this.f2s(N*1.0/D));
+        pt.ldraw_org = '48_Primitive';
         let prev = this.V(1, 0, 0);
         for(let i = 1; i <= 48/D*N; i++) {
             let angle = i*Math.PI/24;
@@ -322,6 +325,7 @@ LDR.Generator = {
     },
     r48: function(N, D, size) {
         let [pt,S] = this.pT('Hi-Res Ring  ' + size + ' x ' + this.f2s(1.0/D*N));
+        pt.ldraw_org = '48_Primitive';
         let SIZE = size+1;
         let prev1 = this.V(size, 0, 0);
         let prev2 = this.V(SIZE, 0, 0);
@@ -434,8 +438,8 @@ LDR.Generator = {
         }
         return pt;
     },
-    bx: function(h1, h2, name) {
-        let [pt,s] = this.pT('Box ' + name);
+    bx: function(h1, h2, F, E) {
+        let [pt,s] = this.pT('Box 6 (six faces)');
         let e = [ [1,1,1, -1,1,1], // 1
                   [-1,1,1, -1,1,-1], // 2
                   [-1,1,-1, 1,1,-1], // 4
@@ -453,6 +457,7 @@ LDR.Generator = {
                 s.al(e[i]);
             }
         }
+        let nf = 0;
         let q = [ [1,1,1, 1,1,-1, -1,1,-1, -1,1,1], // 1
                   [-1,-1,-1, 1,-1,-1, 1,-1,1, -1,-1,1], // 2
                   [-1,-1,1, 1,-1,1, 1,1,1, -1,1,1], // 4
@@ -462,12 +467,16 @@ LDR.Generator = {
         for(let i = 0, j = 1; i < q.length; i++, j*=2) {
             if(h2 & j) {
                 s.aq(q[i]);
+                nf++;
             }
+        }
+        if(h2 !== 63) {
+            pt.modelDescription = 'Box with ' + nf + F + ' Faces ' + E + ' Edges';
         }
         return pt;
     },
-    bx2: function(h1, h2, name) {
-        let [pt,s] = this.pT('Box ' + name);
+    bx2: function(h1, h2, F, E, G = 's') {
+        let [pt,s] = this.pT('Box with ');
         let e = [ [1,1,1, -1,1,1], // 1
                   [-1,1,1, -1,1,-1], // 2
                   [-1,1,-1, 1,1,-1], // 4
@@ -485,6 +494,7 @@ LDR.Generator = {
                 s.al(e[i]);
             }
         }
+        let nf = 0;
         let q = [ [ -1,1,1,   1,1,1,   1,1,-1, -1,1,-1], // 1
                   [ -1,1,1,  -1,0,1,   1,0,1,   1,1,1], // 2
                   [ -1,1,-1, -1,0,-1, -1,0,1,  -1,1,1], // 4
@@ -493,12 +503,52 @@ LDR.Generator = {
         for(let i = 0, j = 1; i < q.length; i++, j*=2) {
             if(h2 & j) {
                 s.aq(q[i]);
+                nf++;
+            }
+        }
+        pt.modelDescription += nf + F + ' Faces ' + E + ' Edge' + G;
+        return pt;
+    },
+    tri: function(h1, h2, h3, n) {
+        let [pt,s] = this.pT('Triangular Prism with ' + n);
+        let e = [
+            [1,1,0,0,1,1], // 1
+            [0,1,1,0,1,0], // 2
+            [0,1,0,1,1,0], // 4
+            [1,0,0,0,0,1], // 8
+            [0,0,1,0,0,0], // 16
+            [0,0,0,1,0,0], // 32
+            [1,0,0,1,1,0], // 64
+            [0,0,1,0,1,1], // 128
+            [0,0,0,0,1,0] // 256
+        ];
+        for(let i = 0, j = 1; i < e.length; i++, j*=2) {
+            if(h1 & j) {
+                s.al(e[i]);
+            }
+        }
+        let t = [
+            [0,1,0,0,1,1,1,1,0], // 1
+            [1,0,0,0,0,1,0,0,0] // 2
+        ];
+        for(let i = 0, j = 1; i < t.length; i++, j*=2) {
+            if(h2 & j) {
+                s.at(t[i]);
+            }
+        }
+        let q = [
+            [1,1,0,0,1,1,0,0,1,1,0,0], // 1
+            [0,1,1,0,1,0,0,0,0,0,0,1], // 2
+            [0,1,0,1,1,0,1,0,0,0,0,0], // 4      
+        ];
+        for(let i = 0, j = 1; i < q.length; i++, j*=2) {
+            if(h3 & j) {
+                s.aq(q[i]);
             }
         }
         return pt;
     },
-    map: { // See https://www.ldraw.org/library/primref/ for an overview
-        
+    map: {
         // All rectangles:
         'rect': X => X.rect(31),
         'rect1': X => X.rect(17, '1 Edge'),
@@ -510,45 +560,55 @@ LDR.Generator = {
 
         // All boxes:
         'box': X => X.bx(4095, 63, '6 (six faces)'),
-        'box0': X => X.bx(4095, 0, 'with 0 Faces and All Edges'),
-        'box2-5': X => X.bx(799, 5, 'with 2 Faces without 5 Edges'),
-        'box2-7': X => X.bx(779, 5, 'with 2 Faces without 7 Edges'),
-        'box2-9': X => X.bx(265, 5, 'with 2 Faces without 9 Edges'),
-        'box2-9p': X => X.bx(21, 5, 'with 2 Faces with 3 Parallel Edges'),
-        'box2-11': X => X.bx(1, 5, 'with 2 Faces without 11 Edges'),
-        'box3-3': X => X.bx(1951, 37, 'with 3 Adjacent Faces and 3 Missing Edges'),
-        'box3-5a': X => X.bx(923, 37, 'with 3 Adjacent Faces without 5 Adjacent Edges'),
-        'box3-7a': X => X.bx(409, 37, 'with 3 Adjacent Faces without 7 Adjacent Edges'),
-        'box3-9a': X => X.bx(265, 37, 'with 3 Adjacent Faces without 9 Adjacent Edges'),
-        'box3-12': X => X.bx(0, 37, 'with 3 Adjacent Faces without Any Edges'),
+        'box0': X => X.bx(4095, 0, '', 'and All'),
+        'box2-5': X => X.bx(799, 5, '', 'without 5'),
+        'box2-7': X => X.bx(779, 5, '', 'without 7'),
+        'box2-9': X => X.bx(265, 5, '', 'without 9'),
+        'box2-9p': X => X.bx(21, 5, '', 'with 3 Parallel'),
+        'box2-11': X => X.bx(1, 5, '', 'without 11'),
+        'box3-3': X => X.bx(1951, 37, ' Adjacent', 'and 3 Missing'),
+        'box3-5a': X => X.bx(923, 37, ' Adjacent', 'without 5 Adjacent'),
+        'box3-7a': X => X.bx(409, 37, ' Adjacent', 'without 7 Adjacent'),
+        'box3-9a': X => X.bx(265, 37, ' Adjacent', 'without 9 Adjacent'),
+        'box3-12': X => X.bx(0, 37, ' Adjacent', 'without Any'),
         'box3#8p': X => X.obsolete(),
-        'box3u2p': X => X.bx2(3935, 11, 'with 3 Faces without 2 Parallel Edges'),
-        'box3u4a': X => X.bx2(3855, 11, 'with 3 Faces without 4 Adjacent Edges'),
-        'box3u4p': X => X.bx2(3925, 11, 'with 3 Faces without 4 Parallel Edges'),
-        'box3u5p': X => X.bx2(2647, 11, 'with 3 Faces without 5 Edges'),
-        'box3u6': X => X.bx2(1365, 11, 'with 3 Faces without 6 Edges'),
-        'box3u7a': X => X.bx2(2567, 11, 'with 3 Faces without 7 Adjacent Edges'),
-        'box3u8p': X => X.bx2(85, 11, 'with 3 Faces and 4 Parallel Edges'),
-        'box3u10p': X => X.bx2(5, 11, 'with 3 Faces without 10 Parallel Edges'),
-        'box3u12': X => X.bx2(0, 11, 'with 3 Parallel Faces without Any Edges'),
-        'box4': X => X.bx2(4095, 30, 'with 4 Faces (2 Parallel Pairs) and All Edges'),
-        'box4t': X => X.bx2(4095, 23, 'with 4 Adjacent Faces and All Edges'),
-        'box4-1': X => X.bx2(4031, 23, 'with 4 Faces without 1 Edge'),
-        'box4-2p': X => X.bx2(4015, 23, 'with 4 Faces without 2 Parallel Edges'),
-        'box4-3p': X => X.bx2(4011, 23, 'with 4 Faces without 3 Parallel Edges'),
-        'box4-4a': X => X.bx2(955, 23, 'with 4 Faces without 4 Adjacent Edges'),
-        'box4o4a': X => X.bx2(4080, 30, 'with 4 Faces (2 Parallel Pairs) without Bottom Edges'),
-        'box4-5a': X => X.bx2(3851, 23, 'with 4 Faces without 5 Edges'),
-        'box4-7a': X => X.bx2(779, 23, 'with 4 Faces without 7 Adjacent Edges'),
-        'box4o8a': X => X.bx2(3840, 30, 'with 4 Faces (2 Parallel Pairs) without Top and Bottom Edges'),
-        'box4-12': X => X.bx2(0, 23, 'with 4 Faces without Any Edges'),
-        'box5': X => X.bx2(4095, 31, 'with 5 Faces and All Edges'),
-        'box5-1': X => X.bx2(4031, 31, 'with 5 Faces without 1 Edge'),
-        'box5-2p': X => X.bx2(4015, 31, 'with 5 Faces without 2 Parallel Edges'),
-        'box5-4a': X => X.bx2(3855, 31, 'with 5 Faces without 4 Adjacent Edges'),
-        'box5-12': X => X.bx2(0, 31, 'with 5 Faces without Any Edges'),
+        'box3u2p': X => X.bx2(3935, 11, '', 'without 2 Parallel'),
+        'box3u4a': X => X.bx2(3855, 11, '', 'without 4 Adjacent'),
+        'box3u4p': X => X.bx2(3925, 11, '', 'without 4 Parallel'),
+        'box3u5p': X => X.bx2(2647, 11, '', 'without 5'),
+        'box3u6': X => X.bx2(1365, 11, '', 'without 6'),
+        'box3u7a': X => X.bx2(2567, 11, '', 'without 7 Adjacent'),
+        'box3u8p': X => X.bx2(85, 11, '', 'and 4 Parallel'),
+        'box3u10p': X => X.bx2(5, 11, '', 'without 10 Parallel'),
+        'box3u12': X => X.bx2(0, 11, ' Parallel', 'without Any'),
+        'box4': X => X.bx2(4095, 30, '', '(2 Parallel Pairs) and All'),
+        'box4t': X => X.bx2(4095, 23, ' Adjacent', 'and All'),
+        'box4-1': X => X.bx2(4031, 23, '', 'without 1', ''),
+        'box4-2p': X => X.bx2(4015, 23, '', 'without 2 Parallel'),
+        'box4-3p': X => X.bx2(4011, 23, '', 'without 3 Parallel'),
+        'box4-4a': X => X.bx2(955, 23, '', 'without 4 Adjacent'),
+        'box4o4a': X => X.bx2(4080, 30, '', '(2 Parallel Pairs) without Bottom'),
+        'box4-5a': X => X.bx2(3851, 23, '', 'without 5'),
+        'box4-7a': X => X.bx2(779, 23, '', 'without 7 Adjacent'),
+        'box4o8a': X => X.bx2(3840, 30, '', '(2 Parallel Pairs) without Top and Bottom'),
+        'box4-12': X => X.bx2(0, 23, '', 'without Any'),
+        'box5': X => X.bx2(4095, 31, '', 'and All'),
+        'box5-1': X => X.bx2(4031, 31, '', 'without 1', ''),
+        'box5-2p': X => X.bx2(4015, 31, '', 'without 2 Parallel'),
+        'box5-4a': X => X.bx2(3855, 31, '', 'without 4 Adjacent'),
+        'box5-12': X => X.bx2(0, 31, '', 'without Any'),
 
-        // All Circles:
+        // All triangular prisms;
+        'tri3': X => X.tri(511, 0, 7, '2 Square Faces and 1 Rectangular Face'),
+        'tri3-1': X => X.tri(503, 0, 7, '2 Square Faces and 1 Rectangular Face without 1 Edge'),
+        'tri3-3': X => X.tri(455, 0, 7, '2 Square Faces and 1 Rectangular Face without 3 Edges'),
+        'tri3a1': X => X.tri(503, 1, 6, '3 Adjacent Faces without 1 Edge'),
+        'tri3a4': X => X.tri(310, 1, 6, '3 Adjacent Faces without 4 Edges'),
+        'tri3u1': X => X.tri(255, 3, 1, '3 Faces without 1 Edge'),
+        'tri3u3': X => X.tri(237, 3, 1, '3 Faces without 3 Edges'),
+        'tri4': X => X.tri(511, 3, 6, '2 Square Faces and 2 Triangular Faces'),
+        
+        // All Circular line segments:
         '1-4edge': X => X.edge(1, 4),
         '2-4edge': X => X.edge(2, 4),
         '3-4edge': X => X.edge(3, 4),
