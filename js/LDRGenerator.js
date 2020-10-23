@@ -106,7 +106,7 @@ LDR.Generator = {
         return pt;
     },
     edge: function(N, D) {
-        let [pt,S] = this.pT('Circle ' + this.f2s(N*1.0/D));
+        let [pt,S] = this.pT('Circle ' + this.f2s(N/D));
         let prev = this.V(1, 0, 0);
         for(let i = 1; i <= 16/D*N; i++) {
             let angle = i*Math.PI/8;
@@ -118,7 +118,7 @@ LDR.Generator = {
         return pt;
     },
     e48: function(N, D) {
-        let [pt,S] = this.pT('Hi-Res Circle ' + this.f2s(N*1.0/D));
+        let [pt,S] = this.pT('Hi-Res Circle ' + this.f2s(N/D));
         pt.ldraw_org = '48_Primitive';
         let prev = this.V(1, 0, 0);
         for(let i = 1; i <= 48/D*N; i++) {
@@ -131,7 +131,7 @@ LDR.Generator = {
         return pt;
     },
     cyl: function(cond, N, D, flip = false) {
-        let desc = 'Cylinder ' + this.f2s(N*1.0/D);
+        let desc = 'Cylinder ' + this.f2s(N/D);
         if(!cond) {
             desc += ' without Conditional Lines';
         }
@@ -188,7 +188,7 @@ LDR.Generator = {
         return pt;
     },
     con0: function(N, D = 4) {
-        let [pt,S] = this.pT('Cone  0 x ' + this.f2s(N*1.0/D));
+        let [pt,S] = this.pT('Cone  0 x ' + this.f2s(N/D));
 
         const P = this.V(0, 1, 0);
         let p = this.V(1, 0, 0);
@@ -222,7 +222,7 @@ LDR.Generator = {
         return pt;
     },
     con: function(N, D, r, x1, z1, x2, z2) {
-        let [pt,S] = this.pT('Cone ' + this.pad2(r) + ' x ' + this.f2s(N*1.0/D));
+        let [pt,S] = this.pT('Cone ' + this.pad2(r) + ' x ' + this.f2s(N/D));
         const R = r+1;
         
         let p1 = this.V(r, 1, 0), p0 = this.V(R, 0, 0);
@@ -294,12 +294,26 @@ LDR.Generator = {
 
         return pt;
     },
-    disc: function(sections) {
-        let [pt,S] = this.pT('Disc ' + this.f2s(sections*.25));
+    disc: function(N, D) {
+        let [pt,S] = this.pT('Disc ' + this.f2s(N/D));
         let zero = this.V(0, 0, 0);
         let prev = this.V(1, 0, 0);
-        for(let i = 1; i <= 4*sections; i++) {
+        for(let i = 1; i <= N*16/D; i++) {
             let angle = i*Math.PI/8;
+            let c = Math.cos(angle), s = Math.sin(angle);
+            let p = this.V(c, 0, s);
+            S.addTriangle(16, zero, prev, p);
+            prev = p;
+        }
+        return pt;
+    },
+    d48: function(N, D) {
+        let [pt,S] = this.pT('Hi-Res Disc ' + this.f2s(N/D));
+        pt.ldraw_org = '48_Primitive';
+        let zero = this.V(0, 0, 0);
+        let prev = this.V(1, 0, 0);
+        for(let i = 1; i <= N*48/D; i++) {
+            let angle = i*Math.PI/24;
             let c = Math.cos(angle), s = Math.sin(angle);
             let p = this.V(c, 0, s);
             S.addTriangle(16, zero, prev, p);
@@ -670,11 +684,30 @@ LDR.Generator = {
         '4-4cyls': X => X.cylSloped(4),
 
         // TODO: All discs
-        '1-4disc': X => X.disc(1),
-        '2-4disc': X => X.disc(2),
-        '3-4disc': X => X.disc(3),
-        '4-4disc': X => X.disc(4),
+        '1-4disc': X => X.disc(1, 4),
+        '1-8disc': X => X.disc(1, 8),
+        '1-16disc': X => X.disc(1, 16),
+        '2-4disc': X => X.disc(2, 4),
+        '3-4disc': X => X.disc(3, 4),
+        '3-8disc': X => X.disc(3, 8),
+        '3-16disc': X => X.disc(3, 16),
+        '4-4disc': X => X.disc(4, 4),
+        '5-8disc': X => X.disc(5, 8),
+        '7-8disc': X => X.disc(7, 8),
+        '5-16disc': X => X.disc(5, 16),
+        '7-16disc': X => X.disc(7, 16),
+        '48\\1-4disc': X => X.d48(1, 4),
+        '48\\1-6disc': X => X.d48(1, 6),
+        '48\\1-8disc': X => X.d48(1, 8),
+        '48\\1-12disc': X => X.d48(1, 12),
+        '48\\1-24disc': X => X.d48(1, 24),
+        '48\\2-4disc': X => X.d48(2, 4),
+        '48\\3-16disc': X => X.d48(3, 16),
+        '48\\4-4disc': X => X.d48(4, 4),
+        '48\\5-48disc': X => X.d48(5, 48),
+        '48\\7-48disc': X => X.d48(7, 48),
 
+        
         // TODO: All cones:
         '1-4con0': X => X.con0(1),
         '1-4con1': X => X.con(1, 4, 1, 1, -.4142, -.4142, 1),
