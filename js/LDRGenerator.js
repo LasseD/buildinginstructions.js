@@ -497,7 +497,17 @@ LDR.Generator = {
         }
         return pt;
     },
-    map: {
+    map: { // See https://www.ldraw.org/library/primref/ for an overview
+        
+        // All rectangles:
+        'rect': X => X.rect(31),
+        'rect1': X => X.rect(17, '1 Edge'),
+        'rect2a': X => X.rect(19, '2 Adjacent Edges'),
+        'rect2p': X => X.rect(11, '2 Parallel Edges'),
+        'rect3': X => X.rect(23, '3 Edges'),
+        'recte3': X => X.rect(22, '3 Edges', ' Empty'),
+        'recte4': X => X.rect(30, '4 Edges', ' Empty'),
+
         // All boxes:
         'box': X => X.bx(4095, 63, '6 (six faces)'),
         'box0': X => X.bx(4095, 0, 'with 0 Faces and All Edges'),
@@ -516,19 +526,27 @@ LDR.Generator = {
         'box3u4a': X => X.bx2(3855, 11, 'with 3 Faces without 4 Adjacent Edges'),
         'box3u4p': X => X.bx2(3925, 11, 'with 3 Faces without 4 Parallel Edges'),
         'box3u5p': X => X.bx2(2647, 11, 'with 3 Faces without 5 Edges'),
+        'box3u6': X => X.bx2(1365, 11, 'with 3 Faces without 6 Edges'),
+        'box3u7a': X => X.bx2(2567, 11, 'with 3 Faces without 7 Adjacent Edges'),
+        'box3u8p': X => X.bx2(85, 11, 'with 3 Faces and 4 Parallel Edges'),
         'box3u10p': X => X.bx2(5, 11, 'with 3 Faces without 10 Parallel Edges'),
         'box3u12': X => X.bx2(0, 11, 'with 3 Parallel Faces without Any Edges'),
-        //'box5': X => X.bx2(2047, 63, 'with 5 Faces and All Edges'),
-        //'box5-1': X => X.bx2(0, 'with 5 Faces without 1 Edge'),
-/*        
-        // All rectangles:
-        'rect': X => X.rect(31),
-        'rect1': X => X.rect(17, '1 Edge'),
-        'rect2a': X => X.rect(19, '2 Adjacent Edges'),
-        'rect2p': X => X.rect(11, '2 Parallel Edges'),
-        'rect3': X => X.rect(23, '3 Edges'),
-        'recte3': X => X.rect(22, '3 Edges', ' Empty'),
-        'recte4': X => X.rect(30, '4 Edges', ' Empty'),
+        'box4': X => X.bx2(4095, 30, 'with 4 Faces (2 Parallel Pairs) and All Edges'),
+        'box4t': X => X.bx2(4095, 23, 'with 4 Adjacent Faces and All Edges'),
+        'box4-1': X => X.bx2(4031, 23, 'with 4 Faces without 1 Edge'),
+        'box4-2p': X => X.bx2(4015, 23, 'with 4 Faces without 2 Parallel Edges'),
+        'box4-3p': X => X.bx2(4011, 23, 'with 4 Faces without 3 Parallel Edges'),
+        'box4-4a': X => X.bx2(955, 23, 'with 4 Faces without 4 Adjacent Edges'),
+        'box4o4a': X => X.bx2(4080, 30, 'with 4 Faces (2 Parallel Pairs) without Bottom Edges'),
+        'box4-5a': X => X.bx2(3851, 23, 'with 4 Faces without 5 Edges'),
+        'box4-7a': X => X.bx2(779, 23, 'with 4 Faces without 7 Adjacent Edges'),
+        'box4o8a': X => X.bx2(3840, 30, 'with 4 Faces (2 Parallel Pairs) without Top and Bottom Edges'),
+        'box4-12': X => X.bx2(0, 23, 'with 4 Faces without Any Edges'),
+        'box5': X => X.bx2(4095, 31, 'with 5 Faces and All Edges'),
+        'box5-1': X => X.bx2(4031, 31, 'with 5 Faces without 1 Edge'),
+        'box5-2p': X => X.bx2(4015, 31, 'with 5 Faces without 2 Parallel Edges'),
+        'box5-4a': X => X.bx2(3855, 31, 'with 5 Faces without 4 Adjacent Edges'),
+        'box5-12': X => X.bx2(0, 31, 'with 5 Faces without Any Edges'),
 
         // All Circles:
         '1-4edge': X => X.edge(1, 4),

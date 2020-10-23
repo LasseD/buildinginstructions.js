@@ -16,6 +16,12 @@
       }
     </style>
     <script>
+      /*
+        As of LDraw Parts Update 2020-02 there are:
+        - 1125 Normal primitives
+        -   91 Lo-res primitives
+        -  589 Hi-res primitives
+       */
       function cmp(a, b, name) {
           if(a[name] === b[name]) {
               return true;
@@ -364,7 +370,7 @@
       }
 
       let idToUrl = id => (id === 'logo.dat') ? ['../unofficial/p/'+id] :
-          ['../official/p/' + encodeURIComponent(id), // Ensure box3#8p.dat works
+          ['../official/p/' + id.replace('#', '%23'), // Ensure box3#8p.dat works
            '../official/parts/' + id,
            '../official/parts/s/' + id,
            '../unofficial/p/' + id,
