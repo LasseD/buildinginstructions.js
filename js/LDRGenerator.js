@@ -86,8 +86,8 @@ LDR.Generator = {
         pt.replacement = to + '.dat';
         return pt;
     },
-    obsolete: function() {
-        let [pt,s] = this.pT('~Obsolete file');
+    eAlias: function(n = '~Obsolete file') {
+        let [pt,s] = this.pT(n);
         s.asm(null, null, 'empty');
         pt.replacement = 'empty.dat';
         return pt;
@@ -317,6 +317,32 @@ LDR.Generator = {
             let c = Math.cos(angle), s = Math.sin(angle);
             let p = this.V(c, 0, s);
             S.addTriangle(16, zero, prev, p);
+            prev = p;
+        }
+        return pt;
+    },
+    nd: function(N, D) {
+        let [pt,S] = this.pT('Disc Negative ' + this.f2s(N/D));
+        let X = [this.V(1, 0, 1), this.V(-1, 0, 1), this.V(-1, 0, -1), this.V(1, 0, -1)];
+        let prev = this.V(1, 0, 0);
+        for(let i = 1; i <= N*16/D; i++) {
+            let angle = i*Math.PI/8;
+            let c = Math.cos(angle), s = Math.sin(angle);
+            let p = this.V(c, 0, s);
+            S.addTriangle(16, X[parseInt((i-1)/4)], p, prev);
+            prev = p;
+        }
+        return pt;
+    },
+    n48: function(N, D) {
+        let [pt,S] = this.pT('Hi-Res Disc Negative ' + this.f2s(N/D));
+        let X = [this.V(1, 0, 1), this.V(-1, 0, 1), this.V(-1, 0, -1), this.V(1, 0, -1)];
+        let prev = this.V(1, 0, 0);
+        for(let i = 1; i <= N*48/D; i++) {
+            let angle = i*Math.PI/24;
+            let c = Math.cos(angle), s = Math.sin(angle);
+            let p = this.V(c, 0, s);
+            S.addTriangle(16, X[parseInt((i-1)/16)], p, prev);
             prev = p;
         }
         return pt;
@@ -585,7 +611,7 @@ LDR.Generator = {
         'box3-7a': X => X.bx(409, 37, ' Adjacent', 'without 7 Adjacent'),
         'box3-9a': X => X.bx(265, 37, ' Adjacent', 'without 9 Adjacent'),
         'box3-12': X => X.bx(0, 37, ' Adjacent', 'without Any'),
-        'box3#8p': X => X.obsolete(),
+        'box3#8p': X => X.eAlias(),
         'box3u2p': X => X.bx2(3935, 11, '', 'without 2 Parallel'),
         'box3u4a': X => X.bx2(3855, 11, '', 'without 4 Adjacent'),
         'box3u4p': X => X.bx2(3925, 11, '', 'without 4 Parallel'),
@@ -683,7 +709,7 @@ LDR.Generator = {
         '2-4cyls': X => X.cylSloped(2, X.V(-1, 0, -1)),
         '4-4cyls': X => X.cylSloped(4),
 
-        // TODO: All discs
+        // All discs
         '1-4disc': X => X.disc(1, 4),
         '1-8disc': X => X.disc(1, 8),
         '1-16disc': X => X.disc(1, 16),
@@ -707,7 +733,35 @@ LDR.Generator = {
         '48\\5-48disc': X => X.d48(5, 48),
         '48\\7-48disc': X => X.d48(7, 48),
 
-        
+        // All Inverse of circular disc sectors:
+        '1-4ndis': X => X.nd(1, 4),
+        '1-8ndis': X => X.nd(1, 8),
+        '1-16ndis': X => X.nd(1, 16),
+        '2-4ndis': X => X.nd(2, 4),
+        '3-4ndis': X => X.nd(3, 4),
+        '3-8ndis': X => X.nd(3, 8),
+        '3-16ndis': X => X.nd(3, 16),
+        '4-4ndis': X => X.nd(4, 4),
+        '5-16ndis': X => X.nd(5, 16),
+        '7-8ndis': X => X.nd(7, 8),
+        '7-16ndis': X => X.nd(7, 16),
+        '48\\1-3ndis': X => X.n48(1, 3),
+        '48\\1-4ndis': X => X.n48(1, 4),
+        '48\\1-6ndis': X => X.n48(1, 6),
+        '48\\1-8ndis': X => X.n48(1, 8),
+        '48\\1-12ndis': X => X.n48(1, 12),
+        '48\\1-16ndis': X => X.n48(1, 16),
+        '48\\1-24ndis': X => X.n48(1, 24),
+        '48\\2-4ndis': X => X.n48(2, 4),
+        '48\\3-16ndis': X => X.n48(3, 16),
+        '48\\4-4ndis': X => X.n48(4, 4),
+        '48\\5-24ndis': X => X.n48(5, 24),
+        '48\\5-48ndis': X => X.n48(5, 48),
+        '48\\7-48ndis': X => X.n48(7, 48),
+
+        // All Circular disc segment:
+        '1-16chrd': X => X.eAlias('Chord 0.0625'),
+
         // TODO: All cones:
         '1-4con0': X => X.con0(1),
         '1-4con1': X => X.con(1, 4, 1, 1, -.4142, -.4142, 1),
@@ -981,7 +1035,6 @@ LDR.Generator = {
         'ring4': X => X.alias('4-4ring4'),
         'ring7': X => X.alias('4-4ring7'),
         'ring10': X => X.alias('4-4rin10'),
-
         '48\\1-12rin1': X => X.r48(1, 12, 1),
         '48\\1-12rin2': X => X.r48(1, 12, 2),
         '48\\1-12rin5': X => X.r48(1, 12, 5),
