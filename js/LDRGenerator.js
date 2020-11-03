@@ -92,98 +92,86 @@ LDR.Generator = {
         pt.replacement = 'empty.dat';
         return pt;
     },
+    cs: (i, div=8) => [Math.cos(i*Math.PI/div),  Math.sin(i*Math.PI/div)],
 
-    cylClosed: function(sections) {
-        let [pt,s] = this.pT('Cylinder Closed ' + this.f2s(sections*.25));
+
+    cylClosed: function(N) {
+        let [pt,s] = this.pT('Cylinder Closed ' + this.f2s(N*.25));
         let p0 = this.V();
         let p1 = this.V(0, 1, 0);
         let r = this.R(1, 1);
 
-        s.asm(p0, r, sections+'-4edge');
-        s.asm(p1, r, sections+'-4edge');
-        s.asm(p0, r, sections+'-4disc');
-        s.asm(p0, r, sections+'-4cyli');
+        s.asm(p0, r, N+'-4edge');
+        s.asm(p1, r, N+'-4edge');
+        s.asm(p0, r, N+'-4disc');
+        s.asm(p0, r, N+'-4cyli');
         return pt;
     },
-    edge: function(N, D) {
-        let [pt,S] = this.pT('Circle ' + this.f2s(N/D));
+    ed: function(N, D, M = 1) {
+        let [pt,S] = this.pT((M > 1 ? 'Hi-Res ' : '') + 'Circle ' + this.f2s(N/D));
         let prev = this.V(1, 0, 0);
-        for(let i = 1; i <= 16/D*N; i++) {
-            let angle = i*Math.PI/8;
-            let c = Math.cos(angle), s = Math.sin(angle);
+        for(let i = 1; i <= M*16/D*N; i++) {
+            let [c,s] = this.cs(i, 8*M);
             let p = this.V(c, 0, s);
             S.addLine(24, prev, p);
             prev = p;
         }
         return pt;
     },
-    e48: function(N, D) {
-        let [pt,S] = this.pT('Hi-Res Circle ' + this.f2s(N/D));
-        pt.ldraw_org = '48_Primitive';
-        let prev = this.V(1, 0, 0);
-        for(let i = 1; i <= 48/D*N; i++) {
-            let angle = i*Math.PI/24;
-            let c = Math.cos(angle), s = Math.sin(angle);
-            let p = this.V(c, 0, s);
-            S.addLine(24, prev, p);
-            prev = p;
-        }
-        return pt;
-    },
-    cyl: function(cond, N, D, flip = false) {
-        let desc = 'Cylinder ' + this.f2s(N/D);
-        if(!cond) {
-            desc += ' without Conditional Lines';
-        }
-        let [pt,S] = this.pT(desc);
+    e48: function(N, D) {let p = this.ed(N, D, 3); p.ldraw_org = '48_Primitive'; return p;},
+    cy: function(N, D, y = 1, C = 0.4141, M = 1) { // y is for control points
+        let [pt,S] = this.pT('Cylinder ' + this.f2s(N/D));
 
         let p0 = this.V(1, 0, 0), p1 = this.V(1, 1, 0);
-        let angle = Math.PI/8;
-        let c = Math.cos(angle), s = Math.sin(angle);
+        let [c,s] = this.cs(1);
         let next0 = this.V(c, 0, s);
         let next1 = this.V(c, 1, s);
 
-        if(cond && N < D) { // Add conditional line in beginning:
-            if(flip) {
-                S.addConditionalLine(24, p0, p1, next1, this.V(1, 1, -.4142)); // I have no idea why 2-4cyli.dat is this irregular.
+        if(N < D) { // Add conditional line in beginning:
+            if(y) {
+                S.addConditionalLine(24, p0, p1, next1, this.V(1, 1, -C)); // First tangest line at y=1 of length 0.4142
             }
             else {
-                S.addConditionalLine(24, p0, p1, next0, this.V(1, 0, -1));
+                S.addConditionalLine(24, p0, p1, next0, this.V(1, 0, -1)); // First tangent line at y=0 of length 1
             }
         }
-        let prev0;
-        for(let i = 2; i < N*D + 2; i++) {
+        let prev0, prev1;
+        for(let i = 2; i < M*N*16/D + 2; i++) {
             prev0 = p0;
-            let prev1 = p1;
+            prev1 = p1;
             p0 = next0;
             p1 = next1;
-            angle = i*Math.PI/8;
-            c = Math.cos(angle);
-            s = Math.sin(angle);
+            [c,s] = this.cs(i, 8*M);
             next0 = this.V(c, 0, s);
             next1 = this.V(c, 1, s);
 
             S.addQuad(16, prev1, p1, p0, prev0);
 
-            if(cond) {
-                if(flip) {
-                    S.addConditionalLine(24, p0, p1, next1, prev1);
+            if(y) {
+                if(N < D && i === M*N*16/D + 1) { // Last conditional line aligns with tangent. Thanks Magnus! https://forums.ldraw.org/thread-24262-post-39360.html
+                    let tangent = this.V(); tangent.subVectors(next1, prev1); tangent.setLength(C);
+                    next1.addVectors(p1, tangent);
                 }
-                else {
-                    S.addConditionalLine(24, p0, p1, next0, prev0);
-                }
-            }
-        }
-        if(cond && N < D) { // Fix last conditional line to align with orthogonal wall:
-            let last = S.conditionalLines[S.conditionalLines.length-1];
-            if(flip) { // Irregular 2-4cyli.dat
-                last.p3 = this.V(c, 1, -s);
-                last.p4 = this.V(-1, 1, -.4141);
+                S.addConditionalLine(24, p0, p1, next1, prev1);
             }
             else {
-                last.p3 = this.V(-c, 0, s);
-                last.p4 = this.V(-1, 0, 1);
+                if(N < D && i === M*N*16/D + 1) { // Inconsistent cases:
+                    next0 = this.V(-c, 0, s);
+                    prev0 = this.V(-1, 0, 1);
+                }
+                S.addConditionalLine(24, p0, p1, next0, prev0);
             }
+        }
+        return pt;
+    },
+    c48: function(N, D) {let p = this.cy(N, D, 1, 0.4141, 3); p.ldraw_org = '48_Primitive'; return p;},
+    cy2: function(N, D) {
+        let [pt,S] = this.pT('Cylinder ' + this.f2s(N/D) + ' without Conditional Lines');
+
+        for(let i = 0; i < N*16/D; i++) {
+            let [c1,s1] = this.cs(i);
+            let [c2,s2] = this.cs(i+1);
+            S.aq([c2, 1, s2, c2, 0, s2, c1, 0, s1, c1, 1, s1]);
         }
         return pt;
     },
@@ -192,8 +180,7 @@ LDR.Generator = {
 
         const P = this.V(0, 1, 0);
         let p = this.V(1, 0, 0);
-        let angle = Math.PI/8;
-        let c = Math.cos(angle), s = Math.sin(angle);
+        let [c,s] = this.cs(1);
         let next = this.V(c, 0, s);
         let prev = (N === 2) ? this.V(c, 0, -s) : this.V(1, 0, -.3);
 
@@ -203,9 +190,7 @@ LDR.Generator = {
         for(let i = 2; i < N*16/D + 2; i++) {
             prev = p;
             p = next;
-            angle = i*Math.PI/8;
-            c = Math.cos(angle);
-            s = Math.sin(angle);
+            [c,s] = this.cs(i);
             next = this.V(c, 0, s);
 
             S.addTriangle(16, P, p, prev);
@@ -226,8 +211,7 @@ LDR.Generator = {
         const R = r+1;
         
         let p1 = this.V(r, 1, 0), p0 = this.V(R, 0, 0);
-        let angle = Math.PI/8;
-        let c = Math.cos(angle), s = Math.sin(angle);
+        let [c,s] = this.cs(1);
         let next0 = this.V(R*c, 0, R*s), next1 = this.V(r*c, 1, r*s);
         let prev1 = this.V(x1, 1, z1);
 
@@ -239,11 +223,7 @@ LDR.Generator = {
             prev1 = p1;
             p0 = next0;
             p1 = next1;
-
-            angle = i*Math.PI/8;
-            c = Math.cos(angle);
-            s = Math.sin(angle);
-
+            [c,s] = this.cs(i);
             next1 = this.V(r*c, 1, r*s);
             next0 = this.V(R*c, 0, R*s);
 
@@ -259,8 +239,7 @@ LDR.Generator = {
         let [pt,S] = this.pT('Cylinder Sloped ' + this.f2s(N*.25));
 
         let p0 = this.V(1, 0, 0), p1 = this.V(1, 0, 0);
-        let angle = Math.PI/8;
-        let c = Math.cos(angle), s = Math.sin(angle);
+        let [c,s] = this.cs(1);
         let next0 = this.V(c, 0, s);
         let next1 = this.V(c, 1-c, s);
 
@@ -268,9 +247,7 @@ LDR.Generator = {
             let prev0 = p0, prev1 = p1;
             p0 = next0;
             p1 = next1;
-            angle = i*Math.PI/8;
-            c = Math.cos(angle);
-            s = Math.sin(angle);
+            [c,s] = this.cs(i);
             next0 = this.V(c, 0, s);
             next1 = this.V(c, 1-c, s);
 
@@ -294,67 +271,53 @@ LDR.Generator = {
 
         return pt;
     },
-    disc: function(N, D) {
-        let [pt,S] = this.pT('Disc ' + this.f2s(N/D));
+    disc: function(N, D, M = 1) {
+        let [pt,S] = this.pT((M > 1 ? 'Hi-Res ' : '') + 'Disc ' + this.f2s(N/D));
         let zero = this.V(0, 0, 0);
         let prev = this.V(1, 0, 0);
-        for(let i = 1; i <= N*16/D; i++) {
-            let angle = i*Math.PI/8;
-            let c = Math.cos(angle), s = Math.sin(angle);
+        for(let i = 1; i <= M*N*16/D; i++) {
+            let [c,s] = this.cs(i, 8*M);
             let p = this.V(c, 0, s);
             S.addTriangle(16, zero, prev, p);
             prev = p;
         }
         return pt;
     },
-    d48: function(N, D) {
-        let [pt,S] = this.pT('Hi-Res Disc ' + this.f2s(N/D));
-        pt.ldraw_org = '48_Primitive';
-        let zero = this.V(0, 0, 0);
+    d48: function(N, D) {let p = this.disc(N, D, 3); p.ldraw_org = '48_Primitive'; return p;},
+    nd: function(N, D, M = 1) {
+        let [pt,S] = this.pT((M > 1 ? 'Hi-Res ' : '') + 'Disc Negative ' + this.f2s(N/D));
+        let X = [this.V(1, 0, 1), this.V(-1, 0, 1), this.V(-1, 0, -1), this.V(1, 0, -1)];
         let prev = this.V(1, 0, 0);
-        for(let i = 1; i <= N*48/D; i++) {
-            let angle = i*Math.PI/24;
-            let c = Math.cos(angle), s = Math.sin(angle);
+        for(let i = 1; i <= M*N*16/D; i++) {
+            let [c,s] = this.cs(i, 8*M);
             let p = this.V(c, 0, s);
-            S.addTriangle(16, zero, prev, p);
+            S.addTriangle(16, X[parseInt((i-1)/(M === 1 ? 4 : 16))], p, prev);
             prev = p;
         }
         return pt;
     },
-    nd: function(N, D) {
-        let [pt,S] = this.pT('Disc Negative ' + this.f2s(N/D));
-        let X = [this.V(1, 0, 1), this.V(-1, 0, 1), this.V(-1, 0, -1), this.V(1, 0, -1)];
-        let prev = this.V(1, 0, 0);
+    n48: function(N, D) {let p = this.nd(N, D, 3); p.ldraw_org = '48_Primitive'; return p;},
+    chrd: function(N, D) {
+        let [pt,S] = this.pT('Chord ' + this.f2s(N/D));
+        let prevX = 1, prevY = 0;
         for(let i = 1; i <= N*16/D; i++) {
-            let angle = i*Math.PI/8;
-            let c = Math.cos(angle), s = Math.sin(angle);
+            let [c,s] = this.cs(i);
             let p = this.V(c, 0, s);
-            S.addTriangle(16, X[parseInt((i-1)/4)], p, prev);
+            if(i === 1) {
+                S.at(16, X[parseInt((i-1)/4)], p, prev);
+            }
+            
             prev = p;
         }
         return pt;
     },
-    n48: function(N, D) {
-        let [pt,S] = this.pT('Hi-Res Disc Negative ' + this.f2s(N/D));
-        let X = [this.V(1, 0, 1), this.V(-1, 0, 1), this.V(-1, 0, -1), this.V(1, 0, -1)];
-        let prev = this.V(1, 0, 0);
-        for(let i = 1; i <= N*48/D; i++) {
-            let angle = i*Math.PI/24;
-            let c = Math.cos(angle), s = Math.sin(angle);
-            let p = this.V(c, 0, s);
-            S.addTriangle(16, X[parseInt((i-1)/16)], p, prev);
-            prev = p;
-        }
-        return pt;
-    },
-    ri: function(N, D, size, ERROR_NAME = false) {
-        let [pt,S] = this.pT(ERROR_NAME ? ERROR_NAME : 'Ring ' + this.pad2(size) + ' x ' + this.f2s(1.0/D*N));
+    ri: function(N, D, size, M = 1, ERROR_NAME = false) {
+        let [pt,S] = this.pT(ERROR_NAME ? ERROR_NAME : (M > 1 ? 'Hi-Res ' : '') + 'Ring ' + this.pad2(size) + ' x ' + this.f2s(1.0/D*N));
         let SIZE = size+1;
         let prev1 = this.V(size, 0, 0);
         let prev2 = this.V(SIZE, 0, 0);
-        for(let i = 1; i <= 16/D*N; i++) {
-            let angle = i*Math.PI/8;
-            let c = Math.cos(angle), s = Math.sin(angle);
+        for(let i = 1; i <= M*16/D*N; i++) {
+            let [c,s] = this.cs(i, 8*M);
             let p1 = this.V(SIZE*c, 0, SIZE*s);
             let p2 = this.V(size*c, 0, size*s);
             S.addQuad(16, prev2, p1, p2, prev1);
@@ -363,23 +326,7 @@ LDR.Generator = {
         }
         return pt;
     },
-    r48: function(N, D, size) {
-        let [pt,S] = this.pT('Hi-Res Ring  ' + size + ' x ' + this.f2s(1.0/D*N));
-        pt.ldraw_org = '48_Primitive';
-        let SIZE = size+1;
-        let prev1 = this.V(size, 0, 0);
-        let prev2 = this.V(SIZE, 0, 0);
-        for(let i = 1; i <= 48/D*N; i++) {
-            let angle = i*Math.PI/24;
-            let c = Math.cos(angle), s = Math.sin(angle);
-            let p1 = this.V(SIZE*c, 0, SIZE*s);
-            let p2 = this.V(size*c, 0, size*s);
-            S.addQuad(16, prev2, p1, p2, prev1);
-            prev1 = p2;
-            prev2 = p1;
-        }
-        return pt;
-    },
+    r48: function(N, D, size) {let p = this.ri(N, D, size, 3); p.ldraw_org = '48_Primitive'; return p;},
     stug: function(X, Y, suffix = '', sub = 1) {
         const NAMES = {'':'',
                        '2':'Open ',
@@ -589,7 +536,7 @@ LDR.Generator = {
         return pt;
     },
     map: {
-        // All rectangles:
+        // Rectangles:
         'rect': X => X.rect(31),
         'rect1': X => X.rect(17, '1 Edge'),
         'rect2a': X => X.rect(19, '2 Adjacent Edges'),
@@ -598,7 +545,7 @@ LDR.Generator = {
         'recte3': X => X.rect(22, '3 Edges', ' Empty'),
         'recte4': X => X.rect(30, '4 Edges', ' Empty'),
 
-        // All boxes:
+        // Boxes:
         'box': X => X.bx(4095, 63, '6 (six faces)'),
         'box0': X => X.bx(4095, 0, '', 'and All'),
         'box2-5': X => X.bx(799, 5, '', 'without 5'),
@@ -638,7 +585,7 @@ LDR.Generator = {
         'box5-4a': X => X.bx2(3855, 31, '', 'without 4 Adjacent'),
         'box5-12': X => X.bx2(0, 31, '', 'without Any'),
 
-        // All triangular prisms;
+        // Triangular prisms;
         'tri3': X => X.tri(511, 0, 7, '2 Square Faces and 1 Rectangular Face'),
         'tri3-1': X => X.tri(503, 0, 7, '2 Square Faces and 1 Rectangular Face without 1 Edge'),
         'tri3-3': X => X.tri(455, 0, 7, '2 Square Faces and 1 Rectangular Face without 3 Edges'),
@@ -648,23 +595,22 @@ LDR.Generator = {
         'tri3u3': X => X.tri(237, 3, 1, '3 Faces without 3 Edges'),
         'tri4': X => X.tri(511, 3, 6, '2 Square Faces and 2 Triangular Faces'),
         
-        // All Circular line segments:
-        '1-4edge': X => X.edge(1, 4),
-        '2-4edge': X => X.edge(2, 4),
-        '3-4edge': X => X.edge(3, 4),
-        '4-4edge': X => X.edge(4, 4),
-        '1-8edge': X => X.edge(1, 8),
-        '3-8edge': X => X.edge(3, 8),
-        '5-8edge': X => X.edge(5, 8),
-        '7-8edge': X => X.edge(7, 8),
-        '1-16edge': X => X.edge(1, 16),
-        '3-16edge': X => X.edge(3, 16),
-        '5-16edge': X => X.edge(5, 16),
-        '7-16edge': X => X.edge(7, 16),
-        '9-16edge': X => X.edge(9, 16),
-        '11-16edge': X => X.edge(11, 16),
-        '13-16edge': X => X.edge(13, 16),
-
+        // Circular line segments:
+        '1-4edge': X => X.ed(1, 4),
+        '2-4edge': X => X.ed(2, 4),
+        '3-4edge': X => X.ed(3, 4),
+        '4-4edge': X => X.ed(4, 4),
+        '1-8edge': X => X.ed(1, 8),
+        '3-8edge': X => X.ed(3, 8),
+        '5-8edge': X => X.ed(5, 8),
+        '7-8edge': X => X.ed(7, 8),
+        '1-16edge': X => X.ed(1, 16),
+        '3-16edge': X => X.ed(3, 16),
+        '5-16edge': X => X.ed(5, 16),
+        '7-16edge': X => X.ed(7, 16),
+        '9-16edge': X => X.ed(9, 16),
+        '11-16edge': X => X.ed(11, 16),
+        '13-16edge': X => X.ed(13, 16),
         '48\\1-3edge': X => X.e48(1, 3),
         '48\\1-4edge': X => X.e48(1, 4),
         '48\\1-6edge': X => X.e48(1, 6),
@@ -691,15 +637,53 @@ LDR.Generator = {
         '48\\11-48edge': X => X.e48(11, 48),
         '48\\19-48edge': X => X.e48(19, 48),
 
-        // TODO: All cylinders
-        '1-4cyli': X => X.cyl(true, 1, 4),
-        '2-4cyli': X => X.cyl(true, 2, 4, true), // For unknown reasons the conditional lines are at y=1 instead of y=0
-        //'3-4cyli': X => X.cyl(true, 3, 4), TODO FIX
-        '4-4cyli': X => X.cyl(true, 4, 4),
+        // Circular cylinders with conditional lines:
+        '1-4cyli': X => X.cy(1, 4, 0), // For some files the test points of conditional lines are at y=0 instead of y=1
+        '1-8cyli': X => X.cy(1, 8),
+        '1-16cyli': X => X.cy(1, 16),
+        '2-4cyli': X => X.cy(2, 4),
+        '3-4cyli': X => X.cy(3, 4),
+        '4-4cyli': X => X.cy(4, 4, 0), // y=0
+        '3-8cyli': X => X.cy(3, 8),
+        '5-8cyli': X => X.cy(5, 8),
+        '7-8cyli': X => X.cy(7, 8, 1, 1), // Special dist=1 to control points
+        '3-16cyli': X => X.cy(3, 16),
+        '5-16cyli': X => X.cy(5, 16),
+        '7-16cyli': X => X.cy(7, 16, 1, 1), // Special dist=1 to control points
+        '11-16cyli': X => X.cy(11, 16),
+        '13-16cyli': X => X.cy(13, 16),
+        '48\\1-3cyli': X => X.c48(1, 3),
+        '48\\1-4cyli': X => X.c48(1, 4),
+        '48\\1-6cyli': X => X.c48(1, 6),
+        '48\\1-8cyli': X => X.c48(1, 8),
+        '48\\1-12cyli': X => X.c48(1, 12),
+        '48\\1-16cyli': X => X.c48(1, 16),
+        '48\\1-24cyli': X => X.c48(1, 24),
+        '48\\1-48cyli': X => X.c48(1, 48),
+        '48\\2-3cyli': X => X.c48(2, 3),
+        '48\\2-4cyli': X => X.c48(2, 4),
+        '48\\3-4cyli': X => X.c48(3, 4),
+        '48\\3-8cyli': X => X.c48(3, 8),
+        '48\\3-16cyli': X => X.c48(3, 16),
+        '48\\4-4cyli': X => X.c48(4, 4),
+        '48\\5-8cyli': X => X.c48(5, 8),
+        '48\\5-12cyli': X => X.c48(5, 12),
+        '48\\5-16cyli': X => X.c48(5, 16),
+        '48\\5-24cyli': X => X.c48(5, 24),
+        '48\\5-48cyli': X => X.c48(5, 48),
+        '48\\7-8cyli': X => X.c48(7, 8),
+        '48\\7-16cyli': X => X.c48(7, 16),
+        '48\\7-24cyli': X => X.c48(7, 24),
+        '48\\7-48cyli': X => X.c48(7, 48),
+        '48\\11-24cyli': X => X.c48(11, 24),
+        '48\\11-48cyli': X => X.c48(11, 48),
 
-        '1-4cyli2': X => X.cyl(false, 1, 4),
-        '2-4cyli2': X => X.cyl(false, 2, 4),
-        '4-4cyli2': X => X.cyl(false, 4, 4),
+        '1-4cyli2': X => X.cy2(1, 4),
+        '2-4cyli2': X => X.cy2(2, 4),
+        '3-8cyli2': X => X.cy2(3, 8),
+        '3-16cyli2': X => X.cy2(3, 16),
+        '4-4cyli2': X => X.cy2(4, 4),
+        '5-16cyli2': X => X.cy2(5, 16),
 
         '1-4cylc': X => X.cylClosed(1),
         '2-4cylc': X => X.cylClosed(2),
@@ -709,7 +693,7 @@ LDR.Generator = {
         '2-4cyls': X => X.cylSloped(2, X.V(-1, 0, -1)),
         '4-4cyls': X => X.cylSloped(4),
 
-        // All discs
+        // Discs
         '1-4disc': X => X.disc(1, 4),
         '1-8disc': X => X.disc(1, 8),
         '1-16disc': X => X.disc(1, 16),
@@ -733,7 +717,7 @@ LDR.Generator = {
         '48\\5-48disc': X => X.d48(5, 48),
         '48\\7-48disc': X => X.d48(7, 48),
 
-        // All Inverse of circular disc sectors:
+        // Inverse of circular disc sectors:
         '1-4ndis': X => X.nd(1, 4),
         '1-8ndis': X => X.nd(1, 8),
         '1-16ndis': X => X.nd(1, 16),
@@ -759,8 +743,11 @@ LDR.Generator = {
         '48\\5-48ndis': X => X.n48(5, 48),
         '48\\7-48ndis': X => X.n48(7, 48),
 
-        // All Circular disc segment:
+        // TODO Circular disc segment:
         '1-16chrd': X => X.eAlias('Chord 0.0625'),
+        '13-16chr': X => X.alias('13-16chrd'),        
+        //'1-4chrd': X => X.chrd(1, 4), 
+        // TODO: The chrd primitives are fairly inconsistent and will require composed polygon comparisons!
 
         // TODO: All cones:
         '1-4con0': X => X.con0(1),
@@ -816,7 +803,7 @@ LDR.Generator = {
         '4-4con81': X => X.con(4, 4, 81),
         '4-4con95': X => X.con(4, 4, 95),
 
-        // All rings:
+        // Rings:
         '1-4ring1': X => X.ri(1, 4, 1),
         '1-4ring2': X => X.ri(1, 4, 2),
         '1-4ring3': X => X.ri(1, 4, 3),
@@ -1292,7 +1279,7 @@ LDR.Generator = {
         '48\\7-48ring10': X => X.r48(7, 48, 10),
         '48\\7-48ring80': X => X.r48(7, 48, 80),
 
-        // All stud groups:
+        // Stud groups (no duplo):
         'stug-1x2': X => X.stug(1, 2),
         'stug-1x3': X => X.stug(1, 3),
         'stug-1x4': X => X.stug(1, 4),

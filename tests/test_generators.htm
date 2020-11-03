@@ -96,12 +96,12 @@
       }
           
       THREE.Vector3.prototype.lessThan = function(v) {
-          let x1 = LDR.convertFloat(this.x);
-          let y1 = LDR.convertFloat(this.y);
-          let z1 = LDR.convertFloat(this.z);
-          let x2 = LDR.convertFloat(v.x);
-          let y2 = LDR.convertFloat(v.y);
-          let z2 = LDR.convertFloat(v.z);
+          let x1 = parseFloat(LDR.convertFloat(this.x));
+          let y1 = parseFloat(LDR.convertFloat(this.y));
+          let z1 = parseFloat(LDR.convertFloat(this.z));
+          let x2 = parseFloat(LDR.convertFloat(v.x));
+          let y2 = parseFloat(LDR.convertFloat(v.y));
+          let z2 = parseFloat(LDR.convertFloat(v.z));
           
           if(x1 < x2) {
               return true;
