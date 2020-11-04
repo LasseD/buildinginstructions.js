@@ -226,8 +226,8 @@
           if(pd.p.lessThan(this.p)) {
               return 1;
           }
-          if(this.ID != pd.ID) {
-              return this.ID < pd.ID;
+          if(this.ID !== pd.ID) {
+              return this.ID < pd.ID ? -1 : 1;
           }
           return this.r.compareTo(pd.r);
       }

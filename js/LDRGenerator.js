@@ -95,18 +95,24 @@ LDR.Generator = {
     cs: (i, div=8) => [Math.cos(i*Math.PI/div),  Math.sin(i*Math.PI/div)],
 
 
-    cylClosed: function(N) {
-        let [pt,s] = this.pT('Cylinder Closed ' + this.f2s(N*.25));
+    co: function(N, D, M = 1, disc = false) {
+        let [pt,s] = this.pT((M > 1 ? 'Hi-Res ' : '') + 'Cylinder ' + (disc ? 'Closed' : 'Open') + ' ' + this.f2s(N/D));
         let p0 = this.V();
         let p1 = this.V(0, 1, 0);
         let r = this.R(1, 1);
 
-        s.asm(p0, r, N+'-4edge');
-        s.asm(p1, r, N+'-4edge');
-        s.asm(p0, r, N+'-4disc');
-        s.asm(p0, r, N+'-4cyli');
+        let P = (M > 1 ? '48\\' : '')+N+'-'+D;
+        s.asm(p0, r, P+'cyli');
+        s.asm(p0, r, P+'edge');
+        s.asm(p1, r, P+'edge');
+        if(disc) {
+            s.asm(p0, r, P+'disc');
+        }
         return pt;
     },
+    co48: function(N, D) {let p = this.co(N, D, 3); p.ldraw_org = '48_Primitive'; return p;},
+    cc: function(N, D, M = 1) {return this.co(N, D, M, true);},
+    cc48: function(N, D) {let p = this.cc(N, D, 3); p.ldraw_org = '48_Primitive'; return p;},
     ed: function(N, D, M = 1) {
         let [pt,S] = this.pT((M > 1 ? 'Hi-Res ' : '') + 'Circle ' + this.f2s(N/D));
         let prev = this.V(1, 0, 0);
@@ -165,16 +171,17 @@ LDR.Generator = {
         return pt;
     },
     c48: function(N, D) {let p = this.cy(N, D, 1, 0.4141, 3); p.ldraw_org = '48_Primitive'; return p;},
-    cy2: function(N, D) {
-        let [pt,S] = this.pT('Cylinder ' + this.f2s(N/D) + ' without Conditional Lines');
+    cy2: function(N, D, M = 1) {
+        let [pt,S] = this.pT((M > 1 ? 'Hi-Res ' : '') + 'Cylinder ' + this.f2s(N/D) + ' without Conditional Lines');
 
-        for(let i = 0; i < N*16/D; i++) {
-            let [c1,s1] = this.cs(i);
-            let [c2,s2] = this.cs(i+1);
+        for(let i = 0; i < M*N*16/D; i++) {
+            let [c1,s1] = this.cs(i, 8*M);
+            let [c2,s2] = this.cs(i+1, 8*M);
             S.aq([c2, 1, s2, c2, 0, s2, c1, 0, s1, c1, 1, s1]);
         }
         return pt;
     },
+    cy2_48: function(N, D) {let p = this.cy2(N, D, 3); p.ldraw_org = '48_Primitive'; return p;},
     con0: function(N, D = 4) {
         let [pt,S] = this.pT('Cone  0 x ' + this.f2s(N/D));
 
@@ -637,7 +644,7 @@ LDR.Generator = {
         '48\\11-48edge': X => X.e48(11, 48),
         '48\\19-48edge': X => X.e48(19, 48),
 
-        // Circular cylinders with conditional lines:
+        // Cylinders with conditional lines:
         '1-4cyli': X => X.cy(1, 4, 0), // For some files the test points of conditional lines are at y=0 instead of y=1
         '1-8cyli': X => X.cy(1, 8),
         '1-16cyli': X => X.cy(1, 16),
@@ -678,16 +685,49 @@ LDR.Generator = {
         '48\\11-24cyli': X => X.c48(11, 24),
         '48\\11-48cyli': X => X.c48(11, 48),
 
+        // Cylinders without conditional lines:
         '1-4cyli2': X => X.cy2(1, 4),
         '2-4cyli2': X => X.cy2(2, 4),
         '3-8cyli2': X => X.cy2(3, 8),
         '3-16cyli2': X => X.cy2(3, 16),
         '4-4cyli2': X => X.cy2(4, 4),
         '5-16cyli2': X => X.cy2(5, 16),
+        '48\\1-4cyli2': X => X.cy2(1, 4, 3),
+        '48\\2-4cyli2': X => X.cy2(2, 4, 3),
+        '48\\4-4cyli2': X => X.cy2(4, 4, 3),
 
-        '1-4cylc': X => X.cylClosed(1),
-        '2-4cylc': X => X.cylClosed(2),
-        '4-4cylc': X => X.cylClosed(4),
+        // Cylinders with open ends:
+        '1-4cylo': X => X.co(1, 4),
+        '1-8cylo': X => X.co(1, 8),
+        '1-16cylo': X => X.co(1, 16),
+        '2-4cylo': X => X.co(2, 4),
+        '3-4cylo': X => X.co(3, 4),
+        '3-8cylo': X => X.co(3, 8),
+        '3-16cylo': X => X.co(3, 16),
+        '4-4cylo': X => X.co(4, 4),
+        '5-8cylo': X => X.co(5, 8),
+        '5-16cylo': X => X.co(5, 16),
+        '7-8cylo': X => X.co(7, 8),
+        '7-16cylo': X => X.co(7, 16),
+        '48\\1-3cylo': X => X.co48(1, 3),
+        '48\\1-4cylo': X => X.co48(1, 4),
+        '48\\1-6cylo': X => X.co48(1, 6),
+        '48\\1-8cylo': X => X.co48(1, 8),
+        '48\\1-12cylo': X => X.co48(1, 12),
+        '48\\1-16cylo': X => X.co48(1, 16),
+        '48\\1-24cylo': X => X.co48(1, 24),
+        '48\\1-48cylo': X => X.co48(1, 48),
+        '48\\2-4cylo': X => X.co48(2, 4),
+        '48\\3-16cylo': X => X.co48(3, 16),
+        '48\\4-4cylo': X => X.co48(4, 4),
+        '48\\5-24cylo': X => X.co48(5, 24),
+        '48\\5-48cylo': X => X.co48(5, 48),
+        '48\\7-48cylo': X => X.co48(7, 48),
+
+        // Cylinders with closed ends:
+        '1-4cylc': X => X.cc(1, 4),
+        '2-4cylc': X => X.cc(2, 4),
+        '4-4cylc': X => X.cc(4, 4),
 
         '1-4cyls': X => X.cylSloped(1, X.V(-1, 0, 1)),
         '2-4cyls': X => X.cylSloped(2, X.V(-1, 0, -1)),
