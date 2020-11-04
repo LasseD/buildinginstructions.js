@@ -111,8 +111,18 @@ LDR.Generator = {
         return pt;
     },
     co48: function(N, D) {let p = this.co(N, D, 3); p.ldraw_org = '48_Primitive'; return p;},
-    cc: function(N, D, M = 1) {return this.co(N, D, M, true);},
-    cc48: function(N, D) {let p = this.cc(N, D, 3); p.ldraw_org = '48_Primitive'; return p;},
+    cc: function(N, M = 1) {return this.co(N, 4, M, true);},
+    cc48: function(N) {let p = this.cc(N, 3); p.ldraw_org = '48_Primitive'; return p;},
+    ccX: function(N, M = 1, V = 2, Q = '') {
+        let [pt,s] = this.pT((M > 1 ? 'Hi-Res ' : '') + 'Cylinder Closed ' + Q + this.f2s(N/4) + ' without ' + (V === 2 ? 'Edges and Conditional' : 'Top or Bottom Edge') + ' Lines');
+        let p = this.V();
+        let r = this.R(1, 1);
+
+        let P = (M > 1 ? '48\\' : '')+N+'-'+4;
+        s.asm(p, r, P+'disc');
+        s.asm(p, r, P+'cyli' + V);
+        return pt;
+    },
     ed: function(N, D, M = 1) {
         let [pt,S] = this.pT((M > 1 ? 'Hi-Res ' : '') + 'Circle ' + this.f2s(N/D));
         let prev = this.V(1, 0, 0);
@@ -725,10 +735,22 @@ LDR.Generator = {
         '48\\7-48cylo': X => X.co48(7, 48),
 
         // Cylinders with closed ends:
-        '1-4cylc': X => X.cc(1, 4),
-        '2-4cylc': X => X.cc(2, 4),
-        '4-4cylc': X => X.cc(4, 4),
+        '1-4cylc': X => X.cc(1),
+        '2-4cylc': X => X.cc(2),
+        '3-4cylc': X => X.cc(3),
+        '4-4cylc': X => X.cc(4),
+        '48\\2-4cylc': X => X.cc48(2),
+        '48\\4-4cylc': X => X.cc48(4),
 
+        '1-4cylc2': X => X.ccX(1, 1, 2, ' '),
+        '4-4cylc2': X => X.ccX(4),
+        '48\\4-4cylc2': X => X.ccX(4, 3),
+
+        '1-4cylc3': X => X.ccX(1, 1, ''),
+        '4-4cylc3': X => X.ccX(4, 1, ''),
+        '48\\4-4cylc3': X => X.ccX(4, 3, ''),
+
+        // TODO Cylinder truncated by an angled plane:
         '1-4cyls': X => X.cylSloped(1, X.V(-1, 0, 1)),
         '2-4cyls': X => X.cylSloped(2, X.V(-1, 0, -1)),
         '4-4cyls': X => X.cylSloped(4),
