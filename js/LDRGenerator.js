@@ -754,6 +754,13 @@ LDR.Generator = {
         '1-4cyls': X => X.cylSloped(1, X.V(-1, 0, 1)),
         '2-4cyls': X => X.cylSloped(2, X.V(-1, 0, -1)),
         '4-4cyls': X => X.cylSloped(4),
+        // TODO *cyls2
+        // TODO Cylinder truncated by another cylinder cylj*.dat
+        // TODO Torus t*i*.dat
+        // TODO Torus t*o*.dat
+        // TODO Torus t*q*.dat
+        // TODO Reverse ratio torus r*o*.dat
+        // TODO Sphere section *sphe.dat
 
         // Discs
         '1-4disc': X => X.disc(1, 4),
@@ -1341,7 +1348,7 @@ LDR.Generator = {
         '48\\7-48ring10': X => X.r48(7, 48, 10),
         '48\\7-48ring80': X => X.r48(7, 48, 80),
 
-        // Stud groups (no duplo):
+        // Stud groups (TODO Duplo):
         'stug-1x2': X => X.stug(1, 2),
         'stug-1x3': X => X.stug(1, 3),
         'stug-1x4': X => X.stug(1, 4),
