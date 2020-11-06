@@ -2750,7 +2750,7 @@ LDR.MeshCollector.prototype.addMesh = function(color, mesh, part) {
     else {
 	parent = this.opaqueObject;
     }
-    this.triangleMeshes.push({color:color, mesh:mesh, part:part, parent:parent});
+    this.triangleMeshes.push({color:color, originalColor:color, mesh:mesh, part:part, parent:parent});
     parent.add(mesh);
 }
 
@@ -2911,16 +2911,17 @@ LDR.MeshCollector.prototype.overwriteColor = function(color) {
         return;
     }
 
-    function handle(obj, edge) {
-	if(edge ? (obj.originalColor !== 24) : (obj.originalColor === 16)) {
-	    return; // Not 16, so don't overwrite the color.
+    function handle(obj) {
+	if(obj.originalColor !== 24 && obj.originalColor !== 16) {
+	    return; // Not overwritable
 	}
+	let edge = obj.originalColor === 24;
         let c = edge ? -1-color : color;
 
         let color4 = edge && LDR.Options && LDR.Options.lineContrast === 0 ? LDR.Colors.getHighContrastColor4(c) : LDR.Colors.getColor4(c);
 
         const m = obj.mesh.material;
-        
+
 	m.uniforms.color.value = color4;
         obj.color = c;
 
@@ -2932,10 +2933,10 @@ LDR.MeshCollector.prototype.overwriteColor = function(color) {
     }
 
     for(let i = 0; i < this.triangleMeshes.length; i++) {
-	handle(this.triangleMeshes[i], false);
+	handle(this.triangleMeshes[i]);
     }
     for(let i = 0; i < this.lineMeshes.length; i++) {
-	handle(this.lineMeshes[i], true);
+	handle(this.lineMeshes[i]);
     }
     this.overwrittenColor = color;
 }

@@ -10,7 +10,7 @@ LDR.Previews = function(options, optionsEle) {
     let self = this;
 
     this.options = options || {};
-    this.options.removePrimitivesAndSubParts = false;
+    this.options.cleanUpPrimitivesAndSubParts = false;
 
     this.optionsEle = optionsEle;
 
@@ -205,16 +205,7 @@ LDR.Previews.prototype.initiate = function() {
 
 LDR.Previews.prototype.redrawAll = function(force) {
     if(force) { // Update all studs:
-        for(let id in this.ldrLoader.partTypes) {
-            if(this.ldrLoader.partTypes.hasOwnProperty(id)) {
-                let pt = this.ldrLoader.partTypes[id];
-                pt.baseObject = pt.pliMC = pt.geometry = null;
-            }
-        }
-        if(LDR.Options) { // Update studs:
-            LDR.Studs.setStuds(this.ldrLoader, LDR.Options.studHighContrast, 
-                               LDR.Options.studLogo, () => {});
-        }
+        location.reload(); // Geometries have been deleted due to optimizations, so reload the page.
     }
 
     for(let id in this.rendered) {
@@ -311,3 +302,5 @@ LDR.Previews.prototype.createOptions = function() {
         LDR.Options.listeners.push(force => self.redrawAll(force));
     }
 }
+
+LDR.LDRGeometry.prototype.cleanTempData = () => {} // Ensure we can reuse geometries.
