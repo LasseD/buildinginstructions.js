@@ -674,6 +674,9 @@ LDR.LDRGeometry.prototype.buildGeometry = function(indices, vertexAttribute) {
 }
 
 LDR.LDRGeometry.prototype.replaceWith = function(g) {
+    if(!g.vertices) {
+	throw 'Copied geometry is already cleaned up!';
+    }
     this.vertices = g.vertices;
     this.lines = g.lines;
     this.conditionalLines = g.conditionalLines;
@@ -685,6 +688,9 @@ LDR.LDRGeometry.prototype.replaceWith = function(g) {
 }
 
 LDR.LDRGeometry.prototype.replaceWithDeep = function(g) {
+    if(!g.vertices) {
+	g.rebuild();
+    }
     let self = this;
     g.vertices.forEach(v => self.vertices.push({x:v.x, y:v.y, z:v.z, o:v.o}));
 
@@ -918,6 +924,8 @@ LDR.LDRGeometry.prototype.fromQuads = function(cull, ps) {
   Consolidate the primitives and sub-parts of the step.
 */
 LDR.LDRGeometry.prototype.fromStep = function(loader, step) {
+    let self = this;
+    this.rebuild = () => self.fromStep(loader, step);
     let geometries = [];
     if(step.hasPrimitives()) {
         let g = new LDR.LDRGeometry();
@@ -936,12 +944,16 @@ LDR.LDRGeometry.prototype.fromStep = function(loader, step) {
 }
 
 LDR.LDRGeometry.prototype.fromPartType = function(loader, pt) {
+    let self = this;
+    this.rebuild = () => self.fromPartType(loader, pt);
     for(let i = 0; i < pt.steps.length; i++) {
         this.fromStep(loader, pt.steps[i]);
     }
 }
 
 LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
+    let self = this;
+    this.rebuild = () => self.fromPartDescription(loader, pd);
     let pt = loader.getPartType(pd.ID);
     if(!pt) {
         throw "Part not loaded: " + pd.ID;
