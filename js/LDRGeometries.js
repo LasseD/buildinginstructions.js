@@ -946,9 +946,13 @@ LDR.LDRGeometry.prototype.fromStep = function(loader, step) {
 LDR.LDRGeometry.prototype.fromPartType = function(loader, pt) {
     let self = this;
     this.rebuild = () => self.fromPartType(loader, pt);
+    let geometries = [];
     for(let i = 0; i < pt.steps.length; i++) {
-        this.fromStep(loader, pt.steps[i]);
+        let g = new LDR.LDRGeometry();
+        g.fromStep(loader, pt.steps[i]);
+        geometries.push(g);
     }
+    this.replaceWith(LDR.mergeGeometries(geometries));
 }
 
 LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
