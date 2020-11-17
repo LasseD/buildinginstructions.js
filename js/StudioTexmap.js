@@ -277,8 +277,8 @@ THREE.LDRLoader.prototype.toLDRStudio = function(c) {
 
     // Mark all parts that have texmaps, as these should be downloaded separately:
     function setTexmap(pt) {
-	if(!pt.isPart) {
-	    return; // Not a part.
+	if(!pt.isPart || pt.steps.length === 0) {
+	    return false; // Not a part.
 	}
         let step = pt.steps[0];
 	
