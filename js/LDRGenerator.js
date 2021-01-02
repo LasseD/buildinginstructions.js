@@ -554,7 +554,7 @@ LDR.Generator = {
     },
     map: {
         // Rectangles:
-/*        'rect': X => X.rect(31),
+        'rect': X => X.rect(31),
         'rect1': X => X.rect(17, '1 Edge'),
         'rect2a': X => X.rect(19, '2 Adjacent Edges'),
         'rect2p': X => X.rect(11, '2 Parallel Edges'),
