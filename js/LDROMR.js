@@ -41,7 +41,7 @@ LDR.OMR = {};
  */
 LDR.OMR.UpgradeToReplacements = function(ldrLoader) {
     return {
-        checkers: {checkPartType:pt => (pt.replacement && pt.modelDescription) ? ['Some parts have been replaced by new versions. This action replaces these parts. Please note that some LDraw parts, such as Click here to upgrade moved parts',pt.ID,pt.replacement] : false},
+        checkers: {checkPartType:pt => (pt.replacement && pt.modelDescription) ? ['Some parts have been replaced by new versions. This action replaces these parts. Please note that some LDraw parts, such as 92013 is currently an unofficial LDraw part with 62712 being the official version of it. However, Bricklink makes a distinction between the two, and they are not available in the same colors. So applying this action can potentially make some of the parts unavailable in the intended colors when exporting the parts list to Bricklink!',pt.ID,pt.replacement] : false},
 
         handlers: {handlePartDescription: pd => {
                 let pt = ldrLoader.getPartType(pd.ID);
