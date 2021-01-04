@@ -1,0 +1,10 @@
+<?xml version="1.0" standalone="yes"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+<g stroke="white" fill="none" transform="translate(35 62) scale(1.4 1.4)">
+ <path d="M10,-25 -20,-25 -20,25 20,25 20,-10 Z" />
+</g>
+<g stroke="white" fill="#44BB44" stroke-width="3" transform="translate(55 35) rotate(25 0 0) scale(0.06 0.5)">
+ <path d="M-50 -32 h100 v-16 h-100 v100 l 50 16 l 50 -16 v-100 z" />
+</g>
+<text style="fill:white;" x="10" y="78">OMR</text>
+</svg>

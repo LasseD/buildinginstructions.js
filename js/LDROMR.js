@@ -41,7 +41,7 @@ LDR.OMR = {};
  */
 LDR.OMR.UpgradeToReplacements = function(ldrLoader) {
     return {
-        checkers: {checkPartType:pt => (pt.replacement && pt.modelDescription) ? ['Click here to upgrade moved parts',pt.ID,pt.replacement] : false},
+        checkers: {checkPartType:pt => (pt.replacement && pt.modelDescription) ? ['Some parts have been replaced by new versions. This action replaces these parts. Please note that some LDraw parts, such as Click here to upgrade moved parts',pt.ID,pt.replacement] : false},
 
         handlers: {handlePartDescription: pd => {
                 let pt = ldrLoader.getPartType(pd.ID);
@@ -49,7 +49,9 @@ LDR.OMR.UpgradeToReplacements = function(ldrLoader) {
                     pd.ID = pt.replacement;
                 }
             }
-        }
+        },
+	
+	icon: 'upgrade_to_replacements'
     };
 }
 
@@ -75,13 +77,13 @@ LDR.OMR.UpgradeToPartsBasedOnYear = function(year) {
 	if(LDR.Replacements.hasOwnProperty(id)) {
 	    let obj = LDR.Replacements[id];
 	    if(obj.year <= year) {
-		return ['In ' + year + ', LEGO had replaced some part with newer versions. Click here to set parts as they were in ' + year, id+'.dat', obj.part+'.dat'];
+		return ['In ' + year + ', LEGO had replaced some part with newer versions. This action updates parts as they were in ' + year, id+'.dat', obj.part+'.dat'];
 	    }
 	}
 	if(RMap.hasOwnProperty(id)) { // Old model - replace with old before phase-in:
 	    let obj = RMap[id];
 	    if(obj.year > year) {
-		return ['In ' + year + ', LEGO had not yet started using certain parts. Click here to set parts as they were in ' + year, id+'.dat', obj.part+'.dat'];
+		return ['In ' + year + ', LEGO had not yet started using certain parts. This action converts parts as they were in ' + year, id+'.dat', obj.part+'.dat'];
 	    }
 	}
 	return false;
@@ -107,7 +109,8 @@ LDR.OMR.UpgradeToPartsBasedOnYear = function(year) {
 		    pd.ID = obj.part + '.dat';
 		}
             }
-        }}
+        }},
+	icon: 'upgrade_to_parts_based_on_year'
     };
 }
 
@@ -157,9 +160,9 @@ LDR.OMR.FixPlacements = function(ldrLoader) {
     }};
 
     let checkers = {checkPartDescription:pd => 
-                    checkPD(pd) ? ['Many parts are placed with precision higher than three decimals. This is often observed in models created in Bricklink Studio 2.0. Click here to align all parts to have at most three decimals in their positions.', pd.toFullLDR(ldrLoader), handlers.handlePartDescription(pd.cloneColored(16)).toLDR(ldrLoader)] : false};
+                    checkPD(pd) ? ['Many parts are placed with precision higher than three decimals. This is often observed in models created in Bricklink Studio 2.0. This action realign parts to have at most three decimals in their positions.', pd.toFullLDR(ldrLoader), handlers.handlePartDescription(pd.cloneColored(16)).toLDR(ldrLoader)] : false};
 
-    return {checkers:checkers, handlers:handlers};
+    return {checkers:checkers, handlers:handlers, icon:'fix_placements'};
 }
 
 THREE.LDRPartDescription.prototype.toFullLDR = function(loader) {
@@ -181,12 +184,11 @@ THREE.Matrix3.prototype.toFullLDR = function() {
  Fix any deviating author line.
  */
 LDR.OMR.FixAuthors = function(expectedAuthor) {
-    let title = pt => ['Align author lines in the LDraw file by clicking here', pt.author ? ('0 Author: ' + pt.author) : '[Missing author line]', '0 Author: ' + expectedAuthor];
+    let title = pt => ['This action updates the author line in the LDraw file', pt.author ? ('0 Author: ' + pt.author) : '[Missing author line]', '0 Author: ' + expectedAuthor];
 
     function checkPartType(pt) {
 	if(pt.isPart) {
 	    return !pt.author ? title(pt) : false;
-
 	}
 	else {
 	    return pt.author !== expectedAuthor ? title(pt) : false;
@@ -203,7 +205,7 @@ LDR.OMR.FixAuthors = function(expectedAuthor) {
             pt.author = expectedAuthor;
 	}
     }};
-    return {checkers:{checkPartType:checkPartType}, handlers:handlers};
+    return {checkers:{checkPartType:checkPartType}, handlers:handlers, icon:'fix_authors'};
 }
 
 LDR.OMR.FixTyres = function(ldrLoader) {
@@ -220,9 +222,9 @@ LDR.OMR.FixTyres = function(ldrLoader) {
     }};
 
     let checkers = {checkPartDescription:pd => 
-                    checkPD(pd) ? ['Change the material of tyres to rubber black (256) instead of solid black (0)', pd.toLDR(ldrLoader), handlers.handlePartDescription(pd.cloneColored(0)).toLDR(ldrLoader)] : false};
+                    checkPD(pd) ? ['This action changes the material of tyres to rubber black (256) instead of solid black (0)', pd.toLDR(ldrLoader), handlers.handlePartDescription(pd.cloneColored(0)).toLDR(ldrLoader)] : false};
 
-    return {checkers:checkers, handlers:handlers};
+    return {checkers:checkers, handlers:handlers, icon:'fix_tyres'};
 }
 
 /**
@@ -234,12 +236,12 @@ LDR.OMR.FixLicenses = function() {
 
     function title(lc) {
 	let from = lc ? ('0 !LICENSE ' + lc) : '[Missing license]';
-	return ['Update license lines in the LDraw file', from, '0 !LICENSE ' + LICENSE];
+	return ['This action updates all license lines in the LDraw file', from, '0 !LICENSE ' + LICENSE];
     }
 
     let checkers = {checkPartType: pt => (pt.license !== LICENSE) ? title(pt.license) : false};
     let handlers = {handlePartType: pt => pt.license = LICENSE};
-    return {checkers:checkers, handlers:handlers};
+    return {checkers:checkers, handlers:handlers, icon:'fix_licenses'};
 }
 
 /**
@@ -248,7 +250,7 @@ LDR.OMR.FixLicenses = function() {
 LDR.OMR.LDrawOrgChanged = false;
 LDR.OMR.SetLDrawOrg = function(unofficial) {
     let type = unofficial ? 'Unofficial_Model' : 'Model';
-    let title = "Set all LDRAW_ORG lines of unofficial parts to 'Unofficial_Part' and of all other to '" + type + "' ";
+    let title = "This action sets all LDRAW_ORG lines of unofficial parts to 'Unofficial_Part' and of all other to '" + type + "' ";
     if(unofficial) {
         title += " indicating the file is OMR compliant, but not yet accepted into the official OMR library";
     }
@@ -286,7 +288,7 @@ LDR.OMR.SetLDrawOrg = function(unofficial) {
 	LDR.OMR.LDrawOrgChanged = true;
     }
 
-    return {checkers:{checkPartType:checkPartType}, handlers:{handlePartType:handlePartType}};
+    return {checkers:{checkPartType:checkPartType}, handlers:{handlePartType:handlePartType}, icon:'omr_'+(unofficial?'unofficial':'official')};
 }
 
 /**
@@ -303,7 +305,7 @@ LDR.OMR.SetLDrawOrg = function(unofficial) {
  */
 LDR.OMR.StandardizeFileNames = function(setNumber, ldrLoader) {
     let setNumberPrefix = setNumber + ' - ';
-    let title = (pt,i,d) => ['Standardize file headers',
+    let title = (pt,i,d) => ['Standardize LDraw file headers',
 			     '0 FILE ' + pt.ID + '\n0 ' + pt.modelDescription + '\n0 Name: ' + pt.name,
 			     '0 FILE ' + i + '\n0 ' + d + '\n0 Name: ' + i];
     
@@ -357,7 +359,7 @@ LDR.OMR.StandardizeFileNames = function(setNumber, ldrLoader) {
 	pd.ID = pt.ID; // Replaced ID.
     }
 
-    return {checkers:{checkPartType:checkPartType}, handlers:{handlePartType:handlePartType, handlePartDescription:handlePartDescription}};
+    return {checkers:{checkPartType:checkPartType}, handlers:{handlePartType:handlePartType, handlePartDescription:handlePartDescription}, icon:'file_names'};
 }
 
 /**
@@ -379,22 +381,24 @@ LDR.OMR.ColorPartsAccordingToYear = function(year, ldrLoader) {
 	let map = {'6':70,'7':71,'8':72};
         function title(pd, c) {
 	    let pd2 = pd.cloneColored(16); pd2.c = c;
-	    return ['In 2004 LEGO started using new brown and gray colors. Click here to make all parts use the new colors', pd.toLDR(ldrLoader), pd2.toLDR(ldrLoader)];
+	    return ['In 2004 LEGO started using new brown and gray colors. This action makes all parts use the new colors', pd.toLDR(ldrLoader), pd2.toLDR(ldrLoader)];
 	}
         return {
             checkers: {checkPartDescription: pd => (pd.c===6||pd.c===7||pd.c===8) ? title(pd, map[pd.c]) : false},
-            handlers: {handlePartDescription: pd => transformColors(pd, map)}
+            handlers: {handlePartDescription: pd => transformColors(pd, map)},
+	    icon:'new_colors'
         };
     }
     else {
 	let map = {'70':6,'71':7,'72':8};
         function title(pd, c) {
 	    let pd2 = pd.cloneColored(16); pd2.c = c;
-	    return ['Before 2004 LEGO used old brown and gray colors. Click here to make all parts use the old colors as they were in ' + year, pd.toLDR(ldrLoader), pd2.toLDR(ldrLoader)];
+	    return ['Before 2004 LEGO used old brown and gray colors. This action makes all parts use the old colors as they were in ' + year, pd.toLDR(ldrLoader), pd2.toLDR(ldrLoader)];
 	}
         return {
             checkers: {checkPartDescription: pd => (pd.c===70||pd.c===71||pd.c===72) ? title(pd, map[pd.c]) : false},
-            handlers: {handlePartDescription: pd => transformColors(pd, map)}
+            handlers: {handlePartDescription: pd => transformColors(pd, map)},
+	    icon:'old_colors'
         };
     }
 }    
@@ -502,7 +506,7 @@ LDR.OMR.FixHeaderLines = function(expectedTheme, expectedKeywords, ldrLoader) {
 	if(lines.length != pt.headerLines.length || 
 	   pt.headerLines.some((line,i) => line.txt !== lines[i].txt)) {
 	    let f = arr => arr.length == 0 ? '[No header]' : arr.map(x => x.toLDR()).join('\n');
-	    return ['Click here to update the headers', f(pt.headerLines), f(lines)];
+	    return ['This action updates the headers to be OMR compliant', f(pt.headerLines), f(lines)];
 	}
 	return false;
     }
@@ -513,7 +517,7 @@ LDR.OMR.FixHeaderLines = function(expectedTheme, expectedKeywords, ldrLoader) {
 	}
     }
 
-    return {checkers:{checkPartType:check}, handlers:{handlePartType:handle}};
+    return {checkers:{checkPartType:check}, handlers:{handlePartType:handle}, icon:'headers'};
 }
 
 THREE.LDRLoader.prototype.toLDROMR = function() {

@@ -1,0 +1,17 @@
+<?xml version="1.0" standalone="yes"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 60 60">
+
+<g stroke="white">
+ <line x1="22" y1="30" x2="38" y2="30" />
+ <line x1="32" y1="25" x2="38" y2="30" />
+ <line x1="32" y1="35" x2="38" y2="30" />
+
+ <circle fill="rgb(95, 49, 9)" cx="50" cy="10" r="9" />
+ <circle fill="rgb(150, 150, 150)" cx="50" cy="30" r="9" />
+ <circle fill="rgb(100, 100, 100)" cx="50" cy="50" r="9" />
+ <circle fill="rgb(84, 51, 36)" cx="10" cy="10" r="9" />
+ <circle fill="rgb(138, 146, 141)" cx="10" cy="30" r="9" />
+ <circle fill="rgb(84, 89, 85)" cx="10" cy="50" r="9" />
+</g>
+
+</svg>

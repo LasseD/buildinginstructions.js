@@ -1,0 +1,21 @@
+<?xml version="1.0" standalone="yes"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+<!--<rect width="100" height="100" />-->
+
+<g stroke="white" fill="none" transform="scale(1.5 1.5) translate(30 12)">
+ <rect x="-20" width="40" height="8" />
+ <rect x="-6" y="-4" width="12" height="4" />
+</g>
+
+<g stroke-width="2" stroke="white">
+ <line x1="50" y1="40" x2="50" y2="60" />
+ <line x1="55" y1="55" x2="50" y2="60" />
+ <line x1="45" y1="55" x2="50" y2="60" />
+</g>
+
+<g stroke="white" fill="none" transform="scale(1.5 1.5) translate(34 50)">
+ <path d="M-20 0 h40 v7 h-1 v1 h-38 v-1 h-1 z" />
+ <rect x="-6" y="-4" width="12" height="4" />
+</g>
+
+</svg>

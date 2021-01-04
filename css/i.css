@@ -1,11 +1,10 @@
 #loading_info {
-    background-color: black;
-    padding: 0.5em;
-    color: white;
-    position: relative;
-    top: 50%;
-    z-index: 12345;
-    /*float: left;*/
+  background-color: black;
+  padding: 0.5em;
+  color: white;
+  position: relative;
+  top: 50%;
+  z-index: 12345;
 }
 
 #creator_name {
@@ -341,9 +340,6 @@ label, input, textarea {
 /*
   Functions
  */
-#functions {
-  margin-top: 1em;
-}
 .function_info, #functions .function, #save_preview, #save_theme {
   display: block;
   margin: 1vw 2vw 0 2vw;
@@ -353,23 +349,52 @@ label, input, textarea {
   font-size: 1.5em;
   vertical-align: middle;
 }
-#functions .function, #save_preview, #save_theme {
+#functions .function {
+  display: none;
+  background-color: #4BB;
+  border: 0.2em solid #4CC;
+  position: absolute;
+  left: 0;
+  z-index: 99999;
+  padding: 0.5em;
+}
+#save_preview, #save_theme, #functions .diamond {
   background-color: #4BB;
   border: 0.2em solid #4CC;
   cursor: pointer;
+}
+#functions .diamond {
+  display: inline-block;
+  margin-left: 2em;
+  margin-rigth: 2em;
+  margin-bottom: 1em;
+  margin-top: 1em;
+  border: none;
+  padding: 0;
 }
 #functions .function_info {
   background-color: #C82;
   border: 0.2em solid #DA4;
 }
+#functions .choices {
+  display: table;
+  table-layout: fixed;
+  border-spacing: 1em;
+  width: 100%;
+  text-align: center;
+}
+#functions .choices span {
+  display: table-cell;
+  cursor: pointer;
+  border: 0.1em solid white;
+  border-radius: 0.5em;
+  padding: 0.5em;
+}
 #save_preview, #save_theme {
   display: none;
 }
 .omr_notice, .omr_function {
-  /*display: inline-block;
-  visibility: hidden;*/
-    display: none;
-
+  display: none;
   width: 0.65em;
   height: 0.65em;
   overflow: hidden;
