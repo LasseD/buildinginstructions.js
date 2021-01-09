@@ -1014,7 +1014,7 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
 		let primitive = transform(wc[i]);
 		primitives.push(primitive);
 
-		// Collect and update texmap placements:
+		// Collect and update texmap placements. See https://forums.ldraw.org/thread-23755-post-39970.html#pid39970
 		if(!primitive.t) {
 		    continue;
 		}
