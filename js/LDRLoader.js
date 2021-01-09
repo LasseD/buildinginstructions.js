@@ -2400,6 +2400,58 @@ LDR.TexmapPlacement = function() { // Can be set either from parts when read fro
     this.idx; // Index in LDR.TexmapPlacements
 }
 
+LDR.TexmapPlacement.prototype.clone = function() {
+    let x = new LDR.TexmapPlacement();
+
+    x.type = this.type;
+    x.p = this.p.map(v => new THREE.Vector3(v.x, v.y, v.z));
+    x.a = this.a;
+    x.b = this.b;
+
+    if(this.type === 0) {
+        x.setPlanar();
+    }
+    else if(this.type === 1) {
+        x.setCylindrical();
+    }
+    else {
+        x.setSpherical();
+    }
+
+    x.file = this.file;
+    x.glossmapFile = this.glossmapFile;
+    x.fallback = this.fallback;
+    x.nextOnly = this.nextOnly;
+
+    x.idx = LDR.TexmapPlacements.length;
+    LDR.TexmapPlacements.push(x);
+    return x;
+}
+
+LDR.TexmapPlacement.prototype.placeAt = function(pd) {
+    let p = new THREE.Vector3();
+    for(let i = 0; i < this.p.length; i++) {
+	let v = this.p[i];
+	
+	p.set(v.x, v.y, v.z);
+	p.applyMatrix3(pd.r);
+	p.add(pd.p);
+	v.x = p.x;
+	v.y = p.y;
+	v.z = p.z;
+    }
+    // Update UV transformations:
+    if(this.type === 0) {
+        this.setPlanar();
+    }
+    else if(this.type === 1) {
+        this.setCylindrical();
+    }
+    else {
+        this.setSpherical();
+    }
+}
+
 LDR.TexmapPlacement.prototype.setFromParts = function(parts) {
     if(parts.length < 13) {
         this.error = 'Too few arguments on !TEXMAP line';

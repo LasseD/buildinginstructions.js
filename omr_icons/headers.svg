@@ -3,8 +3,9 @@
 <g stroke="white" fill="none" transform="translate(35 62) scale(1.4 1.4)">
  <path d="M10,-25 -20,-25 -20,25 20,25 20,-10 Z" />
 </g>
-<g stroke="white" fill="#EEEE" stroke-width="3" transform="translate(55 35) rotate(25 0 0) scale(0.06 0.5)">
+<g stroke="white" fill="#AAAAAA" stroke-width="3" transform="translate(71 26) rotate(55 0 0) scale(0.06 0.5)">
  <path d="M-50 -32 h100 v-16 h-100 v100 l 50 16 l 50 -16 v-100 z" />
 </g>
-<text style="fill:white;" x="10" y="78">HEAD</text>
+<text style="fill:white;" x="10" y="75">Theme</text>
+<text style="fill:white;" x="10" y="59">History</text>
 </svg>

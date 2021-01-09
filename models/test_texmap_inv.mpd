@@ -1,0 +1,13 @@
+0 FILE CT200h.ldr
+0 Lexus CT200h in scale 1:20
+0 Author: Lasse Deleuran
+0 Name: CT200h.ldr
+1 16 -140 -128 50 0 0 1 0 1 0 -1 0 0 al.ldr
+0
+0 FILE al.ldr
+0 Name: al.ldr
+1 16 0 -14.881 -64.269 -1 0 0 0 0 1 0 1 0 am.ldr
+0
+0 FILE am.ldr
+0 Name: am.ldr
+1 179 0 -56 48 1 0 0 0 1 0 0 0 1 98138lexush.dat

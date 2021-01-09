@@ -229,23 +229,11 @@ LDR.LDRGeometry.prototype.buildTexmapGeometriesForColor = function(c) {
         let uvs = []; // x 2
         let indexMap = {}; // original index -> new index
 
-        //let uvs = new Float32Array(triangleVertices.length*2); // TODO!
-        
         // Compute ps and uvs:
         let texmapPlacement;
         function set(a, b, c) {
             let vertex = self.vertices[a];
             let [u,v] = texmapPlacement.getUV(vertex, self.vertices[b], self.vertices[c]);
-
-            if(indexMap.hasOwnProperty(a)) {
-                let idx = indexMap[a];
-                // Check UV:
-                let oldU = uvs[2*idx], oldV = uvs[2*idx+1];
-                /*if(oldU === u && oldV === v) { TODO!
-                    indices.push(idx);
-                    return;
-                    } TODO */
-            }
 
             let idx = indices.length;
             indexMap[a] = idx;
@@ -805,18 +793,7 @@ LDR.LDRGeometry.prototype.sortAndBurnVertices = function(vertices, primitives) {
 
         let p = primitives[v.c][v.idx];
         p.t = v.t; // texmapPlacement stored on primitives - not on vertices.
-	if(v.p === 1) {
-	    p.p1 = idx;
-        }
-	else if(v.p === 2) {
-	    p.p2 = idx;
-        }
-	else if(v.p === 3) {
-	    p.p3 = idx;
-        }
-	else {
-	    p.p4 = idx;
-        }
+	p['p'+v.p] = idx;
 	prev = v;
     }
 }
@@ -987,30 +964,12 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
 	replaceColor = x => x === '16' ? '24' : ''+x;
     }
     else if(pd.c < 0) { // Edge color
-        let pos = ''+pd.c;
-	replaceColor = function(x) {
-	    if(x === '16' || x === '24') {
-		return pos;
-            }
-	    else {
-		return ''+x;
-            }
-	};
+	replaceColor = x => ''+((x === '16' || x === '24') ? pd.c : x);
     }
     else { // Standard color
         let pos = ''+pd.c;
         let neg = ''+(-pd.c-1);
-	replaceColor = function(x) {
-	    if(x === '16') {
-		return pos;
-            }
-	    else if(x === '24') {
-		return neg;
-            }
-	    else {
-		return ''+x;
-            }
-	};
+	replaceColor = x => x === '16' ? pos : (x === '24' ? neg : ''+x);
     }
 
     // TODO: Optimize rotation matrices for I-matrix (1,0,0,0,1,0,0,0,1), \-matrices, etc.
@@ -1040,14 +999,40 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
     // Clean up vertices:
     this.vertices.forEach(v => delete v.oldIndex);    
     
-    // Update the indices and colors on the primitives:
+    // Update the indices, colors and texmap placements on the primitives:
+    let tmpMap = {}; // Texmap placement map idx => idx.
     function t(withColors, transform) {
         let ret = {};
         for(let c in withColors) {
             if(!withColors.hasOwnProperty(c)) {
                 continue;
             }
-            let primitives = withColors[c].map(transform);
+	    
+	    let wc = withColors[c];
+            let primitives = [];
+	    for(let i = 0; i < wc.length; i++) {
+		let primitive = transform(wc[i]);
+		primitives.push(primitive);
+
+		// Collect and update texmap placements:
+		if(!primitive.t) {
+		    continue;
+		}
+		let tmp = primitive.t;
+		if(tmpMap.hasOwnProperty(tmp.idx)) {
+		    primitive.t = LDR.TexmapPlacements[tmpMap[tmp.idx]];
+		}
+		else {
+		    let clone = primitive.t = tmp.clone();
+
+		    // Apply transformation to clone:
+		    clone.placeAt(pd);
+
+		    tmpMap[tmp.idx] = clone.idx;
+		}
+	    }
+
+	    // Place primitives in ret:
             let toColor = replaceColor(c);
             if(ret.hasOwnProperty(toColor)) {
                 ret[toColor].push(...primitives);
@@ -1061,15 +1046,15 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
     this.lines = t(this.lines, p => {return {p1:newIndices[p.p1],p2:newIndices[p.p2]};});
     this.conditionalLines = t(this.conditionalLines, p => {return {p1:newIndices[p.p1],p2:newIndices[p.p2],p3:newIndices[p.p3],p4:newIndices[p.p4]};});
     if(invert) {
-        this.triangles = t(this.triangles, p => {return {p1:newIndices[p.p3],p2:newIndices[p.p2],p3:newIndices[p.p1]};});
-        this.quads = t(this.quads, p => {return {p1:newIndices[p.p4],p2:newIndices[p.p3],p3:newIndices[p.p2],p4:newIndices[p.p1]};});
+        this.triangles = t(this.triangles, p => {return {p1:newIndices[p.p3],p2:newIndices[p.p2],p3:newIndices[p.p1],t:p.t};});
+        this.quads = t(this.quads, p => {return {p1:newIndices[p.p4],p2:newIndices[p.p3],p3:newIndices[p.p2],p4:newIndices[p.p1],t:p.t};});
     }
     else {
-        this.triangles = t(this.triangles, p => {return {p1:newIndices[p.p1],p2:newIndices[p.p2],p3:newIndices[p.p3]};});
-        this.quads = t(this.quads, p => {return {p1:newIndices[p.p1],p2:newIndices[p.p2],p3:newIndices[p.p3],p4:newIndices[p.p4]};});
+        this.triangles = t(this.triangles, p => {return {p1:newIndices[p.p1],p2:newIndices[p.p2],p3:newIndices[p.p3],t:p.t};});
+        this.quads = t(this.quads, p => {return {p1:newIndices[p.p1],p2:newIndices[p.p2],p3:newIndices[p.p3],p4:newIndices[p.p4],t:p.t};});
     }
-    this.triangles2 = t(this.triangles2, p => {return {p1:newIndices[p.p3],p2:newIndices[p.p2],p3:newIndices[p.p1]};});
-    this.quads2 = t(this.quads2, p => {return {p1:newIndices[p.p4],p2:newIndices[p.p3],p3:newIndices[p.p2],p4:newIndices[p.p1]};});
+    this.triangles2 = t(this.triangles2, p => {return {p1:newIndices[p.p3],p2:newIndices[p.p2],p3:newIndices[p.p1],t:p.t};});
+    this.quads2 = t(this.quads2, p => {return {p1:newIndices[p.p4],p2:newIndices[p.p3],p3:newIndices[p.p2],p4:newIndices[p.p1],t:p.t};});
 
     // No culling in PD: Move all culled triangles and quads to non-culled:
     if(!pd.cull) {
