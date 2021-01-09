@@ -212,7 +212,7 @@ LDR.SubPartBuilder.prototype.buildIcons = function(baseObject, linkPrefix) {
                 pt.ID = 'HIGHLIGHT_PART_' + i++;
                 pt.addStep(step);
                 pt.geometry = g;
-		pt.generateThreePart(self.loader, 40, self.p, self.r, true, false, line.mc, pd);
+		pt.generateThreePart(self.loader, 16, self.p, self.r, true, false, line.mc, pd);
 	    }
 	    else if(type === 2) {
 		LDR.makeEle(tr, 'td', 'line_type').innerHTML = 'Line';
@@ -308,8 +308,8 @@ LDR.SubPartBuilder.prototype.buildIcons = function(baseObject, linkPrefix) {
 
     let step = this.partType.steps[0];
     step.subModels.forEach(sm => {
-            sm.commentLines.forEach(line => handleLine(line, 0));
             handleLine(sm, 1);
+            sm.commentLines.forEach(line => handleLine(line, 0));
         });
     step.lines.forEach(x => handleLine(x, 2));
     step.triangles.forEach(x => handleLine(x, 3));
@@ -397,7 +397,7 @@ LDR.SubPartBuilder.prototype.drawAllIcons = function() {
 
 // Ensure LDR geometries want to play ball:
 LDR.LDRGeometry.prototype.cleanTempData = function() {
-    //delete this.vertices; // We need this!
+    //delete this.vertices; // We need these for the highlighted points!
     delete this.lines;
     delete this.conditionalLines;
     delete this.quads;
