@@ -563,7 +563,7 @@ LDR.Generator = {
         'recte4': X => X.rect(30, '4 Edges', ' Empty'),
 
         // Boxes:
-        'box': X => X.bx(4095, 63, '6 (six faces)'),
+        'box': X => X.bx(4095, 63),
         'box0': X => X.bx(4095, 0, '', 'and All'),
         'box2-5': X => X.bx(799, 5, '', 'without 5'),
         'box2-7': X => X.bx(779, 5, '', 'without 7'),

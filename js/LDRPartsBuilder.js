@@ -71,8 +71,12 @@ LDR.PartAndColor = function(key, part, c, loader) {
 
     this.partType = loader.getPartType(this.ID);
     if(!this.partType) {
-	console.warn("Unknown part type: " + this.ID + ". Showing box instead.");
-	this.partType = LDR.Generator.makeEmpty(this.ID);
+	let desc = 'Unknown part type: ' + this.ID + '. Showing a box instead.';
+	console.warn(desc);
+	let pt = this.partType = LDR.Generator.bx(4095, 63);
+	pt.modelDescription = desc;
+	pt.ID = this.ID;
+	loader.partTypes[pt.ID] = pt;
     }
 
     // Rotate for pli:
