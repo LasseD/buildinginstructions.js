@@ -1,7 +1,7 @@
-0 Dish  6 x  6 Inverted Solid Studs with Millenium Falcon Cockpit Pattern
+0 Dish  6 x  6 Inverted Solid Studs with Millennium Falcon Cockpit Pattern
 0 Name: 44375bps0.dat
 0 Author: Gerald Lasser [GeraldLasser]
-0 !LDRAW_ORG Part UPDATE 2019-02
+0 !LDRAW_ORG Part UPDATE 2020-03
 0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
 
 0 BFC CERTIFY CCW
@@ -11,6 +11,8 @@
 0 !HELP -c47
 
 0 !HISTORY 2019-09-09 [PTadmin] Official Update 2019-02
+0 !HISTORY 2020-10-04 [cwdee] Update description
+0 !HISTORY 2020-12-29 [PTadmin] Official Update 2020-03
 
 1 16 0 0 0 1 0 0 0 1 0 0 0 1 s\44375s01.dat
 1 16 0 0 0 0 0 1 0 1 0 -1 0 0 stug-2x2.dat

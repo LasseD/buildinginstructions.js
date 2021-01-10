@@ -56,7 +56,7 @@ ENV.Scene.prototype.reset = function() {
     this.mc = new LDR.MeshCollector(opaqueObject, sixteenObject, transObject);
 }
 
-ENV.Scene.prototype.setUpGui = function(setModelColorOriginal) {
+ENV.Scene.prototype.setUpGui = function(setModelColorOriginal, canSetColor = true) {
     let self = this;
     let size = this.size;
     let r = () => {self.camera.updateProjectionMatrix(); self.render()};
@@ -70,13 +70,15 @@ ENV.Scene.prototype.setUpGui = function(setModelColorOriginal) {
             }
         },
         model: {
-            color: self.modelColor,
         },
         hemisphereLight: {
             color: "#F4F4FB",
             groundColor: "#30302B",
         }
     };
+    if(canSetColor) {
+        options.model.color = self.modelColor;
+    }
 
     let gui = new dat.GUI({autoPlace: false});    
     {
@@ -143,8 +145,10 @@ ENV.Scene.prototype.setUpGui = function(setModelColorOriginal) {
                 LDR.Colors.loadTextures(() => {M.normalMap = m.normalMap; M.needsUpdate = true; self.render();});
 		setModelColorOriginal && setModelColorOriginal(idx);
             }
-            c.add(options.model, 'color', choices).onChange(idx => self.setModelColor(idx));
-            c.open(); // Open the folder by default if color can be set.
+	    if(canSetColor) {
+		c.add(options.model, 'color', choices).onChange(idx => self.setModelColor(idx));
+		c.open(); // Open the folder by default if color can be set.
+	    }
         }
 	else {
 	    self.setModelColor = () => {}; // No option to change color if no color 16 is present.
@@ -200,6 +204,9 @@ ENV.Scene.prototype.render = function() {
 }
 
 ENV.Scene.prototype.onCameraMoved = function() {
+    if(!this.size) {
+	return; // Called before ready
+    }
     let cameraDist = this.camera.position.length();
     this.camera.near = Math.max(0.5, cameraDist - this.size.diam*3);
     this.camera.far = cameraDist + this.size.diam*4;

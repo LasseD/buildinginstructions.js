@@ -7,7 +7,7 @@
  * The color picker makes it easy to enable LDraw color selection in the web app,
  * and for users to pick a color.
  */
-LDR.ColorPicker = function(onColorSelected) {
+LDR.ColorPicker = function(onColorSelected, showOnlyAbsColors = false) {
     let self = this;
     this.onColorSelected = onColorSelected;
 
@@ -23,6 +23,16 @@ LDR.ColorPicker = function(onColorSelected) {
     }
 
     function addColorElement(color, i) {
+        if(showOnlyAbsColors) { // No special materials - only ABS and normal trans:
+	    if(i === 16 ||
+	       i === 24 ||
+	       !color.hasOwnProperty('edge') ||
+	       color.hasOwnProperty('material') ||
+	       color.hasOwnProperty('luminance')) {
+                return;
+            }
+        }
+
         let colorContainer = document.createElement('span');
         colorContainer.setAttribute('class', 'color_container');
         colorPickerEle.append(colorContainer);
@@ -37,8 +47,8 @@ LDR.ColorPicker = function(onColorSelected) {
         colorEle.addEventListener('click', function(event){
                 event.preventDefault();
                 event.stopPropagation();
-                onColorSelected(this.c);
                 $("#color_picker_background, #color_picker_holder").hide();
+                onColorSelected(this.c);
             }, false);
     }
     LDR.Colors.forEach(addColorElement);

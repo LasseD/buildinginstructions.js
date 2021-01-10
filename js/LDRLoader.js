@@ -2351,7 +2351,7 @@ THREE.LDRPartType.prototype.isOfficialLDraw = function() {
 }
 
 THREE.LDRPartType.prototype.isReplacedPart = function() {
-    if(!this.isPart) {
+    if(!this.isPart || this.steps.length === 0) {
 	return false; // Not a part
     }
     let step = this.steps[0];

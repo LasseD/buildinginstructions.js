@@ -27,7 +27,7 @@ LDR.LDCAD.handleCommentLine = function(pt, parts) {
 }
 
 LDR.LDCAD.handlePart = function(loader, pt) {
-    if(pt.ldCadGenerated) {
+    if(pt.ldCadGenerated && pt.steps.length > 0) {
         // Fix the description set Bricklink ID (LDR.BL[ID->BL]):
         // If sub models contain a shortcut, then use it:
         let step = pt.steps[0];
