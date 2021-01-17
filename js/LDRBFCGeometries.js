@@ -1,6 +1,6 @@
 'use strict';
 
-LDR.LDRGeometry.prototype.buildGeometries = function() {
+LDR.LDRGeometry.prototype.buildBFCGeometries = function() {
     if(this.geometriesBuilt) {
 	return; // Already built.
     }

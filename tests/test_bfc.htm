@@ -9,16 +9,18 @@
     <script src="../js/three.min.js"></script>
     <script src="../js/OrbitControls.js"></script>
     <script src="../js/colors.js"></script>
-    <script src="../js/LDROptions.js"></script>
+    <script src="../js/LDRGeometries.js"></script>
+    <script src="../js/LDRBFCGeometries.js"></script><!-- Enables BFC -->
     <script src="../js/LDRShaders.js"></script>
     <script src="../js/LDRColorMaterials.js"></script>
-    <script src="../js/LDRBFCGeometries.js"></script><!-- Enables BFC -->
     <script src="../js/LDRMeasurer.js"></script>
+    <script src="../js/LDRLoader.js"></script>
     <script src="../js/LDRGenerator.js"></script>
     <script src="../js/LDRStuds.js"></script>
-    <script src="../js/LDRLoader.js"></script>
     <script>
-      let partID = 'u9102.dat';
+      LDR.LDRGeometry.prototype.buildGeometries = LDR.LDRGeometry.prototype.buildBFCGeometries;
+      
+      let partID = 's/3001s01.dat';
 
       // Set up camera:
       var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
@@ -76,7 +78,7 @@
         var mc = new LDR.MeshCollector(opaqueObject, sixteenObject, transObject);
 
         // Generate the mesh:
-        ldrLoader.generate(0, mc);
+        ldrLoader.generate(16, mc);
 
         // Find center of drawn model:
         var b = mc.boundingBox;
@@ -91,9 +93,7 @@
       }
 
       // Determine how to show lines:
-      LDR.Options.lineContrast = 1; // Set to 0 for high contrast line colors, and 1 for normal line colors.
-      LDR.Options.studHighContrast = 0; // Set to 1 for showing black sides on studs like in official LEGO building instructions. Set to 0 for normal stud colors.
-      LDR.Options.studLogo = 1; // 0 for no logo, 1 to 5 for logos of types 1 to 5.
+      LDR.Options = {lineContrast:0, studHighContrast:0, studLogo:1};
 
       // The following function makes the ldrLoader search through the official
       // and unofficial file structures (unofficial/ and unofficial/) for parts.
@@ -121,7 +121,6 @@
         }
       }
 
-      LDR.LDRGeometry = LDR.BFCGeometry; // Enable BFC.
       ldrLoader = new THREE.LDRLoader(onLoad, null, {idToUrl:idToUrl});
       LDR.Studs.setStuds(ldrLoader, LDR.Options.studHighContrast,
                          LDR.Options.studLogo, () => ldrLoader.load(partID));
