@@ -232,7 +232,7 @@
                 mainModel = ldrLoader.getPartType(ldrLoader.mainModel + '.ldr');
             }
 	}
-        mainModel.isPart = function(){return false;};
+        mainModel.isPart = () => false;
         
         // Generate the mesh:
         mc = new LDR.MeshCollector(redrawObject, redrawObject, redrawObject);
@@ -324,14 +324,12 @@
         
         //let buttonEle = document.getElementById('color_picker_button');
         //colorPicker.decorateEle(buttonEle, colorObject, idx);
-        
-        console.log('setting color ' + idx);
 
         document.getElementById('color_text').innerHTML = 'Color ' + idx + ' - ' + colorObject.name;
         
         if(builder) {
-            builder.c = idx;
             mc.overwriteColor(idx);
+            builder.c = idx; // Update color (c) of sub part builder
             builder.drawTableIcons();
             render();
         }
@@ -352,7 +350,7 @@
     LDR.Options.appendPartPointSizeOptions(optionsDiv);
     LDR.Options.appendPartColorOptions(optionsDiv);
     LDR.Options.appendFooter(optionsDiv);
-    LDR.Options.listeners.push(function(geometriesChanged) {
+    LDR.Options.listeners.push(function() {
         console.log('Redraw for options');
         
         scene.background = new THREE.Color(LDR.Options.bgColor);
@@ -366,7 +364,9 @@
             if(builder) {
                 builder.drawTableIcons();
             }
-            render();
+            let oldColor = color;
+            setColor(16); // Make sure color is changed.
+            setColor(oldColor);
         }
         LDR.Studs.setStuds(ldrLoader, LDR.Options.studHighContrast, LDR.Options.studLogo, onStudsSet);
     });
