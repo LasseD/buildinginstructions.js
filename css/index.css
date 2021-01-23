@@ -439,6 +439,7 @@ Fancy title bar
     padding: 0.3em;
     border: 0.2em solid #2BB;
     vertical-align: middle;
+    cursor: pointer;
 }
 .other_actions a.positive {
     background-color: #4B4;

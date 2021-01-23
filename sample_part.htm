@@ -23,10 +23,25 @@
   <script src="js/LDRButtons.js"></script>
   <script src="js/LDRColorMaterials.js"></script>
   <script src="js/LDRGeometries.js"></script>
+  <script src="js/LDRBFCGeometries.js"></script>
   <script src="js/LDRLoader.js"></script>
+  <script src="js/LDRGenerator.js"></script>
+  <script src="js/LDRStuds.js"></script>
   <script src="js/LDRMeasurer.js"></script>
   <script src="js/LDRSubPartBuilder.js"></script>
   <script src="js/LDRColorPicker.js"></script>
+
+<div id="title_bar">
+ <div id="title_bar_name_left"></div>
+ <div id="title_bar_name_right"></div>
+ <div id="title_bar_name_center"></div>
+ <div id="title_bar_title_info">
+  <div id="title_bar_name">Single Part View</div>
+  <div class="title_line" id="color_text" onclick="$('#color_picker_background, #color_picker_holder').fadeIn(250)">Color 16 - Main_Colour</div>
+  <div class="title_line" id="bfc_text">Back Face Culling-mode: Green shows triangles and quads winded counter-clockwise. Red is for clockwise. Blue indicates no culling. Use this mode to discover BFC issues</div>
+  <div class="title_line" id="harlequin_text">Harlequin-mode: Highlights how the geometries interact. This is helpful for discovering <a href="https://wiki.ldraw.org/wiki/T-Junction">T junctions</a></div>
+ </div>
+</div>
   
   <div id="preview">
    <canvas id="main_canvas"></canvas>
@@ -34,6 +49,50 @@
   </div>
   <div id="load_messages"></div>
 
+  <span class="other_actions">
+    <script>
+      function setMode(mode) {
+          LDR.setMode(mode);
+          generateMesh();
+
+          switch(mode) {
+          case 0:
+              $('#color_text').show();
+              $('#bfc_text').hide();
+              $('#harlequin_text').hide();
+              $('#normal_button').hide();
+              $('#bfc_button').show();
+              $('#harlequin_button').show();
+              break;
+          case 1:
+              $('#color_text').hide();
+              $('#bfc_text').show();
+              $('#harlequin_text').hide();
+              $('#normal_button').show();
+              $('#bfc_button').hide();
+              $('#harlequin_button').show();
+              break;
+          case 2:
+              $('#color_text').hide();
+              $('#bfc_text').hide();
+              $('#harlequin_text').show();
+              $('#normal_button').show();
+              $('#bfc_button').show();
+              $('#harlequin_button').hide();
+              break;
+          }
+
+          if(builder) {
+              builder.drawTableIcons();
+              render();
+          }
+      }
+    </script>
+    <a onclick="setMode(0)" id="normal_button"><span>Normal View</span></a>
+    <a onclick="setMode(1)" id="bfc_button"><span>BFC Mode</span></a>
+    <a onclick="setMode(2)" id="harlequin_button"><span>Harlequin Mode</span></a>
+  </span>
+  
   <span class="bar"><span>Structure</span></span>
   <div id="file_structure_holder">
    <table id="file_structure">
@@ -53,54 +112,57 @@
    <div id="color_picker_holder" class="holder"></div>
   </div>
   <script>
-      // The model to be rendered:
-      let w = 1, h = 1;
-      let ldrLoader;
-      let builder;
+    var color = 16;
 
-      // Set up camera:
-      let camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
+    var w = 1, h = 1;
+    var ldrLoader;
+    var builder;
 
-      // Set up scene:
-      let scene = new THREE.Scene();
-      scene.background = new THREE.Color(LDR.Options.bgColor);
-      let baseObject = new THREE.Group(); // Shown model is added to this.
-      scene.add(baseObject);
+    // Set up camera:
+    let camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
 
-      // Set up renderer:
-      let canvas = document.getElementById('main_canvas');
-      let renderer = new THREE.WebGLRenderer({canvas:canvas, antialias:true});
-      renderer.setPixelRatio(window.devicePixelRatio);
-      function render() {
+    // Set up scene:
+    let scene = new THREE.Scene();
+    scene.background = new THREE.Color(LDR.Options.bgColor);
+    let baseObject = new THREE.Group(); // Marker points and position.
+    scene.add(baseObject);
+    let redrawObject = new THREE.Group(); // Shown model
+    baseObject.add(redrawObject);
+    
+    // Set up renderer:
+    let canvas = document.getElementById('main_canvas');
+    let renderer = new THREE.WebGLRenderer({canvas:canvas, antialias:true});
+    renderer.setPixelRatio(window.devicePixelRatio);
+    function render() {
         renderer.render(scene, camera);
-      }
-      let preview = document.getElementById('preview');
-
-      function resetCameraPosition() {
+    }
+    let preview = document.getElementById('preview');
+    
+    function resetCameraPosition() {
         camera.zoom = 1;
         camera.position.set(100*w, 70*w, 100*w);
 	camera.lookAt(new THREE.Vector3());
         updateCameraSize();
 	render();
-      }
-      function zoomIn() {
+    }
+    function zoomIn() {
         controls.dollyIn(1.2);
         render();
-      }
-      function zoomOut() {
+    }
+    function zoomOut() {
         controls.dollyOut(1.2);
         render();
-      }
+    }
 
-      function updateCameraSize() {
+    function updateCameraSize() {
         camera.left = -w;
         camera.right = w;
         camera.top = h;
         camera.bottom = -h;
     	camera.updateProjectionMatrix();
-      }
+    }
 
-      function onWindowResize(){
+    function onWindowResize(){
 	let W = window.innerWidth*0.8;
 	let H = window.innerHeight*0.8;
 	W = H = Math.min(W, H);
@@ -111,173 +173,202 @@
 	preview.style.height = renderer.domElement.style.height = H + "px";//*/
 	renderer.setSize(W, H);
 	render();
-      }
+    }
 
-      // React to user input:
-      resetCameraPosition();
-      let controls = new THREE.OrbitControls(camera, renderer.domElement);
-      controls.addEventListener('change', render);
-      window.addEventListener('resize', onWindowResize, false);
+    // React to user input:
+    resetCameraPosition();
+    let controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.addEventListener('change', render);
+    window.addEventListener('resize', onWindowResize, false);
+    
+    let actions = {
+        zoomIn: () => zoomIn(),
+        zoomOut: () => zoomOut(),
+        resetCameraPosition: () => resetCameraPosition(),
+    };
+    let ldrButtons = new LDR.Buttons(actions, preview, false);
+    
+    // Three.js loader for LDraw models:
+    var mc;
+    let pointMaterial, inv, elementCenter;
+    var mainModel;
+    let origo = new THREE.Vector3();
+    inv = new THREE.Matrix3(); inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
 
-      let actions = {
-          zoomIn: () => zoomIn(),
-          zoomOut: () => zoomOut(),
-          resetCameraPosition: () => resetCameraPosition(),
-      };
-      let ldrButtons = new LDR.Buttons(actions, preview, false);
-
-      // Three.js loader for LDraw models:
-      let mc = new LDR.MeshCollector(baseObject, baseObject, baseObject);
-      let pointMaterial, inv, elementCenter;
-
-      let onLoad = function() {
-        onWindowResize();
-
-        let mainModel = ldrLoader.getMainModel();
-	if(!mainModel) {
-	  mainModel = ldrLoader.getPartType(ldrLoader.mainModel + '.dat');
-          if(!mainModel) {
-            mainModel = ldrLoader.getPartType(ldrLoader.mainModel + '.ldr');
-          }
-	}
-
-	mainModel.isPart = function(){return false;};
-        mainModel.ensureGeometry(ldrLoader);
-
-        // Place model in scene:
-        let origo = new THREE.Vector3();
-        inv = new THREE.Matrix3(); inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
-
-        // Generate the mesh:
-        mainModel.generateThreePart(ldrLoader, 40, origo, inv, true, false, mc); // Trans color to ensure tansparency is set in the material.
-	mc.overwriteColor(16);
+    let markerPoints;
+    function showMarkerPoints(show) {
+        markerPoints.visible = show;
+    }
+    
+    function generateMesh() {
+        // Clean:
+        while(redrawObject.children.length > 0) {
+            redrawObject.remove(redrawObject.children[0]);
+        }
+        ldrLoader.applyOnPartTypes(pt => delete pt.geometry);
+        
+        // Rebuild:
+        mainModel.ensureGeometry(ldrLoader); // Because 'isPart()' is set to return false!
+        mainModel.generateThreePart(ldrLoader, 16, origo, inv, true, false, mc); // Trans color to ensure tansparency is set in the material.
+	mc.overwriteColor(color);
         mc.draw(false);
-	
+
+        // Red Points:
+	let pointGeometry = new THREE.BufferGeometry();
+	pointGeometry.setAttribute('position', mainModel.geometry.buildVertexAttribute(inv));
+	pointMaterial = new THREE.PointsMaterial({size: LDR.Options.pointSize, color: LDR.Options.pointColor});
+	pointMaterial.visible = LDR.Options.pointSize > 0;
+	markerPoints = new THREE.Points(pointGeometry, pointMaterial);
+	redrawObject.add(markerPoints);
+    }
+    
+    let onLoad = function() {
+        onWindowResize();
+        
+        mainModel = ldrLoader.getMainModel();
+	if(!mainModel) {
+	    mainModel = ldrLoader.getPartType(ldrLoader.mainModel + '.dat');
+            if(!mainModel) {
+                mainModel = ldrLoader.getPartType(ldrLoader.mainModel + '.ldr');
+            }
+	}
+        mainModel.isPart = function(){return false;};
+        
+        // Generate the mesh:
+        mc = new LDR.MeshCollector(redrawObject, redrawObject, redrawObject);
+        setMode(0); // 0 = normal, 1 = bfc, 2 = harlequin
+    	
         // Find center of draw model:
 	let b = mc.boundingBox;
 	elementCenter = new THREE.Vector3();
 	b.getCenter(elementCenter);
 	elementCenter = elementCenter.negate();
-
+        
 	baseObject.position.add(elementCenter);
 	baseObject.updateMatrixWorld(true);
 	//baseObject.add(new THREE.Box3Helper(b, 0xff0000));
-
+        
 	let measurer = new LDR.Measurer(camera);
 	let [dx,dy] = measurer.measure(b, baseObject.matrixWorld);
-
+        
 	w = h = 0.505*Math.max(dx, dy);
 	resetCameraPosition();
-
+        
 	render();
-
-	// Red Points:
-	let pointGeometry = new THREE.BufferGeometry();
-	pointGeometry.setAttribute('position', mainModel.geometry.buildVertexAttribute(inv));
-	pointMaterial = new THREE.PointsMaterial({size: LDR.Options.pointSize, color: LDR.Options.pointColor});
-	pointMaterial.visible = LDR.Options.pointSize > 0;
-	let markerPoints = new THREE.Points(pointGeometry, pointMaterial);
-	baseObject.add(markerPoints);
-
+        
 	// Build structure:
         let structureEle = document.getElementById('file_structure');
 	let onIconClick = function(){
-	  render();
-	  preview.scrollIntoView();
+	    render();
+	    preview.scrollIntoView();
 	};
-	builder = new LDR.SubPartBuilder(mc, structureEle, markerPoints, ldrLoader, mainModel, c, origo, inv, scene, w, onIconClick, 0);
-        builder.drawAllIcons();
-
+	builder = new LDR.SubPartBuilder(mc, redrawObject, structureEle, showMarkerPoints, ldrLoader, mainModel, color, origo, inv, scene, w, onIconClick, 0);
+        builder.drawTableIcons();
+        
 	$('#load_details').show();
 	$('#load_details').on('click', function() {
-  	  $('#load_details').hide();
-	  builder.buildIcons(baseObject, '');
-          builder.drawAllIcons();
+  	    $('#load_details').hide();
+	    builder.enableStructureView('');
+            builder.drawTableIcons();
 	});
-      }
-
-      let onError = function(obj) {
+    }
+    
+    let onError = function(obj) {
         if(obj.message)
-          showMessage('error', 'Error', obj.message, obj.line, obj.subModel.ID);
+            showMessage('error', 'Error', obj.message, obj.line, obj.subModel.ID);
 	else
-	  showMessage('error', 'Error!', obj);
-      };
-
-      let onWarning = function(obj) {
-          	  showMessage('warning', 'Warning', obj.message, obj.line, obj.subModel.ID);
-              };
-
-      function showMessage(className, title, msg, line, subModel) {
+	    showMessage('error', 'Error!', obj);
+    };
+    
+    let onWarning = function(obj) {
+        showMessage('warning', 'Warning', obj.message, obj.line, obj.subModel.ID);
+    };
+    
+    function showMessage(className, title, msg, line, subModel) {
         let messages = document.getElementById('load_messages');
-
+        
 	let messageElement = document.createElement('span');
 	messageElement.setAttribute('class', className);
 	messages.appendChild(messageElement);
-
+        
 	let messageHeader = document.createElement('span');
 	messageHeader.setAttribute('class', 'message_header');
 	if(line != undefined && subModel != undefined) {
-	  title += ' on line ' + line + ' in model "' + subModel + '"';
+	    title += ' on line ' + line + ' in model "' + subModel + '"';
 	}
 	messageHeader.innerHTML = title;
 	messageElement.appendChild(messageHeader);
-
+        
 	let messageBody = document.createElement('span');
 	messageBody.setAttribute('class', 'message_body');
 	messageBody.innerHTML = msg;
 	messageElement.appendChild(messageBody);
-      }
+    }
 
-      ldrLoader = new THREE.LDRLoader(onLoad, null, {onError:onError, onWarning:onWarning, saveFileLines:true});
-      //ldrLoader.load('3001.dat');
-      ldrLoader.load('98138lexush.dat');
+    ldrLoader = new THREE.LDRLoader(onLoad, null, {onError:onError, onWarning:onWarning, saveFileLines:true});
+    LDR.Studs.makeGenerators('', LDR.Options.studHighContrast, LDR.Options.studLogo);
 
-      // Color setup:
-      let colorPicker = new LDR.ColorPicker(setColor);
-      let c = 16;
+    //ldrLoader.load('32525.dat');
+    ldrLoader.load('3024.dat');        
+    //ldrLoader.load('s/3001s01.dat');        
     
-      function setColor(idx) {
-        if(c === idx || idx === undefined) {
-	  return;
+    // Color setup:
+    let colorPicker = new LDR.ColorPicker(setColor);
+    
+    function setColor(idx) {
+        if(color === idx || idx === undefined) {
+	    return;
 	}
-        c = idx;
-        let color = LDR.Colors[idx];
-
-        let buttonEle = document.getElementById('color_picker_button');
-        colorPicker.decorateEle(buttonEle, color, idx);
-
+        color = idx;
+        let colorObject = LDR.Colors[idx];
+        
+        //let buttonEle = document.getElementById('color_picker_button');
+        //colorPicker.decorateEle(buttonEle, colorObject, idx);
+        
         console.log('setting color ' + idx);
-                  
-        if(builder) {
-          builder.c = idx;
-          mc.overwriteColor(idx);
-          builder.drawAllIcons();
-          render();
-        }
-      }
 
-      let colorButton = colorPicker.createButton();
-      document.getElementById('color_button').append(colorButton);
+        document.getElementById('color_text').innerHTML = 'Color ' + idx + ' - ' + colorObject.name;
+        
+        if(builder) {
+            builder.c = idx;
+            mc.overwriteColor(idx);
+            builder.drawTableIcons();
+            render();
+        }
+    }
+    
+    let colorButton = colorPicker.createButton();
+    document.getElementById('color_button').append(colorButton);
   </script>
   <div id="options"></div>
   <script>
     let optionsDiv = document.getElementById('options');
     LDR.Options.appendHeader(optionsDiv);    
+
+    LDR.Options.appendContrastOptions(optionsDiv);
+    LDR.Options.appendStudHighContrastOptions(optionsDiv);
+    LDR.Options.appendStudLogoOptions(optionsDiv);
+
     LDR.Options.appendPartPointSizeOptions(optionsDiv);
     LDR.Options.appendPartColorOptions(optionsDiv);
-    LDR.Options.appendContrastOptions(optionsDiv);
     LDR.Options.appendFooter(optionsDiv);
-    LDR.Options.listeners.push(function() {
-      scene.background = new THREE.Color(LDR.Options.bgColor);
-      if(pointMaterial) {
-        pointMaterial.color = new THREE.Color(LDR.Options.pointColor);
-        pointMaterial.visible = LDR.Options.pointSize > 0;
-        pointMaterial.size = LDR.Options.pointSize;
-      }
-      if(builder) {
-        builder.drawAllIcons();
-      }
-      render();
+    LDR.Options.listeners.push(function(geometriesChanged) {
+        console.log('Redraw for options');
+        
+        scene.background = new THREE.Color(LDR.Options.bgColor);
+        if(pointMaterial) {
+            pointMaterial.color = new THREE.Color(LDR.Options.pointColor);
+            pointMaterial.visible = LDR.Options.pointSize > 0;
+            pointMaterial.size = LDR.Options.pointSize;
+        }
+        function onStudsSet() {
+            generateMesh();
+            if(builder) {
+                builder.drawTableIcons();
+            }
+            render();
+        }
+        LDR.Studs.setStuds(ldrLoader, LDR.Options.studHighContrast, LDR.Options.studLogo, onStudsSet);
     });
    </script>
  </body>

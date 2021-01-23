@@ -6,21 +6,19 @@ LDR.ICON_SIZE = 200;
   The LDRSubPartBulder is used for displaying a part and all of its sub parts, 
   primitives, and comment lines.
 */
-LDR.SubPartBuilder = function(baseMC, table, redPoints, loader, partType, c, position, rotation, scene, subjectSize, onIconClick, from) {
-    if(c === undefined)
-	throw "Color undefined!";
-
+LDR.SubPartBuilder = function(baseMC, baseObject, table, setMarkerPoints, loader, partType, c, position, rotation, scene, subjectSize, onIconClick, from) {
     let self = this;
     this.baseMC = baseMC;
+    this.baseObject = baseObject;
     this.table = table;
-    this.redPoints = redPoints;
+    this.setMarkerPoints = setMarkerPoints;
     this.loader = loader;
     this.c = c;
     this.p = position;
     this.r = rotation;
     this.scene = scene;
     this.partType = partType;
-    this.linesBuilt = false;
+    this.showStructureView = false;
     this.onIconClick = onIconClick;
     this.from = from;
 
@@ -40,6 +38,7 @@ LDR.SubPartBuilder = function(baseMC, table, redPoints, loader, partType, c, pos
 
     // Add self to table:
     let tr = LDR.makeEle(table, 'tr');
+    LDR.tableRows = []; // Don't remove top row.
     LDR.makeEle(tr, 'td', 'line_type').innerHTML = partType.ID;
     LDR.makeEle(tr, 'td', 'line_desc').innerHTML = LDR.writePrettyPointsPR(p0, m0);
     LDR.makeEle(tr, 'td', 'line_cull').innerHTML = "&#x271" + (this.partType.certifiedBFC ? '4' : '6') + ";";;
@@ -51,10 +50,10 @@ LDR.SubPartBuilder = function(baseMC, table, redPoints, loader, partType, c, pos
     // Add icon for self:
     this.canvas = LDR.buildThumbnail(this.imageHolder);
     this.canvas.addEventListener('click', function(){
-	self.setFileLineVisibility(false);
+	self.hideFileLines();
 	self.baseMC.setVisible(true);
-	self.redPoints.visible = false;
-	self.onIconClick();
+	self.setMarkerPoints(false);
+	self.onIconClick(); // Callback
     }, false);
 }
 
@@ -80,11 +79,15 @@ LDR.writePrettyPointsPR = function(p, r) {
     return ret;
 }
 
+LDR.tableRows = [];
 LDR.makeEle = function(parent, type, cls) {
     let ret = document.createElement(type);
     parent.appendChild(ret);
     if(cls) {
 	ret.setAttribute('class', cls);
+    }
+    if(type === 'tr') {
+        LDR.tableRows.push(ret);
     }
     return ret;
 }
@@ -107,14 +110,16 @@ LDR.buildThumbnail = function(ele) {
 
 THREE.LDRPartType.prototype.removePrimitivesAndSubParts = () => {}; // Ensure primitives are not deleted.
 
-LDR.SubPartBuilder.prototype.setFileLineVisibility = function(v) {
-    if(!this.linesBuilt) {
+LDR.SubPartBuilder.prototype.hideFileLines = function(v) {
+    if(!this.showStructureView) {
 	return;
     }
     function handle(line) {
-	line.mc.setVisible(v);
+        if(line.mc) {
+	    line.mc.setVisible(false);
+        }
 	if(line.markers) {
-	    line.markers.visible = v;
+	    line.markers.visible = false;
 	}
     }
     let step = this.partType.steps[0];
@@ -125,8 +130,18 @@ LDR.SubPartBuilder.prototype.setFileLineVisibility = function(v) {
     step.conditionalLines.forEach(handle);
 }
 
-LDR.SubPartBuilder.prototype.buildIcons = function(baseObject, linkPrefix) {
+LDR.SubPartBuilder.prototype.enableStructureView = function(linkPrefix) {
+    this.linkPrefix = linkPrefix;
+    this.showStructureView = true;
+}
+
+LDR.SubPartBuilder.prototype.buildStructureView = function() {
     let self = this;
+
+    // Clear:
+    LDR.tableRows.forEach(tr => this.table.removeChild(tr));
+    LDR.tableRows = [];
+    
     // Handle all lines:
     let transformColor = function(subColorID) {
 	if(subColorID === 16) {
@@ -161,7 +176,7 @@ LDR.SubPartBuilder.prototype.buildIcons = function(baseObject, linkPrefix) {
 	    content.setAttribute('colspan', '5');
 	}
 	else {
-	    line.mc = new LDR.MeshCollector(baseObject, baseObject, baseObject);
+	    line.mc = new LDR.MeshCollector(self.baseObject, self.baseObject, self.baseObject);
 	    let c = transformColor(line.c);
 
 	    let color = LDR.Colors[c];
@@ -182,7 +197,7 @@ LDR.SubPartBuilder.prototype.buildIcons = function(baseObject, linkPrefix) {
 
 		let typeEle = LDR.makeEle(tr, 'td', 'line_type');
 		let a = document.createElement('a');
-		let url = linkPrefix;
+		let url = self.linkPrefix;
 		if(pt.inlined && !isNaN(pt.inlined)) {
 		    url += "part.php?user_id=" + pt.inlined + "&id=";
 		}
@@ -264,7 +279,7 @@ LDR.SubPartBuilder.prototype.buildIcons = function(baseObject, linkPrefix) {
 		step.addConditionalLine(c, p1, p2, p3, p4);
 	    }
 
-	    if(type !== 1) { // TODO: Why is this necessary?
+	    if(type !== 1) { // Draw for primitives:
                 let pt = new THREE.LDRPartType();
                 pt.ID = 'Shadow part for step';
 		pt.addStep(step);
@@ -306,16 +321,17 @@ LDR.SubPartBuilder.prototype.buildIcons = function(baseObject, linkPrefix) {
 	} // if(p1)
     } // function handleLine
 
+    this.partType.headerLines.forEach(line => handleLine(line, 0));
     let step = this.partType.steps[0];
     step.subModels.forEach(sm => {
-            handleLine(sm, 1);
-            sm.commentLines.forEach(line => handleLine(line, 0));
-        });
+        handleLine(sm, 1);
+        sm.commentLines.forEach(line => handleLine(line, 0));
+    });
     step.lines.forEach(x => handleLine(x, 2));
     step.triangles.forEach(x => handleLine(x, 3));
     step.quads.forEach(x => handleLine(x, 4));
     step.conditionalLines.forEach(x => handleLine(x, 5));
-                                                                                
+
     // Icons for lines:
     function handle(line) {
 	line.canvas = LDR.buildThumbnail(line.imageHolder);
@@ -323,9 +339,9 @@ LDR.SubPartBuilder.prototype.buildIcons = function(baseObject, linkPrefix) {
 	line.canvas.addEventListener('click', function() {
             // Show only this file line and its markers:
 	    self.baseMC.setVisible(false);
-	    self.setFileLineVisibility(false);
+	    self.hideFileLines();
 	    this.line.mc.setVisible(true);
-	    self.redPoints.visible = true;
+	    self.setMarkerPoints(true);
 	    if(this.line.markers) {
 		this.line.markers.visible = true;
 	    }
@@ -333,7 +349,7 @@ LDR.SubPartBuilder.prototype.buildIcons = function(baseObject, linkPrefix) {
 	}, false);
 
 	if(line.markers) {
-	    baseObject.add(line.markers);
+	    self.baseObject.add(line.markers);
 	    line.markers.updateMatrix();
 	}
     }
@@ -342,16 +358,14 @@ LDR.SubPartBuilder.prototype.buildIcons = function(baseObject, linkPrefix) {
     step.triangles.forEach(handle);
     step.quads.forEach(handle);
     step.conditionalLines.forEach(handle);
-
-    this.linesBuilt = true;
 } 
 
-LDR.SubPartBuilder.prototype.drawAllIcons = function() {
+LDR.SubPartBuilder.prototype.drawTableIcons = function() {
     let self = this;
 
     // Base icon:
-    this.setFileLineVisibility(false);
-    this.redPoints.visible = false;
+    this.hideFileLines();
+    this.setMarkerPoints(false);
 
     this.baseMC.setVisible(true);
     this.baseMC.overwriteColor(this.c);
@@ -359,18 +373,20 @@ LDR.SubPartBuilder.prototype.drawAllIcons = function() {
     this.render();
     let context = this.canvas.getContext('2d');
     context.drawImage(this.renderer.domElement, 0, 0);
-
-    if(!this.linesBuilt) {
+    
+    if(!this.showStructureView) {
 	return;
     }
-
-    // Icons for lines:
     this.baseMC.setVisible(false);
-    this.redPoints.visible = true;
+    this.buildStructureView(); // Rebuild
+        
+    // Icons for lines:
+    this.setMarkerPoints(true);
     function handle(line) {
+	self.hideFileLines();
 	line.mc.setVisible(true);
 	line.mc.overwriteColor(self.c);
-	line.mc.draw(false);
+	line.mc.draw();
 	if(line.markers) {
 	    line.markers.visible = true;
 	}
@@ -391,7 +407,7 @@ LDR.SubPartBuilder.prototype.drawAllIcons = function() {
     step.quads.forEach(handle);
     step.conditionalLines.forEach(handle);
 
-    this.redPoints.visible = false;
+    this.setMarkerPoints(false);
     this.baseMC.setVisible(true);
 }
 

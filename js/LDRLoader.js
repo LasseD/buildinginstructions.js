@@ -2993,7 +2993,7 @@ LDR.MeshCollector.prototype.overwriteColor = function(color) {
     this.overwrittenColor = color;
 }
 
-LDR.MeshCollector.prototype.draw = function(old) {
+LDR.MeshCollector.prototype.draw = function(old = false) {
     this.update(old);
     this.updateMeshVisibility();
 }

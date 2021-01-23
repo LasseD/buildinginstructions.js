@@ -1,5 +1,7 @@
 'use strict';
 
+LDR.LDRGeometry.prototype.buildStandardGeometries = LDR.LDRGeometry.prototype.buildGeometries;
+
 LDR.LDRGeometry.prototype.buildBFCGeometries = function() {
     if(this.geometriesBuilt) {
 	return; // Already built.
@@ -63,4 +65,69 @@ LDR.LDRGeometry.prototype.buildBFCGeometries = function() {
     }
 
     this.geometriesBuilt = true;
+}
+
+LDR.acceptedHarlequinColors = [1, 2, 4, 5, 13, 14, 19, 22, 25, 27, 69, 71, 72, 73, 74, 77, 288, 308, 484];
+
+LDR.LDRGeometry.prototype.fromStandardPartType = function(loader, pt) {
+    loader.getMainModel().IS_MAIN_MODEL = true;
+    let geometries = [];
+    if(pt.steps.length === 0) {
+        return; // Empty - just make empty.
+    }
+    if(pt.IS_MAIN_MODEL) { // Harlequin the triangles and quads:
+        pt.steps.forEach(step => {
+            let setOldColor = x => {if(x.hasOwnProperty('oldC')){x.c = x.oldC;}};
+            step.quads.forEach(setOldColor);
+            step.triangles.forEach(setOldColor);
+            step.subModels.forEach(setOldColor);
+        });
+    }
+    pt.steps.forEach(step => {
+        let g = new LDR.LDRGeometry();
+        g.fromStep(loader, step);
+        geometries.push(g);
+    });
+    this.replaceWith(LDR.mergeGeometries(geometries));
+}
+
+LDR.LDRGeometry.prototype.fromHarlequinPartType = function(loader, pt) {
+    loader.getMainModel().IS_MAIN_MODEL = true;
+    let geometries = [];
+    if(pt.steps.length === 0) {
+        return; // Empty - just make empty.
+    }
+    if(pt.IS_MAIN_MODEL) { // Harlequin the triangles and quads:
+        pt.steps.forEach(step => {
+            let setNewColor = x => {x.oldC = x.c; x.c = LDR.acceptedHarlequinColors[Math.floor(Math.random() * LDR.acceptedHarlequinColors.length)]};
+            step.quads.forEach(setNewColor);
+            step.triangles.forEach(setNewColor);
+            step.subModels.forEach(setNewColor);
+        });
+    }
+    pt.steps.forEach(step => {
+        let g = new LDR.LDRGeometry();
+        g.fromStep(loader, step);
+        geometries.push(g);
+    });
+    this.replaceWith(LDR.mergeGeometries(geometries));
+}
+
+// Mode: 0 = normal, 1 = bfc, 2 = harlequin
+LDR.setMode = function(mode) {
+    console.log('Setting mode', mode);
+    switch(mode) {
+    case 0:
+        LDR.LDRGeometry.prototype.fromPartType = LDR.LDRGeometry.prototype.fromStandardPartType;
+        LDR.LDRGeometry.prototype.buildGeometries = LDR.LDRGeometry.prototype.buildStandardGeometries;
+        break;
+    case 1:
+        LDR.LDRGeometry.prototype.fromPartType = LDR.LDRGeometry.prototype.fromStandardPartType;
+        LDR.LDRGeometry.prototype.buildGeometries = LDR.LDRGeometry.prototype.buildBFCGeometries;
+        break;
+    case 2:
+        LDR.LDRGeometry.prototype.fromPartType = LDR.LDRGeometry.prototype.fromHarlequinPartType;
+        LDR.LDRGeometry.prototype.buildGeometries = LDR.LDRGeometry.prototype.buildStandardGeometries;
+        break;
+    }
 }

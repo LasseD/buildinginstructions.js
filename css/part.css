@@ -22,6 +22,10 @@ ul.pretty_points {
 .pretty_points {
     color: white;
 }
+.title_line {
+    padding-left: 1.5em;
+    padding-bottom: 0.5em;
+}
 
 /*
   Messages
@@ -45,6 +49,7 @@ ul.pretty_points {
   display: block;
   margin-bottom: 0.5em;
 }
+
 /* 
    PLI
 */
