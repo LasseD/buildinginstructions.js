@@ -36,6 +36,7 @@ LDR.Studs.makeGenerators = function(force, highContrast, logoType) {
     }
     LDR.Studs.all.forEach(f => {
         let [pt,id] = f(highContrast, logoType, force);
+        pt.id = id + '.dat';
         LDR.Generator.map[id] = () => pt;
     });
 }
@@ -46,12 +47,13 @@ LDR.Studs.setStuds = function(loader, highContrast, logoType, onDone) {
 
     let idb = []; // Primitives that we know are needed and would like to see fetched using ClientStorage:
     let seen = {};
-
     LDR.Studs.all.forEach(f => {
-	let s = f(highContrast, logoType, force);
-	if(partTypes.hasOwnProperty(s.ID)) { // Used, so replace and ensure sub models are present:
-	    partTypes[s.ID] = s;
-	    s.steps.forEach(step => step.subModels.forEach(sm => {
+	let [pt,id] = f(highContrast, logoType, force);
+        id = id + '.dat';
+	if(partTypes.hasOwnProperty(id)) { // Used, so replace and ensure sub models are present:
+	    partTypes[id] = pt;
+            pt.ID = id;
+	    pt.steps.forEach(step => step.subModels.forEach(sm => {
 		if(!seen.hasOwnProperty(sm.ID)) {
 		    idb.push(sm.ID);
 		    seen[sm.ID] = true;
