@@ -142,7 +142,14 @@ THREE.LDRLoader.prototype.load = function(id) {
             self.loader.load(urls[urlID], onFileLoaded, undefined, onError);
         }
         else {
-            self.unloadedFiles--; // Can't load this.
+            self.unloadedFiles--; // Can't load this. Show a box if possible:
+            if(LDR.Generator) {
+                let pt = LDR.Generator.bx(4095, 63); // Box
+                pt.ID = pt.name = id;
+                pt.modelDescription = 'Showing a box in the absense of part ' + id;
+                self.partTypes[id] = pt;
+            }
+            
   	    self.reportProgress(id);
             self.onError({message:event.currentTarget?event.currentTarget.statusText:'Error during loading', subModel:id});
         }
@@ -1553,7 +1560,7 @@ THREE.LDRStep.prototype.containsPartSubModels = function(loader) {
         return false;
     }
     let firstSubModel = loader.getPartType(this.subModels[0].ID);
-    return firstSubModel.isPart;
+    return firstSubModel && firstSubModel.isPart;
 }
 
 THREE.LDRStep.prototype.countParts = function(loader) {
@@ -1662,7 +1669,7 @@ THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, 
 	
 	let pt = loader.getPartType(sm.ID);
 	if(!pt) {
-	    loader.onError({message:"Unloaded sub model!", subModel:sm.ID});
+	    loader.onError({message:"Unloaded sub model.", subModel:sm.ID});
 	    return;
 	}
 	if(pt.replacement) {
@@ -2101,8 +2108,8 @@ THREE.LDRPartType.prototype.ensureGeometry = function(loader) {
 }
 
 THREE.LDRPartType.prototype.removePrimitivesAndSubParts = function(loader, parentID) {
-    if(!this.steps) {
-	return; // When called multiple times from the final part.
+    if(this.cleaned) {
+	return; // When called multiple times from the same parent.
     }
     if(parentID) {
 	if(this.referencedFrom.hasOwnProperty(parentID)) {
@@ -2121,10 +2128,10 @@ THREE.LDRPartType.prototype.removePrimitivesAndSubParts = function(loader, paren
 
     // Perform cleanup only if no part type references this:
     if(this.references === 0) {
-	delete this.steps;
         if(this.geometry) {
             this.geometry.cleanTempData();
         }
+        this.cleaned = true;
     }
 }
 

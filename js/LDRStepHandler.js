@@ -357,15 +357,15 @@ LDR.StepHandler.prototype.stepBack = function() {
     }
 }
 
-LDR.StepHandler.prototype.moveTo = function(to, onDone) {
+LDR.StepHandler.prototype.moveTo = function(to) {
     let self = this;
 
     let currentStep = this.getCurrentStepIndex();
     let steps = to - currentStep;
 
-    const oneStep = steps > 0 ? 1 : -1;
     let step = steps > 0 ? () => self.nextStep(true) : () => self.prevStep(true);
 
+    const oneStep = steps > 0 ? 1 : -1;
     while(steps !== 0 && step()) {
         steps-=oneStep;
     }

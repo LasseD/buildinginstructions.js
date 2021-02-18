@@ -54,6 +54,8 @@ LDR.STORAGE = function(onReady) {
         console.warn('there is another open connection to the ldraw database!');
         onReady(self); // Continue execution without self.db
     };
+
+    this.requestedParts = {};
 };
 
 /*
@@ -75,23 +77,20 @@ LDR.STORAGE.prototype.retrievePartsFromStorage = function(loader, parts, onDone)
     let remaining = parts.length;
 
     function onHandled(partID) {
-	remaining--;
-
         // Check if any sub model should be fetched:
         let part = loader.getPartType(partID);
         if(part) { // Remember onHandled is also called on error, where part will not be set.
-	    let toFetch = [];
-            let checkSubModel = function(sm) {
+            function checkSubModel(sm) {
                 if(!(loader.partTypes.hasOwnProperty(sm.ID) || seen.hasOwnProperty(sm.ID))) {
                     seen[sm.ID] = true;
-                    toFetch.push(sm.ID);
+                    remaining++;
+                    fetch(sm.ID);
                 }
             }
             part.steps.forEach(step => step.subModels.forEach(checkSubModel));
-	    remaining += toFetch.length;
-	    toFetch.forEach(fetch);
         }
 
+	remaining--;
 	if(remaining === 0) {
 	    if(stillToBeBuilt.length > 0) {
 		console.warn(stillToBeBuilt.length + " part(s) could not be fetched from indexedDB: " + stillToBeBuilt.slice(0, 10).join('/') + '...');
@@ -100,7 +99,14 @@ LDR.STORAGE.prototype.retrievePartsFromStorage = function(loader, parts, onDone)
 	}
     }
 
-    function fetch(partID) {
+    function fetch(partID) {        
+        if(self.requestedParts.hasOwnProperty(partID)) {
+	    stillToBeBuilt.push(partID);
+	    onHandled(partID);
+            return; // Already fetched.
+        }
+        self.requestedParts[partID] = true;                
+
         // Try first to generate the parts as this is quicker:
         if(LDR.Generator) {
             let pt = LDR.Generator.make(partID);
@@ -132,7 +138,7 @@ LDR.STORAGE.prototype.retrievePartsFromStorage = function(loader, parts, onDone)
 		}
 		catch(e) {
 		    console.warn(e);
-		    stillToBeBuilt.push(partID);		    
+		    stillToBeBuilt.push(partID);
 		}
 	    }
 	    else {
