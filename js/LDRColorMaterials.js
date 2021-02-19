@@ -31,8 +31,8 @@ LDR.Colors.getColor4 = function(colorID) {
     }
     
     let color = new THREE.Color(EDGE ? (colorObject.edge ? colorObject.edge : 0x333333) : colorObject.value);
-				
-    let alpha = colorObject.alpha ? colorObject.alpha/256.0 : 1;
+
+    let alpha = EDGE ? 1.0 : (colorObject.alpha ? colorObject.alpha/256.0 : 1);
     let ret = new THREE.Vector4(color.r, color.g, color.b, alpha);
     colorObject[key] = ret;
     return ret;
@@ -100,6 +100,7 @@ LDR.Colors.buildLineMaterial = function(c, conditional) {
 	transparent: false,
 	visible: true
     });
+
     return ret;
 }
 

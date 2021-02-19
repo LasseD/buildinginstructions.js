@@ -67,7 +67,7 @@ LDR.Shader.createConditionalVertexShader = function(push) {
     // Compute color:
     if(canBeOld)
 	ret += "old ? oldColor : ";
-	 
+
     ret += "color;";
     ret += "\n        vColor.a *= sign(dot(d12, d13)*dot(d12, d14));";
     if(push)
