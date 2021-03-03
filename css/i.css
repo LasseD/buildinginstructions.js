@@ -13,6 +13,11 @@
   padding-bottom: 0.1em;
 }
 
+#moderation_note {
+  margin-top: 1em;
+  margin-left: 2em;
+}
+
 /*
   Quick links
 */
@@ -446,9 +451,6 @@ label, input, textarea {
   font-size: 1.2em;
 
   top: 1.5em;
-}
-#set_number_select .tooltiptext {
-  font-size: 0.7em;
 }
 .omr_function + .tooltiptext {
   background-color: #4BB;

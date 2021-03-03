@@ -1,6 +1,3 @@
-/*
-  Main page style sheet for BrickHub.org.
-  */
 body {
     background-color: #222;
     margin: 0;
@@ -22,7 +19,7 @@ a {
     background-color: black;  
     margin: 0;
     text-align: right;
-    font-size: 4.9vw;
+    font-size: 4.8vw;
     height: 1.85em;
 }
 @media screen and (min-width: 800px) {
@@ -128,26 +125,38 @@ a {
   Consent
 */
 #consent_banner {
-    position: fixed;
-    bottom: 0;
-    padding: 0.5em;
-    background-color: orange;
-    font-size: 1.5em;    
-    z-index: 12345;
-    color: black;
+  text-align: center;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  padding: 0;
+  background-color: orange;
+  font-size: 1.5em;    
+  z-index: 12345;
+  color: black;
+  width: 100%;
 }
 #consent_banner a {
-    color: black;
+  color: black;
+}
+#consent_banner .desc {
+  display: block;
+  margin: 0.5em;
+}
+#consent_buttons {
+  display: table;
+  border-spacing: 0.5em;
+  margin: auto;
 }
 .consent_button {
-    cursor: pointer;
-    float:right;
-    background-color: #4D4;
-    padding: 1em 2em 1em 2em;
-    font-weight: bold;
-    border: 2px solid black;
-    border-radius: 10px;
-    margin-left: 0.3em;
+  display: table-cell;
+  cursor: pointer;
+  background-color: #DD4;
+  padding: 0.5em;
+  font-weight: bold;
+  border: 2px solid black;
+  border-radius: 10px;
+  margin-left: 0.3em;
 }
 
 /*
@@ -163,6 +172,7 @@ Content
     display: block;
     margin-bottom: 2em;
     background-color: #222;
+    padding-left: 2em;
 }
 /* https://codepen.io/ericrasch/pen/Irlpm */
 .bar {
@@ -280,10 +290,6 @@ Samples
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
-    /*color: black;
-    -webkit-text-fill-color: black;
-    -webkit-text-stroke-width: 0.2px;
-    -webkit-text-stroke-color: white;*/
     font-weight: bold;
 }
 .part {
@@ -295,6 +301,10 @@ Samples
 /*
 Fancy title bar
  */
+#title_bar {
+  width: 100%;
+  overflow-x: hidden;
+}
 #title_bar, #title_bar a {
   color: #ddd;
 }
@@ -350,11 +360,15 @@ Fancy title bar
     table-layout: fixed;
     margin: auto;
     border-spacing: 0.4em;
+}
+#title_bar a.interaction {
+    text-decoration: none;
     color: #888;
 }
 .interaction, .interaction_svg {
     display: table-cell;
     vertical-align: middle;
+    color: #888;
 }
 .interaction_svg {
     cursor: pointer;
@@ -370,6 +384,7 @@ Fancy title bar
   Netflix sliders - https://codepen.io/bork/pen/zBXwda
   */
 .flix {
+    display: block;
     background-color: #AAA;
     position: relative;
     overflow: hidden;
@@ -409,7 +424,7 @@ Fancy title bar
     margin: 0;
     padding: 0;    
 }
-.flix .sample_container {
+.flix .sample_container, .news_item {
     display: block;
 
     float: left;
@@ -417,8 +432,13 @@ Fancy title bar
     top: 0;
 }
 .section .sample_container {
-    margin: 1.5em 0 1.5em 3em;
+    margin: 0;
+    /*1.5em 0 1.5em 3em;*/
 }
+.conditional {
+    display: none;
+}
+
 /*
   Other actions
  */
@@ -439,7 +459,6 @@ Fancy title bar
     padding: 0.3em;
     border: 0.2em solid #2BB;
     vertical-align: middle;
-    cursor: pointer;
 }
 .other_actions a.positive {
     background-color: #4B4;
@@ -457,21 +476,71 @@ Fancy title bar
 /*
  Messages
 */
-#error_message, #message {
+#error_message, #warning_message, #message {
   display: block;
-  border: 2px solid red;
   margin: 1em;
   margin-bottom: 0;
   font-size: 2em;
   font-weight: bold;  
   text-align: center;
   padding: 0.5em;
+  cursor: pointer;
 }
-#error_message h3, #message h3 {
+#error_message h3, #warning_message h3, #message h3 {
   display: inline;
+}
+#error_message {
+  border: 2px solid red;
+}
+#warning_message {
+  color: white;
+  background-color: #efa818;
 }
 #message {
   color: white;
   background-color: #3A3;
-  border: none;
+}
+
+/*
+ News
+ */
+#news_form {
+  margin-bottom: 2em;
+}
+#news_form input[type=text] {
+  width: 40%;
+}
+
+.news_item {
+  display: inline-block;
+
+  border: 2px solid black;
+  background-color: black;
+   
+  margin: 0;
+  padding: 0;    
+}
+.news_item img {
+  height: 200px;
+}
+.news_item .news_text {
+  position: absolute;
+  top: 0.5em;
+  left: 5px;
+  color: black;
+  font-weight: bold;
+  background-color: white;
+  padding: 0.1em;
+}
+.news_item a {
+  display: block;
+  width: 200px;
+  height: 200px;
+  background-color: white;
+  color: black;
+  font-weight: bold;
+  text-decoration: none;
+  text-align: center;
+  font-size: 3em;
+  padding-top: 0.95em;
 }
