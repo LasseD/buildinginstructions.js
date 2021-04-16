@@ -262,7 +262,7 @@ function onLoad() {
       step.conditionalLines.forEach(x => ret += new LDR.Line5(x.c, x.p1, x.p2, x.p3, x.p4).toLDR());
       let tt = []; // Textured triangles
       step.triangles.forEach(x => {
-        if(x.texmapPlacement) {
+        if(x.tmp) {
           tt.push(x);
         }
         else{
@@ -270,9 +270,9 @@ function onLoad() {
         }
       });
       step.quads.forEach(x => {
-        if(x.texmapPlacement) {
-          tt.push({c:x.c, p1:x.p1, p2:x.p2, p3:x.p3, texmapPlacement:x.texmapPlacement});
-          tt.push({c:x.c, p1:x.p1, p2:x.p3, p3:x.p4, texmapPlacement:x.texmapPlacement});
+        if(x.tmp) {
+          tt.push({c:x.c, p1:x.p1, p2:x.p2, p3:x.p3, tmp:x.tmp});
+          tt.push({c:x.c, p1:x.p1, p2:x.p3, p3:x.p4, tmp:x.tmp});
         }
         else{
           ret += new LDR.Line4(x.c, x.p1, x.p2, x.p3, x.p4).toLDR();
@@ -280,9 +280,9 @@ function onLoad() {
       });
       tt.forEach(x => { // Studio 2.0 triangle lines:
         ret += '3 ' + x.c + ' ' + x.p1.toLDR() + ' ' + x.p2.toLDR() + ' ' + x.p3.toLDR();
-        let [U1, V1]=x.texmapPlacement.getUV(x.p1, x.p2, x.p3);
-        let [U2, V2]=x.texmapPlacement.getUV(x.p2, x.p3, x.p1);
-        let [U3, V3]=x.texmapPlacement.getUV(x.p3, x.p1, x.p2);
+        let [U1, V1]=x.tmp.getUV(x.p1, x.p2, x.p3);
+        let [U2, V2]=x.tmp.getUV(x.p2, x.p3, x.p1);
+        let [U3, V3]=x.tmp.getUV(x.p3, x.p1, x.p2);
         [U1,V1,U2,V2,U3,V3].map(LDR.convertFloat).forEach(x => ret += ' ' + x);
         ret += '\r\n';
       });
