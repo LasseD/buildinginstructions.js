@@ -20,7 +20,6 @@ LDR.Options.initialize = function() {
     this.showNotes = 0; // 0=off, 1=on
     this.showPLI = 1; // 0=off, 1=on
     this.rotateModel = 0; // 0=off, 1=on
-    this.showEditor = 0; // 0=off, 1=on
     this.studHighContrast = 0; // 0=off, 1=on
     this.studLogo = 0; // 0=off, 1...5=Types of logos from LDraw
 
@@ -62,7 +61,6 @@ LDR.Options.saveOptionsToCookie = function() {
     //addToKv("showCameraButtons");
     addToKv("showLRButtons");
     //addToKv("showPLI");
-    addToKv("showEditor");
     addToKv("studHighContrast");
     addToKv("studLogo");
     

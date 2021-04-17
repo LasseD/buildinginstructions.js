@@ -2,9 +2,9 @@
 
 LDR = LDR || {};
 
-LDR.PLIBuilder = function(loader, canEdit, mainModelID, canvas, renderer) {
+LDR.PLIBuilder = function(loader, showEditor, mainModelID, canvas, renderer) {
     this.loader = loader;
-    this.canEdit = canEdit;
+    this.showEditor = showEditor;
     this.canvas = canvas;
     this.renderer = renderer;
     this.fillHeight = false;
@@ -179,7 +179,7 @@ LDR.PLIBuilder.prototype.createClickMap = function(step) {
 }
 
 LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, maxHeight, force) {
-    let groupParts = !(this.canEdit && LDR.Options && LDR.Options.showEditor);
+    let groupParts = !this.showEditor;
     // Ensure no re-draw if not necessary:
     if(!force &&
        this.lastStep && this.lastStep.idx === step.idx && this.groupParts === groupParts &&
@@ -250,7 +250,7 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
     // Draw multipliers:
     context.fillStyle = "#000";
     context.lineWidth = "1";
-    if(self.groupParts) {
+    if(this.groupParts) {
         context.font = parseInt(textHeight*1.1*DPR) + "px sans-serif";
         context.fillStyle = "black";
         function drawMultiplier(icon) {
@@ -260,11 +260,11 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
             let h = textHeight * DPR;
             context.fillText(icon.mult + "x", x, y + h*0.84); // *0.84 to move a bit up from lower line.
         }
-        self.clickMap.forEach(drawMultiplier);
+        this.clickMap.forEach(drawMultiplier);
     }
     // Draw Annotation:
     context.font = parseInt(textHeight*0.8*DPR) + "px monospace";
-    self.clickMap.filter(icon => icon.annotation).forEach(icon => {
+    this.clickMap.filter(icon => icon.annotation).forEach(icon => {
 	let len = icon.annotation.length;
 	let x = (icon.x+icon.FULL_DX+1)*DPR;
 	let y = (icon.y+icon.ANNO_Y)*DPR;
@@ -285,11 +285,11 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
 	context.fillText(icon.annotation, x, y);
     });
     // Draw highlight for ghosted parts:
-    if(LDR.Options && LDR.Options.showEditor) {
+    if(this.showEditor) {
         context.strokeStyle = "#5DD";
         context.lineWidth = '4';
 	let hoveredIcon = null;
-        self.clickMap.forEach(icon => {
+        this.clickMap.forEach(icon => {
             if(icon.part.original.ghost) {
                 let x = parseInt((icon.x)*DPR);
                 let y = parseInt((icon.y)*DPR);
@@ -304,7 +304,7 @@ LDR.PLIBuilder.prototype.drawPLIForStep = function(fillHeight, step, maxWidth, m
 	if(hoveredIcon) {
 	    context.strokeStyle = "#000";
 	    context.setLineDash([10, 10]);
-	    self.clickMap.forEach(icon => {
+	    this.clickMap.forEach(icon => {
                 let x = parseInt((hoveredIcon.x)*DPR);
                 let y = parseInt((hoveredIcon.y)*DPR);
                 let w = parseInt((hoveredIcon.DX)*DPR);

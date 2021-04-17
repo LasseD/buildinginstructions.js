@@ -5,7 +5,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
     let self = this;
     options = options || {};
     this.stepEditor;
-    this.canEdit = options.canEdit === true; // Only set if LDRStepEditor.js is loaded.
+    this.showEditor = options.showEditor === true;
     this.modelID = modelID;
     this.modelColor = modelColor;
     this.refreshCache = refreshCache;
@@ -39,7 +39,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
         zoomOut: () => self.zoomOut(),
         resetCameraPosition: () => self.resetCameraPosition(),
         clickDone: () => self.clickDone(),
-        toggleEditor: () => self.stepEditor && self.stepEditor.toggleEnabled(),
+        toggleEditor: () => window.location = options.editorToggleLocation + '&step=' + self.currentStep,
     };
     this.ldrButtons = new LDR.Buttons(actions, canvasHolder, true, modelID, mainImage, options);
     this.controls = new THREE.OrbitControls(this.camera, this.canvas);
@@ -139,7 +139,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
 	    self.hidePliPreview();
             self.hideDone();
         }
-	else if(self.stepEditor && LDR.Options && LDR.Options.showEditor && self.canEdit) { // Send rest to editor if available:
+	else if(self.stepEditor && self.showEditor) { // Send rest to editor if available:
 	    self.stepEditor.handleKeyDown(e);
 	}
     }
@@ -174,8 +174,9 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
         
         let pd = new THREE.LDRPartDescription(self.modelColor, origo, inv, mainModel, false);
         
-        self.pliBuilder = new LDR.PLIBuilder(self.ldrLoader, self.canEdit, mainModel,
-                                             document.getElementById('pli'), self.secondaryRenderer);
+        self.pliBuilder = new LDR.PLIBuilder(self.ldrLoader, self.showEditor, mainModel,
+                                             document.getElementById('pli'), 
+					     self.secondaryRenderer);
         self.stepHandler = new LDR.StepHandler(self, [pd], true);
         self.stepHandler.nextStep(false);
 
@@ -200,7 +201,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
         self.pliPreviewer.enableControls();
 
         // Enable editor:
-        if(self.canEdit) {
+        if(self.showEditor) {
             function removeGeometries() {
                 self.ldrLoader.applyOnPartTypes(pt => {
                         if(!pt.isPart) {
@@ -218,9 +219,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
 						 self.pliBuilder, removeGeometries,
 						 onEditDone, self.modelID);
             self.stepEditor.createGuiComponents(document.getElementById('editor'));
-            if(LDR.Options && LDR.Options.showEditor === 1) {
-                $("#editor").show();
-            }
+            $("#editor").show();
         }
     }
 
@@ -507,11 +506,10 @@ LDR.InstructionsManager.prototype.updateUIComponents = function(force) {
 
 LDR.InstructionsManager.prototype.updatePLI = function(force = false, quick = false) {
     let step = this.stepHandler.getCurrentStep();
-    let edit = LDR.Options && LDR.Options.showEditor && this.canEdit;
 
-    this.showPLI = edit || step.containsPartSubModels(this.ldrLoader);
+    this.showPLI = this.showEditor || step.containsPartSubModels(this.ldrLoader);
     let e = this.pliElement;
-    this.emptyElement.style.display = (!edit || this.showPLI || step.containsNonPartSubModels(this.ldrLoader)) ? 'none' : 'inline-block';
+    this.emptyElement.style.display = (!this.showEditor || this.showPLI || step.containsNonPartSubModels(this.ldrLoader)) ? 'none' : 'inline-block';
 
     if(!this.showPLI) {
         e.style.display = this.dh.style.display = this.dv.style.display = 'none';
@@ -896,7 +894,7 @@ LDR.InstructionsManager.prototype.onPLIClick = function(e) {
             }
         });
 
-    if(this.canEdit && LDR.Options && LDR.Options.showEditor) {
+    if(this.showEditor) {
         icon.part.original.ghost = !icon.part.original.ghost;
         this.stepHandler.updateMeshCollectors();
         this.updateUIComponents(true);
@@ -909,8 +907,7 @@ LDR.InstructionsManager.prototype.onPLIClick = function(e) {
 }
 
 LDR.InstructionsManager.prototype.onPLIMove = function(e) {
-    if(!(this.canEdit && LDR.Options && LDR.Options.showEditor && 
-	 this.pliBuilder && this.pliBuilder.clickMap)) {
+    if(!(this.showEditor && this.pliBuilder && this.pliBuilder.clickMap)) {
         return; // Not applicable.
     }
 
