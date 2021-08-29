@@ -236,6 +236,10 @@ LDR.StepHandler.prototype.nextStep = function(skipDrawing) {
             step.meshCollector = meshCollector = new LDR.MeshCollector(this.opaqueObject, this.sixteenObject, this.transObject, this.manager);
 
 	    step.step.generateThreePart(this.loader, pd.c, pd.p, pd.r, true, false, meshCollector);
+	    if(step.step.original) { // The step contains colored clones, so clean up from the original:
+		step.step.original.removePrimitivesAndSubParts(this.loader);
+	    }
+
 	    this.setCurrentBounds(meshCollector.boundingBox);
 
             meshCollector.setOldValue(false); // Ensure outlines shown.

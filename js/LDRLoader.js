@@ -682,10 +682,15 @@ THREE.LDRLoader.prototype.generate = function(colorID, mc, taskList) {
     inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
     
     // Generate the meshes:
-    if(this.cleanUpPrimitivesAndSubParts) {
-	mainModel.setReferencedFrom(this);
-    }
+    this.setReferencedFrom();
     mainModel.generateThreePart(this, colorID, origo, inv, true, false, mc, null, taskList);
+}
+
+THREE.LDRLoader.prototype.setReferencedFrom = function() {
+    let self = this;
+    if(this.cleanUpPrimitivesAndSubParts) {
+	self.applyOnPartTypes(pt => pt.setReferencedFrom(self));
+    }
 }
 
 THREE.LDRLoader.prototype.onPartsLoaded = function(loadedParts) {
@@ -1645,6 +1650,18 @@ THREE.LDRStep.prototype.cleanUp = function(loader, newSteps) {
     }
 }
 
+THREE.LDRStep.prototype.removePrimitivesAndSubParts = function(loader) {
+    if(!loader.cleanUpPrimitivesAndSubParts || !this.subModels) {
+	return;
+    }
+    let ID = this.idx;
+    function handleSM(sm) {
+	let pt = loader.getPartType(sm.ID);
+	pt.removePrimitivesAndSubParts(loader, ID);
+    }
+    this.subModels.forEach(handleSM);
+}
+
 THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, rotation, cull, invertCCW, mc, taskList) {
     //console.log("STEP: Creating three part.", this.subModels.length, "sub models in color", colorID, ", cull:", cull, ", invertion:", invertCCW);
     let ownInversion = (rotation.determinant() < 0) !== invertCCW; // Adjust for inversed matrix!
@@ -1920,20 +1937,24 @@ THREE.LDRPartType = function() {
     this.CCW;
 
     // To support early cleanup:
-    this.referencedFrom = {};
+    this.referencedFrom = {}; // stepIdx's
     this.references = 0;
 }
 
+/*
+  This method helps in cleaning up primitives and sub parts.
+  It goes through all parts referenced in the steps and marks them
+  with back-references.
+ */
 THREE.LDRPartType.prototype.setReferencedFrom = function(ldrLoader) {
-    let self = this;
-    function handle(sm) {
+    function handle(sm, ID) {
 	let pt = ldrLoader.getPartType(sm.ID);
-	if(!pt.referencedFrom.hasOwnProperty(self.ID)) {
-	    pt.referencedFrom[self.ID] = true;
+	if(pt.isPart && !pt.referencedFrom.hasOwnProperty(ID)) {
+	    pt.referencedFrom[ID] = true;
 	    pt.references++;
 	}
     }
-    this.steps.forEach(step => step.subModels.forEach(handle));
+    this.steps.forEach(step => step.subModels.forEach(sm => handle(sm, step.idx)));
 }
 
 THREE.LDRPartType.prototype.canBePacked = function() {
@@ -2108,6 +2129,10 @@ THREE.LDRPartType.prototype.ensureGeometry = function(loader) {
 }
 
 THREE.LDRPartType.prototype.removePrimitivesAndSubParts = function(loader, parentID) {
+    if(!loader.cleanUpPrimitivesAndSubParts) {
+	return;
+    }
+
     if(this.cleaned) {
 	return; // When called multiple times from the same parent.
     }
@@ -2119,12 +2144,7 @@ THREE.LDRPartType.prototype.removePrimitivesAndSubParts = function(loader, paren
     }
 
     // Propagate:
-    let ID = this.ID;
-    function handleSM(sm) {
-	let pt = loader.getPartType(sm.ID);
-	pt.removePrimitivesAndSubParts(loader, ID);
-    }
-    this.steps.forEach(step => step.subModels && step.subModels.forEach(handleSM));
+    this.steps.forEach(step => step.removePrimitivesAndSubParts(loader));
 
     // Perform cleanup only if no part type references this:
     if(this.references === 0) {
@@ -2194,9 +2214,7 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
     else {
         this.geometry.buildPhysicalGeometries();
     }
-    if(loader.cleanUpPrimitivesAndSubParts) {
-	this.removePrimitivesAndSubParts(loader);
-    }
+    this.removePrimitivesAndSubParts(loader); // This part is generated - clear sub-parts.
     
     function transformColor(tc) {
 	if(tc === '16') {
