@@ -51,7 +51,7 @@ LDR.Options.initialize();
 LDR.Options.saveOptionsToCookie = function() {
     let options = this;
     function addToKv(v) {
-	document.cookie = v + '=' + options[v] + '; SameSite; expires=Wed, 3 Jun 2122 12:00:01 UTC; path=/';
+	document.cookie = v + '=' + options[v] + '; SameSite=Strict; expires=Wed, 3 Jun 2122 12:00:01 UTC; path=/';
     }
     // Instructions and general options:
     addToKv("showOldColors");
