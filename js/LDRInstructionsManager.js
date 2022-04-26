@@ -746,7 +746,7 @@ LDR.InstructionsManager.prototype.realignModel = function(stepDiff, onRotated, o
             oldRot.rotateTowards(newRot, angleToTurn*progress*1.1); // *1.1 Ensure it is fully turned.
             
             let invOldM4 = new THREE.Matrix4();
-            invOldM4.getInverse(oldRotationMatrix);
+            invOldM4.copy(oldRotationMatrix).invert();
             let tmpM4 = new THREE.Matrix4();
             tmpM4.compose(oldPos, oldRot, oldScale);
             

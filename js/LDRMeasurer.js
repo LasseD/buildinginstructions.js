@@ -18,7 +18,7 @@ LDR.Measurer = function(camera) {
 
     this.camera.updateProjectionMatrix();
     this.camera.updateMatrixWorld();
-    this.camera.matrixWorldInverse.getInverse(this.camera.matrixWorld);
+    this.camera.matrixWorldInverse.copy(this.camera.matrixWorld).invert();
 
     this.m = new THREE.Matrix4();
     this.m.copy(this.camera.projectionMatrix);
