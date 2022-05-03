@@ -7,14 +7,14 @@ LDR.STUDIO.handleCommentLine = function(part, parts) {
 	return false; // Not Studio 2.0 line - too short.
     }
     if(parts[1] === 'PE_TEX_PATH') {
-	return true; // Ignoring line as it always reads "0 PE_TEX_PATH -1"
+	return true; // Ignoring line as its usage is unknown. It can read "0 PE_TEX_PATH -1" and "0 PE_TEX_PATH 0 0"
     }
     if(parts[1] !== "PE_TEX_INFO") {
 	return false;
     }
 
     // store texmap:
-    part.studioTexmap = parts[2];
+    part.studioTexmap = parts.splice(2);
     //console.log(part.ID,part.studioTexmap.substring(part.studioTexmap.length-50));
     return true;
 }
@@ -37,9 +37,7 @@ LDR.STUDIO.handlePart = function(loader, pt) {
 	let misalignment = step.subModels[0].p;
 
         // Check that all misalignments are... aligned:
-        let ok = true;
-        step.subModels.forEach(sm => ok = ok && sm.p.equals(misalignment));
-        if(ok) {
+        if(step.subModels.every(sm => sm.p.equals(misalignment))) {
             step.triangles.forEach(t => {t.p1.sub(misalignment); t.p2.sub(misalignment); t.p3.sub(misalignment);});
 
             let tmps = {};
@@ -61,8 +59,9 @@ LDR.STUDIO.handlePart = function(loader, pt) {
     // Set up dataurl:
     let pid = pt.ID + '.png';
     //console.log(pt.ID, 'PID',pid);
-    let dataurl = 'data:image/png;base64,' + pt.studioTexmap;
-    loader.texmapDataurls.push({id:pid, mimetype:'png', content:pt.studioTexmap});
+    let texmap = pt.studioTexmap[pt.studioTexmap.length-1];
+    let dataurl = 'data:image/png;base64,' + texmap;
+    loader.texmapDataurls.push({id:pid, mimetype:'png', content:texmap});
     delete pt.studioTexmap; // Ensure this is only called once.
 
     loader.texmaps[pid] = true;
