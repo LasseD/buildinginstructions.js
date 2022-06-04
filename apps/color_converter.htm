@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+ <head>
+    <meta charset=utf-8>
+    <title>Color Converter - Convert ldconfig.ldr to colors.js</title>
+    <meta name="viewport" content="width=device-width" />
+    <style>
+      body {
+        font-family: "Arial","Helvetica",sans-serif;
+        padding: 0;
+        margin: 0;
+        background-color: #EEE;
+      }
+      h1, h3 {
+        text-transform: uppercase;
+        display: block;
+        text-align: center;
+        margin: 0;
+        padding: 0.5em;
+        font-size: 2em;
+      }
+      h1 {
+        background-color: #000;
+        color: white;
+      }
+      h3 {
+        background-color: #DD9;
+      }
+      .section {
+        display: block;
+        margin: 0.5em;
+      }
+      .desc {
+        margin: 0.5em;
+      }
+      .choice {
+        display: table;
+        margin: 0.5em;
+      }
+      .choice, textarea, button {
+        display: block;
+        width: 95%;
+      }
+      button {
+        height: 4em;
+      }
+      #contact {
+        margin: 2em;
+        text-align: center;
+      }
+      .error, .warning {
+        display: block;
+        margin: 1em;
+        padding: 0.5em;
+        font-weight: bold;
+      }
+      .error {
+        border: 0.2em solid red;
+      }
+      .warning {
+        border: 0.2em solid orange;
+      }
+      canvas {
+        display: block;
+        margin: auto;
+      }
+      img {
+        display: block;
+        width: 50%;
+        margin: auto;
+      }
+      .download {
+        display: block;
+        margin: 1em;
+        text-align: center;
+        padding: 0.5em;
+        border: 1px solid black;
+        background-color: white;
+        color: black;
+        text-decoration: none;
+      }
+    </style>
+ </head>
+ <body>
+    <script src="../js/jquery.min.js"></script>
+  
+    <h1>Color Converter - Convert ldconfig.ldr to colors.j</h1>
+  <div class="section">
+   <span class="desc">
+     buildinginstructions.js uses the file <b>colors.js</b> to maintain LDraw color information.
+     The color information from LDraw is maintained in the file <b>ldconfig.ldr</b>.
+     Use this tool to covert from <b>ldconfig.ldr</b> to <b>colors.js</b>
+   </span>
+  </div>
+  
+    <h3>step 1 - Upload ldconfig.ldr</h3>
+  <div class="section">
+   <span class="choice">
+    <label for="file">Upload the ldconfig.ldr file here:</label>
+    <input id="file" name="file" type="file" onchange="readFromFile(event);" />
+   </span>
+
+   <div id="warnings"></div>
+   <div id="errors"></div>
+
+  </div>
+
+  <h3>Step 2 - Get the colors.js File</h3>
+  <div class="section">
+   <span class="desc">
+     Copy or download the colors.js file below.
+   </span>
+   <span class="choice">
+     <textarea id="result" rows="10"></textarea>
+     <button onclick="copyToClipboard();">Copy File to Clipboard</button>
+     <a class="download" id="downloadContent"></a>
+   </span>
+  </div>
+
+  <div id="contact">
+    <a href="https://github.com/LasseD/buildinginstructions.js">This tool is part of buildinginstructions.js</a> which is in the public domain and may be freely distributed.
+    Contact: Lasse Deleuran on <a href="mailto:lasse.deleuran@gmail.com">lasse.deleuran@gmail.com</a>.
+  </div>
+
+  <script>
+/*
+  Warnings and errors:
+ */
+function resetWarningsAndErrors() {
+  $('#warnings').empty();
+  $('#errors').empty();
+}
+function onWarningOrError(message, type) {
+  message = message.replace('<', '&lt;');
+  let span = document.createElement('span');
+  span.setAttribute('class', type);
+  span.innerHTML = message;
+  $('#' + type + 's').append(span);
+}
+let onError = msg => onWarningOrError(msg, 'error');
+let onWarning = msg => onWarningOrError(msg, 'warning'); 
+
+let colors = null;
+    
+function output() {
+    if(!colors) {
+	onError('No valid lconfig.ldr file parsed.');
+	return;
+    }
+
+    let ret = "'use strict';" +
+	"\r\n/*This file is auto generated using the Color Converter app from buildinginstructions.js*/" +
+	"\r\nvar LDR = {};LDR.Colors = [];\r\n";
+
+    colors.sort((a,b) => a.ID > b.ID ? 1 : -1); // Make them appear in order.
+
+    colors.forEach(c => {
+	ret += 'LDR.Colors['+c.ID+'] = {name:\''+c.name+'\', value:'+c.value+', edge:'+c.edge;
+	if(c.lego_name)
+	    ret += ', lego_name:\''+c.lego_name+'\', lego_id:'+c.lego_id;
+	if(c.alpha)
+	    ret += ', alpha:'+c.alpha;
+	if(c.luminance)
+	    ret += ', luminance:'+c.luminance;
+	if(c.material)
+	    ret += ', material:\''+c.material+'\'';
+        ret += '};\r\n';
+    });
+
+    // Output:
+    let e = document.getElementById('result');
+    e.innerHTML = ret;
+    e = document.getElementById('downloadContent');
+    e.href = 'data:text/javascript;base64,' + btoa(ret);
+    e.setAttribute('download', 'colors.js');
+    e.innerHTML = 'Click here to download colors.js';
+}
+
+function convert(ldr) {
+    resetWarningsAndErrors();
+
+    // Find file name:
+    let dataLines = ldr.split(/(\r\n)|\n/);
+
+    let legoInfo = null;
+    for(let i = 0; i < dataLines.length; i++) {
+	let line = dataLines[i];
+	if(!line) {
+	    continue; // Empty line, or 'undefined' due to '\r\n' split.
+	}
+
+	let parts = line.split(' ').filter(x => x !== ''); // Remove empty strings.
+	if(parts.length <= 1 || parts[0] !== '0') {
+	    continue; // Empty comment line
+	}
+
+	if(parts.length >= 6 && parts[1] === '//' && parts[2] === 'LEGOID' && parts[4] === '-') {
+	    // LEGO Info
+	    legoInfo = {lego_id:parts[3], lego_name:parts.slice(5).join(' ')};
+	}
+	else if(parts.length >= 9 && parts[1] === '!COLOUR' && parts[3] === 'CODE' && parts[5] === 'VALUE') {
+	    let info = legoInfo || {};
+	    info.name = parts[2];
+	    info.ID = parseInt(parts[4]);
+	    info.value = '0x' + parts[6].substring(1);
+	    info.edge = '0x' + parts[8].substring(1);
+
+	    let idx = 9;
+	    if(parts.length > idx+1 && parts[idx] == 'ALPHA') {
+                info.alpha = parts[idx+1];
+		idx+=2;
+	    }
+	    if(parts.length > idx+1 && parts[idx] == 'LUMINANCE') {
+                info.luminance = parts[idx+1];
+		idx+=2;
+	    }
+	    if(parts.length > idx) {
+                info.material = parts.slice(idx).join(' ');
+	    }
+
+	    colors = colors || [];
+	    colors.push(info);
+	    legoInfo = null; // legoInfo has now been used.
+	}
+    }
+}
+
+function readFromFile(event) {
+    var reader = new FileReader();
+    reader.onload = function(){
+	convert(reader.result);
+	output();
+    };
+    reader.readAsText(event.target.files[0]);
+}
+    
+function copyToClipboard() {
+    $('#result')[0].select();
+    document.execCommand('copy');
+}
+  </script>
+ </body>
+</html>
