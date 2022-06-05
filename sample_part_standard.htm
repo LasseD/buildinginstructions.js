@@ -2,13 +2,20 @@
 <html>
  <head>
     <meta charset=utf-8>
-    <title>Sample render of a part where part files are found in the official and unofficial folders</title>
+    <title>Sample render of a part where part files are found in the official and unofficial folders, and LDConfig.ldr is used to determine colors</title>
     <meta name="viewport" content="width=device-width" />
  </head>
  <body>
+    <!-- jquery is used for the early document ready loading. This is used for loading the rendering components after the ldconfig.ldr file has been parsed -->
+    <script src="js/jquery.min.js"></script>
+
+    <!-- Common libraries from three.js. OrbitControls.js is used for user input -->
     <script src="js/three.min.js"></script>
     <script src="js/OrbitControls.js"></script>
-    <script src="js/colors.js"></script>
+
+    <!-- LDConfig.js can be used instead of colors.js to load colors from ldconfig.ldr -->
+    <script src="js/LDConfig.js"></script>
+
     <script src="js/LDROptions.js"></script>
     <script src="js/LDRShaders.js"></script>
     <script src="js/LDRColorMaterials.js"></script>
@@ -153,9 +160,12 @@
         }
       };
 
-      ldrLoader = new THREE.LDRLoader(onLoad, storage, {idToUrl:idToUrl});
-      ldrLoader.load(partID);
-      //LDR.Studs.setStuds(ldrLoader, 0, 1, () => ldrLoader.load(partID));
+      ldrLoader = new THREE.LDRLoader(onLoad, storage, {idToUrl:idToUrl});	
+      function onColorsLoaded() {
+	ldrLoader.load(partID);
+      }
+
+      $(document).ready(() => LDR.Colors.load(onColorsLoaded));
  </script>
  </body>
 </html>

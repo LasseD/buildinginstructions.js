@@ -2,7 +2,9 @@
 
 /**
  * @author Lasse Deleuran | c-mt.dk and brickhub.org
- * Generated stud parts for LDraw.
+ *
+ * LDRStuds.js is used to generate studs with the desired "LEGO" logo.
+ *
  * Stud parts can be modified by changing:
  * - hc / high contrast: Color the cylinder around the stud black when set to true.
  * - logo type:
