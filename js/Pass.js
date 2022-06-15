@@ -35,11 +35,14 @@ Object.assign( THREE.Pass.prototype, {
 // Helper for passes that need to fill the viewport with a single quad.
 
 THREE.Pass.FullScreenQuad = ( function () {
+    let camera = new THREE.OrthographicCamera( - 1, 1, 1, - 1, 0, 1 );
+    
+    let geometry = new THREE.BufferGeometry();
+    geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ - 1, 3, 0, - 1, - 1, 0, 3, - 1, 0 ], 3 ) );
+    geometry.setAttribute( 'uv', new THREE.Float32BufferAttribute( [ 0, 2, 0, 0, 2, 0 ], 2 ) );
 
-        var camera = new THREE.OrthographicCamera( - 1, 1, 1, - 1, 0, 1 );
-        var geometry = new THREE.PlaneBufferGeometry( 2, 2 );
 
-        var FullScreenQuad = function ( material ) {
+        let FullScreenQuad = function ( material ) {
 
             this._mesh = new THREE.Mesh( geometry, material );
 

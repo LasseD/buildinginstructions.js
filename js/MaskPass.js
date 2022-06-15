@@ -24,9 +24,8 @@ THREE.MaskPass.prototype = Object.assign( Object.create( THREE.Pass.prototype ),
         constructor: THREE.MaskPass,
 
         render: function ( renderer, writeBuffer, readBuffer /*, deltaTime, maskActive */ ) {
-
-            var context = renderer.getContext();
-            var state = renderer.state;
+            const context = renderer.getContext();
+            const state = renderer.state;
 
             // don't update color or depth
 
@@ -40,7 +39,7 @@ THREE.MaskPass.prototype = Object.assign( Object.create( THREE.Pass.prototype ),
 
             // set up stencil
 
-            var writeValue, clearValue;
+            let writeValue, clearValue;
 
             if ( this.inverse ) {
 

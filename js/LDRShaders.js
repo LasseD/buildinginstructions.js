@@ -1,6 +1,6 @@
 'use strict';
 
-LDR.Shader = {};
+LDR.Shader = {PUSH_COMMAND:"gl_Position.w -= 0.0000005;"};
 
 LDR.Shader.createSimpleVertexShader = function(push, defaultIsEdge, hasTexmap) {
     const KEY = 'SIMPLE' + (push ? 1 : 0) + (defaultIsEdge ? 2 : 0) + (hasTexmap ? 4 : 0);
@@ -35,7 +35,7 @@ LDR.Shader.createSimpleVertexShader = function(push, defaultIsEdge, hasTexmap) {
     }
     
     if(push) {
-	ret += "gl_Position.w -= 0.0000005;";
+	ret += LDR.Shader.PUSH_COMMAND;
     }
     ret += "  }";
 
@@ -71,7 +71,7 @@ LDR.Shader.createConditionalVertexShader = function(push) {
     ret += "color;";
     ret += "\n        vColor.a *= sign(dot(d12, d13)*dot(d12, d14));";
     if(push)
-	ret += "\n        gl_Position.w -= 0.0000005;";
+	ret += LDR.Shader.PUSH_COMMAND;
     ret += "\n      }";
 
     LDR.Shader[KEY] = ret;

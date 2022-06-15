@@ -23,9 +23,9 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
     this.currentStep = 1; // Shown current step.
     this.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000); // Orthographics for LEGO
 
-    let pixelRatio = window.devicePixelRatio;
+    let pixelRatio = window.devicePixelRatio || 1;
     this.canvas = document.getElementById('main_canvas');
-    this.renderer = new THREE.WebGLRenderer({antialias:true, canvas:this.canvas});
+    this.renderer = new THREE.WebGLRenderer({antialias:true, canvas:this.canvas, logarithmicDepthBuffer:true});
     this.renderer.setPixelRatio(pixelRatio);
     this.secondaryCanvas = document.getElementById('secondary_canvas');
     this.secondaryRenderer = new THREE.WebGLRenderer({antialias:true, canvas:this.secondaryCanvas, alpha:true});
@@ -426,6 +426,15 @@ LDR.InstructionsManager.prototype.onWindowResize = function(force){
             this.outlinePass = null;
         }
 
+	// FXAA Pass to restore antialiazing:
+	var fxaaPass = new THREE.ShaderPass( new THREE.FXAAShader() );
+	var pixelRatio = this.renderer.getPixelRatio();
+	console.dir(fxaaPass);
+	var uniforms = fxaaPass.material.uniforms;
+	uniforms[ 'resolution' ].value.x = 1 / ( window.innerWidth * pixelRatio );
+	uniforms[ 'resolution' ].value.y = 1 / ( window.innerHeight * pixelRatio );
+	this.composer.addPass( fxaaPass );
+
         if(this.stepHandler) { // Attach glow for all mesh collectors up until this step:
             let map = {};
             this.stepHandler.getGlowObjects(map);
@@ -558,16 +567,24 @@ LDR.InstructionsManager.prototype.fillHeight = function() {
     return w > h;
 }
 
+LDR.tmpSize = new THREE.Vector3();
 LDR.InstructionsManager.prototype.updateViewPort = function(overwriteSize) {
     if(this.ignoreViewPortUpdate) {
 	return; // Editor change
     }
 
-    let c = this.camera;
-    let W = this.canvas.clientWidth*0.95; // c.right-c.left
-    let H = this.canvas.clientHeight*0.95; // c.top-c.bottom
+    let W = this.canvas.clientWidth*0.95;
+    let H = this.canvas.clientHeight*0.95;
 
-    c.position.set(10000, 7000, 10000);
+    // Set camera position and far plane according to current step bounds:
+    let size = 1000;
+    if(this.stepHandler) {
+	this.stepHandler.getAccumulatedBounds().getSize(LDR.tmpSize);
+	size = LDR.tmpSize.length();
+	console.log('Size',size);
+    }
+
+    this.camera.position.set(10*size, 7*size, 10*size);
 
     let dx = 0;
     let dy = this.topButtonsHeight;
@@ -582,9 +599,9 @@ LDR.InstructionsManager.prototype.updateViewPort = function(overwriteSize) {
         dy += overwriteSize ? overwriteSize[1] : this.pliH;
     }
 
-    c.clearViewOffset();
-    c.setViewOffset(W, H, -dx/2, -dy/2, W, H);
-    c.updateProjectionMatrix();
+    this.camera.clearViewOffset();
+    this.camera.setViewOffset(W, H, -dx/2, -dy/2, W, H);
+    this.camera.updateProjectionMatrix();
     this.controls.update();
 }
 
