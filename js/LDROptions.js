@@ -154,9 +154,9 @@ LDR.Options.appendOldBrickColorOptions = function(optionsBlock) {
     
     // Color functions:
     let red = () => '#800000';
-    let lime = () => '#A0FF00';
+    let lime = () => '#60FF00';
     let green = () => '#257A3E';
-    let blue = () => '#0055BF';
+    let blue = () => '#5577FF';
     let gb = [green, blue];
     
     let lineColor = options => LDR.Colors.int2Hex(options.lineColor);
@@ -178,11 +178,9 @@ LDR.Options.appendOldBrickColorOptions = function(optionsBlock) {
     const w = 20;
     function drawBase(idx) {
 	let svg = document.createElementNS(LDR.SVG.NS, 'svg');
-	svg.setAttribute('viewBox', '-100 -40 200 80');
+	svg.setAttribute('viewBox', '-90 -40 180 80');
 	buttons[idx].appendChild(svg);
-	svg.appendChild(LDR.SVG.makeLine(-w, 0, w, 0, true));
-	svg.appendChild(LDR.SVG.makeLine(w/2, w/2, w, 0, true));
-	svg.appendChild(LDR.SVG.makeLine(w/2, -w/2, w, 0, true));
+	LDR.SVG.makeThinArrow(svg, w);
         return svg;
     }
 
@@ -236,7 +234,7 @@ LDR.Options.appendContrastOptions = function(optionsBlock) {
             button.removeChild(svg);
         }
         svg = document.createElementNS(LDR.SVG.NS, 'svg');
-        svg.setAttribute('viewBox', '-60 -30 120 60');
+        svg.setAttribute('viewBox', '-80 -25 160 50');
 	button.appendChild(svg);
 
         if(self.lineContrast === 0) { // High Contrast:
@@ -378,7 +376,6 @@ LDR.Options.appendAnimationOptions = function(optionsBlock) {
 	// Right hand side:
 	let g2 = document.createElementNS(LDR.SVG.NS, 'g');
 	svg.appendChild(g2);
-	//g2.setAttribute('transform', 'rotate(90 0 0) translate(-50 -55)');
 	let turned = this.createSvgBlock(50, 0, true, red, lineColor, g2);
 
 	let a = document.createElementNS(LDR.SVG.NS, 'animateTransform');
@@ -438,9 +435,7 @@ LDR.Options.appendAnimationOptions = function(optionsBlock) {
 	this.createSvgBlock(-50, 0, true, red, lineColor, svg);
 
 	// Arrow:
-	svg.appendChild(LDR.SVG.makeLine(-w, 0, w, 0, true));
-	svg.appendChild(LDR.SVG.makeLine(w/2, w/2, w, 0, true));
-	svg.appendChild(LDR.SVG.makeLine(w/2, -w/2, w, 0, true));
+	LDR.SVG.makeThinArrow(svg, w);
 
 	// Right hand side:
 	let g = document.createElementNS(LDR.SVG.NS, 'g');
@@ -522,21 +517,19 @@ LDR.Options.appendStudHighContrastOptions = function(optionsBlock) {
 
     let red = () => '#C91A09';
     let lineColor = () => LDR.Colors.int2Hex(options.lineColor);
+    const W = 50;
     
     function updateSvg() {
         if(svg) {
             button.removeChild(svg);
         }
         svg = document.createElementNS(LDR.SVG.NS, 'svg');
-        svg.setAttribute('viewBox', '-40 -20 80 40');
+        svg.setAttribute('viewBox', '-80 -25 160 50');
 	button.appendChild(svg);
 
-        if(self.studHighContrast === 0) { // Off:
-            self.createSvgCylinder(0, 0, false, red, lineColor, svg);
-        }
-        else { // On:
-            self.createSvgCylinder(0, 0, true, red, lineColor, svg);
-        }
+        self.createSvgCylinder(-W, 0, false, red, lineColor, svg);
+	LDR.SVG.makeThinArrow(svg, W*0.4, true);
+        self.createSvgCylinder(W, 0, true, red, lineColor, svg);
     }
     updateSvg();
 }
@@ -552,24 +545,33 @@ LDR.Options.appendStudLogoOptions = function(optionsBlock) {
         updateSvg();
     };
     let button = this.createButton(group, onChange);
+    const W = 50;
 
     function updateSvg() {
         if(svg) {
             button.removeChild(svg);
-        }
+        }	
         svg = document.createElementNS(LDR.SVG.NS, 'svg');
-	svg.setAttribute('viewBox', '-60 -35 120 60');
+	svg.setAttribute('viewBox', '-80 -25 160 50');
 	svg.setAttribute('class', 'ui_toggles');
-        svg.append(LDR.SVG.makeCircle(0, -5, 23, true));
 	button.appendChild(svg);
 
-        if(self.studLogo === 1) { // On:
-            let lego = document.createElementNS(LDR.SVG.NS, 'text');
-            lego.innerHTML = 'LEGO';
-            lego.setAttribute('class', 'lego_' + self.studLogo);
-            lego.setAttribute('text-anchor', 'middle');
-            svg.append(lego);
-        }
+	let circle = LDR.SVG.makeCircle(-W, 0, 23, true);
+	circle.setAttribute('fill', '#C91A09');
+        svg.append(circle);
+
+	LDR.SVG.makeThinArrow(svg, W*0.4, true);
+
+	circle = LDR.SVG.makeCircle(W, 0, 23, true);
+	circle.setAttribute('fill', '#C91A09');
+	svg.append(circle);
+
+        let lego = document.createElementNS(LDR.SVG.NS, 'text');
+        lego.innerHTML = 'LEGO';
+        lego.setAttribute('class', 'lego_' + self.studLogo);
+        lego.setAttribute('x', '31px');
+        lego.setAttribute('y', '6px');
+        svg.append(lego);
     }
     updateSvg();
 }

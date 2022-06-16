@@ -14,8 +14,6 @@
     stroke: white;
 }
 #options {
-    padding-left: 1em;
-    padding-right: 1em;
     background-color: black;
 }
 #options rect.show {
@@ -24,29 +22,36 @@
 #options text {
     font-family: sans-serif;
     font-weight: bold;
-    font-size: 16px;
 }
 .options {
-  display: table;
   table-layout: fixed;
   width: 100%;
-  max-width: 500px;
+  max-width: 700px;
   margin-left: auto;
   margin-right: auto;
-  border-spacing: 2vw;
+  border-spacing: 0;
   background-color: white;
+  padding: 2vw;
+  padding-bottom: 0;
+}
+.options:last-of-type {
+    padding-bottom: 2vw;
 }
 .options_description_header {
-    padding: 0;
+
 }
 .options_description {
-  background-color: black;
   color: white;
   text-align: center;
   font-family: sans-serif;
   font-weight: bold;
   font-size: 3vw;
-  padding: 0.5em;
+}
+.options_description span {
+  background-color: black;
+  display: block;
+  margin-bottom: 2vw;
+  padding: 1vw;
 }
 .options_description a {
     float: left;
@@ -60,9 +65,12 @@
     height: 40px;
 }
 .option_selected, .option {
-  border: 2px solid black;
-  padding: 1vw;
+  border-right: 2px solid black;
+  padding: 0.4vw;
   cursor: pointer;
+}
+.option_selected:last-of-type, .option:last-of-type {
+    border-right: none;
 }
 .color_option {
   padding: 0.5em;
@@ -77,7 +85,6 @@
 }
 
 .option_selected {
-  border: 2px solid #008A00;
   background-color: #DDFFDD;
 }
 .option:hover, .option_selected:hover {
@@ -96,28 +103,3 @@
   fill: black;
   stroke: #000;
 }
-/*#options .lego_2 {
-  font: italic 16px arial narrow;
-  fill: none;
-  stroke: #000;
-  stroke-width: 0.4;
-}
-#options .lego_3 {
-  font: italic 16px arial narrow;
-  fill: white;
-  stroke: #000;
-  stroke-width: 0.4;
-  text-shadow: 3px 3px 0 #FFF, 3px 4px 0 #000;
-}
-#options .lego_4 {
-  font: italic 16px arial rounded mt bold;
-  fill: none;
-  stroke: #000;
-  stroke-width: 0.5;
-}
-#options .lego_5 {
-  font: italic 16px arial rounded mt bold;
-  fill: none;
-  stroke: #000;
-  stroke-width: 0.34;
-}*/

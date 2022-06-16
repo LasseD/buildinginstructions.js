@@ -52,6 +52,15 @@ LDR.SVG.makeRightArrow = function(withCircle) {
     }
     return ret;
 }
+LDR.SVG.makeThinArrow = function(svg, w, alsoLeft = false) {
+    svg.appendChild(LDR.SVG.makeLine(-w, 0, w, 0, true));
+    svg.appendChild(LDR.SVG.makeLine(w/2, w/2, w, 0, true));
+    svg.appendChild(LDR.SVG.makeLine(w/2, -w/2, w, 0, true));
+    if(alsoLeft) {
+	svg.appendChild(LDR.SVG.makeLine(-w/2, w/2, -w, 0, true));
+	svg.appendChild(LDR.SVG.makeLine(-w/2, -w/2, -w, 0, true));
+    }
+}
 LDR.SVG.makeCheckMark = function() {
     let ret = document.createElementNS(LDR.SVG.NS, 'svg');
     ret.setAttribute("class", "done");
