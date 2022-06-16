@@ -92,13 +92,14 @@ LDR.Colors.buildLineMaterial = function(c, conditional) {
     let ret = new THREE.RawShaderMaterial( {
 	uniforms: uniforms,
 	vertexShader: (conditional ? 
-	    LDR.Shader.createConditionalVertexShader(true) : 
-            LDR.Shader.createSimpleVertexShader(true, true, false)),
+	    LDR.Shader.createConditionalVertexShader() : 
+            LDR.Shader.createSimpleVertexShader(true, false)),
 	fragmentShader: (conditional ? 
 	    LDR.Shader.AlphaTestFragmentShader :
 	    LDR.Shader.SimpleFragmentShader),
 	transparent: false,
-	visible: true
+	visible: true,
+	depthFunc: THREE.LessEqualDepth
     });
 
     return ret;
@@ -120,10 +121,11 @@ LDR.Colors.buildTriangleMaterial = function(c, texmap) {
 
     let ret = new THREE.RawShaderMaterial({
 	uniforms: uniforms,
-	vertexShader: LDR.Shader.createSimpleVertexShader(false, false, texmap),
+	vertexShader: LDR.Shader.createSimpleVertexShader(false, texmap),
 	fragmentShader: texmap ? LDR.Shader.TextureFragmentShader : LDR.Shader.SimpleFragmentShader,
 	transparent: isTrans,
-        depthWrite: !isTrans
+        depthWrite: !isTrans,
+	depthFunc: THREE.LessDepth
     });
     return ret;
 }

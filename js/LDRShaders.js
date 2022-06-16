@@ -1,9 +1,9 @@
 'use strict';
 
-LDR.Shader = {PUSH_COMMAND:"gl_Position.w -= 0.0000005;"};
+LDR.Shader = {};
 
-LDR.Shader.createSimpleVertexShader = function(push, defaultIsEdge, hasTexmap) {
-    const KEY = 'SIMPLE' + (push ? 1 : 0) + (defaultIsEdge ? 2 : 0) + (hasTexmap ? 4 : 0);
+LDR.Shader.createSimpleVertexShader = function(defaultIsEdge, hasTexmap) {
+    const KEY = 'SIMPLE' + (defaultIsEdge ? 2 : 0) + (hasTexmap ? 4 : 0);
     if(LDR.Shader.hasOwnProperty(KEY)) {
         return LDR.Shader[KEY];
     }
@@ -32,11 +32,7 @@ LDR.Shader.createSimpleVertexShader = function(push, defaultIsEdge, hasTexmap) {
 
     if(hasTexmap) {
         ret += "  vuv=uv;\n";
-    }
-    
-    if(push) {
-	ret += LDR.Shader.PUSH_COMMAND;
-    }
+    }    
     ret += "  }";
 
     LDR.Shader[KEY] = ret;
@@ -45,10 +41,10 @@ LDR.Shader.createSimpleVertexShader = function(push, defaultIsEdge, hasTexmap) {
 
 // See 'http://www.ldraw.org/article/218.html' for specification of optional/conditional lines.
 // A conditional line is drawn when the camera sees p3 and p4 on same side of line p1 p2.
-LDR.Shader.createConditionalVertexShader = function(push) {
+LDR.Shader.createConditionalVertexShader = function() {
     const canBeOld = LDR.Colors.canBeOld;
 
-    const KEY = 'COND' + (push ? 1 : 0);
+    const KEY = 'COND';
     if(LDR.Shader.hasOwnProperty(KEY)) {
         return LDR.Shader[KEY];
     }
@@ -70,8 +66,6 @@ LDR.Shader.createConditionalVertexShader = function(push) {
 
     ret += "color;";
     ret += "\n        vColor.a *= sign(dot(d12, d13)*dot(d12, d14));";
-    if(push)
-	ret += LDR.Shader.PUSH_COMMAND;
     ret += "\n      }";
 
     LDR.Shader[KEY] = ret;

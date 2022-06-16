@@ -25,7 +25,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
 
     let pixelRatio = window.devicePixelRatio || 1;
     this.canvas = document.getElementById('main_canvas');
-    this.renderer = new THREE.WebGLRenderer({antialias:true, canvas:this.canvas, logarithmicDepthBuffer:true});
+    this.renderer = new THREE.WebGLRenderer({antialias:true, canvas:this.canvas, logarithmicDepthBuffer:false});
     this.renderer.setPixelRatio(pixelRatio);
     this.secondaryCanvas = document.getElementById('secondary_canvas');
     this.secondaryRenderer = new THREE.WebGLRenderer({antialias:true, canvas:this.secondaryCanvas, alpha:true});
@@ -585,6 +585,7 @@ LDR.InstructionsManager.prototype.updateViewPort = function(overwriteSize) {
     }
 
     this.camera.position.set(10*size, 7*size, 10*size);
+    this.camera.far = 2*15.7797*size; // Roughly double the camera distance, so that we can see to the other side.
 
     let dx = 0;
     let dy = this.topButtonsHeight;
