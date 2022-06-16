@@ -94,6 +94,7 @@
     display: block;
     width: 100%;
     opacity: 0.75;
+    font-size: 13px;
 }
 .option_selected svg {
     opacity: 1;

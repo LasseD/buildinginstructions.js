@@ -569,8 +569,8 @@ LDR.Options.appendStudLogoOptions = function(optionsBlock) {
         let lego = document.createElementNS(LDR.SVG.NS, 'text');
         lego.innerHTML = 'LEGO';
         lego.setAttribute('class', 'lego_' + self.studLogo);
-        lego.setAttribute('x', '31px');
-        lego.setAttribute('y', '6px');
+        lego.setAttribute('x', '32px');
+        lego.setAttribute('y', '5px');
         svg.append(lego);
     }
     updateSvg();
