@@ -51,7 +51,13 @@ Files are fetched asynchroneously, so opening the sample files in your browser m
  --disable-web-security --user-data-dir=some_directory_where_it_is_ok_that_chrome_saves_a_lot_of_files
 ```
 
-Alternatively, if you have Python installed, then you can fire up a local HTTP server on 0.0.0.0 by running:
+Alternatively, if you have python3 installed, then you can fire up a local HTTP server by running:
+
+```
+  python3 -m http.server
+```
+
+For earlier versions of python, the following should work:
 
 ```
   python -m SimpleHTTPServer
