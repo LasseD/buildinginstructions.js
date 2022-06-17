@@ -429,7 +429,6 @@ LDR.InstructionsManager.prototype.onWindowResize = function(force){
 	// FXAA Pass to restore antialiazing:
 	var fxaaPass = new THREE.ShaderPass( new THREE.FXAAShader() );
 	var pixelRatio = this.renderer.getPixelRatio();
-	console.dir(fxaaPass);
 	var uniforms = fxaaPass.material.uniforms;
 	uniforms[ 'resolution' ].value.x = 1 / ( window.innerWidth * pixelRatio );
 	uniforms[ 'resolution' ].value.y = 1 / ( window.innerHeight * pixelRatio );
@@ -581,7 +580,6 @@ LDR.InstructionsManager.prototype.updateViewPort = function(overwriteSize) {
     if(this.stepHandler) {
 	this.stepHandler.getAccumulatedBounds().getSize(LDR.tmpSize);
 	size = LDR.tmpSize.length();
-	console.log('Size',size);
     }
 
     this.camera.position.set(10*size, 7*size, 10*size);
