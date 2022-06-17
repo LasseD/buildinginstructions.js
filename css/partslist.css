@@ -59,7 +59,7 @@ table th {
 table th .sorter {
     cursor: pointer;
 }
-tr {
+#list_part tr {
   background-color: #d3dce3;
 }
 table tr.partline:nth-child(2n+3) {
