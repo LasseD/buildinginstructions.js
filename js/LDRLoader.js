@@ -920,9 +920,9 @@ THREE.LDRLoader.prototype.unpack = function(obj) {
 	THREE.LDRLoader.textureLoader.load(
 	    dataurl,
 	    function(texture) {
-		self.texmaps[pid] = texture;
-		self.texmapListeners[pid].forEach(x => x(texture));
-		self.reportProgress(pid);
+		self.texmaps[id] = texture;
+		self.texmapListeners[id].forEach(x => x(texture));
+		self.reportProgress(id);
 	    },
 	    self.onError
 	);
