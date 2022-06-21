@@ -196,6 +196,7 @@ THREE.LDRLoader.prototype.reportProgress = function(id) {
  * 
  * data is the plain text file content.
  */
+THREE.LDRLoader.textureLoader = new THREE.TextureLoader();
 THREE.LDRLoader.prototype.parse = function(data, defaultID) {
     let parseStartTime = new Date();
     let self = this;
@@ -488,15 +489,16 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 
                 self.texmaps[pid] = true;
                 self.texmapListeners[pid] = [];
-                let image = new Image();
-                image.onload = function(e) {
-                    let texture = new THREE.Texture(this);
-                    texture.needsUpdate = true;
-                    self.texmaps[pid] = texture;
-                    self.texmapListeners[pid].forEach(x => x(texture));
-                    self.onProgress(pid);
-                };
-                image.src = dataurl;
+
+		THREE.LDRLoader.textureLoader.load(
+		    dataurl,
+		    function(texture) {
+			self.texmaps[pid] = texture;
+			self.texmapListeners[pid].forEach(x => x(texture));
+			self.reportProgress(pid);
+		    },
+		    self.onError
+		);
 
                 saveThisCommentLine = false;
 	    }
@@ -913,16 +915,17 @@ THREE.LDRLoader.prototype.unpack = function(obj) {
         
         self.texmaps[id] = true;
         self.texmapListeners[id] = [];
-        let image = new Image();
-        image.onload = function(e) {
-            let texture = new THREE.Texture(this);
-            texture.needsUpdate = true;
-            self.texmaps[id] = texture;
-            self.texmapListeners[id].forEach(l => l(texture));
-            self.onProgress(id);
-        };
+	
         let dataurl = 'data:image/' + mimetype + ';base64,' + content;
-        image.src = dataurl;
+	THREE.LDRLoader.textureLoader.load(
+	    dataurl,
+	    function(texture) {
+		self.texmaps[pid] = texture;
+		self.texmapListeners[pid].forEach(x => x(texture));
+		self.reportProgress(pid);
+	    },
+	    self.onError
+	);
     }
 
     // Unpack all non-parts:
@@ -2295,19 +2298,18 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
             let buildMaterial, setMap;
             if(loader.physicalRenderingAge === 0) {
                 buildMaterial = t => LDR.Colors.buildTriangleMaterial(c3, t);
-                setMap = t => material.uniforms.map = {type:'t',value:t};
+                setMap = t => material.uniforms.map.value = t;
             }
             else {
                 buildMaterial = t => LDR.Colors.buildStandardMaterial(c3, t);
                 setMap = t => material.map = t;
             }
 	    
-            if(loader.texmaps[textureFile] === true) {
+            if(loader.texmaps[textureFile] === true) { // Texture not yet loaded:
                 material = buildMaterial(true);
                 function setTexmap(t) {
                     setMap(t);
                     material.needsUpdate = true;
-                    loader.onProgress(textureFile);
                 }
                 loader.texmapListeners[textureFile].push(setTexmap);
             }

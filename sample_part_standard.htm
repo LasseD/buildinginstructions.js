@@ -25,9 +25,10 @@
     <script src="js/LDRLoader.js"></script>
     <script src="js/LDRGenerator.js"></script>
     <script src="js/LDRStuds.js"></script>
+    <script src="js/StudioTexmap.js"></script>
     <script>
 
-      let partID = '44375bps0.dat'; // Set the part to load here. 
+      let partID = '44375bps0.dat'; // Set the part to load here.
       //let partID = 'stud-logo.dat';
       //let partID = '18675ps2.dat';
       let color = 40;
@@ -66,7 +67,12 @@
       // Three.js loader for LDraw models:
       var ldrLoader;
 
-      var onLoad = function() {
+      let mc;
+      var onLoad = function() { // Notice that onLoad might be called more than once.
+        if(mc) {
+          onWindowResize();
+          return;
+        }
         if(!ldrLoader.mainModel) {
           ldrLoader.mainModel = partID;
         }
@@ -87,7 +93,7 @@
         baseObject.add(sixteenObject);
         baseObject.add(transObject);
         scene.add(baseObject);
-        let mc = new LDR.MeshCollector(opaqueObject, sixteenObject, transObject);
+        mc = new LDR.MeshCollector(opaqueObject, sixteenObject, transObject);
 
         // Generate the mesh:
         pt.generateThreePart(ldrLoader, color, origo, inv, true, false, mc);

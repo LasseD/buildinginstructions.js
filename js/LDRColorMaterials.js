@@ -105,6 +105,7 @@ LDR.Colors.buildLineMaterial = function(c, conditional) {
     return ret;
 }
 
+LDR.Colors.tempTexure = new THREE.Texture();
 LDR.Colors.buildTriangleMaterial = function(c, texmap) {
     let color4 = LDR.Colors.getColor4(c);
 
@@ -113,8 +114,8 @@ LDR.Colors.buildTriangleMaterial = function(c, texmap) {
 	uniforms['old'] = {value: false};
     }
     uniforms['color'] = {type: 'v4', value: color4};
-    if(texmap && texmap !== true) {
-        uniforms['map'] = {type: 't', value: texmap};
+    if(texmap) {
+        uniforms['map'] = {type: 't', value: texmap === true ? LDR.Colors.tempTexure : texmap};
     }
 
     const isTrans = LDR.Colors.isTrans(c);

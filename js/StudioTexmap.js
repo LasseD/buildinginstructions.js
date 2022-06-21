@@ -21,7 +21,7 @@ LDR.STUDIO.handleCommentLine = function(part, parts) {
 
 /*
   Compute LDraw texmaps and texmap placements from Studio 2.0 / Part Designer
- */
+*/
 LDR.STUDIO.handlePart = function(loader, pt) {
     if(!pt.studioTexmap || pt.steps.length !== 1) {
 	return; // Not relevant for Studio 2.0 texmaps or not with a single step.
@@ -59,9 +59,8 @@ LDR.STUDIO.handlePart = function(loader, pt) {
     }
 
     // Set up dataurl:
-    let pid = pt.ID + '.png';
-    //console.log(pt.ID, 'PID',pid);
-    let dataurl = 'data:image/png;base64,' + pt.studioTexmap;
+    const pid = pt.ID + '.png';
+    const dataurl = 'data:image/png;base64,' + pt.studioTexmap;
     loader.texmapDataurls.push({id:pid, mimetype:'png', content:pt.studioTexmap});
     delete pt.studioTexmap; // Ensure this is only called once.
 
@@ -69,16 +68,16 @@ LDR.STUDIO.handlePart = function(loader, pt) {
     if(!loader.texmapListeners.hasOwnProperty(pid)) {
         loader.texmapListeners[pid] = [];
     }
-    let image = new Image();
-    image.onload = function(e) {
-        let texture = new THREE.Texture(this);
-        texture.needsUpdate = true;
-        loader.texmaps[pid] = texture;
-        loader.texmapListeners[pid].forEach(l => l(texture));
-        loader.onProgress(pid);
-	//document.body.append(image);
-    };
-    image.src = dataurl;
+
+    THREE.LDRLoader.textureLoader.load(
+	dataurl,
+	function(texture) {
+            loader.texmaps[pid] = texture;
+            loader.texmapListeners[pid].forEach(x => x(texture));
+            loader.reportProgress(pid);
+	},
+	loader.onError
+    );
 }
 
 /*
@@ -105,8 +104,6 @@ LDR.STUDIO.handleTriangleLine = function(pt, parts) {
         let [u1,v1] = lastTmp.getUV(q1);
         let [u2,v2] = lastTmp.getUV(q2);
         let [u3,v3] = lastTmp.getUV(q3);
-        //console.log(U1,U2,U3,V1,V2,V3);
-        //console.log(u1,u2,u3,v1,v2,v3);
         if(lastTmp.file === (pt.ID + '.png') && isZero(u1-U1) && isZero(u2-U2) && isZero(u3-U3) && isZero(1-v1-V1) && isZero(1-v2-V2) && isZero(1-v3-V3)) {
             lastTmp.used = false;
             return lastTmp;
