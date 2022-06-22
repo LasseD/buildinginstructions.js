@@ -91,10 +91,10 @@ THREE.LDRLoader = function(onLoad, storage, options) {
     this.mainModel;
 
     this.idToUrl = this.options.idToUrl || function(id) {
-	if(!id.endsWith(".dat")){
-	    return [id];
-	}
         let lowerID = id.toLowerCase();
+	if(!lowerID.endsWith(".dat")) { // Account for both .DAT and .dat
+	    return [lowerID];
+	}
 	return ["ldraw_parts/"+lowerID, "ldraw_unofficial/"+lowerID];
     };
 
@@ -116,7 +116,7 @@ THREE.LDRLoader.prototype.load = function(id) {
     if(urls.length === 0) {
 	return; // No URL to load.
     }
-    id = id.toLowerCase().replace('\\', '/'); // Sanitize id. 
+    id = id.replace('\\', '/'); // Sanitize id.
 
     if(this.partTypes[id]) { // Already loaded
         if(this.partTypes[id] !== true) {

@@ -112,11 +112,11 @@
    <div id="color_picker_holder" class="holder"></div>
   </div>
   <script>
-    var color = 16;
+    let color = 16;
 
-    var w = 1, h = 1;
-    var ldrLoader;
-    var builder;
+    let w = 1, h = 1;
+    let ldrLoader;
+    let builder;
 
     // Set up camera:
     let camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
@@ -189,9 +189,9 @@
     let ldrButtons = new LDR.Buttons(actions, preview, false);
     
     // Three.js loader for LDraw models:
-    var mc;
+    var mc; // var, so that it bleeds out of the function.
     let pointMaterial, inv, elementCenter;
-    var mainModel;
+    var mainModel; // var, so that it bleeds out of the function.
     let origo = new THREE.Vector3();
     inv = new THREE.Matrix3(); inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
 
@@ -226,13 +226,17 @@
         onWindowResize();
         
         mainModel = ldrLoader.getMainModel();
-	if(!mainModel) {
-	    mainModel = ldrLoader.getPartType(ldrLoader.mainModel + '.dat');
-            if(!mainModel) {
-                mainModel = ldrLoader.getPartType(ldrLoader.mainModel + '.ldr');
-            }
-	}
-        mainModel.isPart = () => false;
+	mainModel.isPart = false;
+
+	// Make empty parts have a point in middle to show their location:
+	ldrLoader.applyOnPartTypes(function(pt) {
+	  if(!pt.isPart) return; // Only on parts.
+	  if(pt.steps.length == 0) { // Empty:
+	    let step = new THREE.LDRStep();
+	    step.addLine(16, new THREE.Vector3(), new THREE.Vector3());
+	    pt.steps.push(step);
+	  }
+	});
         
         // Generate the mesh:
         mc = new LDR.MeshCollector(redrawObject, redrawObject, redrawObject);
@@ -309,7 +313,9 @@
     LDR.Studs.makeGenerators('', LDR.Options.studHighContrast, LDR.Options.studLogo);
 
     //ldrLoader.load('32525.dat');
-    ldrLoader.load('3024.dat');        
+    ldrLoader.load('3024.dat');
+    //ldrLoader.load('4-4ering.dat');
+    //ldrLoader.load('48/1-16chrd.dat');
     //ldrLoader.load('s/3001s01.dat');        
     
     // Color setup:

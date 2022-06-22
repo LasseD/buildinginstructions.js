@@ -289,7 +289,7 @@ LDR.SubPartBuilder.prototype.buildStructureView = function() {
 
 	    line.imageHolder = LDR.makeEle(tr, 'td', 'line_image');
 	}
-	if(p1) {
+	if(p1) { // Not line type 1:
 	    // Add line points to cloud:
 	    let pts = [p1.x, p1.y, p1.z, p2.x, p2.y, p2.z];
 	    let c1 = new THREE.Color(LDR.writePrettyPointColors[0]);
