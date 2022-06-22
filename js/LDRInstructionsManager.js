@@ -8,7 +8,7 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
     this.showEditor = options.showEditor === true;
     this.modelID = modelID;
     this.modelColor = modelColor;
-    this.refreshCache = refreshCache;
+    this.refreshCache = refreshCache || function(){};
     this.baseURL = baseURL;
     this.pliMaxWidthPercentage = options.hasOwnProperty('pliMaxWidthPercentage') ? options.pliMaxWidthPercentage : 40;
     this.pliMaxHeightPercentage = options.hasOwnProperty('pliMaxHeightPercentage') ? options.pliMaxHeightPercentage : 35;
