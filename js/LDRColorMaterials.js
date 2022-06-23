@@ -98,8 +98,7 @@ LDR.Colors.buildLineMaterial = function(c, conditional) {
 	    LDR.Shader.AlphaTestFragmentShader :
 	    LDR.Shader.SimpleFragmentShader),
 	transparent: false,
-	visible: true,
-	depthFunc: THREE.LessEqualDepth
+	visible: true
     });
 
     return ret;
@@ -126,7 +125,9 @@ LDR.Colors.buildTriangleMaterial = function(c, texmap) {
 	fragmentShader: texmap ? LDR.Shader.TextureFragmentShader : LDR.Shader.SimpleFragmentShader,
 	transparent: isTrans,
         depthWrite: !isTrans,
-	depthFunc: THREE.LessDepth
+	polygonOffset: true,
+	polygonOffsetFactor: 1.5,
+        polygonOffsetUnits: 15.0
     });
     return ret;
 }

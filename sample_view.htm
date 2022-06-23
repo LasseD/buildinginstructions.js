@@ -90,7 +90,7 @@
         console.log("Model rendered in " + (new Date()-startTime) + "ms.");
       }
 
-      LDR.Studs.makeGenerators('', 0, 0);
+      LDR.Studs.makeGenerators('', 0, 1);
       ldrLoader = new THREE.LDRLoader(onLoad, null, {cleanUpPrimitivesAndSubParts:false});
       ldrLoader.load(model);
  </script>

@@ -2238,30 +2238,6 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 	0, 0, 0, 1
     );
     
-    for(let tc in this.geometry.lineGeometries) {
-	if(!this.geometry.lineGeometries.hasOwnProperty(tc)) {
-	    continue;
-	}
-        let c3 = transformColor(tc);
-
-	let material = new LDR.Colors.buildLineMaterial(c3, false);
-	let normalLines = new THREE.LineSegments(this.geometry.lineGeometries[tc], material);
-	normalLines.applyMatrix4(m4);
-	mc.addLines(c3, normalLines, pd, false);
-    }
-    
-    for(let tc in this.geometry.conditionalLineGeometries) {
-	if(!this.geometry.conditionalLineGeometries.hasOwnProperty(tc)) {
-	    continue;
-	}
-        let c3 = transformColor(tc);
-
-	let material = new LDR.Colors.buildLineMaterial(c3, true);
-	let conditionalLines = new THREE.LineSegments(this.geometry.conditionalLineGeometries[tc], material);
-	conditionalLines.applyMatrix4(m4);
-	mc.addLines(c3, conditionalLines, pd, true);
-    }
-    
     // Normal triangle geometries:
     for(let tc in this.geometry.triangleGeometries) {
 	if(!this.geometry.triangleGeometries.hasOwnProperty(tc)) {
@@ -2322,6 +2298,30 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
             mesh.geometry.applyMatrix4(m4);
             mc.addMesh(c3, mesh, pd);
         });
+    }
+
+    for(let tc in this.geometry.lineGeometries) {
+	if(!this.geometry.lineGeometries.hasOwnProperty(tc)) {
+	    continue;
+	}
+        let c3 = transformColor(tc);
+
+	let material = new LDR.Colors.buildLineMaterial(c3, false);
+	let normalLines = new THREE.LineSegments(this.geometry.lineGeometries[tc], material);
+	normalLines.applyMatrix4(m4);
+	mc.addLines(c3, normalLines, pd, false);
+    }
+    
+    for(let tc in this.geometry.conditionalLineGeometries) {
+	if(!this.geometry.conditionalLineGeometries.hasOwnProperty(tc)) {
+	    continue;
+	}
+        let c3 = transformColor(tc);
+
+	let material = new LDR.Colors.buildLineMaterial(c3, true);
+	let conditionalLines = new THREE.LineSegments(this.geometry.conditionalLineGeometries[tc], material);
+	conditionalLines.applyMatrix4(m4);
+	mc.addLines(c3, conditionalLines, pd, true);
     }
 
     let b = this.geometry.boundingBox;
