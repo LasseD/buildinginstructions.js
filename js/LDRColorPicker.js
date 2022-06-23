@@ -20,6 +20,7 @@ LDR.ColorPicker = function(onColorSelected, showOnlyAbsColors = false) {
         const contrastColor = new THREE.Color(contrastVector.x, contrastVector.y, contrastVector.z);
         colorEle.style.color = '#' + contrastColor.getHexString();
         colorEle.innerHTML = i;
+	colorEle.parentNode.style.backgroundColor = LDR.Colors.int2Hex(color.edge);
     }
 
     function addColorElement(color, i) {
@@ -35,6 +36,7 @@ LDR.ColorPicker = function(onColorSelected, showOnlyAbsColors = false) {
 
         let colorContainer = document.createElement('span');
         colorContainer.setAttribute('class', 'color_container');
+        colorContainer.setAttribute('background-color', '#ffffff');
         colorPickerEle.append(colorContainer);
         
         let colorEle = document.createElement('span');

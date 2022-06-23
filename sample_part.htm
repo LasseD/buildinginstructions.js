@@ -2,15 +2,14 @@
 <html>
  <head>
     <meta charset=utf-8>
-    <title>Sample part view</title>
+    <title>Single Part View</title>
     <link href="css/index.css" rel="stylesheet" type="text/css">
     <link href="css/buttons.css" rel="stylesheet" type="text/css">
     <link href="css/options.css" rel="stylesheet" type="text/css">
     <link href="css/preview.css" rel="stylesheet" type="text/css">
-    <link href="css/parts.css" rel="stylesheet" type="text/css">
     <link href="css/part.css" rel="stylesheet" type="text/css">
     <link href="css/color_picker.css" rel="stylesheet" type="text/css">
-    <!--<meta name="viewport" content="width=device-width" />-->
+    <meta name="viewport" content="width=device-width" />
  </head>
  <body>
   <script src="js/jquery.min.js"></script>
@@ -37,35 +36,61 @@
  <div id="title_bar_name_center"></div>
  <div id="title_bar_title_info">
   <div id="title_bar_name">Single Part View</div>
-  <div class="title_line" id="color_text" onclick="$('#color_picker_background, #color_picker_holder').fadeIn(250)">Color 16 - Main_Colour</div>
-  <div class="title_line" id="bfc_text">Back Face Culling-mode: Green shows triangles and quads winded counter-clockwise. Red is for clockwise. Blue indicates no culling. Use this mode to discover BFC issues</div>
+     <div class="title_line" id="color_text" onclick="$('#color_picker_background, #color_picker_holder').fadeIn(250)"></div>
+     <div class="title_line" id="bfc_text">Back Face Culling-mode: Green shows triangles and quads winded counter-clockwise. Red is for clockwise. Blue indicates no culling. Use this mode to discover BFC issues</div>
   <div class="title_line" id="harlequin_text">Harlequin-mode: Highlights how the geometries interact. This is helpful for discovering <a href="https://wiki.ldraw.org/wiki/T-Junction">T junctions</a></div>
  </div>
 </div>
-  
-  <div id="preview">
-   <canvas id="main_canvas"></canvas>
-   <div id="color_button" onclick="$('#color_picker_background, #color_picker_holder').fadeIn(250)"></div>
-  </div>
+
+<div id="canvas_buttons_top" class="ui_control">
+  <div id="color_button_holder"></div>
+  <div onclick="setMode(0)" id="normal_button"></div>
+  <div onclick="setMode(1)" id="bfc_button"></div>
+  <div onclick="setMode(2)" id="harlequin_button"></div>
+</div>
+<canvas id="main_canvas"></canvas>
+<div id="canvas_buttons_bottom">
+</div>
+
   <div id="load_messages"></div>
 
   <span class="other_actions">
     <script>
+
+      function buildModeIcon(c) {
+	  let i = 0;
+	  let fill = () => c[i++ % c.length];
+	  let lineColor = () => '#BBB';
+    
+	  let svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	  svg.setAttribute('viewBox', '-25 -25 50 50');
+	  LDR.Options.createSvgBlock(0, 0, true, fill, lineColor, svg);
+	  return svg;
+      }
+      document.getElementById('normal_button').append(buildModeIcon(['rgb(255, 255, 128)']));
+      document.getElementById('bfc_button').append(buildModeIcon(['rgb(0, 133, 43)']));
+      document.getElementById('harlequin_button').append(buildModeIcon(['rgb(68, 26, 145)', 'rgb(211, 53, 157)']));
+      
       function setMode(mode) {
           LDR.setMode(mode);
           generateMesh();
 
           switch(mode) {
           case 0:
+	      let oldColor = color;
+	      setColor(16);
+	      setColor(oldColor);
               $('#color_text').show();
-              $('#bfc_text').hide();
+              $('#color_picker_button').show();
+	      $('#bfc_text').hide();
               $('#harlequin_text').hide();
               $('#normal_button').hide();
               $('#bfc_button').show();
               $('#harlequin_button').show();
               break;
           case 1:
-              $('#color_text').hide();
+	      $('#color_text').hide();
+	      $('#color_picker_button').hide();
               $('#bfc_text').show();
               $('#harlequin_text').hide();
               $('#normal_button').show();
@@ -73,7 +98,8 @@
               $('#harlequin_button').show();
               break;
           case 2:
-              $('#color_text').hide();
+	      $('#color_text').hide();
+	      $('#color_picker_button').hide();
               $('#bfc_text').hide();
               $('#harlequin_text').show();
               $('#normal_button').show();
@@ -88,9 +114,6 @@
           }
       }
     </script>
-    <a onclick="setMode(0)" id="normal_button"><span>Normal View</span></a>
-    <a onclick="setMode(1)" id="bfc_button"><span>BFC Mode</span></a>
-    <a onclick="setMode(2)" id="harlequin_button"><span>Harlequin Mode</span></a>
   </span>
   
   <span class="bar"><span>Structure</span></span>
@@ -108,18 +131,18 @@
    <div id="load_details">Load Full Structure</div>
   </div>
   <div id="color_picker">
-   <div id="color_picker_background" class="background" onclick="$('#color_picker').hide();"></div>
+   <div id="color_picker_background" class="background" onclick="$('#color_picker_background, #color_picker_holder').hide();"></div>
    <div id="color_picker_holder" class="holder"></div>
   </div>
   <script>
     let color = 16;
 
-    let w = 1, h = 1;
+    let size;
     let ldrLoader;
     let builder;
 
     // Set up camera:
-    let camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
+    let camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100000);
 
     // Set up scene:
     let scene = new THREE.Scene();
@@ -136,57 +159,33 @@
     function render() {
         renderer.render(scene, camera);
     }
-    let preview = document.getElementById('preview');
     
-    function resetCameraPosition() {
-        camera.zoom = 1;
-        camera.position.set(100*w, 70*w, 100*w);
-	camera.lookAt(new THREE.Vector3());
-        updateCameraSize();
-	render();
-    }
-    function zoomIn() {
-        controls.dollyIn(1.2);
-        render();
-    }
-    function zoomOut() {
-        controls.dollyOut(1.2);
-        render();
-    }
-
     function updateCameraSize() {
-        camera.left = -w;
-        camera.right = w;
-        camera.top = h;
-        camera.bottom = -h;
+	let W = window.innerWidth;
+	let H = window.innerHeight*0.8;
+
+        camera.left = -(camera.right = W);
+        camera.bottom = -(camera.top = H);
     	camera.updateProjectionMatrix();
     }
 
     function onWindowResize(){
-	let W = window.innerWidth*0.8;
-	let H = window.innerHeight*0.8;
-	W = H = Math.min(W, H);
-	
-	preview.width = renderer.domElement.width = W*window.devicePixelRatio;
-	preview.height = renderer.domElement.height = H*window.devicePixelRatio;
-	preview.style.width = renderer.domElement.style.width = W + "px";
-	preview.style.height = renderer.domElement.style.height = H + "px";//*/
+	let W = window.innerWidth;
+	let H = window.innerHeight*0.8;	
 	renderer.setSize(W, H);
+	
+	updateCameraSize();
 	render();
     }
 
     // React to user input:
-    resetCameraPosition();
-    let controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.addEventListener('change', render);
-    window.addEventListener('resize', onWindowResize, false);
-    
+    let controls;    
     let actions = {
-        zoomIn: () => zoomIn(),
-        zoomOut: () => zoomOut(),
-        resetCameraPosition: () => resetCameraPosition(),
+        zoomIn: () => {controls.dollyIn(1.2);render();},
+        zoomOut: () => {controls.dollyOut(1.2);render();},
+        resetCameraPosition: () => controls.reset(),
     };
-    let ldrButtons = new LDR.Buttons(actions, preview, false);
+    let ldrButtons = new LDR.Buttons(actions, document.getElementById('canvas_buttons_bottom'), false);
     
     // Three.js loader for LDraw models:
     var mc; // var, so that it bleeds out of the function.
@@ -209,6 +208,8 @@
         
         // Rebuild:
         mainModel.ensureGeometry(ldrLoader); // Because 'isPart()' is set to return false!
+	LDR.Colors.DEFAULT_POLYGON_OFFSET_FACTOR = 1;
+	LDR.Colors.DEFAULT_POLYGON_OFFSET_UNITS = 1;
         mainModel.generateThreePart(ldrLoader, 16, origo, inv, true, false, mc); // Trans color to ensure tansparency is set in the material.
 	mc.overwriteColor(color);
         mc.draw(false);
@@ -223,8 +224,6 @@
     }
     
     let onLoad = function() {
-        onWindowResize();
-        
         mainModel = ldrLoader.getMainModel();
 	mainModel.isPart = false;
 
@@ -251,22 +250,32 @@
 	baseObject.position.add(elementCenter);
 	baseObject.updateMatrixWorld(true);
 	//baseObject.add(new THREE.Box3Helper(b, 0xff0000));
-        
+	
+	size = new THREE.Vector3();
+        b.getSize(size);
+        size = Math.sqrt(size.x*size.x + size.y*size.y + size.z*size.z);
+
+	camera.position.set(size, 0.7*size, size);
+	camera.lookAt(new THREE.Vector3());
+
 	let measurer = new LDR.Measurer(camera);
-	let [dx,dy] = measurer.measure(b, baseObject.matrixWorld);
-        
-	w = h = 0.505*Math.max(dx, dy);
-	resetCameraPosition();
-        
-	render();
+        let [dx,dy] = measurer.measure(b, baseObject.matrixWorld);
+	camera.zoom = 1.6*Math.min(window.innerWidth/dx, window.innerHeight*0.8/dy); // 1.6 to make the part not fill the full element. Use 2.0 to max it out.
+	camera.far = 2*size;
+	
+	controls = new THREE.OrbitControls(camera, renderer.domElement);
+	controls.addEventListener('change', render);
+	window.addEventListener('resize', onWindowResize, false);
+	
+        onWindowResize();        
         
 	// Build structure:
         let structureEle = document.getElementById('file_structure');
 	let onIconClick = function(){
 	    render();
-	    preview.scrollIntoView();
+	    canvas.scrollIntoView();
 	};
-	builder = new LDR.SubPartBuilder(mc, redrawObject, structureEle, showMarkerPoints, ldrLoader, mainModel, color, origo, inv, scene, w, onIconClick, 0);
+	builder = new LDR.SubPartBuilder(mc, redrawObject, structureEle, showMarkerPoints, ldrLoader, mainModel, color, origo, inv, scene, size, onIconClick, 0);
         builder.drawTableIcons();
         
 	$('#load_details').show();
@@ -312,11 +321,9 @@
     ldrLoader = new THREE.LDRLoader(onLoad, null, {onError:onError, onWarning:onWarning, saveFileLines:true});
     LDR.Studs.makeGenerators('', LDR.Options.studHighContrast, LDR.Options.studLogo);
 
-    //ldrLoader.load('32525.dat');
     ldrLoader.load('3024.dat');
     //ldrLoader.load('4-4ering.dat');
     //ldrLoader.load('48/1-16chrd.dat');
-    //ldrLoader.load('s/3001s01.dat');        
     
     // Color setup:
     let colorPicker = new LDR.ColorPicker(setColor);
@@ -328,11 +335,11 @@
         color = idx;
         let colorObject = LDR.Colors[idx];
         
-        //let buttonEle = document.getElementById('color_picker_button');
-        //colorPicker.decorateEle(buttonEle, colorObject, idx);
+        let buttonEle = document.getElementById('color_picker_button');
+        colorPicker.decorateEle(buttonEle, colorObject, idx);
 
         document.getElementById('color_text').innerHTML = 'Color ' + idx + ' - ' + colorObject.name;
-        
+	
         if(builder) {
             mc.overwriteColor(idx);
             builder.c = idx; // Update color (c) of sub part builder
@@ -342,7 +349,7 @@
     }
     
     let colorButton = colorPicker.createButton();
-    document.getElementById('color_button').append(colorButton);
+    document.getElementById('color_button_holder').append(colorButton);
   </script>
   <div id="options"></div>
   <script>

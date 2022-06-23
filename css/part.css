@@ -1,10 +1,77 @@
+ul {
+  font-size: 1.5em;
+  line-height: 2em;
+  background-color: black;
+  margin: 0;
+}
+.bar, #big_list {
+  margin-top: 2em;
+}
+/* preview can perhaps be deleted */
 #preview {
+  margin: auto;
+  margin-top: 2em;
+  margin-bottom: 2em;
+  display: block;
+  width: 100%;
+
+  position: relative;
+  top: 0;
+}
+#canvas_buttons_top {
     position: relative;
-    top: 0;
+    left: 4vw;
+    top: 1vw;
+    height: 0;
+}
+#file_content_holder, #file_structure_holder, #file_structure {
+  background-color: black;
+  margin: 0;
+}
+#file_content_holder pre {
+    display: block;
+    margin: 0 2em 0 2em;
+    background-color: white;
+    color: black;
+    padding: 0.2em;
 }
 #file_structure {
+    width: 100%;
     text-align: center;
 }
+.actions a {
+    background-color: #4B4;
+    font-size: 2em;
+    padding: 0.3em;
+    border: 0.2em solid #2A2;
+    vertical-align: middle;
+    color: white;
+    text-decoration: none;
+    display: table-cell;
+    text-align: center;
+    font-weight: bold;
+}
+.actions {
+    display: table;
+    table-layout: fixed;
+    border-spacing: 2em;
+    width: 100%;
+}
+ul ul {
+  font-size: 1em;
+}
+#load_details {
+    background-color: #4BB;
+    border: 0.2em solid #2AA;
+    display: block;
+    font-size: 2em;
+    padding: 0.5em;
+    margin: 1em;
+    text-align: center;
+    font-weight: bold;
+    cursor: pointer;
+}
+
 .iconScene {
     width: 200px;
     height: 200px;
@@ -59,4 +126,38 @@ ul.pretty_points {
 }
 input {
     width: 4em;
+}
+
+#canvas_buttons_bottom {
+    height: 0;
+}
+
+/* Moving Camera buttons up: */
+#camera_buttons {
+    position: relative;
+    top: -110px;
+}
+#camera_buttons svg line, #camera_buttons svg circle, #camera_buttons svg polygon, #camera_buttons svg rect {
+    stroke: #ddd;
+}
+@media screen and (max-width: 760px) {
+  #camera_buttons {
+    top: -13vw;
+  }
+}
+
+/* Top canvas buttons: */
+#color_button_holder {
+  display: inline-block;
+  border-radius: 100%;
+  padding: 0.2vw;
+}
+#normal_button, #bfc_button, #harlequin_button {
+  display: inline-block;
+  cursor: pointer;
+}
+#canvas_buttons_top svg {
+    width: 5vw;
+    height: 5vw;
+    vertical-align: middle;
 }

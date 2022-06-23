@@ -16,11 +16,10 @@
 .holder {
     display: none;
     position: fixed;
-    top: 2em;
-    left: 50%;
-    transform: translate(-50%, 0);
+    top: 5vw;
     z-index: 10;
-    padding: 0;
+    padding-left: 8vw;
+    padding-right: 8vw;
 }
 #preview_parent {
   background-color: black;

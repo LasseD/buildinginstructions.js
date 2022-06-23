@@ -126,8 +126,8 @@ LDR.Colors.buildTriangleMaterial = function(c, texmap) {
 	transparent: isTrans,
         depthWrite: !isTrans,
 	polygonOffset: true,
-	polygonOffsetFactor: 0.0,
-        polygonOffsetUnits: 0.01
+	polygonOffsetFactor: LDR.Colors.DEFAULT_POLYGON_OFFSET_FACTOR || 0.0,
+        polygonOffsetUnits: LDR.Colors.DEFAULT_POLYGON_OFFSET_UNITS || 0.01
     });
     return ret;
 }

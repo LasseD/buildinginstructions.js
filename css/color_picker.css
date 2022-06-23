@@ -1,35 +1,36 @@
 #color_button {
   display: none;
 }
+#color_picker_holder {
+  position: absolute;
+}
 .color_container {
   display: inline-block;
   text-align: center;
-  line-height: 4vw;
+  line-height: 8vw;
   font-weight: bold;
   border: none;
-  padding: 0.1em;
+  padding: 0.2vw;
+  margin: 0.3vw;
   cursor: pointer;
-  font-size: 2vw;
+  font-size: 4vw;
+  border-radius: 100%;
 }
 .color_ele {
   display: block;
-  min-width: 4vw;
-  height: 4vw;
-  border-radius: 10vw;
+  min-width: 8vw;
+  height: 8vw;
+  border-radius: 20vw;
 }
 #color_picker_button {
   display: inline-block;
-  position: absolute;
-  top: 1vw;
-  right: 1vw;
-  border: 1px solid black;
   margin: 0;
   padding: 0;
   min-width: 4vw;
   height: 4vw;
   background: none;
   cursor: pointer;
-  border-radius: 10vw;
+  border-radius: 100%;
   font-size: 2vw;
   line-height: 4vw;
   text-align: center;
