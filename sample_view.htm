@@ -28,8 +28,6 @@
 
       // Set up camera:
       let camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
-      camera.position.set(10000, 7000, 10000);
-      camera.lookAt(new THREE.Vector3());
 
       // Set up scene:
       let scene = new THREE.Scene();
@@ -50,10 +48,8 @@
       function onWindowResize(){
         const w = window.innerWidth;
         const h = window.innerHeight;
-        camera.left = -w;
-        camera.right = w;
-        camera.top = h;
-        camera.bottom = -h;
+        camera.left = -(camera.right = w);
+        camera.bottom = -(camera.top = h);
         camera.updateProjectionMatrix();
 
         renderer.setSize(w, h);
@@ -84,7 +80,11 @@
         baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
         //baseObject.add(new THREE.Box3Helper(b, 0x0000FF)); // Uncomment if you want to see the bounding box
 
-	camera.zoom = 1.5*window.innerWidth/b.min.distanceTo(b.max);
+        let size = b.min.distanceTo(b.max);
+        camera.position.set(size, 0.7*size, size);
+        camera.lookAt(new THREE.Vector3());
+        camera.far = 2*size;
+	camera.zoom = 1.5*window.innerWidth/size;
         onWindowResize();
 
         console.log("Model rendered in " + (new Date()-startTime) + "ms.");
