@@ -5,7 +5,7 @@ ul {
   margin: 0;
 }
 .bar, #big_list {
-  margin-top: 2em;
+  /*margin-top: 2em;*/
 }
 /* preview can perhaps be deleted */
 #preview {
@@ -140,6 +140,9 @@ input {
 #camera_buttons svg line, #camera_buttons svg circle, #camera_buttons svg polygon, #camera_buttons svg rect {
     stroke: #ddd;
 }
+#canvas_buttons_top svg line {
+    stroke: #ddd;
+}
 @media screen and (max-width: 760px) {
   #camera_buttons {
     top: -13vw;
@@ -152,7 +155,7 @@ input {
   border-radius: 100%;
   padding: 0.2vw;
 }
-#normal_button, #bfc_button, #harlequin_button {
+#normal_button, #bfc_button, #harlequin_button, #download_button {
   display: inline-block;
   cursor: pointer;
 }
