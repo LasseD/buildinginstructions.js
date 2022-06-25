@@ -53,6 +53,33 @@
 <!--  <a href="." id="8_button" class="resolution_button"></a>
   <a href="." id="16_button" class="resolution_button"></a>
   <a href="." id="48_button" class="resolution_button"></a>-->
+  <div onclick="toggleUV(); render();" id="uv_button">
+    <svg viewBox="-20 -20 140 140" xmlns="http://www.w3.org/2000/svg">
+    <linearGradient id="R" gradientTransform="rotate(45 .5 .5)">
+        <stop offset="0" stop-color="red" stop-opacity="1"/>
+        <stop offset=".6" stop-color="red" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="G" gradientTransform="rotate(135 .5 .5)">
+        <stop offset="0" stop-color="green" stop-opacity="1"/>
+        <stop offset=".6" stop-color="green" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="B" gradientTransform="rotate(225 .5 .5)">
+        <stop offset="0" stop-color="blue" stop-opacity="1"/>
+        <stop offset=".6" stop-color="blue" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="Y" gradientTransform="rotate(315 .5 .5)">
+        <stop offset="0" stop-color="yellow" stop-opacity="1"/>
+        <stop offset=".6" stop-color="yellow" stop-opacity="0"/>
+    </linearGradient>
+    <defs>
+        <path id="P" d="M 0,0 L 100,0 L 100,100 L 0,100 Z"/>
+    </defs>
+    <use xlink:href="#P" fill="url(#R)"/>
+    <use xlink:href="#P" fill="url(#G)"/>
+    <use xlink:href="#P" fill="url(#B)"/>
+    <use xlink:href="#P" fill="url(#Y)"/>
+    </svg>
+  </div>
   <div onclick="axesHelper.visible = !axesHelper.visible; render();" id="axes_helper_button">
     <svg viewBox="-25 -25 50 50" xmlns="http://www.w3.org/2000/svg">
       <line x1="0" y1="2" x2="18" y2="10" stroke="#FF0000" />
@@ -149,7 +176,6 @@
 	this.matrix.copy(baseObject.matrixWorld);
 	this.updateMatrixWorld(true);	  
       }
-
       
       // Normal / BFC / Harlequin Modes:
       function setMode(mode) {
@@ -168,6 +194,7 @@
               $('#normal_button').hide();
               $('#bfc_button').show();
               $('#harlequin_button').show();
+              $('#uv_button').show();
               break;
           case 1:
 	      $('#color_text').hide();
@@ -177,6 +204,7 @@
               $('#normal_button').show();
               $('#bfc_button').hide();
               $('#harlequin_button').show();
+              $('#uv_button').hide();
               break;
           case 2:
 	      $('#color_text').hide();
@@ -186,14 +214,64 @@
               $('#normal_button').show();
               $('#bfc_button').show();
               $('#harlequin_button').hide();
+              $('#uv_button').hide();
               break;
           }
-
           if(builder) {
               builder.drawTableIcons();
               render();
           }
       }
+
+      // UV Mapping Helper:
+      LDR.Colors.buildOriginalTriangleMaterial = LDR.Colors.buildTriangleMaterial;
+      let uvEnabled = false;
+      const WW = 4;
+      const data = Uint8Array.from([255, 0, 0, 255, 255,255,0,255,
+				    255, 0, 0, 255, 255,255,0,255,
+				    0, 255, 0, 255, 0, 0, 255, 255,
+				    0, 255, 0, 255, 0, 0, 255, 255,
+				    255, 0, 0, 255, 255,255,0,255,
+				    255, 0, 0, 255, 255,255,0,255,
+				    0, 255, 0, 255, 0, 0, 255, 255,
+				    0, 255, 0, 255, 0, 0, 255, 255
+				   ]);
+      /*const WW = 256; // TODO: Add anotehr UV option with lots of "detail":
+      const WWW = WW/2;
+      const data = new Uint8Array(WW*WW*4);
+      for(let x = 0, j = 0; x < WW; x++) {
+	  for(let y = 0; y < WW; y++) {
+	      data[j++] = 255*(x%WWW)/WWW;
+	      data[j++] = 255*(y%WWW)/WWW;
+	      data[j++] = 255;//*((x+y)%FREQ)/FREQ;
+	      data[j++] = 255;
+	  }
+      }//*/
+      const tmp = new THREE.DataTexture(data, WW, WW, THREE.RGBAFormat, THREE.UnsignedByteType,
+				      THREE.UVMapping, THREE.ClampToEdgeWrapping,
+				      THREE.ClampToEdgeWrapping, THREE.LinearFilter,
+				      THREE.LinearMipmapLinearFilter, 1, THREE.LinearEncoding);
+      tmp.needsUpdate = true;
+      function toggleUV() {
+	  if(uvEnabled) {
+              $('#bfc_button').show();
+              $('#harlequin_button').show();
+	      LDR.Colors.buildTriangleMaterial = LDR.Colors.buildOriginalTriangleMaterial;
+	  }
+	  else {
+              $('#bfc_button').hide();
+              $('#harlequin_button').hide();
+	      LDR.Colors.buildTriangleMaterial = function(x,y) {
+		  return LDR.Colors.buildOriginalTriangleMaterial(x,tmp);
+	      };
+	  }
+          uvEnabled = !uvEnabled;
+          generateMesh();
+          if(builder) {
+              builder.drawTableIcons();
+          }
+      }
+      
     </script>
   </span>
   
@@ -286,6 +364,7 @@
             redrawObject.remove(redrawObject.children[0]);
         }
         ldrLoader.applyOnPartTypes(pt => delete pt.geometry);
+	axesHelper.reset();
         
         // Rebuild:
         mainModel.ensureGeometry(ldrLoader); // Because 'isPart()' is set to false!
@@ -389,7 +468,6 @@
 	// Axes helper:
 	axesHelper.matrix.copy(baseObject.matrixWorld);
 	scene.add(axesHelper);
-	//baseObject.add(axesHelper);
     }
     
     let onError = function(obj) {
@@ -427,7 +505,9 @@
     ldrLoader = new THREE.LDRLoader(onLoad, null, {onError:onError, onWarning:onWarning, saveFileLines:true});
     LDR.Studs.makeGenerators('', LDR.Options.studHighContrast, LDR.Options.studLogo);
 
-    ldrLoader.load('26604.dat');
+    //ldrLoader.load('26604.dat');
+    ldrLoader.load('3024.dat');
+    //ldrLoader.load('sample_file.dat');
     //ldrLoader.load('4-4ering.dat');
     //ldrLoader.load('48/1-16chrd.dat');
     

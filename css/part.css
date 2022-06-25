@@ -155,7 +155,7 @@ input {
   border-radius: 100%;
   padding: 0.2vw;
 }
-#normal_button, #bfc_button, #harlequin_button, #download_button, #normal_helper_button, #axes_helper_button {
+#normal_button, #bfc_button, #harlequin_button, #download_button, #normal_helper_button, #axes_helper_button, #uv_button {
   display: inline-block;
   cursor: pointer;
 }
