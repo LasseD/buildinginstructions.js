@@ -140,7 +140,7 @@ input {
 #camera_buttons svg line, #camera_buttons svg circle, #camera_buttons svg polygon, #camera_buttons svg rect {
     stroke: #ddd;
 }
-#canvas_buttons_top svg line {
+#download_button svg line {
     stroke: #ddd;
 }
 @media screen and (max-width: 760px) {
@@ -155,7 +155,7 @@ input {
   border-radius: 100%;
   padding: 0.2vw;
 }
-#normal_button, #bfc_button, #harlequin_button, #download_button, #normal_helper_button {
+#normal_button, #bfc_button, #harlequin_button, #download_button, #normal_helper_button, #axes_helper_button {
   display: inline-block;
   cursor: pointer;
 }

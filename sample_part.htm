@@ -53,7 +53,14 @@
 <!--  <a href="." id="8_button" class="resolution_button"></a>
   <a href="." id="16_button" class="resolution_button"></a>
   <a href="." id="48_button" class="resolution_button"></a>-->
-  <div onclick="normalHelper.visible = !normalHelper.visible; render()" id="normal_helper_button"></div>
+  <div onclick="axesHelper.visible = !axesHelper.visible; render();" id="axes_helper_button">
+    <svg viewBox="-25 -25 50 50" xmlns="http://www.w3.org/2000/svg">
+      <line x1="0" y1="2" x2="18" y2="10" stroke="#FF0000" />
+      <line x1="0" y1="2" x2="-18" y2="10" stroke="blue" />
+      <line x1="0" y1="2" x2="0" y2="-25" stroke="green" />
+    </svg>
+  </div>
+  <div onclick="normalHelper.visible = !normalHelper.visible; render();" id="normal_helper_button"></div>
   <a id="download_button">
     <svg viewBox="-25 -25 50 50" xmlns="http://www.w3.org/2000/svg">
       <line x1="0" y1="-10" x2="0" y2="10" />
@@ -133,6 +140,16 @@
 	  return svg;
       }
       document.getElementById('normal_helper_button').append(buildNormalHelperIcon());
+
+      // Axes helper:
+      var axesHelper = new THREE.AxesHelper(20);
+      axesHelper.matrixAutoUpdate = false;
+      axesHelper.visible = false;
+      axesHelper.reset = function() {
+	this.matrix.copy(baseObject.matrixWorld);
+	this.updateMatrixWorld(true);	  
+      }
+
       
       // Normal / BFC / Harlequin Modes:
       function setMode(mode) {
@@ -343,11 +360,8 @@
         
 	// Build structure:
         let structureEle = document.getElementById('file_structure');
-	let onIconClick = function(){
-	    render();
-	    canvas.scrollIntoView();
-	};
-	builder = new LDR.SubPartBuilder(mc, redrawObject, structureEle, showMarkerPoints, ldrLoader, mainModel, color, origo, inv, scene, size, onIconClick, 0);
+	let onIconClick = () => {render();canvas.scrollIntoView();};
+	builder = new LDR.SubPartBuilder(mc, redrawObject, structureEle, showMarkerPoints, ldrLoader, mainModel, color, origo, inv, scene, size, onIconClick, 0, axesHelper);
         builder.drawTableIcons();
         
 	$('#load_details').show();
@@ -371,6 +385,11 @@
 	}
 	normalHelper.position.add(elementCenter);
 	normalHelper.visible = false;
+
+	// Axes helper:
+	axesHelper.matrix.copy(baseObject.matrixWorld);
+	scene.add(axesHelper);
+	//baseObject.add(axesHelper);
     }
     
     let onError = function(obj) {
@@ -408,7 +427,7 @@
     ldrLoader = new THREE.LDRLoader(onLoad, null, {onError:onError, onWarning:onWarning, saveFileLines:true});
     LDR.Studs.makeGenerators('', LDR.Options.studHighContrast, LDR.Options.studLogo);
 
-    ldrLoader.load('3024.dat');
+    ldrLoader.load('26604.dat');
     //ldrLoader.load('4-4ering.dat');
     //ldrLoader.load('48/1-16chrd.dat');
     
@@ -428,6 +447,7 @@
         document.getElementById('color_text').innerHTML = 'Color ' + idx + ' - ' + colorObject.name;
 	
         if(builder) {
+	    axesHelper.reset();
             mc.overwriteColor(idx);
             builder.c = idx; // Update color (c) of sub part builder
             builder.drawTableIcons();

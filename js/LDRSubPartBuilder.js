@@ -6,7 +6,7 @@ LDR.ICON_SIZE = 200;
   The LDRSubPartBulder is used for displaying a part and all of its sub parts, 
   primitives, and comment lines.
 */
-LDR.SubPartBuilder = function(baseMC, baseObject, table, setMarkerPoints, loader, partType, c, position, rotation, scene, subjectSize, onIconClick, from) {
+LDR.SubPartBuilder = function(baseMC, baseObject, table, setMarkerPoints, loader, partType, c, position, rotation, scene, subjectSize, onIconClick, from, axesHelper) {
     let self = this;
     this.baseMC = baseMC;
     this.baseObject = baseObject;
@@ -21,6 +21,7 @@ LDR.SubPartBuilder = function(baseMC, baseObject, table, setMarkerPoints, loader
     this.showStructureView = false;
     this.onIconClick = onIconClick;
     this.from = from;
+    this.axesHelper = axesHelper;
 
     this.camera = new THREE.OrthographicCamera(-subjectSize, subjectSize, subjectSize, -subjectSize, 0.1, 1000000);
     this.camera.position.set(10*subjectSize, 7*subjectSize, 10*subjectSize);
@@ -30,7 +31,10 @@ LDR.SubPartBuilder = function(baseMC, baseObject, table, setMarkerPoints, loader
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.setSize(LDR.ICON_SIZE, LDR.ICON_SIZE);    
     this.render = function() {
+	let v = axesHelper.visible;
+	axesHelper.visible = false;
         self.renderer.render(self.scene, self.camera);
+	axesHelper.visible = v;
     }
 
     let p0 = new THREE.Vector3();
@@ -52,6 +56,7 @@ LDR.SubPartBuilder = function(baseMC, baseObject, table, setMarkerPoints, loader
     this.canvas.addEventListener('click', function(){
 	self.hideFileLines();
 	self.baseMC.setVisible(true);
+	self.axesHelper.reset();
 	self.setMarkerPoints(false);
 	self.onIconClick(); // Callback
     }, false);
@@ -179,7 +184,7 @@ LDR.SubPartBuilder.prototype.buildStructureView = function() {
 	    line.mc = new LDR.MeshCollector(self.baseObject, self.baseObject, self.baseObject);
 	    let c = transformColor(line.c);
 
-	    let color = LDR.Colors[c];
+	    let color = LDR.Colors.getColor4(c);
 	    let shownColor = color.direct ? color.direct : c;
 	    let step = new THREE.LDRStep(); // Not used by line1.
 
@@ -344,6 +349,21 @@ LDR.SubPartBuilder.prototype.buildStructureView = function() {
 	    self.setMarkerPoints(true);
 	    if(this.line.markers) {
 		this.line.markers.visible = true;
+	    }
+	    if(!line.p1) {
+		let m3e = line.r.elements;
+		let p = line.p;
+		self.axesHelper.matrix.set(
+		    m3e[0], m3e[1], m3e[2], p.x,
+		    m3e[3], m3e[4], m3e[5], -p.y,
+		    m3e[6], m3e[7], m3e[8], -p.z,
+		    0, 0, 0, 1
+		);
+		self.axesHelper.matrix.premultiply(self.baseObject.matrixWorld);
+		self.axesHelper.updateMatrixWorld(true);
+	    }
+	    else {
+		self.axesHelper.reset();
 	    }
 	    self.onIconClick();
 	}, false);
