@@ -38,8 +38,9 @@
  <div id="title_bar_title_info">
   <div id="title_bar_name">Single Part View</div>
      <div class="title_line" id="color_text" onclick="$('#color_picker_background, #color_picker_holder').fadeIn(250)"></div>
-     <div class="title_line" id="bfc_text">Back Face Culling-mode: Green shows triangles and quads winded counter-clockwise. Red is for clockwise. Blue indicates no culling. Use this mode to discover BFC issues</div>
-     <div class="title_line" id="harlequin_text">Harlequin-mode: Highlights how the geometries interact. This is helpful for discovering <a href="https://wiki.ldraw.org/wiki/T-Junction">T junctions</a></div>
+     <div class="title_line" id="bfc_text">Back Face Culling Mode: Green shows triangles and quads winded counter-clockwise. Red is for clockwise. Blue indicates no culling. Use this mode to discover BFC issues</div>
+     <div class="title_line" id="harlequin_text">Harlequin Mode: Highlights how the geometries interact. This is helpful for discovering <a href="https://wiki.ldraw.org/wiki/T-Junction">T junctions</a></div>
+     <div class="title_line" style="display:none;" id="uv_text">UV Inspection Mode: The colors should blend over smooth surfaces. If not, then normals or UV-values might be computed incorrectly</a></div>
      <!--<div class="title_line" id="8_text">LO-RES mode: Low-resolution primitives are used where available</div>
      <div class="title_line" id="48_text">HI-RES mode: High-resolution primitives are used where available</div>-->
  </div>
@@ -254,13 +255,17 @@
       tmp.needsUpdate = true;
       function toggleUV() {
 	  if(uvEnabled) {
+              $('#uv_text').hide();
               $('#bfc_button').show();
               $('#harlequin_button').show();
+              $('#color_button_holder').show();
 	      LDR.Colors.buildTriangleMaterial = LDR.Colors.buildOriginalTriangleMaterial;
 	  }
 	  else {
+              $('#uv_text').show();
               $('#bfc_button').hide();
               $('#harlequin_button').hide();
+              $('#color_button_holder').hide();
 	      LDR.Colors.buildTriangleMaterial = function(x,y) {
 		  return LDR.Colors.buildOriginalTriangleMaterial(x,tmp);
 	      };
@@ -506,7 +511,8 @@
     LDR.Studs.makeGenerators('', LDR.Options.studHighContrast, LDR.Options.studLogo);
 
     //ldrLoader.load('26604.dat');
-    ldrLoader.load('3024.dat');
+    //ldrLoader.load('3024.dat');
+    ldrLoader.load('85080.dat');
     //ldrLoader.load('sample_file.dat');
     //ldrLoader.load('4-4ering.dat');
     //ldrLoader.load('48/1-16chrd.dat');
