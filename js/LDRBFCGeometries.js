@@ -119,7 +119,9 @@ LDR.setMode = function(mode) {
     switch(mode) {
     case 0:
         LDR.LDRGeometry.prototype.fromPartType = LDR.LDRGeometry.prototype.fromStandardPartType;
-        LDR.LDRGeometry.prototype.buildGeometries = LDR.LDRGeometry.prototype.buildStandardGeometries;
+	LDR.LDRGeometry.prototype.buildGeometries = function() {
+	    this.buildPhysicalGeometries(true);
+	}
         break;
     case 1:
         LDR.LDRGeometry.prototype.fromPartType = LDR.LDRGeometry.prototype.fromStandardPartType;

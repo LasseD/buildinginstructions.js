@@ -155,7 +155,7 @@ input {
   border-radius: 100%;
   padding: 0.2vw;
 }
-#normal_button, #bfc_button, #harlequin_button, #download_button {
+#normal_button, #bfc_button, #harlequin_button, #download_button, #normal_helper_button {
   display: inline-block;
   cursor: pointer;
 }
@@ -163,4 +163,17 @@ input {
     width: 5vw;
     height: 5vw;
     vertical-align: middle;
+}
+.resolution_button svg {
+  fill: rgb(255, 255, 128);
+  cursor: pointer;
+}
+.resolution_button svg text {
+    font-family: sans-serif;
+    stroke: black;
+    font-style: italic;
+    vertical-align: middle;
+}
+#normal_helper_button svg line {
+    stroke: red;
 }

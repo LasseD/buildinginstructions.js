@@ -29,6 +29,7 @@
   <script src="js/LDRMeasurer.js"></script>
   <script src="js/LDRSubPartBuilder.js"></script>
   <script src="js/LDRColorPicker.js"></script>
+  <script src="js/VertexNormalsHelper.js"></script>
 
 <div id="title_bar">
  <div id="title_bar_name_left"></div>
@@ -38,7 +39,9 @@
   <div id="title_bar_name">Single Part View</div>
      <div class="title_line" id="color_text" onclick="$('#color_picker_background, #color_picker_holder').fadeIn(250)"></div>
      <div class="title_line" id="bfc_text">Back Face Culling-mode: Green shows triangles and quads winded counter-clockwise. Red is for clockwise. Blue indicates no culling. Use this mode to discover BFC issues</div>
-  <div class="title_line" id="harlequin_text">Harlequin-mode: Highlights how the geometries interact. This is helpful for discovering <a href="https://wiki.ldraw.org/wiki/T-Junction">T junctions</a></div>
+     <div class="title_line" id="harlequin_text">Harlequin-mode: Highlights how the geometries interact. This is helpful for discovering <a href="https://wiki.ldraw.org/wiki/T-Junction">T junctions</a></div>
+     <!--<div class="title_line" id="8_text">LO-RES mode: Low-resolution primitives are used where available</div>
+     <div class="title_line" id="48_text">HI-RES mode: High-resolution primitives are used where available</div>-->
  </div>
 </div>
 
@@ -47,6 +50,10 @@
   <div onclick="setMode(0)" id="normal_button"></div>
   <div onclick="setMode(1)" id="bfc_button"></div>
   <div onclick="setMode(2)" id="harlequin_button"></div>
+<!--  <a href="." id="8_button" class="resolution_button"></a>
+  <a href="." id="16_button" class="resolution_button"></a>
+  <a href="." id="48_button" class="resolution_button"></a>-->
+  <div onclick="normalHelper.visible = !normalHelper.visible; render()" id="normal_helper_button"></div>
   <a id="download_button">
     <svg viewBox="-25 -25 50 50" xmlns="http://www.w3.org/2000/svg">
       <line x1="0" y1="-10" x2="0" y2="10" />
@@ -65,6 +72,7 @@
   <span class="other_actions">
     <script>
 
+      // Special coloring buttons:
       function buildModeIcon(c) {
 	  let i = 0;
 	  let fill = () => c[i++ % c.length];
@@ -78,7 +86,55 @@
       document.getElementById('normal_button').append(buildModeIcon(['rgb(255, 255, 128)']));
       document.getElementById('bfc_button').append(buildModeIcon(['rgb(0, 133, 43)']));
       document.getElementById('harlequin_button').append(buildModeIcon(['rgb(68, 26, 145)', 'rgb(211, 53, 157)']));
+
+      // Resolution mode buttons:
+      let resolutions = [8, 16, 48];
+      resolutions.forEach(function(x) {
+ 	  let ele = document.getElementById(x + '_button');
+	  if(!ele) return;
+	  let svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	  svg.setAttribute('viewBox', '-25 -25 50 50');
+
+	  let diam = 20;
+          let pts = 'M 0 ' + diam + ' L';
+	  for(let i = 1; i < x; i++) {
+	      let angle = Math.PI*2*i/x;
+	      pts += ' ' + diam*Math.sin(angle) + ' ' + diam*Math.cos(angle);
+	  }
+	  pts + ' Z';
+          let path = document.createElementNS(LDR.SVG.NS, 'path');
+          path.setAttribute('d', pts);
+	  svg.append(path);
+
+          let lego = document.createElementNS(LDR.SVG.NS, 'text');
+          lego.innerHTML = 'LEGO';
+          lego.setAttribute('class', 'lego_1');
+          lego.setAttribute('x', '-22.5');
+          lego.setAttribute('y', '5.5');
+	  lego.setAttribute('transform', 'scale(0.7, 0.7)');
+          svg.append(lego);
+	  
+	  ele.append(svg);
+      });
+
+      // Normal and UV buttons:
+      let normalHelper;
+      function buildNormalHelperIcon() {
+	  let fill = () => '#000';
+	  let lineColor = () => '#BBB';
+    
+	  let svg = document.createElementNS(LDR.SVG.NS, 'svg');
+	  svg.setAttribute('viewBox', '-25 -25 50 50');
+	  LDR.Options.createSvgBlock(0, 0, true, fill, lineColor, svg);
+          svg.appendChild(LDR.SVG.makeLine(10, 5, 18, 10));
+          svg.appendChild(LDR.SVG.makeLine(-10, 5, -18, 10));
+          svg.appendChild(LDR.SVG.makeLine(0, -23, 0, -13));
+	  
+	  return svg;
+      }
+      document.getElementById('normal_helper_button').append(buildNormalHelperIcon());
       
+      // Normal / BFC / Harlequin Modes:
       function setMode(mode) {
           LDR.setMode(mode);
           generateMesh();
@@ -215,12 +271,14 @@
         ldrLoader.applyOnPartTypes(pt => delete pt.geometry);
         
         // Rebuild:
-        mainModel.ensureGeometry(ldrLoader); // Because 'isPart()' is set to return false!
+        mainModel.ensureGeometry(ldrLoader); // Because 'isPart()' is set to false!
 	LDR.Colors.DEFAULT_POLYGON_OFFSET_FACTOR = 1;
 	LDR.Colors.DEFAULT_POLYGON_OFFSET_UNITS = 1;
         mainModel.generateThreePart(ldrLoader, 16, origo, inv, true, false, mc); // Trans color to ensure tansparency is set in the material.
+
 	mc.overwriteColor(color);
-        mc.draw(false);
+
+	mc.draw(false);
 
         // Red Points:
 	let pointGeometry = new THREE.BufferGeometry();
@@ -230,8 +288,14 @@
 	markerPoints = new THREE.Points(pointGeometry, pointMaterial);
 	redrawObject.add(markerPoints);
     }
-    
+
+    let onLoadCalled = false;
     let onLoad = function() {
+	if(onLoadCalled) {
+	    console.warn('onLoad called more than once!');
+	    return;
+	}
+	onLoadCalled = true;
         mainModel = ldrLoader.getMainModel();
 	mainModel.isPart = false;
 
@@ -248,7 +312,7 @@
         // Generate the mesh:
         mc = new LDR.MeshCollector(redrawObject, redrawObject, redrawObject);
         setMode(0); // 0 = normal, 1 = bfc, 2 = harlequin
-    	
+
         // Find center of draw model:
 	let b = mc.boundingBox;
 	elementCenter = new THREE.Vector3();
@@ -275,7 +339,7 @@
 	controls.addEventListener('change', render);
 	window.addEventListener('resize', onWindowResize, false);
 	
-        onWindowResize();        
+        onWindowResize();
         
 	// Build structure:
         let structureEle = document.getElementById('file_structure');
@@ -296,6 +360,17 @@
 	let e = document.getElementById('download_button');
 	e.href = 'data:text/x-ldraw;base64,' + btoa(ldrLoader.toLDR());
 	e.setAttribute('download', ldrLoader.mainModel);
+
+	// Normals:
+	normalHelper = new THREE.Group();
+	scene.add(normalHelper);
+	let g = mainModel.geometry.triangleGeometries;
+	for(let c in g) {
+	    if(g.hasOwnProperty(c))
+		normalHelper.add(new VertexNormalsHelper(scene, g[c], 3, 0xFF0000));
+	}
+	normalHelper.position.add(elementCenter);
+	normalHelper.visible = false;
     }
     
     let onError = function(obj) {

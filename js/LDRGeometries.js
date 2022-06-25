@@ -121,15 +121,7 @@ LDR.LDRGeometry.prototype.buildConditionalLineGeometries = function(vertexAttrib
     }
 }
 
-/*
-  Build geometries and color managers for standard (quick draw) drawing (seen in building instructions and parts lists)
- */
-LDR.LDRGeometry.prototype.buildGeometries = function() {
-    if(this.geometriesBuilt) {
-	return; // Already built.
-    }
-    let self = this;
-    
+LDR.LDRGeometry.prototype.buildBothLineGeometries = function() {
     let lineVertices = [];
     for(let i = 0; i < this.vertices.length; i++) {
         let v = this.vertices[i];
@@ -140,7 +132,19 @@ LDR.LDRGeometry.prototype.buildGeometries = function() {
     // Handle lines:
     this.buildLineGeometries(vertexAttribute);
     this.buildConditionalLineGeometries(vertexAttribute);
+}
 
+/*
+  Build geometries and color managers for standard (quick draw) drawing (seen in building instructions and parts lists)
+ */
+LDR.LDRGeometry.prototype.buildGeometries = function() {
+    if(this.geometriesBuilt) {
+	return; // Already built.
+    }
+    let self = this;
+
+    this.buildBothLineGeometries();
+    
     // Handle triangle colors and vertices:
     let allTriangleColors = [];
     let seen = {};
@@ -320,9 +324,13 @@ THREE.BufferGeometry.prototype.computeVertexNormals = function() {
    This function also computes normals and UV's to be used by standard materials.
  */
 LDR.LDRGeometry.UV_WarningWritten = false;
-LDR.LDRGeometry.prototype.buildPhysicalGeometries = function() {
+LDR.LDRGeometry.prototype.buildPhysicalGeometries = function(withLines = false) {
     if(this.geometriesBuilt) {
 	return;
+    }
+
+    if(withLines) {
+	this.buildBothLineGeometries();
     }
 
     var self = this;
