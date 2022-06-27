@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <body>
-    <h3 id="title">Checking generated part types</h3>
+    <h3 id="title">Checking generated part types from file prim.txt (created using "ls -R ../official/p/ > prim.txt")</h3>
     <script src="../js/jquery.min.js"></script>
     <script src="../js/three.min.js"></script>
     <script src="../js/colors.js"></script>
@@ -303,6 +303,13 @@
       }
 
       THREE.LDRStep.prototype.addConditionalLine = function(c, p1, p2, p3, p4, texmapPlacement = null) {
+          [p1,p2,p3,p4].forEach(p => {
+	      if(p.x === undefined || p.y === undefined || p.z === undefined) {
+		  console.warn('undefined part of point in conditional line!');
+		  console.dir(p);
+	      }
+	  });
+      
           if(p4.lessThan(p3)) {
               let tmp = p3;
               p3 = p4;
@@ -318,7 +325,7 @@
           texmapPlacement && texmapPlacement.use();    
       }
 
-      let charsLoaded = 0, filesLoaded = 0;
+      let charsLoaded = 0, filesLoaded = 0, filesSkipped = 0;
 
       THREE.LDRLoader.prototype.load = function(id) {
           let urls = this.idToUrl(id);
@@ -344,7 +351,7 @@
               filesLoaded++;
 	      self.unloadedFiles--; // Warning - might have concurrency issue when two threads simultaneously update this!
 	      self.reportProgress(id);
-              document.getElementById('title').innerHTML = 'Checked ' + filesLoaded + ' generated part types. Combined size of original files: ' + charsLoaded;
+              document.getElementById('title').innerHTML = 'Checked ' + filesLoaded + ' generated part types. Skipped ' + filesSkipped + " that can't yet be generated. Combined size of original files: " + charsLoaded;
           }
 
           let urlID = 0;
@@ -354,7 +361,7 @@
                   self.loader.load(urls[urlID], onFileLoaded, undefined, onError);
               }
               else {
-                  self.unloadedFiles--; // Can't load this.
+                  self.unloadedFiles--; // Can not load this.
   	          self.reportProgress(id);
                   self.onError({message:event.currentTarget?event.currentTarget.statusText:'Error during loading', subModel:id});
               }
@@ -370,7 +377,7 @@
           document.body.appendChild(div);
       }
 
-      let idToUrl = id => (id === 'logo.dat') ? ['../unofficial/p/'+id] :
+      let idToUrl = id => 
           ['../official/p/' + id.replace('#', '%23'), // Ensure box3#8p.dat works
            '../official/parts/' + id,
            '../official/parts/s/' + id,
@@ -379,11 +386,13 @@
            '../unofficial/parts/s/' + id
           ];
 
-      for(let id in LDR.Generator.map) {
-          if(!LDR.Generator.map.hasOwnProperty(id)) {
-              continue;
-          }
-          let generated = LDR.Generator.make(id+'.dat');
+      function handleFile(id) {
+          let generated = LDR.Generator.make(id);
+	  if(!generated) {
+	      filesSkipped++;
+	      console.log("Can't generate",id); 
+	      return;
+	  }
           
           let ldrLoader;
           function checkLoaded() {
@@ -400,8 +409,36 @@
               }
           }
           ldrLoader = new THREE.LDRLoader(checkLoaded, null, {idToUrl:idToUrl});
-          ldrLoader.load(generated.ID);       
+          ldrLoader.load(generated.ID);
       }
+      
+      function onFilesFileLoaded(ldr) {
+	  let dataLines = ldr.split(/(\r\n)|\n/);
+	  
+          let prefix = '';
+	  for(let i = 0; i < dataLines.length; i++) {
+	      let line = dataLines[i];
+	      
+	      if(!line)
+		  continue; // Empty line
+	      line = line.trim();
+	      
+	      if(line.endsWith('8:')) {
+		  // Files below are in sub directory. Find out which:
+		  prefix = line.endsWith('48:') ? '48\\' : '8\\';
+		  continue;
+	      }
+	      
+	      if(line.endsWith('.dat')) {
+		  handleFile(prefix + line);
+	      }
+	  }
+      }
+
+    $(document).ready(function() {
+      let loader = new THREE.FileLoader(THREE.DefaultLoadingManager);    
+      loader.load('prim.txt', onFilesFileLoaded, undefined, console.warn);        
+    });  
   </script>
  </body>
 </html>

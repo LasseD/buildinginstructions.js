@@ -39,7 +39,7 @@ LDR.Studs.makeGenerators = function(force, highContrast, logoType) {
     LDR.Studs.all.forEach(f => {
         let [pt,id] = f(highContrast, logoType, force);
         pt.id = id + '.dat';
-        LDR.Generator.map[id] = () => pt;
+        LDR.Generator.register(id, () => pt);
     });
 }
 
