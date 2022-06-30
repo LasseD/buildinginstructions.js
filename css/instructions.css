@@ -80,20 +80,24 @@ body {
   -ms-user-select: none; /* IE */
 }
 #pli_drag_horizontal {
-  display: none;
+  vertical-align: top;
+}
+#pli_drag_horizontal div {    
   cursor: col-resize;
-  border-left: 2px solid black;
-  cursor: col-resize;
-  width: 2vw;
-  margin-bottom: 2px;
+}
+#pli_drag_vertical div {
+  cursor: row-resize;
 }
 #pli_drag_vertical {
-  display: none;
-  cursor: row-resize;
-  border-top: 2px solid black;
-  cursor: row-resize;
-  height: 2vh;
-  margin-left: 4px;
+  margin-left: 2px;
+}
+#pli_drag_horizontal svg, #pli_drag_vertical svg {
+    max-width: 50px;
+    max-height: 50px;
+    width: 8vw;
+    height: 8vw;
+    stroke: black;
+    fill: none;
 }
 
 #empty_step {

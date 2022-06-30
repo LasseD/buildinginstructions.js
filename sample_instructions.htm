@@ -49,8 +49,34 @@
      <div id="instructions_decorations">
       <span id="empty_step">EMPTY STEP</span>
       <canvas id="pli"></canvas>
-      <div id="pli_drag_horizontal" class="ui_control"></div>
-      <div id="pli_drag_vertical" class="ui_control"></div>
+      <div id="pli_drag_horizontal">
+	<div id="pli_icon_right"><svg viewbox="-10,-10,20,20">
+	  <path d="M 9 6, 9 9, -9 9, -9 -9, 9 -9, 9 -6" />
+	  <line x1="0" y1="0" x2="9" y2="0" />
+	  <line x1="9" y1="0" x2="5" y2="5" />
+	  <line x1="9" y1="0" x2="5" y2="-5" />
+	</svg></div>
+	<div id="pli_icon_left"><svg viewbox="-10,-10,20,20">
+	  <path d="M -9 6, -9 9, 9 9, 9 -9, -9 -9, -9 -6" />
+	  <line x1="0" y1="0" x2="-9" y2="0" />
+	  <line x1="-9" y1="0" x2="-5" y2="5" />
+	  <line x1="-9" y1="0" x2="-5" y2="-5" />
+	</svg></div>
+      </div>
+      <div id="pli_drag_vertical">
+	<div id="pli_icon_down"><svg viewbox="-10,-10,20,20">
+	  <path d="M 6 9, 9 9, 9 -9, -9 -9, -9 9, -6 9" />
+	  <line x1="0" y1="0" x2="0" y2="9" />
+	  <line x1="0" y1="9" x2="5" y2="5" />
+	  <line x1="0" y1="9" x2="-5" y2="5" />
+	</svg></div>
+	<div id="pli_icon_up"><svg viewbox="-10,-10,20,20">
+	  <path d="M 6 -9, 9 -9, 9 9, -9 9, -9 -9, -6 -9" />
+	  <line x1="0" y1="0" x2="0" y2="-9" />
+	  <line x1="0" y1="-9" x2="5" y2="-5" />
+	  <line x1="0" y1="-9" x2="-5" y2="-5" />
+	</svg></div>
+      </div>
       <span class="decoration_holder">
        <div id="multiplier">x1</div>
       </span>

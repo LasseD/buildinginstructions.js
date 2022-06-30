@@ -56,25 +56,24 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
 
     // PLIW either from storage or params:
     let [allW, allH] = LDR.getScreenSize();
-    let storagePLIW = localStorage.getItem('pliW');
-    if(storagePLIW !== null && storagePLIW >= 0) {
-        this.pliW = storagePLIW;
+    this.storagePLIW = localStorage.getItem('pliW');
+    if(this.storagePLIW !== null && this.storagePLIW >= 0) {
+        this.pliW = this.storagePLIW;
     }
     else {
         this.pliW = allW * this.pliMaxWidthPercentage/100;
     }
-    let clampW = () => self.pliW = Math.min(Math.max(self.pliW, 0), allW-70);
+    let clampW = () => self.pliW = self.storagePLIW = Math.min(Math.max(self.pliW, 0), allW-70);
     clampW();
 
-    let storagePLIH = localStorage.getItem('pliH');
-    if(storagePLIH !== null && storagePLIH >= 0) {
-        console.log('storage',storagePLIH);
-        this.pliH = storagePLIH;
+    this.storagePLIH = localStorage.getItem('pliH');
+    if(this.storagePLIH !== null && this.storagePLIH >= 0) {
+        this.pliH = this.storagePLIH;
     }
     else {
         this.pliH = (allH-this.adPeek) * this.pliMaxHeightPercentage/100;
     }
-    let clampH = () => self.pliH = Math.min(Math.max(self.pliH, 0), allH-self.adPeek-50);
+    let clampH = () => self.pliH = self.storagePLIH = Math.min(Math.max(self.pliH, 0), allH-self.adPeek-50);
     clampH();
 
     this.lastRefresh = new Date();
@@ -265,6 +264,10 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
     // Set up PLI size drag:
     this.dh = document.getElementById('pli_drag_horizontal');
     this.dv = document.getElementById('pli_drag_vertical');
+    this.dLeft = document.getElementById('pli_icon_left');
+    this.dRight = document.getElementById('pli_icon_right');
+    this.dUp = document.getElementById('pli_icon_up');
+    this.dDown = document.getElementById('pli_icon_down');
     let p = document.getElementById('instructions_decorations');
     let resizingV = false, resizingH = false;
     let x, y, pliW, pliH;
@@ -273,10 +276,12 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
     let stop = e => {resizingV = resizingH = false; self.onWindowResize()};
 
     // Start:
-    this.dv.addEventListener('mousedown', () => resizingV = true);
-    this.dv.addEventListener('touchstart', () => resizingV = true);
-    this.dh.addEventListener('mousedown', () => resizingH = true);
-    this.dh.addEventListener('touchstart', () => resizingH = true);
+    let setRV = () => {	if(!resizingV) resizingV = Date.now(); };
+    let setRH = () => {	if(!resizingH) resizingH = Date.now(); }
+    this.dv.addEventListener('mousedown', setRV);
+    this.dv.addEventListener('touchstart', setRV);
+    this.dh.addEventListener('mousedown', setRH);
+    this.dh.addEventListener('touchstart', setRH);
     p.addEventListener('mousedown', mouseStart);
     p.addEventListener('touchstart', touchStart);
 
@@ -284,6 +289,48 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
     p.addEventListener('mouseup', stop);
     p.addEventListener('touchend', stop);
 
+    // Icons:
+    const MAX_CLICK_TIME = 200;
+    let clickedV = () => resizingV && (Date.now() - resizingV < MAX_CLICK_TIME);
+    let clickedH = () => resizingH && (Date.now() - resizingH < MAX_CLICK_TIME);
+    function clickLeft(e) {
+	if(clickedH()) {
+	    self.pliW = 0;
+	    stop();
+            self.updatePLI(true, false);
+	}
+    }
+    this.dLeft.addEventListener('mouseup', clickLeft);
+    this.dLeft.addEventListener('touchend', clickLeft);
+    function clickRight(e) {
+	if(clickedH()) {
+	    self.pliW = Math.max(100, self.storagePLIW);
+	    stop();
+            self.updatePLI(true, false);
+	}
+    }
+    this.dRight.addEventListener('mouseup', clickRight);
+    this.dRight.addEventListener('touchend', clickRight);    
+    function clickUp(e) {
+	if(clickedV()) {
+	    self.pliH = 0;
+	    stop();
+            self.updatePLI(true, false);
+	}
+    }
+    this.dUp.addEventListener('mouseup', clickUp);
+    this.dUp.addEventListener('touchend', clickUp);
+    function clickDown(e) {
+	if(clickedV()) {
+	    self.pliH = Math.max(self.storagePLIH, 100);
+	    stop();
+            self.updatePLI(true, false);
+	}
+    }
+    this.dDown.addEventListener('mouseup', clickDown);
+    this.dDown.addEventListener('touchend', clickDown);    
+
+    
     // Move:
     function resize(x2, y2) {
         if(resizingH) {
@@ -515,8 +562,6 @@ LDR.InstructionsManager.prototype.updatePLI = function(force = false, quick = fa
 
     if(!this.showPLI) {
         e.style.display = this.dh.style.display = this.dv.style.display = 'none';
-	this.dh.setAttribute('class', '');
-	this.dv.setAttribute('class', '');
         return;
     }
     e.style.display = 'inline-block';
@@ -536,11 +581,17 @@ LDR.InstructionsManager.prototype.updatePLI = function(force = false, quick = fa
             this.pliBuilder.drawPLIForStep(true, step, w, h, force);
         }
         this.dh.style.display = 'inline-block';
-	this.dh.setAttribute('class', 'ui_control');
         this.dh.style.height = this.pliBuilder.canvas.style.height || '40vh';
         this.dv.style.display = 'none';
-	this.dv.setAttribute('class', '');
         this.dv.style.width = '0px';
+	if(w === 0) {
+	    this.dLeft.style.display = 'none';
+	    this.dRight.style.display = 'block';
+	}
+	else {
+	    this.dLeft.style.display = 'block';
+	    this.dRight.style.display = 'none';
+	}
     }
     else {
         let w = maxWidth;
@@ -553,11 +604,17 @@ LDR.InstructionsManager.prototype.updatePLI = function(force = false, quick = fa
             this.pliBuilder.drawPLIForStep(false, step, w, h, force);
         }
         this.dv.style.display = 'block';
-	this.dv.setAttribute('class', 'ui_control');
         this.dv.style.width = this.pliBuilder.canvas.style.width || '40vw';
-        this.dh.style.display = 'none';
-	this.dh.setAttribute('class', '');
+	this.dh.style.display = 'none'
         this.dh.style.height = '0px';
+	if(h === 0) {
+	    this.dUp.style.display = 'none';
+	    this.dDown.style.display = 'inline-block';
+	}
+	else {
+	    this.dUp.style.display = 'inline-block';
+	    this.dDown.style.display = 'none';
+	}
     }
 }
 
