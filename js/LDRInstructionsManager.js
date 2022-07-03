@@ -145,12 +145,18 @@ LDR.InstructionsManager = function(modelUrl, modelID, modelColor, mainImage, ref
     document.onkeydown = handleKeyDown;
 
     let onPartsLoadedCalled = true; // Default: Assume parser calls onPartsLoaded
-      
+    let onLoadCalled = false;
+
     let onLoad = function() {
         if(!onPartsLoadedCalled) {
             self.ldrLoader.onPartsLoaded();
 	    onPartsLoadedCalled = true;
         }
+	if(onLoadCalled) {
+	    console.warn('onLoad called multiple times!');
+	    return;
+	}
+	onLoadCalled = true;
 
         console.log("Done loading at " + (new Date()-startTime) + "ms.");
 
