@@ -105,7 +105,7 @@ LDR.Colors.buildLineMaterial = function(c, conditional) {
 }
 
 LDR.Colors.tempTexure = new THREE.Texture();
-LDR.Colors.buildTriangleMaterial = function(c, texmap) {
+LDR.Colors.buildTriangleMaterial = function(c, texmap, glossMap) {
     let color4 = LDR.Colors.getColor4(c);
 
     let uniforms = {};
@@ -116,13 +116,16 @@ LDR.Colors.buildTriangleMaterial = function(c, texmap) {
     if(texmap) {
         uniforms['map'] = {type: 't', value: texmap === true ? LDR.Colors.tempTexure : texmap};
     }
+    if(glossMap) {
+        uniforms['glossMap'] = {type: 't', value: glossMap === true ? LDR.Colors.tempTexure : glossMap};
+    }
 
     const isTrans = LDR.Colors.isTrans(c);
 
     let ret = new THREE.RawShaderMaterial({
 	uniforms: uniforms,
 	vertexShader: LDR.Shader.createSimpleVertexShader(false, texmap),
-	fragmentShader: texmap ? LDR.Shader.TextureFragmentShader : LDR.Shader.SimpleFragmentShader,
+	fragmentShader: texmap ? LDR.Shader.TextureFragmentShader : LDR.Shader.SimpleFragmentShader, // TODO: Use glossMap (LDR.Shader.GlossMapFragmentShader)!
 	transparent: isTrans,
         depthWrite: !isTrans,
 	polygonOffset: true,
@@ -514,7 +517,7 @@ LDR.Colors.generateTextures = function(render) {
     render();
 }
 
-LDR.Colors.buildStandardMaterial = function(colorID, texmap) {
+LDR.Colors.buildStandardMaterial = function(colorID, texmap, glossMap) {
     let color = LDR.Colors[colorID < 0 ? (-colorID-1) : colorID]; // Assume non-negative color.
     if(color.m && !texmap) {
         return color.m;
@@ -528,13 +531,16 @@ LDR.Colors.buildStandardMaterial = function(colorID, texmap) {
         name: 'Material for color ' + color.name + ' (' + colorID + ')' + (texmap?' with texmap':''),
     };
     if(texmap) {
-        params.color = 0xFFFFFF; // TODO: Right now color is forced to white when textures are applied in order to avoid color modulation on texture. Ideally a custom material should be used.
+        //params.color = 0xFFFFFF; // TODO: Right now color is forced to white when textures are applied in order to avoid color modulation on texture. Ideally a custom material should be used.
         if(texmap !== true) {
             params.map = texmap; // Map set now!
         }
+        if(glossMap && glossMap !== true) {
+            params.glossMap = glossMap;
+        }
     }
     
-    if(color.material) { // Special materials:
+    if(color.material && !glossMap) { // Special materials. Note: glossMap requires MeshPhongMaterial, so it cannot be applied to special materials!
         createMaterial = p => new THREE.MeshStandardMaterial(p);
         params.metalness = 0.0;
         params.roughness = 0.1;
@@ -618,7 +624,7 @@ LDR.Colors.buildStandardMaterial = function(colorID, texmap) {
     }
     else if(color.alpha > 0) {
         registerTextureListener = m => LDR.Colors.listeningMaterials.trans.push(m);
-        if(color.luminance > 0) {
+        if(color.luminance > 0 && !glossMap) { // Notice: GlossMaps cannot be used on illuminating materials!
             createMaterial = p => new THREE.MeshStandardMaterial(p);
             params.metalness = 0.8; // Due to how standard material is implemented, this causes the elements to show when there is no light.
             params.roughness = 0.6; // Make the 'metal' material appear like plastic.
@@ -636,7 +642,7 @@ LDR.Colors.buildStandardMaterial = function(colorID, texmap) {
     
     let m = createMaterial(params);
     if(texmap) {
-        m.transparent = true; // We do not know if texture is transparent.
+        //m.transparent = true; // We do not know if texture is transparent!
         m.depthWrite = false;
     }
     else {
@@ -653,8 +659,9 @@ LDR.Colors.buildStandardMaterial = function(colorID, texmap) {
         // https://stackoverflow.com/questions/26588568/volume-rendering-in-webgl and https://threejs.org/examples/webgl2_materials_texture3d.html
     }
 
-    if(!texmap) {
+    //if(!texmap) { // Assign default color only when no texmap, as they would otherwise blend!x
         color.m = m;
-    }
+    //}
+
     return m;
 }

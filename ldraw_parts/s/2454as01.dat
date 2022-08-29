@@ -1,0 +1,23 @@
+0 ~Brick  1 x  2 x  5 with Hollow Studs and Asymmetric Inner Ridges without Front Face
+0 Name: s\2454as01.dat
+0 Author: Vincent Messenet [Cheenzo]
+0 !LDRAW_ORG Subpart UPDATE 2020-03
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+
+0 BFC CERTIFY CCW
+
+0 !HISTORY 2020-12-29 [PTadmin] Official Update 2020-03
+
+1 16 0 0 0 1 0 0 0 1 0 0 0 1 s\2454s02.dat
+1 16 0 0 0 1 0 0 0 1 0 0 0 1 s\2454as02.dat
+
+1 16 -6.75 62 -6 0 0 .25 58 0 0 0 -1 0 rect3.dat
+1 16 6.75 62 -6 0 0 -.25 -58 0 0 0 -1 0 rect3.dat
+1 16 -6.75 62 6 0 0 .25 58 0 0 0 1 0 rect3.dat
+1 16 6.75 62 6 0 0 -.25 58 0 0 0 1 0 rect3.dat
+1 16 4 4 -3.75 0 0 2.5 0 116 0 -2.25 0 -2.25 tri3a4.dat
+1 16 -4 4 -3.75 0 0 -2.5 0 116 0 -2.25 0 -2.25 tri3a4.dat
+1 16 4 4 3.75 0 0 2.5 0 116 0 2.25 0 2.25 tri3a4.dat
+1 16 -4 4 3.75 0 0 -2.5 0 116 0 2.25 0 2.25 tri3a4.dat
+1 16 0 62 -6 -4 0 0 0 0 -58 0 -1 0 rect.dat
+1 16 0 62 6 4 0 0 0 0 -58 0 1 0 rect.dat

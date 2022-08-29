@@ -31,8 +31,8 @@ THREE.LDRLoader = function(onLoad, storage, options) {
 
     this.partTypes = {}; // id => true or part. id is typically something like "parts/3001.dat", and "model.mpd".
     this.texmaps = {}; // fileName => true or THREE.Texture. fileName is typically something like wall_deco123.png
-    this.texmapListeners = {}; // fileName => list of functions to be called.
-    this.texmapDataurls = []; // [id,mimetype,content] for sorting inline texmaps.
+    this.texmapListeners = {}; // fileName => list of functions to be called on load of texture.
+    this.texmapDataurls = []; // [{id,mimetype,content},...] for sorting inline texmaps.
     this.unloadedFiles = 0;
 
     this.onLoad = function() {
@@ -657,19 +657,27 @@ THREE.LDRLoader.prototype.loadTexmaps = function() {
 
         function setTexture(texture, file) {
             self.texmaps[file] = texture;
-            self.texmapListeners[file].forEach(x => x(texture));
+            self.texmapListeners[file].forEach(x => x(texture)); // Listeners handle both texmaps and glossmaps.
         }
+	
+	function handleFile(file) {
+            if(self.texmaps.hasOwnProperty(file)) {
+		return;
+	    }
+            self.texmaps[file] = true;
+            self.texmapListeners[file] = [];
+            self.texmapLoader.load(self.idToTextureUrl(file),
+                                   t => setTexture(t, file),
+                                   undefined,
+                                   e => self.onError({error:e, message:e.message, subModel:file}));
+	}
+	
         LDR.TexmapPlacements.forEach(tmp => {
-                let file = tmp.file; // TODO: Can't currently handle glossmaps.
-                if(!self.texmaps.hasOwnProperty(file)) {
-                    self.texmaps[file] = true;
-                    self.texmapListeners[file] = [];
-                    self.texmapLoader.load(self.idToTextureUrl(file),
-                                           t => setTexture(t, file),
-                                           undefined,
-                                           e => self.onError({error:e, message:e.message, subModel:file}));
-                }
-            });
+	    handleFile(tmp.file);
+	    if(tmp.glossMapFile) {
+		handleFile(tmp.glossMapFile);
+	    }
+        });
     }
 }
 
@@ -2269,31 +2277,37 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
             let g = obj.g, c2 = obj.c;
             let c3 = transformColor(c2);
             let textureFile = LDR.TexmapPlacements[idx].file;
+	    let glossMapFile = LDR.TexmapPlacements[idx].glossMapFile;
 	    
             let material;
-            let buildMaterial, setMap;
+            let buildMaterial, setMap, setGlossMap;
             if(loader.physicalRenderingAge === 0) {
-                buildMaterial = t => LDR.Colors.buildTriangleMaterial(c3, t);
+                buildMaterial = (t1,t2) => LDR.Colors.buildTriangleMaterial(c3, t1, t2);
                 setMap = t => material.uniforms.map.value = t;
+		setGlossMap = glossMapFile ? t => material.uniforms.glossMap.value = t : () => {}; // TODO: Not yet supported in our custom shaders used for building instructions.
             }
             else {
-                buildMaterial = t => LDR.Colors.buildStandardMaterial(c3, t);
+                buildMaterial = (t1,t2) => LDR.Colors.buildStandardMaterial(c3, t1, t2);
                 setMap = t => material.map = t;
+		setGlossMap = glossMapFile ? t => material.specularMap = t : () => {};
             }
-	    
-            if(loader.texmaps[textureFile] === true) { // Texture not yet loaded:
-                material = buildMaterial(true);
-                function setTexmap(t) {
-                    setMap(t);
-                    material.needsUpdate = true;
-                }
-                loader.texmapListeners[textureFile].push(setTexmap);
+
+	    // Build material. Textures might be loaded later:
+            let texture = loader.texmaps[textureFile];
+	    let glossMapTexture = glossMapFile ? loader.texmaps[glossMapFile] : false;
+            material = buildMaterial(texture, glossMapTexture);
+
+	    // Handle loaded texmap:
+            if(loader.texmaps[textureFile] === true) {
+                loader.texmapListeners[textureFile].push(t=>{setMap(t);material.needsUpdate = true;});
             }
-            else {
-                let texture = loader.texmaps[textureFile];
-                material = buildMaterial(texture);
+
+	    // Handle loaded glossMap:
+            if(glossMapFile && loader.texmaps[glossMapFile] == true) { // Texture(s) not yet loaded:
+                loader.texmapListeners[glossMapFile].push(t=>{setGlossMap(t);material.needsUpdate = true;console.dir(material)});
             }
-	    
+
+	    // Build mesh:
             let mesh = new THREE.Mesh(g.clone(), material);
             mesh.geometry.applyMatrix4(m4);
             mc.addMesh(c3, mesh, pd);
@@ -2418,7 +2432,7 @@ LDR.TexmapPlacement = function() { // Can be set either from parts when read fro
     //this.a;
     //this.b;
     this.file;
-    //this.glossmapFile;
+    this.glossMapFile = false;
     this.fallback = new THREE.LDRStep();
 
     this.nextOnly = false;
@@ -2446,7 +2460,7 @@ LDR.TexmapPlacement.prototype.clone = function() {
     }
 
     x.file = this.file;
-    x.glossmapFile = this.glossmapFile;
+    x.glossMapFile = this.glossMapFile;
     x.fallback = this.fallback;
     x.nextOnly = this.nextOnly;
 
@@ -2484,6 +2498,7 @@ LDR.TexmapPlacement.prototype.setFromParts = function(parts) {
         this.error = 'Too few arguments on !TEXMAP line';
         return;
     }
+    
     if(parts[2] === 'START') {
         // OK
     }
@@ -2517,9 +2532,13 @@ LDR.TexmapPlacement.prototype.setFromParts = function(parts) {
         return;
     }
 
-    this.file = parts[idx];
-    if(parts[parts.length-2] === 'GLOSSMAP') {
-        this.glossmapFile = parts[idx+2];
+    this.file = parts[idx++];
+    if(parts.length > idx) {
+        this.glossMapFile = parts[idx];
+	console.log('Loading glossmap!');
+    }
+    else {
+        this.glossMapFile = false;
     }
 
     this.idx = LDR.TexmapPlacements.length;
@@ -2586,9 +2605,9 @@ LDR.TexmapPlacement.prototype.packInto = function(arrayI, arrayF, arrayS, subMod
     }
 
     // Files:
-    if(this.glossmapFile) {
+    if(this.glossMapFile) {
         arrayI.push(2);
-        arrayS.push(this.glossmapFile);
+        arrayS.push(this.glossMapFile);
     }
     else {
         arrayI.push(1);
@@ -2612,9 +2631,12 @@ LDR.TexmapPlacement.prototype.unpackFrom = function(arrayI, arrayF, arrayS, idxI
         this.b = arrayF[idxF++];
     }
 
-    let hasGlossmap = arrayI[idxI++] === 2;
-    if(hasGlossmap) {
-        this.glossmapFile = arrayS[idxS++];
+    let hasGlossMap = arrayI[idxI++] === 2;
+    if(hasGlossMap) {
+        this.glossMapFile = arrayS[idxS++];
+    }
+    else {
+        this.glossMapFile = false;
     }
     this.file = arrayS[idxS++];
 
@@ -2761,8 +2783,8 @@ LDR.TexmapPlacement.prototype.toLDR = function(lines, loader) {
         ret += parseFloat((this.b * 180 / Math.PI).toFixed(4)) + ' ';
     }
     ret += this.file;
-    if(this.glossmapFile) {
-        ret += ' ' + this.glossmapFile;
+    if(this.glossMapFile) {
+        ret += ' ' + this.glossMapFile;
     }
     ret += '\r\n';
 
