@@ -45,7 +45,7 @@ See the file sample_part_standard.htm for how to use buildinginstructions.js wit
 
 ## Hosting Locally
 
-Files are fetched asynchroneously, so opening the sample files in your browser might not work out of the box due to default security settings. To get around this you can either host the files on a local server or disable the browser checks. As an example, Chrome can be started with the following parameters in order to disable these security settings:
+Files are fetched asynchronously, so opening the sample files in your browser might not work out of the box due to default security settings. To get around this you can either host the files on a local server or disable the browser checks. As an example, Chrome can be started with the following parameters in order to disable these security settings:
 
 ```
  --disable-web-security --user-data-dir=some_directory_where_it_is_ok_that_chrome_saves_a_lot_of_files
