@@ -104,7 +104,7 @@ LDR.AssemblyManager = function(loader) {
 	torsoPT.modelDescription = md0 + md1 + md2;
 
         torsoPT.author = 'LDRAssemblies.js';
-        torsoPT.license = 'Redistributable under CCAL version 2.0 : see CAreadme.txt';
+        torsoPT.license = 'Redistributable under CC BY 4.0 : see CAreadme.txt';
         torsoPT.ldraw_org = 'Unofficial_Part';
         torsoPT.inlined = 'GENERATED';
         torsoPT.cleanSteps = torsoPT.certifiedBFC = torsoPT.CCW = true;

@@ -41,7 +41,7 @@ LDR.OMR = {};
  */
 LDR.OMR.UpgradeToReplacements = function(ldrLoader) {
     return {
-        checkers: {checkPartType:pt => (pt.replacement && pt.modelDescription) ? ['Some parts have been replaced by new versions. This action replaces these parts. Please note that some LDraw parts, such as 92013 is currently an unofficial LDraw part with 62712 being the official version of it. However, Bricklink makes a distinction between the two, and they are not available in the same colors. So applying this action can potentially make some of the parts unavailable in the intended colors when exporting the parts list to Bricklink!',pt.ID,pt.replacement] : false},
+        checkers: {checkPartType:pt => (pt.replacement && pt.modelDescription) ? ['Some parts have been replaced by new versions. This action replaces these parts. Please note that some LDraw parts, such as 92013 is currently an unofficial LDraw part with 62712 being the official version of it. However, Bricklink makes a distinction between the two, and they are not available in the same colors. Applying this action can potentially make some of the parts unavailable in the intended colors when exporting the parts list to Bricklink!',pt.ID,pt.replacement] : false},
 
         handlers: {handlePartDescription: pd => {
                 let pt = ldrLoader.getPartType(pd.ID);
@@ -232,7 +232,7 @@ LDR.OMR.FixTyres = function(ldrLoader) {
  All sub models and unofficial parts are affected.
  */
 LDR.OMR.FixLicenses = function() {
-    const LICENSE = 'Redistributable under CCAL version 2.0 : see CAreadme.txt';
+    const LICENSE = 'Redistributable under CC BY 4.0 : see CAreadme.txt';
 
     function title(lc) {
 	let from = lc ? ('0 !LICENSE ' + lc) : '[Missing license]';

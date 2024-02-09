@@ -806,7 +806,7 @@ LDR.StepHandler.prototype.moveToNewSubModel = function(info, newID) {
     newPT.ID = newPT.name = newID + '.ldr';
     newPT.modelDescription = newID;
     newPT.author = 'LDRStepEditor';
-    newPT.license = 'Redistributable under CCAL version 2.0 : see CAreadme.txt';
+    newPT.license = 'Redistributable under CC BY 4.0 : see CAreadme.txt';
     newPT.cleanSteps = newPT.certifiedBFC = newPT.CCW = true;
     this.loader.partTypes[newPT.ID] = newPT;
     console.log('Created model type ' + newPT.ID);

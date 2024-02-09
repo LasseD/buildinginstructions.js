@@ -1963,7 +1963,7 @@ THREE.LDRPartType.prototype.setReferencedFrom = function(ldrLoader) {
 THREE.LDRPartType.prototype.canBePacked = function() {
     return (!this.inlined || (this.inlined === 'OFFICIAL')) && // Only pack official parts (not 'GENERATED' (from LDRGenerator) or 'IDB' (unpacked from IndexedDB).
            this.isPart && // Should be a part.
-           this.license === 'Redistributable under CCAL version 2.0 : see CAreadme.txt' &&
+           this.license === 'Redistributable under CC BY 4.0 : see CAreadme.txt' &&
 	   this.ldraw_org && // And an LDRAW_ORG statement.
            !this.ldraw_org.startsWith('Unofficial_'); // Double-check that it is official.
 }

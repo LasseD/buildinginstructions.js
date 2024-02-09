@@ -96,7 +96,7 @@ LDR.Generator = {
 
         pt.modelDescription = desc;
         pt.author = 'LDRGenerator.js';
-        pt.license = 'Redistributable under CCAL version 2.0 : see CAreadme.txt';
+        pt.license = 'Redistributable under CC BY 4.0 : see CAreadme.txt';
         pt.inlined = 'GENERATED';
         pt.ldraw_org = 'Primitive';
         pt.cleanSteps = pt.certifiedBFC = pt.CCW = pt.isPart = true;
