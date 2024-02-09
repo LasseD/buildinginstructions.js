@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html>
+ <head>
+    <meta charset=utf-8>
+    <title>Pattern Folder - Fold LDraw parts</title>
+    <meta name="viewport" content="width=device-width" />
+    <style>
+      body {
+        font-family: "Arial","Helvetica",sans-serif;
+        padding: 0;
+        margin: 0;
+        background-color: #EEE;
+      }
+      h1, h3 {
+        text-transform: uppercase;
+        display: block;
+        text-align: center;
+        margin: 0;
+        padding: 0.5em;
+        font-size: 2em;
+      }
+      h1 {
+        background-color: #000;
+        color: white;
+      }
+      h3 {
+        background-color: #D9D;
+      }
+      .section {
+        display: block;
+        margin: 0.5em;
+      }
+      .desc {
+        margin: 0.5em;
+      }
+      .choice {
+        display: table;
+        margin: 0.5em;
+      }
+      .choice, textarea, button {
+        display: block;
+        width: 95%;
+      }
+      button {
+        height: 4em;
+      }
+      #contact {
+        margin: 2em;
+        text-align: center;
+      }
+      .error, .warning {
+        display: block;
+        margin: 1em;
+        padding: 0.5em;
+        font-weight: bold;
+      }
+      .error {
+        border: 0.2em solid red;
+      }
+      .warning {
+        border: 0.2em solid orange;
+      }
+      canvas {
+        display: block;
+        margin: auto;
+      }
+
+      #maps {
+        margin-top: 0.5em;
+      }
+      .map {
+        position: relative;
+        top: 0;
+        display: inline-block;
+        width: 200px;
+        height: 100px;
+        background-color: #FFF;
+        margin-right: 1em;
+        margin-bottom: 1em;
+        text-align: center;
+        padding-top: 0.2em;
+        border-radius: 0.5em;
+      }
+      .map_active {
+        background-color: #BFB;
+      }
+      .map:hover {
+        background-color: #DFD;      
+      }
+      .title {
+        display: inline;
+      }
+      .info {
+        display: inline;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+      }
+      svg {
+        position: absolute;
+        top: 0;
+        left: 2.5px;
+        opacity: 0.5;
+      }
+      polygon, line {
+        fill: #dcf0f8;
+        stroke: #98aeb9;
+      }
+      .download {
+        display: block;
+        margin-top: 1em;
+        text-align: center;
+        padding: 0.5em;
+        border: 1px solid black;
+        background-color: white;
+        color: black;
+        text-decoration: none;
+      }
+    </style>
+ </head>
+ <body>
+  <!-- Standard libraries -->
+  <script src="../js/jquery.min.js"></script>
+  <script src="../js/three.min.js"></script>
+  <script src="../js/OrbitControls.js"></script>
+
+  <!-- Libraries from buildinginstructions.js -->
+  <script src="../js/colors.js"></script>
+  <script src="../js/LDROptions.js"></script>
+  <script src="../js/LDRShaders.js"></script>
+  <script src="../js/LDRColorMaterials.js"></script>
+  <script src="../js/LDRGeometries.js"></script>
+  <script src="../js/LDRLoader.js"></script>
+  <script src="../js/StudioTexmap.js"></script>
+
+  <!-- Custom Pattern Folder libraries -->  
+  <script src="../js/geometry.js"></script>
+  <script src="../js/height_map.js"></script>
+  <script src="../js/maps.js"></script>
+
+  <h1>Pattern Folder - Fold LDraw parts</h1>
+
+  <h3>Step 1 - Select part to fold</h3>
+  <div class="section">
+   <span class="desc">
+     Select the LDraw part.
+     This can be done using either a URL, a file, or by pasting the content into the text area below. See the tutorial <a href="https://www.youtube.com/watch?v=fwN1MLaxats">here</a>.
+   </span>
+   <span class="choice">
+    <label for="url">URL from a website</label>
+    <input id="url" name="url" type="text" onchange="readFromUrl(event);" />
+   </span>
+   <span class="choice">
+    <label for="file">DAT, LDR, or MPD file</label>
+    <input id="file" name="file" type="file" onchange="readFromFile(event);" />
+   </span>
+   <span class="choice">
+    <textarea id="file_content" onkeyup="fold(null)" rows="8">0 Insert LDraw file content here. This is an example with two triangles.
+3 2 -10 0 10  -10 0 -10  10 0 10
+3 4 -10 0 -10  10 0 -10  10 0 10
+</textarea>
+   </span>
+<!--
+0 FILE sample_file.ldr
+0 Name: sample_file.ldr
+0 BFC NOCERTIFY
+
+0 !TEXMAP START PLANAR -10 0 -10 10 0 -10 -10 0 10 sample_file.ldr.png
+0 !: 4 16 -10 0 -10 -10 0 10 10 0 10 10 0 -10
+0 !TEXMAP END
+
+0 FILE sample_file.ldr.png
+0 !DATA START
+0 !:iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAACXBIWXMAAAsTAAALEwEAmpwYAAAA
+0 !:B3RJTUUH5AEYChQ1nEYzVAAAAB1pVFh0Q29tbWVudAAAAAAAQ3JlYXRlZCB3aXRoIEdJTVBkLmUH
+0 !:AAAAFklEQVQI12N4KqUh5fWUQcrr6VMpDQAiEgThLKLB4AAAAABJRU5ErkJggg==
+0 !DATA END
+-->
+   <div id="warnings">
+   </div>
+   <div id="errors">
+   </div>
+
+  <h3>Step 2 - Surface</h3>
+  <div class="section">
+   <span class="desc">
+     Select the surface onto which the pattern should be folded. 
+     If your preferred surface is not present, then you can set the surface manually in the text area below.
+   </span>
+   <div id="maps">
+   </div>
+   <span class="choice">
+    <textarea id="surface" onkeyup="fold(null)" rows="3"
+>#Example height map. Click on the maps above or type in this field for the height map you need.
+horizontal 0
+-15 -10 -4 -1 0 0 10 15
+</textarea>
+   </span>
+  </div>
+
+  <h3>Step 3 - Get the result</h3>
+  <div class="section">
+   <canvas id="preview"></canvas>
+   <span class="choice">
+    <div id="outputtype">
+     <label for="studio">The file contains a texture. Check this box to export to Studio 2.0. Otherwise the generated file will be standard LDraw</label>
+     <input id="studio" name="studio" type="checkbox" onchange="fold(null);" />
+    </div>
+    <textarea id="ldr_result" rows="10"></textarea>
+    <button onclick="copyToClipboard();">Copy LDraw File to Clipboard</button>
+    <a class="download" id="downloadContent"></a>
+   </span>
+  </div>
+
+  <div id="contact">
+    <a href="https://github.com/LasseD/PatternFolder">PatternFolder</a> is in the public domain and may be freely distributed.
+    <a href="https://github.com/mrdoob/three.js">three.js and OrbitControls.js</a> use the MIT license.
+    Contact: Lasse Deleuran on <a href="mailto:lasse.deleuran@gmail.com">lasse.deleuran@gmail.com</a>.
+  </div>
+
+  <script>
+/*
+  Warnings and errors:
+ */
+let seenWarningTypes = {};
+function resetWarningsAndErrors() {
+  $('#warnings').empty();
+  $('#errors').empty();
+  seenWarningTypes = {};
+}
+function onWarning(type, message) {
+  if(type.hasOwnProperty('message')) { // From parser:
+    message = type['message'] + ' Line ' + type['line'];
+    type = 'parse error';
+  }
+
+  console.warn(message);
+  if(seenWarningTypes.hasOwnProperty(type)) {
+    return; // Already seen.
+  }
+
+  message = message.replace('<', '&lt;');
+
+  let span = document.createElement('span');
+  span.setAttribute('class', 'warning');
+  span.innerHTML = message;
+  $('#warnings').append(span);
+  
+  seenWarningTypes[type] = true;
+}
+function onError(message) {
+  console.dir(message);
+  let span = document.createElement('span');
+  span.setAttribute('class', 'error');
+  span.innerHTML = message.message;
+  $('#errors').empty().append(span);
+}
+
+/*
+  three.js rendering:
+ */
+
+// Set up camera:
+let camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
+camera.position.set(10000, 7000, 10000);
+camera.lookAt(0, 0, 0);
+
+// Set up scene:
+let scene = new THREE.Scene();
+scene.background = new THREE.Color(0xFFFFFF);
+let baseObject;
+
+// Set up renderer:
+let canvas = document.getElementById('preview');
+let renderer = new THREE.WebGLRenderer({antialias:true, canvas:canvas});
+renderer.setPixelRatio(window.devicePixelRatio);
+
+function render() {
+  renderer.render(scene, camera);
+}
+
+let w, h;
+function onWindowResize() {
+  w = window.innerHeight * 0.9;
+  h = window.innerWidth * 0.9;
+  w = h = Math.min(w, h);
+  camera.left = -w;
+  camera.right = w;
+  camera.top = h;
+  camera.bottom = -h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+  render();
+}
+window.addEventListener('resize', onWindowResize, false);
+onWindowResize();
+
+let ldrLoader, mapper;
+const MAIN_MODEL = 'pattern_folder_main.ldr';
+
+// Used for setting up models in scenes:
+function showInScene() {
+  if(!ldrLoader.mainModel) {
+    console.log('A valid model was not parsed. Nothing will be shown');
+    return;
+  }
+
+  if(ldrLoader.texmapDataurls.length > 0) {
+    $('#outputtype').show();
+  }
+  else {
+    $('#outputtype').hide();
+  }
+
+  // Restructure ldrLoader:
+  let newMainModel = new THREE.LDRPartType();
+  newMainModel.ID = newMainModel.name = MAIN_MODEL;
+  let step = new THREE.LDRStep();
+  let p = new THREE.Vector3();
+  let r = new THREE.Matrix3(); r.set(1, 0, 0, 0, 1, 0, 0, 0, 1);
+  step.addSubModel(new THREE.LDRPartDescription(16, p, r, ldrLoader.mainModel, true, false));
+  step.addSubModel(new THREE.LDRPartDescription(39, p, r, 'height_map.ldr', true, false));
+  newMainModel.addStep(step);
+  ldrLoader.partTypes[MAIN_MODEL] = newMainModel;
+  ldrLoader.mainModel = MAIN_MODEL;
+  ldrLoader.parse(mapper.toLDR(), 'height_map.ldr');
+
+  if(baseObject) {
+    scene.remove(baseObject);
+  }
+  baseObject = new THREE.Group();
+  scene.add(baseObject);
+
+  let opaqueObj = new THREE.Group();
+  let sixteenObj = new THREE.Group();
+  let transObj = new THREE.Group();
+  baseObject.add(opaqueObj);
+  baseObject.add(sixteenObj);
+  baseObject.add(transObj);
+
+  let mc = new LDR.MeshCollector(opaqueObj, sixteenObj, transObj);
+  ldrLoader.generate(16, mc);
+
+  // Find center of drawn model:
+  let b = mc.boundingBox;
+  let elementCenter = new THREE.Vector3();
+  b.getCenter(elementCenter);
+  baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
+
+  camera.zoom = w/b.min.distanceTo(b.max)*2;
+
+  onWindowResize();
+}
+
+let idToUrl = id => ['../ldraw_parts/'+id.toLowerCase(), '../ldraw_unofficial'+id.toLowerCase()];
+
+THREE.LDRPartType.prototype.inline = function(loader) {
+  if(this.inlined) {
+    return; // Already inlined.
+  }
+  let self = this;
+  this.inlined = true;
+
+  for(let i = 0; i < this.steps.length; i++) {
+    let step = this.steps[i];
+
+    function handleSubModel(sm) {
+      let pt = loader.getPartType(sm.ID);
+      pt.inline(loader);
+      function c(color) {
+        if(color === 16) {
+          return sm.c;
+        }
+        if(color === 24) {
+          return sm.c < 0 ? sm.c : -sm.c-1;
+        }
+        return color;
+      }
+      function t(p) {
+  	let ret = new THREE.Vector3(p.x, p.y, p.z);
+	ret.applyMatrix3(sm.r);
+	ret.add(sm.p);
+	return ret;
+      }
+
+      let step2 = pt.steps[0];
+      step2.lines.forEach(x => step.addLine(c(x.c), t(x.p1), t(x.p2)));
+      step2.conditionalLines.forEach(x => step.addConditionalLine(c(x.c), t(x.p1), t(x.p2), t(x.p3), t(x.p4)));
+      step2.triangles.forEach(x => step.addTriangle(c(x.c), t(x.p1), t(x.p2), t(x.p3), true, false, self.texmapPlacement));
+      step2.quads.forEach(x => step.addQuad(c(x.c), t(x.p1), t(x.p2), t(x.p3), t(x.p4), true, false, self.texmapPlacement));
+    }
+    step.subModels.forEach(handleSubModel);
+    step.subModels = [];
+  }
+}
+
+/*
+  Folding
+ */
+function fold(ldr) {
+  resetWarningsAndErrors();
+  LDR.TexmapPlacements = [];
+
+  if(!ldr) { // Fetch from text area:
+    ldr = $('#file_content')[0].value;
+  }
+  else { // Update text area:
+    $('#file_content').val(ldr);
+  }
+
+  function onLoad() {
+    if(!ldrLoader.mainModel) {
+      return;
+    }
+
+    // Split the main model:
+    console.dir(ldrLoader);
+    let mainModel = ldrLoader.getMainModel();
+    mainModel.inline(ldrLoader);
+    ldrLoader.partTypes = {};
+    ldrLoader.partTypes[mainModel.ID] = mainModel; // Remove everything else.
+
+    // Get heightPoints from text area:
+    mapper = new LDR.LinearHeightMap($('#surface')[0].value);
+    mapper.foldPart(mainModel);
+
+    let lDrawContent;
+
+    if(document.getElementById('studio').checked) {
+      lDrawContent = mainModel.toStudioFile(ldrLoader);
+    }
+    else {
+      lDrawContent = ldrLoader.toLDR();
+    }
+
+    $('#ldr_result').val(lDrawContent);
+
+    let e = document.getElementById('downloadContent');
+    e.href = 'data:text/x-ldraw;base64,' + btoa(lDrawContent);
+    e.setAttribute('download', mainModel.ID);
+    e.innerHTML = 'Click here to download ' + mainModel.ID;
+
+    showInScene();
+  }
+
+  ldrLoader = new THREE.LDRLoader(onLoad, null, {idToUrl:idToUrl, onError:onError, onWarning:onWarning, onProgress:render, saveFileLines:false});
+  ldrLoader.parse(ldr, 'main.dat');
+  ldrLoader.reportProgress('main.dat');
+}
+
+function setUpMaps() {
+  let mapsEle = $('#maps')[0];
+  MAPS.ALL.forEach(map => map.toEle(mapsEle, fold, 195, 95));
+}
+
+function readFromFile(event) {
+  let reader = new FileReader();
+  reader.onload = function(){
+    fold(reader.result);
+  };
+  reader.readAsText(event.target.files[0]);
+}
+
+function readFromUrl(event) {
+  let url = event.target.value;
+  console.log('Reading from URL ' + url);
+  let req = new XMLHttpRequest();
+  req.onreadystatechange = function() {
+    if(req.readyState != 4)
+      return;
+    if(req.status != 200) {
+      console.dir(event);
+      return;
+    }
+    fold(req.responseText);
+  };
+  req.open('GET', url, true);
+  req.send();
+}
+
+function copyToClipboard() {
+  $('#ldr_result')[0].select();
+  document.execCommand('copy');
+}
+
+let controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.addEventListener('change', render);
+
+$(document).ready(function() {
+  setUpMaps();
+  fold();
+});
+  </script>
+ </body>
+</html>
