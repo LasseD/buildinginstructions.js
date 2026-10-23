@@ -1,8 +1,11 @@
 'use strict';
 
-LDR.STUDIO = {};
+import * as THREE from 'three'
+import { LDRLoader, LDRPartType, LDRPartDescription, LDRStep, TexmapPlacements } from './LDRLoader.js'
 
-LDR.STUDIO.handleCommentLine = function(part, parts) {
+let STUDIO = {};
+
+STUDIO.handleCommentLine = function(part, parts) {
     if(parts.length < 3) {
 	return false; // Not Studio 2.0 line - too short.
     }
@@ -22,7 +25,7 @@ LDR.STUDIO.handleCommentLine = function(part, parts) {
 /*
   Compute LDraw texmaps and texmap placements from Studio 2.0 / Part Designer
 */
-LDR.STUDIO.handlePart = function(loader, pt) {
+STUDIO.handlePart = function(loader, pt) {
     if(!pt.studioTexmap || pt.steps.length !== 1) {
 	return; // Not relevant for Studio 2.0 texmaps or not with a single step.
     }
@@ -69,7 +72,7 @@ LDR.STUDIO.handlePart = function(loader, pt) {
         loader.texmapListeners[pid] = [];
     }
 
-    THREE.LDRLoader.textureLoader.load(
+    LDRLoader.textureLoader.load(
 	dataurl,
 	function(texture) {
             loader.texmaps[pid] = texture;
@@ -88,7 +91,7 @@ Distances from P1 to q1,q2,q3:
 Use the solution by 'Mark' from: https://groups.google.com/forum/#!topic/sci.math/fABwsXJJrFw
 Let r, s, t be the points (instead of q1, q2, and q3) and R, S, T be radii (instead of d1, d2, d3):
  */
-LDR.STUDIO.handleTriangleLine = function(pt, parts) {
+STUDIO.handleTriangleLine = function(pt, parts) {
     let q1 = new THREE.Vector3(parseFloat(parts[2]), parseFloat(parts[3]), parseFloat(parts[4]));
     let q2 = new THREE.Vector3(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
     let q3 = new THREE.Vector3(parseFloat(parts[8]), parseFloat(parts[9]), parseFloat(parts[10]));
@@ -100,7 +103,7 @@ LDR.STUDIO.handleTriangleLine = function(pt, parts) {
 
     // See if we can reuse the previous TMP:
     if(LDR.TexmapPlacements.length > 0) {
-        let lastTmp = LDR.TexmapPlacements[LDR.TexmapPlacements.length-1];
+        let lastTmp = LDR.TexmapPlacements[TexmapPlacements.length-1];
         let [u1,v1] = lastTmp.getUV(q1);
         let [u2,v2] = lastTmp.getUV(q2);
         let [u3,v3] = lastTmp.getUV(q3);
@@ -269,193 +272,4 @@ LDR.STUDIO.handleTriangleLine = function(pt, parts) {
     return tmp;
 }
 
-THREE.LDRLoader.prototype.toLDRStudio = function(c) {
-    let self = this;
-
-    // Mark all parts that have texmaps, as these should be downloaded separately:
-    function setTexmap(pt) {
-	if(!pt.isPart || pt.steps.length === 0) {
-	    return false; // Not a part.
-	}
-        let step = pt.steps[0];
-	
-	function find(list) {
-	    let x = list.find(y => y.tmp);
-	    if(x) {
-		pt.texmapFile = x.tmp.file;
-		return true;
-	    }
-	    return false;
-	}
-	find(step.triangles) || find(step.quads) || find(step.subModels);
-    }
-    this.applyOnPartTypes(setTexmap);
-
-    let seenColors = {}; // id => {colors}
-    function findColorsFor(id, c) {
-	let pt = self.getPartType(id);	
-	if(pt.isPart) {
-	    return; // Don't include parts.
-	}
-	if(!seenColors.hasOwnProperty(id)) {
-	    seenColors[id] = {};
-	}
-	sc = seenColors[id];
-	if(sc.hasOwnProperty(c)) {
-	    return; // Already handled.
-	}
-	sc[c] = true;
-	pt.steps.forEach(step => step.subModels.forEach(sm => findColorsFor(sm.ID, sm.c === 16 ? c : sm.c)));
-    }
-    findColorsFor(this.mainModel, c);
-
-    let ret = this.getMainModel().toLDRColored(this, c);
-    for(let id in seenColors) {
-	if(!seenColors.hasOwnProperty(id) || id === self.mainModel) {
-	    continue;
-	}
-	let obj = seenColors[id];
-	for(let c in obj) {
-	    if(obj.hasOwnProperty(c)) {
-		ret += self.getPartType(id).toLDRColored(self, c);
-	    }
-	}
-    }
-
-    return ret;
-}
-
-THREE.LDRPartType.prototype.toLDRColored = function(loader, c) {
-    let ret = '0 FILE ' + c + '__' + this.ID + '\r\n';
-    if(this.modelDescription) {
-        ret += '0 ' + this.modelDescription + '\r\n';
-    }
-    ret += '0 Name: ' + c + '__' + this.ID + '\r\n';
-
-    if(this.author) {
-        ret += '0 Author: ' + this.author + '\r\n';
-    }
-    if(this.ldraw_org) {
-        ret += '0 !LDRAW_ORG ' + this.ldraw_org + '\r\n';
-    }
-    if(this.license) {
-        ret += '0 !LICENSE ' + this.license + '\r\n';
-    }
-    if(this.isPart) { // BFC Statement:
-        if(!this.certifiedBFC) {
-            ret += '0 BFC NOCERTIFY\r\n';            
-        }
-        else {
-            ret += '0 BFC CERTIFY ' + (this.CCW ? 'CCW' : 'CW') + '\r\n';
-        }
-    }
-    if(this.headerLines.length > 0) {
-        ret += '\r\n'; // Empty line before additional header lines, such as 'THEME' and 'KEYWORDS'
-        this.headerLines.forEach(line => ret += line.toLDR(loader));
-    }
-    if(this.hasOwnProperty('preferredColor')) {
-        ret += '\r\n0 !CMDLINE -c' + this.preferredColor + '\r\n';
-    }
-    if(this.steps.length > 0) {
-        ret += '\r\n';
-        this.steps.forEach((step, idx, a) => ret += step.toLDRColored(loader, idx === 0 ? null : a[idx-1].r, idx === a.length-1, c));
-    }
-    ret += '\r\n';
-    return ret;
-}
-
-THREE.LDRPartDescription.prototype.toLDRColored = function(loader, c) {
-    let pt = loader.getPartType(this.ID);
-    let c2 = this.c == 16 ? c : this.c;
-    let id = pt.isPart ? pt.ID : (c2 + '__' + this.ID);
-    return '1 ' + c2 + ' ' + this.p.toLDR() + ' ' + this.r.toLDR() + ' ' + id + '\r\n';
-}
-
-THREE.LDRStep.prototype.toLDRColored = function(loader, prevStepRotation, isLastStep, c) {
-    let ret = '';
-
-    this.subModels.forEach(sm => ret += sm.toLDRColored(loader, c));
-    this.triangles.forEach(x => ret += x.toLDR());
-    this.quads.forEach(x => ret += x.toLDR());
-
-    // End with STEP or ROTSTEP:
-    if(!this.r) {
-        if(prevStepRotation) {
-            ret += '0 ROTSTEP END\r\n';
-        }
-        else if(!isLastStep) {
-            ret += '0 STEP\r\n';
-        }
-    }
-    else { // We have a rotation. Check against prev:
-        if(THREE.LDRStepRotation.equals(this.r, prevStepRotation)) {
-            ret += '0 STEP\r\n';            
-        }
-        else {
-            ret += this.r.toLDR();
-        }
-    }
-    return ret;
-}
-
-THREE.LDRPartType.prototype.toStudioFile = function(ldrLoader) {
-    if(!this.isPart) {
-	throw 'The part type ' + this.ID + ' cannot be converted to a Studio 2.0 file since it is not a part';
-    }
-    // We now know there is exactly 1 step:
-    let step = this.steps[0];
-
-    // Find all textured triangles:
-    let tt = []; // Textured triangles
-    let tmp;
-    step.triangles.filter(x => x.tmp).forEach(x => {
-	tmp = x.tmp.file;
-        tt.push(x);
-    });
-    step.quads.filter(x => x.tmp).forEach(x => {
-	tmp = x.tmp.file;
-        tt.push({c:x.c, p1:x.p1, p2:x.p2, p3:x.p3, tmp:x.tmp});
-        tt.push({c:x.c, p1:x.p1, p2:x.p3, p3:x.p4, tmp:x.tmp});
-    });
-
-    // Find dataurl:
-    let dataurl = ldrLoader.texmapDataurls.find(obj => obj.id === tmp);
-
-    let ret = '';
-    if(dataurl) {
-	ret = '0 FILE ' + this.ID + '\r\n';
-    }
-    ret += '0 ' + (this.modelDescription ? this.modelDescription : '') +
-	'\r\n0 Name: ' + this.ID +
-	'\r\n0 Author: ' + (this.author ? this.author : '') + 
-	'\r\n0 !LICENSE ' + (this.license ? this.license : '') + 
-	'\r\n0 BFC ' + (this.certifiedBFC?'':'NO') + 'CERTIFY ' + (this.CCW ? '' : 'CW') + 
-        '\r\n';
-
-    if(dataurl) {
-	ret += '0 PE_TEX_PATH -1\r\n0 PE_TEX_INFO ' + dataurl.content + '\r\n';
-    }
-
-    step.subModels.forEach(x => ret += x.toLDR(ldrLoader));
-    step.lines.forEach(x => ret += new LDR.Line2(x.c, x.p1, x.p2).toLDR());
-    step.conditionalLines.forEach(x => ret += new LDR.Line5(x.c, x.p1, x.p2, x.p3, x.p4).toLDR());
-
-    // Convert all texture triangles:
-    tt.forEach(x => { // Studio 2.0 triangle lines:
-        ret += '3 ' + x.c + ' ' + x.p1.toLDR() + ' ' + x.p2.toLDR() + ' ' + x.p3.toLDR();
-        let [U1, V1]=x.tmp.getUV(x.p1, x.p2, x.p3);
-        let [U2, V2]=x.tmp.getUV(x.p2, x.p3, x.p1);
-        let [U3, V3]=x.tmp.getUV(x.p3, x.p1, x.p2);
-        [U1,V1,U2,V2,U3,V3].map(LDR.convertFloat).forEach(x => ret += ' ' + x);
-        ret += '\r\n';
-    });
-
-    step.triangles.filter(x => !x.tmp).forEach(x => {
-        ret += new LDR.Line3(x.c, x.p1, x.p2, x.p3).toLDR();
-    });
-    step.quads.filter(x => !x.tmp).forEach(x => {
-        ret += new LDR.Line4(x.c, x.p1, x.p2, x.p3, x.p4).toLDR();
-        });
-
-    return ret;
-}
+export { STUDIO }

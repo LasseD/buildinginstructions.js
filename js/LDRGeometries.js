@@ -1,13 +1,16 @@
 'use strict';
 
-LDR.EPS = 1e-5;
+import * as THREE from 'three'
+import { TexmapPlacements } from './LDRLoader.js'
+
+let EPS = 1e-5;
 
 /*
   Binary merge of the geometry streams.
  */
-LDR.mergeGeometries = function(geometries) {
+let mergeGeometries = function(geometries) {
     if(geometries.length === 0) {
-        return new LDR.LDRGeometry();
+        return new LDRGeometry();
     }
     while(geometries.length > 1) { // Repeat rounds until only 1 left:
 	let nextGeometries = []; // Result of round.
@@ -28,7 +31,7 @@ LDR.mergeGeometries = function(geometries) {
 /*
   A vertex is sorted by {x,y,z,c}.
  */
-LDR.vertexSorter = function(a, b) {
+let vertexSorter = function(a, b) {
     if(a.x !== b.x) {
 	return a.x - b.x;
     }
@@ -38,7 +41,7 @@ LDR.vertexSorter = function(a, b) {
     return a.z - b.z;
 }
 
-LDR.vertexLessThan = function(a, b) {
+let vertexLessThan = function(a, b) {
     if(a.x !== b.x) {
 	return a.x < b.x;
     }
@@ -48,13 +51,13 @@ LDR.vertexLessThan = function(a, b) {
     return a.z < b.z;
 }
 
-LDR.vertexEqual = function(a, b) {
-    return Math.abs(a.x-b.x) < LDR.EPS && 
-           Math.abs(a.y-b.y) < LDR.EPS && 
-           Math.abs(a.z-b.z) < LDR.EPS;
+let vertexEqual = function(a, b) {
+    return Math.abs(a.x-b.x) < EPS && 
+           Math.abs(a.y-b.y) < EPS && 
+           Math.abs(a.z-b.z) < EPS;
 }
 
-LDR.LDRGeometry = function() {
+let LDRGeometry = function() {
     // Temp data for geometry construction:
     this.vertices = []; // Sorted {x,y,z,o}, where 'o' is a LEGO-logo indicator.
     this.lines = {}; // c -> [{p1,p2},...] (color -> indices)
@@ -74,7 +77,7 @@ LDR.LDRGeometry = function() {
     this.boundingBox = new THREE.Box3();
 }
 
-LDR.LDRGeometry.prototype.buildLineGeometries = function(vertexAttribute) {
+LDRGeometry.prototype.buildLineGeometries = function(vertexAttribute) {
     for(let c in this.lines) {
 	if(!this.lines.hasOwnProperty(c)) {
             continue;            
@@ -90,7 +93,7 @@ LDR.LDRGeometry.prototype.buildLineGeometries = function(vertexAttribute) {
     }
 }
 
-LDR.LDRGeometry.prototype.buildConditionalLineGeometries = function(vertexAttribute) {
+LDRGeometry.prototype.buildConditionalLineGeometries = function(vertexAttribute) {
     for(let c in this.conditionalLines) {
 	if(!this.conditionalLines.hasOwnProperty(c)) {
             continue;
@@ -121,7 +124,7 @@ LDR.LDRGeometry.prototype.buildConditionalLineGeometries = function(vertexAttrib
     }
 }
 
-LDR.LDRGeometry.prototype.buildBothLineGeometries = function() {
+LDRGeometry.prototype.buildBothLineGeometries = function() {
     let lineVertices = [];
     for(let i = 0; i < this.vertices.length; i++) {
         let v = this.vertices[i];
@@ -137,7 +140,7 @@ LDR.LDRGeometry.prototype.buildBothLineGeometries = function() {
 /*
   Build geometries and color managers for standard (quick draw) drawing (seen in building instructions and parts lists)
  */
-LDR.LDRGeometry.prototype.buildGeometries = function() {
+LDRGeometry.prototype.buildGeometries = function() {
     if(this.geometriesBuilt) {
 	return; // Already built.
     }
@@ -201,7 +204,7 @@ LDR.LDRGeometry.prototype.buildGeometries = function() {
     this.cleanTempData();
 }
 
-LDR.LDRGeometry.prototype.buildTexmapGeometriesForColor = function(c) {
+LDRGeometry.prototype.buildTexmapGeometriesForColor = function(c) {
     let self = this;
 
     let texmapped = {}; // idx => [{p,size,noBFC}]
@@ -323,8 +326,8 @@ THREE.BufferGeometry.prototype.computeVertexNormals = function() {
 /**
    This function also computes normals and UV's to be used by standard materials.
  */
-LDR.LDRGeometry.UV_WarningWritten = false;
-LDR.LDRGeometry.prototype.buildPhysicalGeometries = function(withLines = false) {
+LDRGeometry.UV_WarningWritten = false;
+LDRGeometry.prototype.buildPhysicalGeometries = function(withLines = false) {
     if(this.geometriesBuilt) {
 	return;
     }
@@ -506,10 +509,10 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometries = function(withLines = false) 
                         let turn = uv => (prev.u-prevprev.u)*(uv.v-prevprev.v) - (prev.v-prevprev.v)*(uv.u-prevprev.u);
                         for(let i = 0; i < ret.length; i++) {
                             let uv = ret[i];
-                            if(Math.abs(prev.u-uv.u) < LDR.EPS && Math.abs(prev.v-uv.v) < LDR.EPS ||
-                               Math.abs(prevprev.u-uv.u) < LDR.EPS && Math.abs(prevprev.v-uv.v) < LDR.EPS ||
+                            if(Math.abs(prev.u-uv.u) < EPS && Math.abs(prev.v-uv.v) < EPS ||
+                               Math.abs(prevprev.u-uv.u) < EPS && Math.abs(prevprev.v-uv.v) < EPS ||
                                Math.abs(turn(uv)) < 1e-7) {
-                                if(!LDR.LDRGeometry.UV_WarningWritten) {
+                                if(!LDRGeometry.UV_WarningWritten) {
                                     console.log('UV issue insights for debugging. Underlying data points (vertices and normals):');
                                     console.dir(vs);
                                     console.dir(ns);
@@ -517,7 +520,7 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometries = function(withLines = false) 
                                     console.dir(ret);
                                     console.dir('Turn angle check at failure: ' + turn(uv));
                                     console.warn("Degenerate UV! " + uv.u + ', ' + uv.v);
-                                    LDR.LDRGeometry.UV_WarningWritten = true;
+                                    LDRGeometry.UV_WarningWritten = true;
                                 }
                                 return false;
                             }
@@ -536,10 +539,10 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometries = function(withLines = false) 
                 }
 
                 // Check if at least 3 normals point the same direction:
-                let equalVector3 = (a, b) => Math.abs(a.x-b.x) < LDR.EPS && Math.abs(a.y-b.y) < LDR.EPS && Math.abs(a.z-b.z) < LDR.EPS;
+                let equalVector3 = (a, b) => Math.abs(a.x-b.x) < EPS && Math.abs(a.y-b.y) < EPS && Math.abs(a.z-b.z) < EPS;
                 function atLeast3EqualNormals() {
                     let a = [...ns]; // Shallow copy.
-                    a.sort(LDR.vertexSorter);
+                    a.sort(vertexSorter);
                     if(equalVector3(a[0], a[a.length-1])) {
                         return true; // All equal!
                     }
@@ -577,13 +580,13 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometries = function(withLines = false) 
                         DZ = dz;
                     }
 
-                    if(maxDiff(vs.map(v => v.x)) < LDR.EPS) { // y/z projection:
+                    if(maxDiff(vs.map(v => v.x)) < EPS) { // y/z projection:
                         setUV(DY, DZ, true);
                     }
-                    else if(maxDiff(vs.map(v => v.y)) < LDR.EPS) {
+                    else if(maxDiff(vs.map(v => v.y)) < EPS) {
                         setUV(DX, DZ, true);
                     }
-                    else if(maxDiff(vs.map(v => v.z)) < LDR.EPS) {
+                    else if(maxDiff(vs.map(v => v.z)) < EPS) {
                         setUV(DX, DY, true);
                     }
                     else if(NX >= NY && NX >= NZ) {
@@ -648,7 +651,7 @@ LDR.LDRGeometry.prototype.buildPhysicalGeometries = function(withLines = false) 
     this.cleanTempData();
 }
 
-LDR.LDRGeometry.prototype.cleanTempData = function() {
+LDRGeometry.prototype.cleanTempData = function() {
     delete this.vertices;
     delete this.lines;
     delete this.conditionalLines;
@@ -658,7 +661,7 @@ LDR.LDRGeometry.prototype.cleanTempData = function() {
     delete this.triangles2;
 }
 
-LDR.LDRGeometry.prototype.buildGeometry = function(indices, vertexAttribute) {
+LDRGeometry.prototype.buildGeometry = function(indices, vertexAttribute) {
     if(indices.length === 0) {
 	return null;
     }
@@ -669,7 +672,7 @@ LDR.LDRGeometry.prototype.buildGeometry = function(indices, vertexAttribute) {
     return g;
 }
 
-LDR.LDRGeometry.prototype.replaceWith = function(g) {
+LDRGeometry.prototype.replaceWith = function(g) {
     if(!g.vertices) {
 	throw 'Copied geometry is already cleaned up!';
     }
@@ -683,7 +686,7 @@ LDR.LDRGeometry.prototype.replaceWith = function(g) {
     this.boundingBox = g.boundingBox;
 }
 
-LDR.LDRGeometry.prototype.replaceWithDeep = function(g) {
+LDRGeometry.prototype.replaceWithDeep = function(g) {
     if(!g.vertices) {
 	g.rebuild();
     }
@@ -744,57 +747,57 @@ LDR.LDRGeometry.prototype.replaceWithDeep = function(g) {
 /*
   Build this from the 4 types of primitives.
 */
-LDR.LDRGeometry.prototype.fromPrimitives = function(lines, conditionalLines, triangles, quads) {
+LDRGeometry.prototype.fromPrimitives = function(lines, conditionalLines, triangles, quads) {
     let geometries = [];
 
     if(lines.length > 0) {
-	let g = new LDR.LDRGeometry(); 
+	let g = new LDRGeometry(); 
 	g.fromLines(lines);
 	geometries.push(g);
     }
     if(conditionalLines.length > 0) {
-	let g = new LDR.LDRGeometry(); 
+	let g = new LDRGeometry(); 
 	g.fromConditionalLines(conditionalLines);
 	geometries.push(g);
     }
     let culledTriangles = triangles.filter(t => t.cull);
     if(culledTriangles.length > 0) {
-	let g = new LDR.LDRGeometry(); 
+	let g = new LDRGeometry(); 
 	g.fromTriangles(true, culledTriangles);
 	geometries.push(g);
     }
     let unculledTriangles = triangles.filter(t => !t.cull);
     if(unculledTriangles.length > 0) {
-	let g = new LDR.LDRGeometry(); 
+	let g = new LDRGeometry(); 
 	g.fromTriangles(false, unculledTriangles);
 	geometries.push(g);
     }
     let culledQuads = quads.filter(q => q.cull);
     if(culledQuads.length > 0) {
-	let g = new LDR.LDRGeometry(); 
+	let g = new LDRGeometry(); 
 	g.fromQuads(true, culledQuads);
 	geometries.push(g);
     }
     let unculledQuads = quads.filter(q => !q.cull);
     if(unculledQuads.length > 0) {
-	let g = new LDR.LDRGeometry(); 
+	let g = new LDRGeometry(); 
 	g.fromQuads(false, unculledQuads);
 	geometries.push(g);
     }
-    this.replaceWith(LDR.mergeGeometries(geometries));
+    this.replaceWith(mergeGeometries(geometries));
 }
 
 /*
   Assumes unsorted vertices that reference the primitives.
   This function sort the vertices and updates the primitives to reference the vertices.
  */
-LDR.LDRGeometry.prototype.sortAndBurnVertices = function(vertices, primitives) {
-    vertices.sort(LDR.vertexSorter);
+LDRGeometry.prototype.sortAndBurnVertices = function(vertices, primitives) {
+    vertices.sort(vertexSorter);
     let idx = this.vertices.length-1;
     let prev;
     for(let i = 0; i < vertices.length; i++) {
 	let v = vertices[i];
-	if(!(prev && LDR.vertexEqual(prev, v))) {
+	if(!(prev && vertexEqual(prev, v))) {
             this.vertices.push({x:v.x, y:v.y, z:v.z, o:false});
             idx++;
 	}
@@ -809,7 +812,7 @@ LDR.LDRGeometry.prototype.sortAndBurnVertices = function(vertices, primitives) {
 /*
   Build a geometry from {p1,p2,c} lines.
  */
-LDR.LDRGeometry.prototype.fromLines = function(ps) {
+LDRGeometry.prototype.fromLines = function(ps) {
     let vertices = [];
     for(let i = 0; i < ps.length; i++) {
 	let p = ps[i], idx;
@@ -830,7 +833,7 @@ LDR.LDRGeometry.prototype.fromLines = function(ps) {
     this.sortAndBurnVertices(vertices, this.lines);
 }
 
-LDR.LDRGeometry.prototype.fromConditionalLines = function(ps) {
+LDRGeometry.prototype.fromConditionalLines = function(ps) {
     let vertices = [];
     for(let i = 0; i < ps.length; i++) {
 	let p = ps[i], idx;
@@ -853,7 +856,7 @@ LDR.LDRGeometry.prototype.fromConditionalLines = function(ps) {
     this.sortAndBurnVertices(vertices, this.conditionalLines);
 }
 
-LDR.LDRGeometry.prototype.fromTriangles = function(cull, ps) {
+LDRGeometry.prototype.fromTriangles = function(cull, ps) {
     let vertices = [];
     let triangles = cull ? this.triangles : this.triangles2;
     let self = this;
@@ -878,7 +881,7 @@ LDR.LDRGeometry.prototype.fromTriangles = function(cull, ps) {
     this.sortAndBurnVertices(vertices, triangles);
 }
 
-LDR.LDRGeometry.prototype.fromQuads = function(cull, ps) {
+LDRGeometry.prototype.fromQuads = function(cull, ps) {
     let vertices = [];
     let quads = cull ? this.quads : this.quads2;
     let self = this;
@@ -908,39 +911,39 @@ LDR.LDRGeometry.prototype.fromQuads = function(cull, ps) {
 /*
   Consolidate the primitives and sub-parts of the step.
 */
-LDR.LDRGeometry.prototype.fromStep = function(loader, step) {
+LDRGeometry.prototype.fromStep = function(loader, step) {
     let self = this;
     this.rebuild = () => self.fromStep(loader, step);
     let geometries = [];
     if(step.hasPrimitives()) {
-        let g = new LDR.LDRGeometry();
+        let g = new LDRGeometry();
 	g.fromPrimitives(step.lines, step.conditionalLines, step.triangles, step.quads);
         geometries.push(g);
     }
 
     function handleSubModel(subModel) {
-        let g = new LDR.LDRGeometry(); 
+        let g = new LDRGeometry(); 
 	g.fromPartDescription(loader, subModel);
         geometries.push(g);
     }
     step.subModels.forEach(handleSubModel);
 
-    this.replaceWith(LDR.mergeGeometries(geometries));
+    this.replaceWith(mergeGeometries(geometries));
 }
 
-LDR.LDRGeometry.prototype.fromPartType = function(loader, pt) {
+LDRGeometry.prototype.fromPartType = function(loader, pt) {
     let self = this;
     this.rebuild = () => self.fromPartType(loader, pt);
     let geometries = [];
     for(let i = 0; i < pt.steps.length; i++) {
-        let g = new LDR.LDRGeometry();
+        let g = new LDRGeometry();
         g.fromStep(loader, pt.steps[i]);
         geometries.push(g);
     }
-    this.replaceWith(LDR.mergeGeometries(geometries));
+    this.replaceWith(mergeGeometries(geometries));
 }
 
-LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
+LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
     let self = this;
     this.rebuild = () => self.fromPartDescription(loader, pd);
     let pt = loader.getPartType(pd.ID);
@@ -999,7 +1002,7 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
         v.o = v.o || (lp && lp.x === v.x && lp.y === v.y && lp.z === v.z);
     }
     let newIndices = [];
-    this.vertices.sort(LDR.vertexSorter);
+    this.vertices.sort(vertexSorter);
     for(let i = 0; i < this.vertices.length; i++) {
 	let v = this.vertices[i];
 	newIndices[v.oldIndex] = i;
@@ -1028,7 +1031,7 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
 		}
 		let tmp = primitive.t;
 		if(tmpMap.hasOwnProperty(tmp.idx)) {
-		    primitive.t = LDR.TexmapPlacements[tmpMap[tmp.idx]];
+		    primitive.t = TexmapPlacements[tmpMap[tmp.idx]];
 		}
 		else {
 		    let clone = primitive.t = tmp.clone();
@@ -1099,7 +1102,7 @@ LDR.LDRGeometry.prototype.fromPartDescription = function(loader, pd) {
     }
 }
 
-LDR.LDRGeometry.prototype.mapIndices = function(map) {
+LDRGeometry.prototype.mapIndices = function(map) {
     let map2 = function(p, map) {
         p.p1 = map[p.p1];
         p.p2 = map[p.p2];
@@ -1148,7 +1151,7 @@ LDR.LDRGeometry.prototype.mapIndices = function(map) {
     }
 }
 
-LDR.LDRGeometry.prototype.merge = function(other) {
+LDRGeometry.prototype.merge = function(other) {
     // Merge bounding box:
     this.boundingBox.min.min(other.boundingBox.min);
     this.boundingBox.max.max(other.boundingBox.max);
@@ -1163,7 +1166,7 @@ LDR.LDRGeometry.prototype.merge = function(other) {
     while(idxThis < this.vertices.length && idxOther < other.vertices.length) {
 	let pThis = this.vertices[idxThis];
 	let pOther = other.vertices[idxOther];
-	if(LDR.vertexEqual(pThis, pOther)) {
+	if(vertexEqual(pThis, pOther)) {
 	    indexMapThis.push(mergedVertices.length);
 	    indexMapOther.push(mergedVertices.length);
             pThis.o = pThis.o || pOther.o;
@@ -1171,7 +1174,7 @@ LDR.LDRGeometry.prototype.merge = function(other) {
 	    ++idxThis;
 	    ++idxOther;
 	}
-	else if(LDR.vertexLessThan(pThis, pOther)) {
+	else if(vertexLessThan(pThis, pOther)) {
 	    indexMapThis.push(mergedVertices.length);
 	    mergedVertices.push(pThis);
 	    ++idxThis;
@@ -1221,3 +1224,5 @@ LDR.LDRGeometry.prototype.merge = function(other) {
     mergePrimitives(this.quads, other.quads);
     mergePrimitives(this.quads2, other.quads2);
 }
+
+export { LDRGeometry }

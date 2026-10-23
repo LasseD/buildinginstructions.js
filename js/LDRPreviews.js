@@ -1,12 +1,19 @@
 'use strict';
 
+import * as THREE from 'three'
+
+import { LDRGeometry } from './LDRGeometries.js'
+import { Measurer } from './LDRMeasurer.js'
+import { STORAGE } from './ClientStorage.js'
+import { PliPreviewer } from './LDRPLIPreview.js'
+
 /*
   options is used in internal ldrLoader initialization. Additional parameters are:
   - w: Width of displayed icons. Default '200 / window.devicePixelRatio'.
   - h: Height of displayed icons. Default '200 / window.devicePixelRatio'.
   optionsEle is the html element onto which LDR options are appended.
  */
-LDR.Previews = function(options, optionsEle) {
+let Previews = function(options, optionsEle) {
     let self = this;
 
     this.options = options || {};
@@ -39,7 +46,7 @@ LDR.Previews = function(options, optionsEle) {
     this.camera.position.set(10000, 7000, 10000);
     this.camera.lookAt(new THREE.Vector3());
 
-    this.measurer = new LDR.Measurer(this.camera);
+    this.measurer = new Measurer(this.camera);
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0xFFFFFF);
@@ -61,11 +68,11 @@ LDR.Previews = function(options, optionsEle) {
     this.rendered = {};
 }
 
-LDR.Previews.prototype.render = function() {
+Previews.prototype.render = function() {
     this.renderer.render(this.scene, this.camera);
 }
 
-LDR.Previews.prototype.draw = function(id) {
+Previews.prototype.draw = function(id) {
     let self = this;
 
     let pt = this.ldrLoader.getPartType(id+'.dat');
@@ -109,15 +116,15 @@ LDR.Previews.prototype.draw = function(id) {
         baseObject.add(opaqueObject);
         baseObject.add(sixteenObject);
         baseObject.add(transObject);
-        let mc = pt.pliMC = new LDR.MeshCollector(opaqueObject, sixteenObject, transObject);
+        let mc = pt.pliMC = new MeshCollector(opaqueObject, sixteenObject, transObject);
         let p = new THREE.Vector3();
         let r = new THREE.Matrix3();
         r.set(1,0,0, 0,-1,0, 0,0,-1);
 
 	let backupAge = this.ldrLoader.physicalRenderingAge;
 	this.ldrLoader.physicalRenderingAge = 0; // Ensure non-physical renderer is used.
-	if(LDR.Options) {
-            LDR.Options.lineContrast = 1; // Ensure lines are rendered.
+	if(Options) {
+            Options.lineContrast = 1; // Ensure lines are rendered.
         }
         pt.generateThreePart(this.ldrLoader, 16, p, r, true, false, mc);
 	this.ldrLoader.physicalRenderingAge = backupAge;
@@ -146,7 +153,7 @@ LDR.Previews.prototype.draw = function(id) {
     canvas.getContext('2d').drawImage(this.renderer.domElement, 0, 0);
 }
 
-LDR.Previews.prototype.initiate = function() {
+Previews.prototype.initiate = function() {
     let self = this;
 
     let onLoad = function() {
@@ -186,24 +193,21 @@ LDR.Previews.prototype.initiate = function() {
     };
 
     let onStorageReady = function() {
-        if(LDR.Options) {
-            LDR.Studs.makeGenerators('', LDR.Options.studHighContrast, LDR.Options.studLogo);
-        }
-        
-        self.ldrLoader = new THREE.LDRLoader(onLoad, self.storage, self.options);
+        Studs.makeGenerators('', Options.studHighContrast, Options.studLogo);
+        self.ldrLoader = new LDRLoader(onLoad, self.storage, self.options);
 
         window.addEventListener('scroll', lazy_load);
         window.addEventListener('resize', lazy_load);    
 	lazy_load();
     };
-    this.storage = new LDR.STORAGE(onStorageReady);
+    this.storage = new STORAGE(onStorageReady);
 
     this.createBigPreview();
 
     this.createOptions();
 }
 
-LDR.Previews.prototype.redrawAll = function(force) {
+Previews.prototype.redrawAll = function(force) {
     if(force) { // Update all studs:
         location.reload(); // Geometries have been deleted due to optimizations, so reload the page.
     }
@@ -215,7 +219,7 @@ LDR.Previews.prototype.redrawAll = function(force) {
     }
 }
 
-LDR.Previews.prototype.createBigPreview = function() {
+Previews.prototype.createBigPreview = function() {
     let self = this;
     
     // Set up HTML elements:
@@ -238,7 +242,7 @@ LDR.Previews.prototype.createBigPreview = function() {
     renderer.setPixelRatio(window.devicePixelRatio);
 
     let shownBaseObject;
-    this.pliPreviewer = new LDR.PliPreviewer('no_model', canvas, renderer); // Has own renderer, camera, and scene.
+    this.pliPreviewer = new PliPreviewer('no_model', canvas, renderer); // Has own renderer, camera, and scene.
 
     function showPreview(id) {
         let pt = self.ldrLoader.getPartType(id+'.dat');
@@ -277,7 +281,7 @@ LDR.Previews.prototype.createBigPreview = function() {
         zoomOut: () => self.pliPreviewer.zoomOut(),
         resetCameraPosition: () => self.pliPreviewer.resetCameraPosition(),
     };
-    this.ldrButtons = new LDR.Buttons(actions, canvas.parentNode, false);
+    this.ldrButtons = new Buttons(actions, canvas.parentNode, false);
 
     this.pliPreviewer.enableControls();
 
@@ -291,16 +295,18 @@ LDR.Previews.prototype.createBigPreview = function() {
     }
 }
 
-LDR.Previews.prototype.createOptions = function() {
+Previews.prototype.createOptions = function() {
     let self = this;
-    if(this.optionsEle && LDR.Options) {
-        LDR.Options.appendHeader(this.optionsEle);
-        LDR.Options.appendContrastOptions(this.optionsEle);
-        LDR.Options.appendStudHighContrastOptions(this.optionsEle);
-        LDR.Options.appendStudLogoOptions(this.optionsEle);
-        LDR.Options.appendFooter(this.optionsEle);
-        LDR.Options.listeners.push(force => self.redrawAll(force));
+    if(this.optionsEle && Options) {
+        Options.appendHeader(this.optionsEle);
+        Options.appendContrastOptions(this.optionsEle);
+        Options.appendStudHighContrastOptions(this.optionsEle);
+        Options.appendStudLogoOptions(this.optionsEle);
+        Options.appendFooter(this.optionsEle);
+        Options.listeners.push(force => self.redrawAll(force));
     }
 }
 
-LDR.LDRGeometry.prototype.cleanTempData = () => {} // Ensure we can reuse geometries.
+LDRGeometry.prototype.cleanTempData = () => {} // Ensure we can reuse geometries.
+
+export { Previews, LDRGeometry }

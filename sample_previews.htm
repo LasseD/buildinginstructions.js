@@ -11,23 +11,15 @@
     <meta name="viewport" content="width=device-width" />
  </head>
  <body>
+   <script type="importmap">
+      {
+	  "imports": {
+              "three": "https://threejs.org/build/three.module.js",
+              "three/addons/": "https://threejs.org/examples/jsm/"
+	  }
+      }
+    </script>
    <script src="js/jquery.min.js"></script>
-   <script src="js/three.min.js"></script>
-   <script src="js/OrbitControls.js"></script>
-   <script src="js/colors.js"></script>
-   <script src="js/LDRShaders.js"></script>
-   <script src="js/LDRSVG.js"></script>
-   <script src="js/LDROptions.js"></script>
-   <script src="js/LDRColorMaterials.js"></script>
-   <script src="js/LDRGeometries.js"></script>
-   <script src="js/LDRButtons.js"></script>
-   <script src="js/LDRPLIPreview.js"></script>
-   <script src="js/LDRLoader.js"></script>
-   <script src="js/LDRMeasurer.js"></script>
-   <script src="js/ClientStorage.js"></script>
-   <script src="js/LDRGenerator.js"></script>
-   <script src="js/LDRStuds.js"></script>
-   <script src="js/LDRPreviews.js"></script><!-- Previews loader -->
    <div id="list_parts">
     <table id="list_table">
      <tr>
@@ -35,7 +27,17 @@
       <th>Image</th>
      </tr>
     </table>
-    <script> /* Some boilerplate code to set up a list of parts */
+    <script type="module">
+      'use strict';
+
+      import * as THREE from 'three'
+      import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+      import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+      import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+      import { LDRLoader, MeshCollector } from './js/LDRLoader.js'
+      import { Previews } from './js/LDRPreviews.js'
+
+      /* Some boilerplate code to set up a list of parts */
      let parts = ['3001', '11477', '18675ps2', '2429c01', '2550c01', '3003', '3023', '3024', '3045', '3067a', '3070b', '32000', '32018', '3815c01', '3857', '3960p0b', '4032a', '41747ps1', '4324', '43722', '44375bps0', '4592c01', '4755', '4773a', '50950', '6081', '6091', '6541', '85080', '85970', '92947'];
      let table = document.getElementById('list_table').children[0];
      parts.forEach(id => {
@@ -53,13 +55,9 @@
        c.id = id;
        td2.appendChild(c);
        tr.appendChild(td2);
-     });
-    </script>
-   </div>
-   <div id="options"></div>
+      });
 
-   <script>
-      new LDR.Previews({}, document.getElementById('options')).initiate(); // Preview automatically finds all canvases of class 'part_icon' and loads their 'id' as a part into the canvas.
+      new Previews({}, document.getElementById('options')).initiate(); // Preview automatically finds all canvases of class 'part_icon' and loads their 'id' as a part into the canvas.
 
       let lastSorterIndex = -1;
       $("span.sorter").click(function() {
@@ -91,7 +89,9 @@
         for (let i = 0; i < list.length; i++) {
           list[i].parentNode.appendChild(list[i]);
         }
-      });   
-  </script>
+      });
+    </script>
+   </div>
+   <div id="options"></div>
  </body>
 </html>

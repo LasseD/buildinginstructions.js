@@ -1,5 +1,16 @@
 'use strict';
 
+import * as THREE from 'three'
+import { OutlinePass } from 'three/addons/postprocessing/OutlinePass.js';
+
+import { Colors } from './LDRColorMaterials.js'
+import { Options } from './LDROptions.js'
+import { Generator } from './LDRGenerator.js'
+import { LDRGeometry } from './LDRGeometries.js'
+import { STUDIO } from './StudioTexmap.js'
+import { LDCAD } from './LDCadGenerator.js'
+import { AssemblyManager } from './LDRAssemblies.js'
+
 /**
  * @author Lasse Deleuran | c-mt.dk and brickhub.org
  * LDR Specification: http://www.ldraw.org/documentation/ldraw-org-file-format-standards.html
@@ -12,7 +23,7 @@
  *
  * Description of parameters:
  * onLoad is called on completion of loading of all necessary LDraw files.
- * storage should be an instance of LDR.STORAGE, or null. Unloaded files will be attempted to be read from storage before new file requests are attempted.
+ * storage should be an instance of STORAGE, or null. Unloaded files will be attempted to be read from storage before new file requests are attempted.
  * The optional options object has the following optional parameters:
  * - manager: Three.js loading manager. The default loading manager is used if none is present.
  * - onProgress is called when a sub model or texture has been loaded and will also be used by the manager. A texture is detected by having the second parameter 'true'.
@@ -26,7 +37,7 @@
  * - idToTextureUrl(id) is used to translate a texture file name into the single position where the file can be fetched. By default the file name is made lower case and rpefixed 'textures/' to locate the texture file.
  * - cleanUpPrimitivesAndSubParts can be set to true to perform cleanup of internal geometries to decrease the amount of memory required.
  */
-THREE.LDRLoader = function(onLoad, storage, options) {
+let LDRLoader = function(onLoad, storage, options) {
     let self = this;
 
     this.partTypes = {}; // id => true or part. id is typically something like "parts/3001.dat", and "model.mpd".
@@ -50,7 +61,7 @@ THREE.LDRLoader = function(onLoad, storage, options) {
         onLoad();
     };
     function backupRetrievePartsFromStorage(loader, toBeFetched, onDone) {
-        if(!LDR.Generator) {
+        if(!Generator.enabled) {
             onDone(toBeFetched); // Can't do anything, so just pass on the list of parts to be fetched.
             return;
         }
@@ -66,7 +77,7 @@ THREE.LDRLoader = function(onLoad, storage, options) {
                 }
                 added[id] = true;
 
-                let pt = LDR.Generator.make(id);
+                let pt = Generator.make(id);
                 if(pt) {
                     loader.setPartType(pt);
                     // Check for sub-models:
@@ -111,7 +122,7 @@ THREE.LDRLoader = function(onLoad, storage, options) {
  * id is the file name to load. 
  * id is transformed using 'idToUrl' which can be parsed to the loader using the options parameter in the constructor.
  */
-THREE.LDRLoader.prototype.load = function(id) {
+LDRLoader.prototype.load = function(id) {
     let urls = this.idToUrl(id);
     if(urls.length === 0) {
 	return; // No URL to load.
@@ -143,8 +154,8 @@ THREE.LDRLoader.prototype.load = function(id) {
         }
         else {
             self.unloadedFiles--; // Can't load this. Show a box if possible:
-            if(LDR.Generator) {
-                let pt = LDR.Generator.bx(4095, 63); // Box
+            if(Generator.enabled) {
+                let pt = Generator.bx(4095, 63); // Box
                 pt.ID = pt.name = id;
                 pt.modelDescription = 'Showing a box in the absense of part ' + id;
                 self.partTypes[id] = pt;
@@ -163,7 +174,7 @@ THREE.LDRLoader.prototype.load = function(id) {
  * Attempt to load multiple files (identified by 'ids', an array od ID's of the files).
  * This method will try to fetch the files from 'storage' prior to loading using 'loader'.
  */
-THREE.LDRLoader.prototype.loadMultiple = function(ids) {
+LDRLoader.prototype.loadMultiple = function(ids) {
     let self = this;
     function onStorageFetchingDone(unloadedParts) {
         unloadedParts.forEach(id => self.load(id));
@@ -184,21 +195,21 @@ THREE.LDRLoader.prototype.loadMultiple = function(ids) {
  *
  * id is the id/name of the (sub)file.
  */
-THREE.LDRLoader.prototype.reportProgress = function(id) {
+LDRLoader.prototype.reportProgress = function(id) {
     this.onProgress(id);
     if(this.unloadedFiles === 0) {
 	this.onLoad();
     }
 };
 
-THREE.LDRLoader.prototype.parseColor = function(colorID) {
+LDRLoader.prototype.parseColor = function(colorID) {
     if(colorID.length === 9 && colorID.substring(0, 3) === '0x2') {
 	// Direct color: https://www.ldraw.org/article/218.html
 	let hexValue = parseInt(colorID.substring(3), 16);
-	LDR.Colors[hexValue] = {name:'Direct color 0x2'+colorID, value:hexValue, edge:hexValue, direct:colorID};
+	Colors[hexValue] = {name:'Direct color 0x2'+colorID, value:hexValue, edge:hexValue, direct:colorID};
 	return hexValue;
     }
-    if(LDR.Colors[colorID] === undefined) {
+    if(Colors[colorID] === undefined) {
 	// This color might be on the form "0x2995220", such as seen in 3626bps5.dat:
 	this.onWarning({message:'Unknown color "' + colorID + '". Black (0) will be shown instead.', line:i, subModel:part.ID});
 	return 0;
@@ -211,8 +222,8 @@ THREE.LDRLoader.prototype.parseColor = function(colorID) {
  * 
  * data is the plain text file content.
  */
-THREE.LDRLoader.textureLoader = new THREE.TextureLoader();
-THREE.LDRLoader.prototype.parse = function(data, defaultID) {
+LDRLoader.textureLoader = new THREE.TextureLoader();
+LDRLoader.prototype.parse = function(data, defaultID) {
     let parseStartTime = new Date();
     let self = this;
 
@@ -222,13 +233,13 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
     let invertNext = false; // Don't assume that first line needs inverted.
 
     // Start parsing:
-    let part = new THREE.LDRPartType();
-    let step = new THREE.LDRStep();
+    let part = new LDRPartType();
+    let step = new LDRStep();
     let loadedParts = [];
     function closeStep(keepRotation) {
 	part.addStep(step);
 	let rot = step.rotation;
-	step = new THREE.LDRStep();
+	step = new LDRStep();
 	if(keepRotation && rot !== null) {
 	    step.rotation = rot.clone();
         }
@@ -330,7 +341,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
                     skipPart = false;
                     self.onProgress(part.ID);
                     
-                    part = new THREE.LDRPartType();
+                    part = new LDRPartType();
                     inHeader = true;
                     part.ID = fileName;
                 }
@@ -410,7 +421,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 	    }
 	    else if(parts[1] === "ROTSTEP") {
 		if(parts.length >= 5) {
-		    step.rotation = new THREE.LDRStepRotation(parts[2], parts[3], parts[4], (parts.length === 5 ? "REL" : parts[5]));
+		    step.rotation = new LDRStepRotation(parts[2], parts[3], parts[4], (parts.length === 5 ? "REL" : parts[5]));
 		}
 		else if(parts.length === 3 && parts[2] === "END") {
 		    step.rotation = null;
@@ -438,7 +449,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
                     }
                 }
                 else { // Expect 0 !TEXMAP START | NEXT...
-                    texmapPlacement = new LDR.TexmapPlacement();
+                    texmapPlacement = new TexmapPlacement();
                     texmapPlacement.setFromParts(parts);
                     if(texmapPlacement.error) {
                         self.onWarning({message:texmapPlacement.error + ': "' + line + '"', line:i, subModel:part.ID});
@@ -490,7 +501,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
                 self.texmaps[pid] = true;
                 self.texmapListeners[pid] = [];
 
-		THREE.LDRLoader.textureLoader.load(
+		LDRLoader.textureLoader.load(
 		    dataurl,
 		    function(texture) {
 			self.texmaps[pid] = texture;
@@ -502,10 +513,10 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 
                 saveThisCommentLine = false;
 	    }
-	    else if(LDR.STUDIO && LDR.STUDIO.handleCommentLine(part, parts)) {
+	    else if(STUDIO.handleCommentLine(part, parts)) {
                 saveThisCommentLine = false;
 	    }
-	    else if(LDR.LDCAD && LDR.LDCAD.handleCommentLine(part, parts)) {
+	    else if(LDCAD.handleCommentLine(part, parts)) {
                 saveThisCommentLine = false;
 	    }
 	    else if(is("!PREVIEW")) {
@@ -518,7 +529,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 		rotation.set(parts[6],  parts[7],  parts[8],
 			     parts[9],  parts[10],  parts[11],
 			     parts[12], parts[13], parts[14]);
-		part.preview = new THREE.LDRPartDescription(colorID, position, rotation);
+		part.preview = new LDRPartDescription(colorID, position, rotation);
 		saveThisCommentLine = false;
 	    }
 	    else if(parts[1][0] === "!") {
@@ -548,7 +559,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 	    // TODO: Buffer exchange commands
 
 	    if(saveThisCommentLine) {
-                let fileLine = new LDR.Line0(parts.slice(1).join(' '));
+                let fileLine = new Line0(parts.slice(1).join(' '));
                 if(step.subModels.length > 0) {
                     step.subModels[step.subModels.length-1].commentLines.push(fileLine);
                 }
@@ -567,7 +578,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 			 parts[8],  parts[9],  parts[10], 
 			 parts[11], parts[12], parts[13]);
 	    let subModelID = parts.slice(14).join(" ").toLowerCase().replace('\\', '/');
-	    let subModel = new THREE.LDRPartDescription(colorID, position, rotation, subModelID, part.certifiedBFC && localCull, invertNext, texmapPlacement);
+	    let subModel = new LDRPartDescription(colorID, position, rotation, subModelID, part.certifiedBFC && localCull, invertNext, texmapPlacement);
 
             (inTexmapFallback ? texmapPlacement.fallback : step).addSubModel(subModel);
 
@@ -587,9 +598,9 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
 	    p1 = new THREE.Vector3(parseFloat(parts[2]), parseFloat(parts[3]), parseFloat(parts[4]));
 	    p2 = new THREE.Vector3(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
 	    p3 = new THREE.Vector3(parseFloat(parts[8]), parseFloat(parts[9]), parseFloat(parts[10]));
-	    if(LDR.STUDIO && parts.length === 17) { // Parse texmap UV's
+	    if(parts.length === 17) { // Parse texmap UV's
                 localCull = false; // Double-side the texmaps on the triangles.
-		texmapPlacement = LDR.STUDIO.handleTriangleLine(part, parts);
+		texmapPlacement = STUDIO.handleTriangleLine(part, parts);
 	    }
 
             (inTexmapFallback ? texmapPlacement.fallback : step).addTriangle(colorID, p1, p2, p3, part.certifiedBFC && localCull, CCW === invertNext, texmapPlacement);
@@ -643,9 +654,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
     loadedParts = loadedParts.map(id => self.getPartType(id)); // Map from ID to part type.
 
     // Studio-specific texmap handling:
-    if(LDR.STUDIO) {
-	loadedParts.forEach(part => LDR.STUDIO.handlePart(self, part));
-    }
+    loadedParts.forEach(part => STUDIO.handlePart(self, part));
 
     this.onPartsLoaded(loadedParts);
 
@@ -661,9 +670,9 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
     //console.log(loadedParts.length + ' LDraw file(s) read in ' + (new Date()-parseStartTime) + 'ms.');
 };
 
-THREE.LDRLoader.prototype.loadTexmaps = function() {
+LDRLoader.prototype.loadTexmaps = function() {
     let self = this;
-    if(LDR.TexmapPlacements.length > 0) {
+    if(TexmapPlacements.length > 0) {
         if(!this.texmapLoader) {
             this.texmapLoader = new THREE.TextureLoader();
         }
@@ -672,7 +681,7 @@ THREE.LDRLoader.prototype.loadTexmaps = function() {
             self.texmaps[file] = texture;
             self.texmapListeners[file].forEach(x => x(texture));
         }
-        LDR.TexmapPlacements.forEach(tmp => {
+        TexmapPlacements.forEach(tmp => {
                 let file = tmp.file; // TODO: Can't currently handle glossmaps.
                 if(!self.texmaps.hasOwnProperty(file)) {
                     self.texmaps[file] = true;
@@ -686,7 +695,7 @@ THREE.LDRLoader.prototype.loadTexmaps = function() {
     }
 }
 
-THREE.LDRLoader.prototype.generate = function(colorID, mc, taskList) {
+LDRLoader.prototype.generate = function(colorID, mc, taskList) {
     this.loadTexmaps();
 
     let mainModel = this.getMainModel();
@@ -701,14 +710,14 @@ THREE.LDRLoader.prototype.generate = function(colorID, mc, taskList) {
     mainModel.generateThreePart(this, colorID, origo, inv, true, false, mc, null, taskList);
 }
 
-THREE.LDRLoader.prototype.setReferencedFrom = function() {
+LDRLoader.prototype.setReferencedFrom = function() {
     let self = this;
     if(this.cleanUpPrimitivesAndSubParts) {
 	self.applyOnPartTypes(pt => pt.setReferencedFrom(self));
     }
 }
 
-THREE.LDRLoader.prototype.onPartsLoaded = function(loadedParts) {
+LDRLoader.prototype.onPartsLoaded = function(loadedParts) {
     let self = this;
 
     if(!loadedParts) {
@@ -735,9 +744,9 @@ THREE.LDRLoader.prototype.onPartsLoaded = function(loadedParts) {
     loadedParts.forEach(pt => {if(pt.steps.length === 0 && pt.ID !== 'empty.dat')self.purgePart(pt.ID);});
 
     // Handle assemblies:
-    if(LDR.AssemblyManager && this.options.buildAssemblies) {
+    if(this.options.buildAssemblies) {
 	if(!this.assemblyManager) {
-            this.assemblyManager = new LDR.AssemblyManager(this);
+            this.assemblyManager = new AssemblyManager(this);
 	}
 	const AM = this.assemblyManager;
 
@@ -752,19 +761,17 @@ THREE.LDRLoader.prototype.onPartsLoaded = function(loadedParts) {
     }
 
     // LDCad-specific generator handling:
-    if(LDR.LDCAD) {
-	loadedParts.forEach(part => LDR.LDCAD.handlePart(self, part));
-    }
+    loadedParts.forEach(part => LDCAD.handlePart(self, part));
 
     if(unloadedPartsList.length > 0) {
         self.loadMultiple(unloadedPartsList);
     }
 }
 
-THREE.LDRLoader.prototype.getPartType = function(id) {
+LDRLoader.prototype.getPartType = function(id) {
     if(!this.partTypes.hasOwnProperty(id)) {
         let pt;
-	if(LDR.Generator && (pt = LDR.Generator.make(id))) {
+	if(pt = Generator.make(id)) {
 	    return this.partTypes[id] = pt;
 	}
 
@@ -783,17 +790,17 @@ THREE.LDRLoader.prototype.getPartType = function(id) {
     return pt;
 }
 
-THREE.LDRLoader.prototype.setPartType = function(pt) {
+LDRLoader.prototype.setPartType = function(pt) {
     this.partTypes[pt.ID] = pt;
-    if(LDR.AssemblyManager && this.options.buildAssemblies) {
+    if(this.options.buildAssemblies) {
 	if(!this.assemblyManager) {
-            this.assemblyManager = new LDR.AssemblyManager(this);
+            this.assemblyManager = new AssemblyManager(this);
 	}
 	this.assemblyManager.handlePartType(pt);
     }
 }
 
-THREE.LDRLoader.prototype.getMainModel = function() {
+LDRLoader.prototype.getMainModel = function() {
     if(!this.mainModel) {
         throw 'No main model set for ldrLoader!';
     }
@@ -807,7 +814,7 @@ THREE.LDRLoader.prototype.getMainModel = function() {
     return pt;
 }
 
-THREE.LDRLoader.prototype.applyOnPartTypes = function(f) {
+LDRLoader.prototype.applyOnPartTypes = function(f) {
     for(let id in this.partTypes) {
         let pt = this.getPartType(id);
         if(pt) {
@@ -816,7 +823,7 @@ THREE.LDRLoader.prototype.applyOnPartTypes = function(f) {
     }
 }
 
-THREE.LDRLoader.prototype.toLDR = function() {
+LDRLoader.prototype.toLDR = function() {
     let self = this;
 
     // Part types:
@@ -873,7 +880,7 @@ THREE.LDRLoader.prototype.toLDR = function() {
     return ret;
 }
 
-THREE.LDRLoader.prototype.substituteReplacementParts = function() {
+LDRLoader.prototype.substituteReplacementParts = function() {
     let self = this;
 
     let replacementMap = {};
@@ -894,7 +901,7 @@ THREE.LDRLoader.prototype.substituteReplacementParts = function() {
     this.applyOnPartTypes(fixReplacedParts);
 }
 
-THREE.LDRLoader.prototype.unpack = function(obj) {
+LDRLoader.prototype.unpack = function(obj) {
     let self = this;
 
     let names = obj['names'].split('¤');
@@ -910,12 +917,12 @@ THREE.LDRLoader.prototype.unpack = function(obj) {
     // Unpack texmaps:
     let numberOfTexmaps = arrayI[idxI++];
     for(let i = 0; i < numberOfTexmaps; i++) {
-        let tmp = new LDR.TexmapPlacement();
+        let tmp = new TexmapPlacement();
         [idxI, idxF, idxS] = tmp.unpackFrom(arrayI, arrayF, arrayS, idxI, idxF, idxS, names);
-        if(tmp.idx !== LDR.TexmapPlacements.length) {
-            console.error('Indexing error on packed texmap. Expected ' + LDR.TexmapPlacements.length + ', found ' + tmp.idx);
+        if(tmp.idx !== TexmapPlacements.length) {
+            console.error('Indexing error on packed texmap. Expected ' + TexmapPlacements.length + ', found ' + tmp.idx);
         }
-        LDR.TexmapPlacements.push(tmp);
+        TexmapPlacements.push(tmp);
     }
 
     // Unpack inline textures:
@@ -930,7 +937,7 @@ THREE.LDRLoader.prototype.unpack = function(obj) {
         self.texmapListeners[id] = [];
 	
         let dataurl = 'data:image/' + mimetype + ';base64,' + content;
-	THREE.LDRLoader.textureLoader.load(
+	LDRLoader.textureLoader.load(
 	    dataurl,
 	    function(texture) {
 		self.texmaps[id] = texture;
@@ -949,19 +956,19 @@ THREE.LDRLoader.prototype.unpack = function(obj) {
 	    return; // Packable part to be loaded normally.
 	}
 
-	let pt = new THREE.LDRPartType();
+	let pt = new LDRPartType();
 	pt.ID = pt.name = name;
 	pt.cleanSteps = true;
 
 	// Unpack steps:
 	for(let j = 0; j < numSteps; j++) {
-	    let step = new THREE.LDRStep();
-	    [idxI, idxF, idxS] = step.unpackFrom(arrayI, arrayF, arrayS, idxI, idxF, idxS, names, LDR.TexmapPlacements);
+	    let step = new LDRStep();
+	    [idxI, idxF, idxS] = step.unpackFrom(arrayI, arrayF, arrayS, idxI, idxF, idxS, names, TexmapPlacements);
 
 	    // Handle rotation:
 	    let r = arrayI[idxI++];
 	    if(r) {
-		step.rotation = new THREE.LDRStepRotation(arrayF[idxF++], arrayF[idxF++], arrayF[idxF++], r === 1 ? 'ABS' : 'REL');
+		step.rotation = new LDRStepRotation(arrayF[idxF++], arrayF[idxF++], arrayF[idxF++], r === 1 ? 'ABS' : 'REL');
 	    }
 
 	    pt.steps.push(step);	    
@@ -970,7 +977,7 @@ THREE.LDRLoader.prototype.unpack = function(obj) {
 	// Unpack header lines:
 	let numHeaderLines = arrayI[idxI++];
 	for(let j = 0; j < numHeaderLines; j++) {
-	    pt.headerLines.push(new LDR.Line0(arrayS[idxS++]));
+	    pt.headerLines.push(new Line0(arrayS[idxS++]));
 	}
 
 	if(obj.hasOwnProperty('d'+i)) {
@@ -990,7 +997,7 @@ THREE.LDRLoader.prototype.unpack = function(obj) {
     return parts;
 }
 
-THREE.LDRLoader.prototype.pack = function() {
+LDRLoader.prototype.pack = function() {
     let self = this;
 
     let mainModel = this.getMainModel();
@@ -1020,14 +1027,14 @@ THREE.LDRLoader.prototype.pack = function() {
     let scanNamesForPT = pt => pt.steps.forEach(scanNamesForStep);
 
     scanNamesForPT(mainModel);
-    LDR.TexmapPlacements.forEach(tmp => scanNamesForStep(tmp.fallback));
+    TexmapPlacements.forEach(tmp => scanNamesForStep(tmp.fallback));
 
     let ret = {names:names.join('¤')};
     let arrayF = [], arrayI = [], arrayS = [];
 
     // Pack texmaps:
-    arrayI.push(LDR.TexmapPlacements.length);
-    LDR.TexmapPlacements.forEach(tmp => tmp.packInto(arrayI, arrayF, arrayS, nameMap));
+    arrayI.push(TexmapPlacements.length);
+    TexmapPlacements.forEach(tmp => tmp.packInto(arrayI, arrayF, arrayS, nameMap));
     
     // Pack dataurls:
     arrayI.push(this.texmapDataurls.length);
@@ -1088,7 +1095,7 @@ THREE.LDRLoader.prototype.pack = function() {
   Part description: a part (ID) placed (position, rotation) with a
   given color (16/24 allowed) and invertCCW to allow for sub-parts in DAT-parts.
 */
-THREE.LDRPartDescription = function(colorID, position, rotation, ID = '', cull = false, invertCCW = false, tmp = null) {
+let LDRPartDescription = function(colorID, position, rotation, ID = '', cull = false, invertCCW = false, tmp = null) {
     this.c = colorID; // LDraw ID. Negative values indicate edge colors - see top description.
     this.p = position; // Vector3
     this.r = rotation; // Matrix3
@@ -1104,7 +1111,7 @@ THREE.LDRPartDescription = function(colorID, position, rotation, ID = '', cull =
     }
 }
 
-THREE.LDRPartDescription.prototype.cloneColored = function(colorID) {
+LDRPartDescription.prototype.cloneColored = function(colorID) {
     if(this.original) {
 	console.dir(this);
 	throw "Cloning non-original PD to color " + colorID;
@@ -1116,7 +1123,7 @@ THREE.LDRPartDescription.prototype.cloneColored = function(colorID) {
     else if(this.c === 24) {
 	c = -colorID-1;
     }
-    let ret = new THREE.LDRPartDescription(c, this.p, this.r, this.ID,
+    let ret = new LDRPartDescription(c, this.p, this.r, this.ID,
 					   this.cull, this.invertCCW, this.tmp);
     ret.REPLACEMENT_PLI = this.REPLACEMENT_PLI;
     ret.commentLines.push(...this.commentLines);
@@ -1125,7 +1132,7 @@ THREE.LDRPartDescription.prototype.cloneColored = function(colorID) {
     return ret;
 }
 
-THREE.LDRPartDescription.prototype.placedColor = function(pdColorID) {
+LDRPartDescription.prototype.placedColor = function(pdColorID) {
     let c = this.c;
     if(c === 16) {
         c = pdColorID;
@@ -1136,7 +1143,7 @@ THREE.LDRPartDescription.prototype.placedColor = function(pdColorID) {
     return c;
 }
 
-THREE.LDRPartDescription.prototype.toLDR = function(loader) {
+LDRPartDescription.prototype.toLDR = function(loader) {
     let pt = loader.getPartType(this.ID);    
     let ret = '1 ' + this.c + ' ' + this.p.toLDR() + ' ' + this.r.toLDR() + ' ' + (pt ? pt.ID : this.ID) + '\r\n';
     this.commentLines.forEach(x => ret += x.toLDR());
@@ -1144,7 +1151,7 @@ THREE.LDRPartDescription.prototype.toLDR = function(loader) {
 }
 
 // Compute c, p, r os placed part:
-THREE.LDRPartDescription.prototype.placeAt = function(pd) {
+LDRPartDescription.prototype.placeAt = function(pd) {
     let c = this.placedColor(pd.c);
     
     let p = new THREE.Vector3();
@@ -1157,19 +1164,19 @@ THREE.LDRPartDescription.prototype.placeAt = function(pd) {
 
     let invert = this.invertCCW === pd.invertCCW;
 
-    let ret = new THREE.LDRPartDescription(c, p, r, this.ID, this.cull, invert, this.tmp);
+    let ret = new LDRPartDescription(c, p, r, this.ID, this.cull, invert, this.tmp);
     ret.commentLines.push(...this.commentLines);
     return ret;
 }
 
-THREE.LDRStepRotation = function(x, y, z, type) {
+let LDRStepRotation = function(x, y, z, type) {
     this.x = parseFloat(x);
     this.y = parseFloat(y);
     this.z = parseFloat(z);
     this.type = type.toUpperCase();
 }
 
-THREE.LDRStepRotation.equals = function(a, b) {
+LDRStepRotation.equals = function(a, b) {
     let aNull = !a;
     let bNull = !b;
     if(aNull && bNull) {
@@ -1187,20 +1194,20 @@ THREE.LDRStepRotation.equals = function(a, b) {
     return (a.x === b.x) && (a.y === b.y) && (a.z === b.z) && (a.type === b.type);
 }
 
-THREE.LDRStepRotation.prototype.isDefault = function() {
+LDRStepRotation.prototype.isDefault = function() {
     return this.type === 'REL' && this.x === 0 && this.y === 0 && this.z === 0;
 }
 
-THREE.LDRStepRotation.prototype.clone = function() {
-    return new THREE.LDRStepRotation(this.x, this.y, this.z, this.type);
+LDRStepRotation.prototype.clone = function() {
+    return new LDRStepRotation(this.x, this.y, this.z, this.type);
 }
 
-THREE.LDRStepRotation.prototype.toLDR= function() {
+LDRStepRotation.prototype.toLDR= function() {
     return '0 ROTSTEP ' + this.x + ' ' + this.y + ' ' + this.z + ' ' + this.type + '\r\n';
 }
 
 // Get the rotation matrix by looking at the default camera position:
-THREE.LDRStepRotation.getAbsRotationMatrix = function() {
+LDRStepRotation.getAbsRotationMatrix = function() {
     let looker = new THREE.Object3D();
     looker.position.set(-10000, -7000, -10000);
     looker.lookAt(new THREE.Vector3());
@@ -1209,12 +1216,12 @@ THREE.LDRStepRotation.getAbsRotationMatrix = function() {
     m.extractRotation(looker.matrix);
     return m;
 }
-THREE.LDRStepRotation.ABS = THREE.LDRStepRotation.getAbsRotationMatrix();
+LDRStepRotation.ABS = LDRStepRotation.getAbsRotationMatrix();
 
 /* 
    Specification: https://www.lm-software.com/mlcad/Specification_V2.0.pdf (page 7 and 8)
 */
-THREE.LDRStepRotation.prototype.getRotationMatrix = function(defaultMatrix) {
+LDRStepRotation.prototype.getRotationMatrix = function(defaultMatrix) {
     let wx = this.x / 180.0 * Math.PI;
     let wy = -this.y / 180.0 * Math.PI;
     let wz = -this.z / 180.0 * Math.PI;
@@ -1250,29 +1257,29 @@ THREE.LDRStepRotation.prototype.getRotationMatrix = function(defaultMatrix) {
 	//ret.copy(currentMatrix).multiply(rotationMatrix);
     }
     else { // this.type === ABS
-	ret.multiplyMatrices(THREE.LDRStepRotation.ABS, rotationMatrix);
+	ret.multiplyMatrices(LDRStepRotation.ABS, rotationMatrix);
     }
     return ret;
 }
 
-THREE.LDRStepIdx = 0;
-THREE.LDRStep = function() {
-    this.idx = THREE.LDRStepIdx++;
-    this.subModels = []; // THREE.LDRPartDescription
-    this.lines = []; // LDR.Line2
-    this.conditionalLines = []; // LDR.Line5
-    this.triangles = []; // LDR.Line3
-    this.quads = []; // LDR.Line4
-    this.rotation = null; // THREE.LDRStepRotation
+let LDRStepIdx = 0;
+let LDRStep = function() {
+    this.idx = LDRStepIdx++;
+    this.subModels = []; // LDRPartDescription
+    this.lines = []; // Line2
+    this.conditionalLines = []; // Line5
+    this.triangles = []; // Line3
+    this.quads = []; // Line4
+    this.rotation = null; // LDRStepRotation
     this.cnt = -1;
-    this.original; // THREE.LDRStep
+    this.original; // LDRStep
 }
 
-THREE.LDRStep.prototype.hasPrimitives = function() {
+LDRStep.prototype.hasPrimitives = function() {
     return this.lines.length > 0 || this.conditionalLines.length > 0 || this.triangles.length > 0 || this.quads.length > 0;
 }
 
-THREE.LDRStep.prototype.pack = function(obj, saveCommentLines) {
+LDRStep.prototype.pack = function(obj, saveCommentLines) {
     let arrayI = [], arrayF = [], arrayS = [];
     
     // SubModels:
@@ -1322,7 +1329,7 @@ THREE.LDRStep.prototype.pack = function(obj, saveCommentLines) {
     obj.af = new Float32Array(arrayF);
 }
 
-THREE.LDRStep.prototype.packInto = function(arrayI, arrayF, arrayS, subModelMap, saveCommentLines) {
+LDRStep.prototype.packInto = function(arrayI, arrayF, arrayS, subModelMap, saveCommentLines) {
     arrayI.push(this.subModels.length);
     function handleSubModel(sm) {
         if(!subModelMap.hasOwnProperty(sm.ID)) {
@@ -1363,7 +1370,7 @@ THREE.LDRStep.prototype.packInto = function(arrayI, arrayF, arrayS, subModelMap,
     handle(this.conditionalLines);
 }
 
-THREE.LDRStep.prototype.unpack = function(obj) {
+LDRStep.prototype.unpack = function(obj) {
     let arrayI = obj.ai;
     let arrayF = obj.af;
     let arrayS = obj.sx ? obj.sx.split('¤') : []; // texmap files.
@@ -1375,24 +1382,24 @@ THREE.LDRStep.prototype.unpack = function(obj) {
     let numberOfTexmapPlacements = arrayI[idxI++];
     let texmapPlacementMap = {};
     for(let i = 0; i < numberOfTexmapPlacements; i++) {
-        let texmapPlacement = new LDR.TexmapPlacement();
+        let texmapPlacement = new TexmapPlacement();
         [idxI, idxF, idxS] = texmapPlacement.unpackFrom(arrayI, arrayF, arrayS, idxI, idxF, idxS, subModelList);
         texmapPlacementMap[texmapPlacement.idx] = texmapPlacement;
-        // Map back into global LDR.TexmapPlacements:
-        texmapPlacement.idx = LDR.TexmapPlacements.length;
-        LDR.TexmapPlacements.push(texmapPlacement);
+        // Map back into global TexmapPlacements:
+        texmapPlacement.idx = TexmapPlacements.length;
+        TexmapPlacements.push(texmapPlacement);
     }
 
     this.unpackFrom(arrayI, arrayF, arrayS, idxI, idxF, idxS, subModelList, texmapPlacementMap);
 }
 
-THREE.LDRStep.prototype.unpackFrom = function(arrayI, arrayF, arrayS, idxI, idxF, idxS, subModelList, texmapPlacementMap) {
+LDRStep.prototype.unpackFrom = function(arrayI, arrayF, arrayS, idxI, idxF, idxS, subModelList, texmapPlacementMap) {
     let self = this;
 
     function ensureColor(c) {
-	if(!LDR.Colors.hasOwnProperty(c)) { // Direct color:
+	if(!Colors.hasOwnProperty(c)) { // Direct color:
 	    let hex = c.toString(16);
-	    LDR.Colors[c] = {name:'Direct color 0x2'+hex, value:c, edge:c, direct:hex};
+	    Colors[c] = {name:'Direct color 0x2'+hex, value:c, edge:c, direct:hex};
 	}
     }
 
@@ -1416,9 +1423,9 @@ THREE.LDRStep.prototype.unpackFrom = function(arrayI, arrayF, arrayS, idxI, idxF
         rotation.set(arrayF[idxF++], arrayF[idxF++], arrayF[idxF++], 
                      arrayF[idxF++], arrayF[idxF++], arrayF[idxF++],
                      arrayF[idxF++], arrayF[idxF++], arrayF[idxF++]);
-        let subModel = new THREE.LDRPartDescription(c, position, rotation, ID, cull, invertCCW, texmapPlacement);
+        let subModel = new LDRPartDescription(c, position, rotation, ID, cull, invertCCW, texmapPlacement);
         for(let j = 0; j < commentLines; j++) {
-            subModel.commentLines.push(new LDR.Line0(arrayS[idxS++]));
+            subModel.commentLines.push(new Line0(arrayS[idxS++]));
         }
         this.addSubModel(subModel);
     }
@@ -1435,16 +1442,16 @@ THREE.LDRStep.prototype.unpackFrom = function(arrayI, arrayF, arrayS, idxI, idxF
         }
         return ret;
     }
-    this.lines = handle(() => new LDR.Line2());
-    this.triangles = handle(() => new LDR.Line3());
-    this.quads = handle(() => new LDR.Line4());
-    this.conditionalLines = handle(() => new LDR.Line5());
+    this.lines = handle(() => new Line2());
+    this.triangles = handle(() => new Line3());
+    this.quads = handle(() => new Line4());
+    this.conditionalLines = handle(() => new Line5());
 
     return [idxI, idxF, idxS];
 }
 
 // Count the number of unique texmap placements in the step. Placements are added to the 'seen' map.
-THREE.LDRStep.prototype.getTexmapPlacements = function(seen) {
+LDRStep.prototype.getTexmapPlacements = function(seen) {
     let ret = 0;
     function handle(p) {
         if(!p.tmp) {
@@ -1463,11 +1470,11 @@ THREE.LDRStep.prototype.getTexmapPlacements = function(seen) {
     return ret;
 }
 
-THREE.LDRStep.prototype.cloneColored = function(colorID) {
+LDRStep.prototype.cloneColored = function(colorID) {
     if(this.hasPrimitives()) {
         throw "Cannot clone step with primitives!";
     }
-    let ret = new THREE.LDRStep();
+    let ret = new LDRStep();
 
     ret.subModels = this.subModels.map(subModel => subModel.cloneColored(colorID));
     ret.rotation = this.rotation;
@@ -1477,7 +1484,7 @@ THREE.LDRStep.prototype.cloneColored = function(colorID) {
     return ret;
 }
 
-THREE.LDRStep.prototype.toLDR = function(loader, prevStepRotation, isLastStep) {
+LDRStep.prototype.toLDR = function(loader, prevStepRotation, isLastStep) {
     let ret = '';
 
     // First handle texmaps as they have to be updated with proper prefixes:
@@ -1499,7 +1506,7 @@ THREE.LDRStep.prototype.toLDR = function(loader, prevStepRotation, isLastStep) {
     for(let idx in tmpMap) {
         if(tmpMap.hasOwnProperty(idx)) {
             let lines = tmpMap[idx];
-            ret += LDR.TexmapPlacements[idx].toLDR(lines, loader);
+            ret += TexmapPlacements[idx].toLDR(lines, loader);
         }
     }
 
@@ -1525,7 +1532,7 @@ THREE.LDRStep.prototype.toLDR = function(loader, prevStepRotation, isLastStep) {
         }
     }
     else { // We have a rotation. Check against prev:
-        if(THREE.LDRStepRotation.equals(this.rotation, prevStepRotation)) {
+        if(LDRStepRotation.equals(this.rotation, prevStepRotation)) {
             ret += '0 STEP\r\n';            
         }
         else {
@@ -1535,39 +1542,69 @@ THREE.LDRStep.prototype.toLDR = function(loader, prevStepRotation, isLastStep) {
     return ret;
 }
 
-THREE.LDRStep.prototype.isEmpty = function() {
+LDRStep.prototype.isEmpty = function() {
     return this.subModels.length === 0 && !this.hasPrimitives();
 }
 
-THREE.LDRStep.prototype.addSubModel = function(subModel) {
+LDRStep.prototype.addSubModel = function(subModel) {
     this.subModels.push(subModel);
 }
 
-THREE.LDRStep.prototype.addLine = function(c, p1, p2, texmapPlacement = null) {
-    this.lines.push(new LDR.Line2(c, p1, p2, texmapPlacement));
+LDRStep.prototype.addLine = function(c, p1, p2, texmapPlacement = null) {
+    this.lines.push(new Line2(c, p1, p2, texmapPlacement));
     texmapPlacement && texmapPlacement.use();
 }
 
-THREE.LDRStep.prototype.addTriangle = function(c, p1, p2, p3, cull = true, invert = false, texmapPlacement = null) {
-    this.triangles.push(new LDR.Line3(c, p1, p2, p3, cull, invert, texmapPlacement));
+LDRStep.prototype.addTriangle = function(c, p1, p2, p3, cull = true, invert = false, texmapPlacement = null) {
+    this.triangles.push(new Line3(c, p1, p2, p3, cull, invert, texmapPlacement));
     texmapPlacement && texmapPlacement.use();
 }
-
-THREE.LDRStep.prototype.addQuad = function(c, p1, p2, p3, p4, cull = true, invert = false, texmapPlacement = null) {
-    this.quads.push(new LDR.Line4(c, p1, p2, p3, p4, cull, invert, texmapPlacement));
-    texmapPlacement && texmapPlacement.use();
+// Shortcut function:
+LDRStep.prototype.at = function(triangles, color = 16) {
+    for(let i = 0; i < triangles.length; i+=9) {
+	this.addTriangle(color,
+			 new THREE.Vector3(triangles[i], triangles[i+1], triangles[i+2], true),
+			 new THREE.Vector3(triangles[i+3], triangles[i+4], triangles[i+5], true),
+			 new THREE.Vector3(triangles[i+6], triangles[i+7], triangles[i+8]), true);
+    }
 }
 
-THREE.LDRStep.prototype.addConditionalLine = function(c, p1, p2, p3, p4, texmapPlacement = null) {
-    this.conditionalLines.push(new LDR.Line5(c, p1, p2, p3, p4, texmapPlacement));
+LDRStep.prototype.addQuad = function(c, p1, p2, p3, p4, cull = true, invert = false, texmapPlacement = null) {
+    this.quads.push(new Line4(c, p1, p2, p3, p4, cull, invert, texmapPlacement));
+    texmapPlacement && texmapPlacement.use();
+}
+// Shortcut function:
+LDRStep.prototype.aq = function(quads, color = 16) {
+    for(let i = 0; i < quads.length; i+=12) {
+	this.addQuad(color,
+		     new THREE.Vector3(quads[i], quads[i+1], quads[i+2]),
+		     new THREE.Vector3(quads[i+3], quads[i+4], quads[i+5]),
+		     new THREE.Vector3(quads[i+6], quads[i+7], quads[i+8]),
+		     new THREE.Vector3(quads[i+9], quads[i+10], quads[i+11]),
+		     true);
+    }
+}
+
+LDRStep.prototype.addConditionalLine = function(c, p1, p2, p3, p4, texmapPlacement = null) {
+    this.conditionalLines.push(new Line5(c, p1, p2, p3, p4, texmapPlacement));
     texmapPlacement && texmapPlacement.use();    
+}
+// Shortcut function:
+LDRStep.prototype.acl = function(lines) {
+    for(let i = 0; i < lines.length; i+=12) {
+	this.addConditionalLine(24,
+				new THREE.Vector3(lines[i], lines[i+1], lines[i+2]),
+				new THREE.Vector3(lines[i+3], lines[i+4], lines[i+5]),
+				new THREE.Vector3(lines[i+6], lines[i+7], lines[i+8]),
+				new THREE.Vector3(lines[i+9], lines[i+10], lines[i+11]));
+    }
 }
 
 /*
   Return true if the step contains a sub model which is not a part.
   This could be any sub assembly consisting of multiple parts.
  */
-THREE.LDRStep.prototype.containsNonPartSubModels = function(loader) {
+LDRStep.prototype.containsNonPartSubModels = function(loader) {
     if(this.subModels.length === 0) {
         return false;
     }
@@ -1576,7 +1613,7 @@ THREE.LDRStep.prototype.containsNonPartSubModels = function(loader) {
     return !(!firstSubModel || firstSubModel.isPart);
 }
 
-THREE.LDRStep.prototype.containsPartSubModels = function(loader) {
+LDRStep.prototype.containsPartSubModels = function(loader) {
     if(this.subModels.length === 0) {
         return false;
     }
@@ -1584,7 +1621,7 @@ THREE.LDRStep.prototype.containsPartSubModels = function(loader) {
     return firstSubModel && firstSubModel.isPart;
 }
 
-THREE.LDRStep.prototype.countParts = function(loader) {
+LDRStep.prototype.countParts = function(loader) {
     if(this.cnt >= 0) {
 	return this.cnt;
     }
@@ -1617,7 +1654,7 @@ THREE.LDRStep.prototype.countParts = function(loader) {
   this.subModels = [];
   this.rotation = null;
  */
-THREE.LDRStep.prototype.cleanUp = function(loader, newSteps) {
+LDRStep.prototype.cleanUp = function(loader, newSteps) {
     if(this.isEmpty() || this.hasPrimitives()) {
         newSteps.push(this);
         return; // Primitive-containing or empty step - just keep existing.
@@ -1647,7 +1684,7 @@ THREE.LDRStep.prototype.cleanUp = function(loader, newSteps) {
     this.subModels.forEach(handleSubModel);
 
     function push(subModels) {
-        let newStep = new THREE.LDRStep();
+        let newStep = new LDRStep();
         newStep.subModels = subModels;
         newStep.rotation = self.rotation ? self.rotation.clone() : null;
         newSteps.push(newStep);
@@ -1666,7 +1703,7 @@ THREE.LDRStep.prototype.cleanUp = function(loader, newSteps) {
     }
 }
 
-THREE.LDRStep.prototype.removePrimitivesAndSubParts = function(loader) {
+LDRStep.prototype.removePrimitivesAndSubParts = function(loader) {
     if(!loader.cleanUpPrimitivesAndSubParts || !this.subModels) {
 	return;
     }
@@ -1678,7 +1715,7 @@ THREE.LDRStep.prototype.removePrimitivesAndSubParts = function(loader) {
     this.subModels.forEach(handleSM);
 }
 
-THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, rotation, cull, invertCCW, mc, taskList) {
+LDRStep.prototype.generateThreePart = function(loader, colorID, position, rotation, cull, invertCCW, mc, taskList) {
     //console.log("STEP: Creating three part.", this.subModels.length, "sub models in color", colorID, ", cull:", cull, ", invertion:", invertCCW);
     let ownInversion = (rotation.determinant() < 0) !== invertCCW; // Adjust for inversed matrix!
     
@@ -1727,15 +1764,50 @@ THREE.LDRStep.prototype.generateThreePart = function(loader, colorID, position, 
     }
 }
 
-LDR.Line0 = function(txt) {
+// Helper functions for Generator:
+LDRStep.prototype.al = function(x) {
+    for(let i = 0; i < x.length; i+=6) {
+	this.addLine(24,
+		     Generator.V(x[i], x[i+1], x[i+2]),
+		     Generator.V(x[i+3], x[i+4], x[i+5]));
+    }
+}
+LDRStep.prototype.at = function(t) {
+    for(let i = 0; i < t.length; i+=9) {
+	this.addTriangle(16,
+		         Generator.V(t[i], t[i+1], t[i+2]),
+		         Generator.V(t[i+3], t[i+4], t[i+5]),
+		         Generator.V(t[i+6], t[i+7], t[i+8]));
+    }
+}
+LDRStep.prototype.aq = function(q) {
+    for(let i = 0; i < q.length; i+=12) {
+	this.addQuad(16,
+		     Generator.V(q[i], q[i+1], q[i+2]),
+		     Generator.V(q[i+3], q[i+4], q[i+5]),
+		     Generator.V(q[i+6], q[i+7], q[i+8]),
+		     Generator.V(q[i+9], q[i+10], q[i+11]));
+    }
+}
+LDRStep.prototype.asm = function(p = null, r = null, id = '', c = 16, cull = true, ccw = false) {
+    if(p === null) {
+        p = Generator.V0;
+    }
+    if(r === null) {
+        r = Generator.R(1, 1);
+    }
+    this.addSubModel(new LDRPartDescription(c, p, r, id+'.dat', cull, ccw));
+}
+
+let Line0 = function(txt) {
     this.txt = txt;    
 }
 
-LDR.Line0.prototype.toLDR = function() {
+Line0.prototype.toLDR = function() {
     return '0 ' + this.txt + '\r\n';
 }
 
-LDR.convertFloat = function(x) {
+let convertFloat = function(x) {
     x = x.toFixed(6); // Allow at most 6 decimals.
     for(let i = 0; i <= 6; i++) {
         let tmp = parseFloat(x).toFixed(i);
@@ -1747,7 +1819,7 @@ LDR.convertFloat = function(x) {
 }
 
 THREE.Vector3.prototype.toLDR = function() {
-    return LDR.convertFloat(this.x) + ' ' + LDR.convertFloat(this.y) + ' ' + LDR.convertFloat(this.z);
+    return convertFloat(this.x) + ' ' + convertFloat(this.y) + ' ' + convertFloat(this.z);
 }
 
 THREE.Matrix3.prototype.toLDR = function() {
@@ -1755,24 +1827,24 @@ THREE.Matrix3.prototype.toLDR = function() {
     let rowMajor = [e[0], e[3], e[6],
                     e[1], e[4], e[7],
                     e[2], e[5], e[8]]
-    return rowMajor.map(LDR.convertFloat).join(' ');
+    return rowMajor.map(convertFloat).join(' ');
 }
 
-LDR.Line2 = function(c, p1, p2, tmp = null) {
+let Line2 = function(c, p1, p2, tmp = null) {
     this.c = c;
     this.p1 = p1;
     this.p2 = p2;
     this.tmp = tmp;
 }
 
-LDR.Line2.prototype.pack = function(arrayI, arrayF) {
+Line2.prototype.pack = function(arrayI, arrayF) {
     arrayI.push(this.c);
     arrayI.push(this.tmp ? this.tmp.idx : -1);
     arrayF.push(this.p1.x, this.p1.y, this.p1.z, 
                 this.p2.x, this.p2.y, this.p2.z);
 }
 
-LDR.Line2.prototype.unpackFrom = function(arrayI, arrayF, idxI, idxF, texmapPlacementMap) {
+Line2.prototype.unpackFrom = function(arrayI, arrayF, idxI, idxF, texmapPlacementMap) {
     this.c = arrayI[idxI++];
 
     let texmapIdx = arrayI[idxI++];
@@ -1786,11 +1858,11 @@ LDR.Line2.prototype.unpackFrom = function(arrayI, arrayF, idxI, idxF, texmapPlac
     return [idxI, idxF];
 }
 
-LDR.Line2.prototype.toLDR = function() {
+Line2.prototype.toLDR = function() {
     return '2 ' + this.c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + '\r\n';
 }
 
-LDR.Line3 = function(c, p1, p2, p3, cull, invert, tmp = null) {
+let Line3 = function(c, p1, p2, p3, cull, invert, tmp = null) {
     this.c = c;
     if(invert) {
         this.p1 = p3;
@@ -1806,7 +1878,7 @@ LDR.Line3 = function(c, p1, p2, p3, cull, invert, tmp = null) {
     this.tmp = tmp;
 }
 
-LDR.Line3.prototype.pack = function(arrayI, arrayF) {
+Line3.prototype.pack = function(arrayI, arrayF) {
     arrayI.push(this.cull ? this.c : -1-this.c);
     arrayI.push(this.tmp ? this.tmp.idx : -1);
     arrayF.push(this.p1.x, this.p1.y, this.p1.z, 
@@ -1814,7 +1886,7 @@ LDR.Line3.prototype.pack = function(arrayI, arrayF) {
                 this.p3.x, this.p3.y, this.p3.z);    
 }
 
-LDR.Line3.prototype.unpackFrom = function(arrayI, arrayF, idxI, idxF, texmapPlacementMap) {
+Line3.prototype.unpackFrom = function(arrayI, arrayF, idxI, idxF, texmapPlacementMap) {
     let packed = arrayI[idxI++];
     if(packed < 0) {
         this.cull = false;
@@ -1837,11 +1909,11 @@ LDR.Line3.prototype.unpackFrom = function(arrayI, arrayF, idxI, idxF, texmapPlac
     return [idxI, idxF];
 }
 
-LDR.Line3.prototype.toLDR = function() {
+Line3.prototype.toLDR = function() {
     return '3 ' + this.c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + ' ' + this.p3.toLDR() + '\r\n';
 }
 
-LDR.Line4 = function(c, p1, p2, p3, p4, cull, invert, tmp = null) {
+let Line4 = function(c, p1, p2, p3, p4, cull, invert, tmp = null) {
     this.c = c;
     if(invert) {
         this.p1 = p4;
@@ -1859,7 +1931,7 @@ LDR.Line4 = function(c, p1, p2, p3, p4, cull, invert, tmp = null) {
     this.tmp = tmp;
 }
 
-LDR.Line4.prototype.pack = function(arrayI, arrayF) {
+Line4.prototype.pack = function(arrayI, arrayF) {
     arrayI.push(this.cull ? this.c : -1-this.c);
     arrayI.push(this.tmp ? this.tmp.idx : -1);
     arrayF.push(this.p1.x, this.p1.y, this.p1.z, 
@@ -1868,7 +1940,7 @@ LDR.Line4.prototype.pack = function(arrayI, arrayF) {
                 this.p4.x, this.p4.y, this.p4.z);    
 }
 
-LDR.Line4.prototype.unpackFrom = function(arrayI, arrayF, idxI, idxF, texmapPlacementMap) {
+Line4.prototype.unpackFrom = function(arrayI, arrayF, idxI, idxF, texmapPlacementMap) {
     let packed = arrayI[idxI++];
     if(packed < 0) {
         this.cull = false;
@@ -1892,11 +1964,11 @@ LDR.Line4.prototype.unpackFrom = function(arrayI, arrayF, idxI, idxF, texmapPlac
     return [idxI, idxF];
 }
 
-LDR.Line4.prototype.toLDR = function() {
+Line4.prototype.toLDR = function() {
     return '4 ' + this.c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + ' ' + this.p3.toLDR() + ' ' + this.p4.toLDR() + '\r\n';
 }
 
-LDR.Line5 = function(c, p1, p2, p3, p4, tmp = null) {
+let Line5 = function(c, p1, p2, p3, p4, tmp = null) {
     this.c = c;
     this.p1 = p1;
     this.p2 = p2;
@@ -1905,7 +1977,7 @@ LDR.Line5 = function(c, p1, p2, p3, p4, tmp = null) {
     this.tmp = tmp;
 }
 
-LDR.Line5.prototype.pack = function(arrayI, arrayF) {
+Line5.prototype.pack = function(arrayI, arrayF) {
     arrayI.push(this.c);
     arrayI.push(this.tmp ? this.tmp.idx : -1);
     arrayF.push(this.p1.x, this.p1.y, this.p1.z, 
@@ -1914,7 +1986,7 @@ LDR.Line5.prototype.pack = function(arrayI, arrayF) {
                 this.p4.x, this.p4.y, this.p4.z);    
 }
 
-LDR.Line5.prototype.unpackFrom = function(arrayI, arrayF, idxI, idxF, texmapPlacementMap) {
+Line5.prototype.unpackFrom = function(arrayI, arrayF, idxI, idxF, texmapPlacementMap) {
     this.c = arrayI[idxI++];
 
     let texmapIdx = arrayI[idxI++];
@@ -1930,11 +2002,11 @@ LDR.Line5.prototype.unpackFrom = function(arrayI, arrayF, idxI, idxF, texmapPlac
     return [idxI, idxF];
 }
 
-LDR.Line5.prototype.toLDR = function() {
+Line5.prototype.toLDR = function() {
     return '5 ' + this.c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + ' ' + this.p3.toLDR() + ' ' + this.p4.toLDR() + '\r\n';
 }
 
-THREE.LDRPartType = function() {
+let LDRPartType = function() {
     this.name; // The value for '0 FILE' and '0 Name:'.
     this.ID = null; // this.name, but lower case and with backslashes replaced with forward slashes.
     this.modelDescription;
@@ -1962,7 +2034,7 @@ THREE.LDRPartType = function() {
   It goes through all parts referenced in the steps and marks them
   with back-references.
  */
-THREE.LDRPartType.prototype.setReferencedFrom = function(ldrLoader) {
+LDRPartType.prototype.setReferencedFrom = function(ldrLoader) {
     function handle(sm, ID) {
 	let pt = ldrLoader.getPartType(sm.ID);
 	if(pt.isPart && !pt.referencedFrom.hasOwnProperty(ID)) {
@@ -1973,7 +2045,7 @@ THREE.LDRPartType.prototype.setReferencedFrom = function(ldrLoader) {
     this.steps.forEach(step => step.subModels.forEach(sm => handle(sm, step.idx)));
 }
 
-THREE.LDRPartType.prototype.canBePacked = function() {
+LDRPartType.prototype.canBePacked = function() {
     return (!this.inlined || (this.inlined === 'OFFICIAL')) && // Only pack official parts (not 'GENERATED' (from LDRGenerator) or 'IDB' (unpacked from IndexedDB).
         this.isPart && // Should be a part.
         ['Redistributable under CCAL BY 4.0 : see CAreadme.txt', 'Licensed under CC BY 4.0 : see CAreadme.txt'].includes(this.license) &&
@@ -1981,11 +2053,13 @@ THREE.LDRPartType.prototype.canBePacked = function() {
         !this.ldraw_org.startsWith('Unofficial_'); // Double-check that it is official.
 }
 
-THREE.LDRPartType.prototype.encodeHeader = function() {
-    return (this.CCW ? 2 : 0) + (this.certifiedBFC ? 1 : 0);
+LDRPartType.prototype.encodeHeader = function() {
+    return (this.ldCadGenerated ? 4 : 0) + // bit for ldCadGenerated
+           (this.CCW ? 2 : 0) + 
+           (this.certifiedBFC ? 1 : 0);
 }
 
-THREE.LDRPartType.prototype.encodePreview = function() {
+LDRPartType.prototype.encodePreview = function() {
     let p = this.preview;
     let ret = [p.c, p.p.x, p.p.y, p.p.z];
     let e = p.r.elements;
@@ -1997,7 +2071,7 @@ THREE.LDRPartType.prototype.encodePreview = function() {
     return ret.join(' ');
 }
 
-THREE.LDRPartType.prototype.pack = function(loader) {
+LDRPartType.prototype.pack = function(loader) {
     let ret = {};
     let id = this.ID;
     if(id.endsWith('.dat')) {
@@ -2018,15 +2092,19 @@ THREE.LDRPartType.prototype.pack = function(loader) {
     return ret;
 }
 
-THREE.LDRPartType.prototype.decodeHeader = function(encoded) {
+LDRPartType.prototype.decodeHeader = function(encoded) {
+    this.ldCadGenerated = Math.floor(encoded/4) % 2 === 1;
+    if(this.ldCadGenerated) {
+        this.computeIsPart = () => true;
+    }
     this.certifiedBFC = encoded % 2 === 1;
     this.CCW = Math.floor(encoded/2) % 2 === 1;
 }
 
-THREE.LDRPartType.prototype.unpack = function(obj) {
+LDRPartType.prototype.unpack = function(obj) {
     this.ID = this.name = obj.ID + '.dat';
     this.modelDescription = obj.md;
-    let step = new THREE.LDRStep();
+    let step = new LDRStep();
     step.unpack(obj);
     this.steps = [step];
     this.decodeHeader(obj.e);
@@ -2042,11 +2120,11 @@ THREE.LDRPartType.prototype.unpack = function(obj) {
 	rotation.set(parts[3],  parts[4],  parts[5],
 		     parts[6],  parts[7],  parts[8],
 		     parts[9], parts[10], parts[11]);
-	this.preview = new THREE.LDRPartDescription(colorID, position, rotation);
+	this.preview = new LDRPartDescription(colorID, position, rotation);
     }
 }
 
-THREE.LDRLoader.prototype.purgePart = function(ID) {
+LDRLoader.prototype.purgePart = function(ID) {
     let self = this;
     let purged = {};
     let toPurge = [ID];
@@ -2082,7 +2160,7 @@ THREE.LDRLoader.prototype.purgePart = function(ID) {
 /*
   Remove all sub models with part type 'ID' from this and everything within.
  */
-THREE.LDRPartType.prototype.purgePart = function(ID) {
+LDRPartType.prototype.purgePart = function(ID) {
     if(this.isPart) {
         return; // Only purge non-parts.
     }
@@ -2094,7 +2172,7 @@ THREE.LDRPartType.prototype.purgePart = function(ID) {
   Clean up all steps.
   This can cause additional steps (such as when a step contains both parts and sub models.
  */
-THREE.LDRPartType.prototype.cleanUp = function(loader) {
+LDRPartType.prototype.cleanUp = function(loader) {
     if(this.cleanSteps) {
         return; // Already done.
     }
@@ -2111,7 +2189,7 @@ THREE.LDRPartType.prototype.cleanUp = function(loader) {
     }
 }
 
-THREE.LDRPartType.prototype.toLDR = function(loader, skipFile) {
+LDRPartType.prototype.toLDR = function(loader, skipFile) {
     let ret = '';
     if(!skipFile) {
 	ret = '0 FILE ' + this.ID + '\r\n';
@@ -2162,15 +2240,15 @@ THREE.LDRPartType.prototype.toLDR = function(loader, skipFile) {
     return ret;
 }
 
-THREE.LDRPartType.prototype.ensureGeometry = function(loader) {
+LDRPartType.prototype.ensureGeometry = function(loader) {
     if(this.geometry) {
 	return; // Already prepared.
     }
-    this.geometry = new LDR.LDRGeometry();
+    this.geometry = new LDRGeometry();
     this.geometry.fromPartType(loader, this);
 }
 
-THREE.LDRPartType.prototype.removePrimitivesAndSubParts = function(loader, parentID) {
+LDRPartType.prototype.removePrimitivesAndSubParts = function(loader, parentID) {
     if(!loader.cleanUpPrimitivesAndSubParts) {
 	return;
     }
@@ -2197,7 +2275,7 @@ THREE.LDRPartType.prototype.removePrimitivesAndSubParts = function(loader, paren
     }
 }
 
-THREE.LDRPartType.prototype.addStep = function(step) {
+LDRPartType.prototype.addStep = function(step) {
     if(step.isEmpty() && this.steps.length === 0) {
 	return; // Totally illegal step.
     }
@@ -2208,14 +2286,14 @@ THREE.LDRPartType.prototype.addStep = function(step) {
             step.rotation.type = "REL";
         }
         else {
-            step.rotation = new THREE.LDRStepRotation(step.rotation.x + this.lastRotation.x,
-                                                      step.rotation.y + this.lastRotation.y,
-                                                      step.rotation.z + this.lastRotation.z,
-                                                      this.lastRotation.type);
+            step.rotation = new LDRStepRotation(step.rotation.x + this.lastRotation.x,
+                                                step.rotation.y + this.lastRotation.y,
+                                                step.rotation.z + this.lastRotation.z,
+                                                this.lastRotation.type);
         }
     }
     
-    let sameRotation = THREE.LDRStepRotation.equals(step.rotation, this.lastRotation);
+    let sameRotation = LDRStepRotation.equals(step.rotation, this.lastRotation);
     if(step.isEmpty() && sameRotation) {
 	return; // No change.
     }
@@ -2231,7 +2309,7 @@ THREE.LDRPartType.prototype.addStep = function(step) {
     this.lastRotation = step.rotation;
 }
     
-THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, inv, mc, pd, taskList) {
+LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, inv, mc, pd, taskList) {
     if(!this.geometry) {
 	if(this.isPart) {
             if(taskList) {
@@ -2287,10 +2365,10 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 
 	let material;
 	if(loader.physicalRenderingAge === 0) { // Simple rendering:
-            material = new LDR.Colors.buildTriangleMaterial(c3, false);
+            material = new Colors.buildTriangleMaterial(c3, false);
         }
 	else { // Physical rendering:
-            material = LDR.Colors.buildStandardMaterial(c3, false);
+            material = Colors.buildStandardMaterial(c3, false);
 	}
         let mesh = new THREE.Mesh(g.clone(), material); // Using clone to ensure matrix in next line doesn't affect other usages of the geometry.
         mesh.receiveShadow = mesh.castShadow = loader.physicalRenderingAge !== 0;
@@ -2307,16 +2385,16 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
         this.geometry.texmapGeometries[idx].forEach(obj => {
             let g = obj.g, c2 = obj.c;
             let c3 = transformColor(c2);
-            let textureFile = LDR.TexmapPlacements[idx].file;
+            let textureFile = TexmapPlacements[idx].file;
 	    
             let material;
             let buildMaterial, setMap;
             if(loader.physicalRenderingAge === 0) {
-                buildMaterial = t => LDR.Colors.buildTriangleMaterial(c3, t);
+                buildMaterial = t => Colors.buildTriangleMaterial(c3, t);
                 setMap = t => material.uniforms.map.value = t;
             }
             else {
-                buildMaterial = t => LDR.Colors.buildStandardMaterial(c3, t);
+                buildMaterial = t => Colors.buildStandardMaterial(c3, t);
                 setMap = t => material.map = t;
             }
 	    
@@ -2345,7 +2423,7 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 	}
         let c3 = transformColor(tc);
 
-	let material = new LDR.Colors.buildLineMaterial(c3, false);
+	let material = new Colors.buildLineMaterial(c3, false);
 	let normalLines = new THREE.LineSegments(this.geometry.lineGeometries[tc], material);
 	normalLines.applyMatrix4(m4);
 	mc.addLines(c3, normalLines, pd, false);
@@ -2357,7 +2435,7 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 	}
         let c3 = transformColor(tc);
 
-	let material = new LDR.Colors.buildLineMaterial(c3, true);
+	let material = new Colors.buildLineMaterial(c3, true);
 	let conditionalLines = new THREE.LineSegments(this.geometry.conditionalLineGeometries[tc], material);
 	conditionalLines.applyMatrix4(m4);
 	mc.addLines(c3, conditionalLines, pd, true);
@@ -2367,7 +2445,7 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
     mc.expandBoundingBox(b, m4);
 }
     
-THREE.LDRPartType.prototype.isPrimitive = function() {
+LDRPartType.prototype.isPrimitive = function() {
     if(!this.ldraw_ord) {
         return false;
     }
@@ -2375,7 +2453,7 @@ THREE.LDRPartType.prototype.isPrimitive = function() {
     return lo === 'Primitive' || lo === 'Subpart' || lo === '8_Primitive' || lo === '48_Primitive';
 }
 
-THREE.LDRPartType.prototype.computeIsPart = function(loader) {
+LDRPartType.prototype.computeIsPart = function(loader) {
     // Simple checks:
     if(this.steps.length !== 1) {
         return false; // No steps in parts.
@@ -2407,7 +2485,7 @@ THREE.LDRPartType.prototype.computeIsPart = function(loader) {
 }
 
 // Official LDraw part types: https://www.ldraw.org/article/398.html
-THREE.LDRPartType.prototype.isOfficialLDraw = function() {
+LDRPartType.prototype.isOfficialLDraw = function() {
     if(!this.ldraw_org) {
         return false;
     }
@@ -2416,7 +2494,7 @@ THREE.LDRPartType.prototype.isOfficialLDraw = function() {
            lo === '8_Primitive' || lo === '48_Primitive' || lo === 'Shortcut';
 }
 
-THREE.LDRPartType.prototype.isReplacedPart = function() {
+LDRPartType.prototype.isReplacedPart = function() {
     if(!this.isPart || this.steps.length === 0) {
 	return false; // Not a part
     }
@@ -2438,7 +2516,7 @@ THREE.LDRPartType.prototype.isReplacedPart = function() {
     return true;
 }
 
-THREE.LDRPartType.prototype.countParts = function(loader) {
+LDRPartType.prototype.countParts = function(loader) {
     if(this.cnt >= 0 || this.isPart) {
 	return this.cnt;
     }
@@ -2449,8 +2527,8 @@ THREE.LDRPartType.prototype.countParts = function(loader) {
 /*
   0 !TEXMAP (START | NEXT) <method> <parameters> <pngfile> [GLOSSMAP pngfile]
  */
-LDR.TexmapPlacements = [];
-LDR.TexmapPlacement = function() { // Can be set either from parts when read from LDraw file, or from packed indexeddb object.
+let TexmapPlacements = [];
+let TexmapPlacement = function() { // Can be set either from parts when read from LDraw file, or from packed indexeddb object.
     this.type; // 0 = planar, 1 = cylindrical, 2 = spherical.
     this.p = [];
 
@@ -2458,16 +2536,16 @@ LDR.TexmapPlacement = function() { // Can be set either from parts when read fro
     //this.b;
     this.file;
     //this.glossmapFile;
-    this.fallback = new THREE.LDRStep();
+    this.fallback = new LDRStep();
 
     this.nextOnly = false;
     //this.used = false; // If this texmap placement is of type 'NEXT' then it can only be used for one line below.
     //this.error; // Set if error during initialization.
-    this.idx; // Index in LDR.TexmapPlacements
+    this.idx; // Index in TexmapPlacements
 }
 
-LDR.TexmapPlacement.prototype.clone = function() {
-    let x = new LDR.TexmapPlacement();
+TexmapPlacement.prototype.clone = function() {
+    let x = new TexmapPlacement();
 
     x.type = this.type;
     x.p = this.p.map(v => new THREE.Vector3(v.x, v.y, v.z));
@@ -2489,12 +2567,12 @@ LDR.TexmapPlacement.prototype.clone = function() {
     x.fallback = this.fallback;
     x.nextOnly = this.nextOnly;
 
-    x.idx = LDR.TexmapPlacements.length;
-    LDR.TexmapPlacements.push(x);
+    x.idx = TexmapPlacements.length;
+    TexmapPlacements.push(x);
     return x;
 }
 
-LDR.TexmapPlacement.prototype.placeAt = function(pd) {
+TexmapPlacement.prototype.placeAt = function(pd) {
     let p = new THREE.Vector3();
     for(let i = 0; i < this.p.length; i++) {
 	let v = this.p[i];
@@ -2518,7 +2596,7 @@ LDR.TexmapPlacement.prototype.placeAt = function(pd) {
     }
 }
 
-LDR.TexmapPlacement.prototype.setFromParts = function(parts) {
+TexmapPlacement.prototype.setFromParts = function(parts) {
     if(parts.length < 13) {
         this.error = 'Too few arguments on !TEXMAP line';
         return;
@@ -2561,17 +2639,17 @@ LDR.TexmapPlacement.prototype.setFromParts = function(parts) {
         this.glossmapFile = parts[idx+2];
     }
 
-    this.idx = LDR.TexmapPlacements.length;
-    LDR.TexmapPlacements.push(this);
+    this.idx = TexmapPlacements.length;
+    TexmapPlacements.push(this);
 }
 
-LDR.TexmapPlacement.prototype.use = function() {
+TexmapPlacement.prototype.use = function() {
     if(this.nextOnly) {
         this.used = true;
     }
 }
 
-LDR.TexmapPlacement.prototype.setPlanar = function() {
+TexmapPlacement.prototype.setPlanar = function() {
     this.type = 0; // 0 for planar.
 
     // Normal (N1) and D-value (D1) from plane formula N.p+D=0 for plane P1:
@@ -2587,7 +2665,7 @@ LDR.TexmapPlacement.prototype.setPlanar = function() {
     this.getUV = this.getUVPlanar;
 }
 
-LDR.TexmapPlacement.prototype.setCylindrical = function() {
+TexmapPlacement.prototype.setCylindrical = function() {
     this.type = 1; // 1 for cylindrical.
 
     this.n = new THREE.Vector3(); this.n.subVectors(this.p[1], this.p[0]);
@@ -2601,7 +2679,7 @@ LDR.TexmapPlacement.prototype.setCylindrical = function() {
     this.getUV = this.getUVCylindrical;
 }
 
-LDR.TexmapPlacement.prototype.setSpherical = function() {
+TexmapPlacement.prototype.setSpherical = function() {
     this.type = 2; // 2 for spherical.
 
     // n = p1p2
@@ -2614,7 +2692,7 @@ LDR.TexmapPlacement.prototype.setSpherical = function() {
     this.getUV = this.getUVSpherical;
 }
 
-LDR.TexmapPlacement.prototype.packInto = function(arrayI, arrayF, arrayS, subModelMap) {
+TexmapPlacement.prototype.packInto = function(arrayI, arrayF, arrayS, subModelMap) {
     arrayI.push(this.idx, this.type);
     this.p.forEach(pt => arrayF.push(pt.x, pt.y, pt.z));
     if(this.type > 0) {
@@ -2637,7 +2715,7 @@ LDR.TexmapPlacement.prototype.packInto = function(arrayI, arrayF, arrayS, subMod
     this.fallback.packInto(arrayI, arrayF, arrayS, subModelMap, false); // Flase since there are no comments in a fallback
 }
 
-LDR.TexmapPlacement.prototype.unpackFrom = function(arrayI, arrayF, arrayS, idxI, idxF, idxS, subModelList) {
+TexmapPlacement.prototype.unpackFrom = function(arrayI, arrayF, arrayS, idxI, idxF, idxS, subModelList) {
     this.idx = arrayI[idxI++];
     this.type = arrayI[idxI++];
     for(let i = 0; i < 3; i++) {
@@ -2674,7 +2752,7 @@ LDR.TexmapPlacement.prototype.unpackFrom = function(arrayI, arrayF, arrayS, idxI
 
 // Plane with normal n and p0 being a point on the plane. p is the point to project.
 // q = p - (n * (p-p0))*n. q is projected point.
-LDR.TexmapPlacement.prototype.projectPointToPlane = function(n, p0, p) {
+TexmapPlacement.prototype.projectPointToPlane = function(n, p0, p) {
     let pp0 = new THREE.Vector3(); pp0.subVectors(p, p0);
     let npp0 = n.dot(pp0);
     let npp0n = new THREE.Vector3(); npp0n.copy(n); npp0n.multiplyScalar(npp0);
@@ -2685,7 +2763,7 @@ LDR.TexmapPlacement.prototype.projectPointToPlane = function(n, p0, p) {
 }
 
 // Use this.p = [p1,p2,p3]
-LDR.TexmapPlacement.prototype.getUVPlanar = function(p) {
+TexmapPlacement.prototype.getUVPlanar = function(p) {
     let toPlane = (n, D) => n.x*p.x + n.y*p.y + n.z*p.z + D;
 
     let U = toPlane(this.N1, this.D1) / this.N1LenSq;
@@ -2712,7 +2790,7 @@ p -> (U,V):
 The point p will be one of the vertices of a triangle. In case V=0, the cylindrical nature of 
 The two points pCtx1 and cPtx2 are for providing context of the origi
  */
-LDR.TexmapPlacement.prototype.getUVCylindrical = function(p, pCtx1, pCtx2) {
+TexmapPlacement.prototype.getUVCylindrical = function(p, pCtx1, pCtx2) {
     let self = this;
     function getU(pt) {
         let q = self.projectPointToPlane(self.n, self.p[0], pt);
@@ -2755,7 +2833,7 @@ q2 = proj(p onto P2)
 U = angle(n, p1q1)/a 
 V = angle(n, p1q2)/b
  */
-LDR.TexmapPlacement.prototype.getUVSpherical = function(p, pCtx1, pCtx2) {
+TexmapPlacement.prototype.getUVSpherical = function(p, pCtx1, pCtx2) {
     let self = this;
 
     let a = new THREE.Vector3(); 
@@ -2787,7 +2865,7 @@ LDR.TexmapPlacement.prototype.getUVSpherical = function(p, pCtx1, pCtx2) {
     return [U,V];
 }
 
-LDR.TexmapPlacement.prototype.toLDR = function(lines, loader) {
+TexmapPlacement.prototype.toLDR = function(lines, loader) {
     let nextOnly = lines.length === 1 && this.fallback.isEmpty();
     let method = this.type === 0 ? 'PLANAR' : (this.type === 1 ? 'CYLINDRICAL' : 'SPHERICAL');
 
@@ -2818,6 +2896,193 @@ LDR.TexmapPlacement.prototype.toLDR = function(lines, loader) {
     return ret;
 }
 
+// Studio 2.0 Texmap functions:
+LDRLoader.prototype.toLDRStudio = function(c) {
+    let self = this;
+
+    // Mark all parts that have texmaps, as these should be downloaded separately:
+    function setTexmap(pt) {
+	if(!pt.isPart || pt.steps.length === 0) {
+	    return false; // Not a part.
+	}
+        let step = pt.steps[0];
+	
+	function find(list) {
+	    let x = list.find(y => y.tmp);
+	    if(x) {
+		pt.texmapFile = x.tmp.file;
+		return true;
+	    }
+	    return false;
+	}
+	find(step.triangles) || find(step.quads) || find(step.subModels);
+    }
+    this.applyOnPartTypes(setTexmap);
+
+    let seenColors = {}; // id => {colors}
+    function findColorsFor(id, c) {
+	let pt = self.getPartType(id);	
+	if(pt.isPart) {
+	    return; // Don't include parts.
+	}
+	if(!seenColors.hasOwnProperty(id)) {
+	    seenColors[id] = {};
+	}
+	sc = seenColors[id];
+	if(sc.hasOwnProperty(c)) {
+	    return; // Already handled.
+	}
+	sc[c] = true;
+	pt.steps.forEach(step => step.subModels.forEach(sm => findColorsFor(sm.ID, sm.c === 16 ? c : sm.c)));
+    }
+    findColorsFor(this.mainModel, c);
+
+    let ret = this.getMainModel().toLDRColored(this, c);
+    for(let id in seenColors) {
+	if(!seenColors.hasOwnProperty(id) || id === self.mainModel) {
+	    continue;
+	}
+	let obj = seenColors[id];
+	for(let c in obj) {
+	    if(obj.hasOwnProperty(c)) {
+		ret += self.getPartType(id).toLDRColored(self, c);
+	    }
+	}
+    }
+    return ret;
+}
+LDRPartType.prototype.toLDRColored = function(loader, c) {
+    let ret = '0 FILE ' + c + '__' + this.ID + '\r\n';
+    if(this.modelDescription) {
+        ret += '0 ' + this.modelDescription + '\r\n';
+    }
+    ret += '0 Name: ' + c + '__' + this.ID + '\r\n';
+
+    if(this.author) {
+        ret += '0 Author: ' + this.author + '\r\n';
+    }
+    if(this.ldraw_org) {
+        ret += '0 !LDRAW_ORG ' + this.ldraw_org + '\r\n';
+    }
+    if(this.license) {
+        ret += '0 !LICENSE ' + this.license + '\r\n';
+    }
+    if(this.isPart) { // BFC Statement:
+        if(!this.certifiedBFC) {
+            ret += '0 BFC NOCERTIFY\r\n';            
+        }
+        else {
+            ret += '0 BFC CERTIFY ' + (this.CCW ? 'CCW' : 'CW') + '\r\n';
+        }
+    }
+    if(this.headerLines.length > 0) {
+        ret += '\r\n'; // Empty line before additional header lines, such as 'THEME' and 'KEYWORDS'
+        this.headerLines.forEach(line => ret += line.toLDR(loader));
+    }
+    if(this.hasOwnProperty('preferredColor')) {
+        ret += '\r\n0 !CMDLINE -c' + this.preferredColor + '\r\n';
+    }
+    if(this.steps.length > 0) {
+        ret += '\r\n';
+        this.steps.forEach((step, idx, a) => ret += step.toLDRColored(loader, idx === 0 ? null : a[idx-1].r, idx === a.length-1, c));
+    }
+    ret += '\r\n';
+    return ret;
+}
+LDRPartDescription.prototype.toLDRColored = function(loader, c) {
+    let pt = loader.getPartType(this.ID);
+    let c2 = this.c == 16 ? c : this.c;
+    let id = pt.isPart ? pt.ID : (c2 + '__' + this.ID);
+    return '1 ' + c2 + ' ' + this.p.toLDR() + ' ' + this.r.toLDR() + ' ' + id + '\r\n';
+}
+LDRStep.prototype.toLDRColored = function(loader, prevStepRotation, isLastStep, c) {
+    let ret = '';
+
+    this.subModels.forEach(sm => ret += sm.toLDRColored(loader, c));
+    this.triangles.forEach(x => ret += x.toLDR());
+    this.quads.forEach(x => ret += x.toLDR());
+
+    // End with STEP or ROTSTEP:
+    if(!this.r) {
+        if(prevStepRotation) {
+            ret += '0 ROTSTEP END\r\n';
+        }
+        else if(!isLastStep) {
+            ret += '0 STEP\r\n';
+        }
+    }
+    else { // We have a rotation. Check against prev:
+        if(THREE.LDRStepRotation.equals(this.r, prevStepRotation)) {
+            ret += '0 STEP\r\n';            
+        }
+        else {
+            ret += this.r.toLDR();
+        }
+    }
+    return ret;
+}
+LDRPartType.prototype.toStudioFile = function(ldrLoader) {
+    if(!this.isPart) {
+	throw 'The part type ' + this.ID + ' cannot be converted to a Studio 2.0 file since it is not a part';
+    }
+    // We now know there is exactly 1 step:
+    let step = this.steps[0];
+
+    // Find all textured triangles:
+    let tt = []; // Textured triangles
+    let tmp;
+    step.triangles.filter(x => x.tmp).forEach(x => {
+	tmp = x.tmp.file;
+        tt.push(x);
+    });
+    step.quads.filter(x => x.tmp).forEach(x => {
+	tmp = x.tmp.file;
+        tt.push({c:x.c, p1:x.p1, p2:x.p2, p3:x.p3, tmp:x.tmp});
+        tt.push({c:x.c, p1:x.p1, p2:x.p3, p3:x.p4, tmp:x.tmp});
+    });
+
+    // Find dataurl:
+    let dataurl = ldrLoader.texmapDataurls.find(obj => obj.id === tmp);
+
+    let ret = '';
+    if(dataurl) {
+	ret = '0 FILE ' + this.ID + '\r\n';
+    }
+    ret += '0 ' + (this.modelDescription ? this.modelDescription : '') +
+	'\r\n0 Name: ' + this.ID +
+	'\r\n0 Author: ' + (this.author ? this.author : '') + 
+	'\r\n0 !LICENSE ' + (this.license ? this.license : '') + 
+	'\r\n0 BFC ' + (this.certifiedBFC?'':'NO') + 'CERTIFY ' + (this.CCW ? '' : 'CW') + 
+        '\r\n';
+
+    if(dataurl) {
+	ret += '0 PE_TEX_PATH -1\r\n0 PE_TEX_INFO ' + dataurl.content + '\r\n';
+    }
+
+    step.subModels.forEach(x => ret += x.toLDR(ldrLoader));
+    step.lines.forEach(x => ret += new Line2(x.c, x.p1, x.p2).toLDR());
+    step.conditionalLines.forEach(x => ret += new Line5(x.c, x.p1, x.p2, x.p3, x.p4).toLDR());
+
+    // Convert all texture triangles:
+    tt.forEach(x => { // Studio 2.0 triangle lines:
+        ret += '3 ' + x.c + ' ' + x.p1.toLDR() + ' ' + x.p2.toLDR() + ' ' + x.p3.toLDR();
+        let [U1, V1]=x.tmp.getUV(x.p1, x.p2, x.p3);
+        let [U2, V2]=x.tmp.getUV(x.p2, x.p3, x.p1);
+        let [U3, V3]=x.tmp.getUV(x.p3, x.p1, x.p2);
+        [U1,V1,U2,V2,U3,V3].map(convertFloat).forEach(x => ret += ' ' + x);
+        ret += '\r\n';
+    });
+
+    step.triangles.filter(x => !x.tmp).forEach(x => {
+        ret += new Line3(x.c, x.p1, x.p2, x.p3).toLDR();
+    });
+    step.quads.filter(x => !x.tmp).forEach(x => {
+        ret += new Line4(x.c, x.p1, x.p2, x.p3, x.p4).toLDR();
+        });
+
+    return ret;
+}
+
 /*
   MeshCollector holds references to meshes (and similar Three.js structures for lines).
   A Mesh Collector handles updates of meshes. This includes;
@@ -2826,8 +3091,8 @@ LDR.TexmapPlacement.prototype.toLDR = function(lines, loader) {
   - 'old': A part placed in 'earlier steps' can be colored 'old' to highlight new parts
   - 'ghost': 'Ghosted' parts will be shown by their lines only (no faces).
 */
-LDR.MeshCollectorIdx = 0;
-LDR.MeshCollector = function(opaqueObject, sixteenObject, transObject, outliner) {
+let MeshCollectorIdx = 0;
+let MeshCollector = function(opaqueObject, sixteenObject, transObject, outliner) {
     this.opaqueObject = opaqueObject;
     this.sixteenObject = sixteenObject; // To be painted after anything opaque, as it might be trans.
     this.transObject = transObject; // To be painted last.
@@ -2842,25 +3107,25 @@ LDR.MeshCollector = function(opaqueObject, sixteenObject, transObject, outliner)
     this.glowObjects = []; // {mesh,color}
     this.overwrittenColor = -1;
     this.isMeshCollector = true;
-    this.idx = LDR.MeshCollectorIdx++;
+    this.idx = MeshCollectorIdx++;
 }
 
-LDR.MeshCollector.prototype.addLines = function(color, mesh, part, conditional) {
+MeshCollector.prototype.addLines = function(color, mesh, part, conditional) {
     this.lineMeshes.push({color:color, originalColor:color, mesh:mesh, part:part, conditional:conditional});
     this.opaqueObject.add(mesh);
 }
 
-LDR.MeshCollector.prototype.addHoverBox = () => {};
+MeshCollector.prototype.addHoverBox = () => {};
 
-LDR.MeshCollector.prototype.addMesh = function(color, mesh, part) {
+MeshCollector.prototype.addMesh = function(color, mesh, part) {
     this.addHoverBox(mesh, part);
     let parent;
     if(color === 16) {
 	parent = this.sixteenObject;
     }
-    else if(LDR.Colors.isTrans(color)) {
+    else if(Colors.isTrans(color)) {
 	parent = this.transObject;
-        let lum = LDR.Colors.getLuminance(color);
+        let lum = Colors.getLuminance(color);
         if(lum > 0) {
             this.glowObjects.push({mesh:mesh, color:color});
         }
@@ -2872,28 +3137,28 @@ LDR.MeshCollector.prototype.addMesh = function(color, mesh, part) {
     parent.add(mesh);
 }
 
-LDR.MeshCollector.prototype.getGlowObjects = function(map) {
-    if(LDR.Colors.canBeOld && this.old && LDR.Options && LDR.Options.showOldColors === 3) {
+MeshCollector.prototype.getGlowObjects = function(map) {
+    if(Colors.canBeOld && this.old && Options.showOldColors === 3) {
         return; // Don't glow when old.
     }
 
     function add(obj) {
-            let mesh = obj.mesh;
-            let color = obj.color;
-            if(!map.hasOwnProperty(color)) {
-                map[color] = [];
-            }
-            map[color].push(mesh);
+        let mesh = obj.mesh;
+        let color = obj.color;
+        if(!map.hasOwnProperty(color)) {
+            map[color] = [];
+        }
+        map[color].push(mesh);
     }
     this.glowObjects.forEach(add);
 
     // Add sixteenObject if overwrittenColor has luminance:
-    if(this.overwrittenColor >= 0 && LDR.Colors.getLuminance(this.overwrittenColor) > 0) {
+    if(this.overwrittenColor >= 0 && Colors.getLuminance(this.overwrittenColor) > 0) {
         add({mesh:this.sixteenObject, color:this.overwrittenColor});
     }
 }
 
-LDR.attachGlowPassesForObjects = function(map, w, h, scene, camera, composer) {
+let attachGlowPassesForObjects = function(map, w, h, scene, camera, composer) {
     // Build and attach passes:
     let any = false;
     for(let color in map) {
@@ -2902,18 +3167,18 @@ LDR.attachGlowPassesForObjects = function(map, w, h, scene, camera, composer) {
         }
         any = true;
         let glowPass = new OutlinePass(new THREE.Vector2(w, h), scene, camera, map[color]);
-        let lum = LDR.Colors.getLuminance(color);
-	if(LDR.Colors.canBeOld) {
+        let lum = Colors.getLuminance(color);
+	if(Colors.canBeOld) {
             glowPass.edgeStrength = 0.25;
             glowPass.edgeThickness = 2.5;
             glowPass.edgeGlow = 0.05*lum;
 	}
 	else {
             glowPass.edgeStrength = 1.3;
-            glowPass.edgeThickness = 1.0;
-            glowPass.edgeGlow = 0.02*lum;
+            glowPass.edgeThickness = 3.0;
+            glowPass.edgeGlow = 0.2*lum;
 	}
-        let edgeColor = LDR.Colors.int2Hex(LDR.Colors.getColorHex(color));
+        let edgeColor = Colors.int2Hex(Colors.getColorHex(color));
         glowPass.visibleEdgeColor.set(edgeColor);
         glowPass.hiddenEdgeColor.set('#000000');
         composer.addPass(glowPass);
@@ -2921,40 +3186,40 @@ LDR.attachGlowPassesForObjects = function(map, w, h, scene, camera, composer) {
     return any;
 }
 
-LDR.MeshCollector.prototype.attachGlowPasses = function(w, h, scene, camera, composer) {
+MeshCollector.prototype.attachGlowPasses = function(w, h, scene, camera, composer) {
     let map = {};
     this.getGlowObjects(map);
 
-    return LDR.attachGlowPassesForObjects(map, w, h, scene, camera, composer);
+    return attachGlowPassesForObjects(map, w, h, scene, camera, composer);
 }
 
-LDR.MeshCollector.prototype.removeAllMeshes = function() {
+MeshCollector.prototype.removeAllMeshes = function() {
     let self = this;
     this.lineMeshes.forEach(obj => self.opaqueObject.remove(obj.mesh));
     this.triangleMeshes.forEach(obj => obj.parent.remove(obj.mesh));
 }
 
 /*
-  Sets '.visible' on all meshes according to LDR.Options and 
+  Sets '.visible' on all meshes according to Options and 
   visibility of this meshCollector.
  */
-LDR.MeshCollector.prototype.updateMeshVisibility = function() {
+MeshCollector.prototype.updateMeshVisibility = function() {
     const v = this.visible;
 
     this.lineMeshes.forEach(obj => obj.mesh.visible = v);
 
     let old = this.old;
-    this.triangleMeshes.forEach(obj => obj.mesh.visible = v && (old || !(LDR.Options && LDR.Options.showEditor && obj.part && obj.part.original && obj.part.original.ghost))); // Do not show faces for ghosted parts.
+    this.triangleMeshes.forEach(obj => obj.mesh.visible = v && (old || !(Options.showEditor && obj.part && obj.part.original && obj.part.original.ghost))); // Do not show faces for ghosted parts.
 }
 
-LDR.MeshCollector.prototype.expandBoundingBoxByPoint = function(p) {
+MeshCollector.prototype.expandBoundingBoxByPoint = function(p) {
     if(!this.boundingBox) {
 	this.boundingBox = new THREE.Box3();
     }
     this.boundingBox.expandByPoint(p);
 }
 
-LDR.MeshCollector.prototype.expandBoundingBox = function(boundingBox, m) {
+MeshCollector.prototype.expandBoundingBox = function(boundingBox, m) {
     let b = new THREE.Box3();
     b.copy(boundingBox);
     b.applyMatrix4(m);
@@ -2968,11 +3233,11 @@ LDR.MeshCollector.prototype.expandBoundingBox = function(boundingBox, m) {
     }
 }
 
-LDR.MeshCollector.prototype.setOldValue = function(old) {
-    if(!LDR.Colors.canBeOld) {
+MeshCollector.prototype.setOldValue = function(old) {
+    if(!Colors.canBeOld) {
 	return;
     }
-    let o = old && LDR.Options && LDR.Options.showOldColors === 3;
+    let o = old && Options.showOldColors === 3;
     for(let i = 0; i < this.lineMeshes.length; i++) {
 	this.lineMeshes[i].mesh.material.uniforms.old.value = o;
     }
@@ -2988,32 +3253,30 @@ LDR.MeshCollector.prototype.setOldValue = function(old) {
     }
 }
 
-LDR.MeshCollector.prototype.colorLinesLDraw = function() {
+MeshCollector.prototype.colorLinesLDraw = function() {
     this.lineMeshes.forEach(mesh => {
         let m = mesh.mesh.material;
-        m.uniforms.color.value = LDR.Colors.getColor4(mesh.color);
+        m.uniforms.color.value = Colors.getColor4(mesh.color);
     });
 }
 
-LDR.MeshCollector.prototype.colorLinesHighContrast = function() {
+MeshCollector.prototype.colorLinesHighContrast = function() {
     this.lineMeshes.forEach(mesh => {
         let m = mesh.mesh.material;
-        m.uniforms.color.value = LDR.Colors.getHighContrastColor4(mesh.color);
+        m.uniforms.color.value = Colors.getHighContrastColor4(mesh.color);
     });
 }
 
-LDR.MeshCollector.prototype.updateState = function(old) {
+MeshCollector.prototype.updateState = function(old) {
     this.old = old;
-    if(LDR.Options) {
-        this.lineContrast = LDR.Options.lineContrast;
-        this.showOldColors = LDR.Options.showOldColors;
-    }
+    this.lineContrast = Options.lineContrast;
+    this.showOldColors = Options.showOldColors;
 }
 
-LDR.MeshCollector.prototype.update = function(old) {
+MeshCollector.prototype.update = function(old) {
     // Check if lines need to be recolored:
-    if(LDR.Options && this.lineContrast !== LDR.Options.lineContrast) {
-	if(LDR.Options.lineContrast === 1) {
+    if(this.lineContrast !== Options.lineContrast) {
+	if(Options.lineContrast === 1) {
 	    this.colorLinesLDraw();
         }
 	else {
@@ -3024,7 +3287,7 @@ LDR.MeshCollector.prototype.update = function(old) {
     this.updateState(old);
 }
 
-LDR.MeshCollector.prototype.overwriteColor = function(color) {
+MeshCollector.prototype.overwriteColor = function(color) {
     if(this.overwrittenColor === color) {
         return;
     }
@@ -3036,7 +3299,7 @@ LDR.MeshCollector.prototype.overwriteColor = function(color) {
 	let edge = obj.originalColor === 24;
         let c = edge ? -1-color : color;
 
-        let color4 = edge && LDR.Options && LDR.Options.lineContrast === 0 ? LDR.Colors.getHighContrastColor4(c) : LDR.Colors.getColor4(c);
+        let color4 = edge && Options.lineContrast === 0 ? Colors.getHighContrastColor4(c) : Colors.getColor4(c);
 
         const m = obj.mesh.material;
 
@@ -3044,7 +3307,7 @@ LDR.MeshCollector.prototype.overwriteColor = function(color) {
         obj.color = c;
 
 	if(!edge) {
-	    let isTrans = LDR.Colors.isTrans(color);
+	    let isTrans = Colors.isTrans(color);
 	    m.depthWrite = !isTrans; // Set depth write only for opaque materials.
 	    m.transparent = isTrans;
 	}
@@ -3059,19 +3322,19 @@ LDR.MeshCollector.prototype.overwriteColor = function(color) {
     this.overwrittenColor = color;
 }
 
-LDR.MeshCollector.prototype.draw = function(old = false) {
+MeshCollector.prototype.draw = function(old = false) {
     this.update(old);
     this.updateMeshVisibility();
 }
 
-LDR.MeshCollector.prototype.isVisible = function() {
+MeshCollector.prototype.isVisible = function() {
     return this.visible;
 }
 
 /*
   Update meshes and set own visibility indicator.
 */
-LDR.MeshCollector.prototype.setVisible = function(v) {
+MeshCollector.prototype.setVisible = function(v) {
     if(this.visible === v && this.old) { // If not old, ghosting might have changed.
 	return;
     }
@@ -3079,8 +3342,10 @@ LDR.MeshCollector.prototype.setVisible = function(v) {
     this.updateMeshVisibility();
 }
 
-LDR.MeshCollector.prototype.getGhostedParts = function() {
+MeshCollector.prototype.getGhostedParts = function() {
     let lineObjects = this.lineMeshes.filter(obj => obj.part && obj.part.original.ghost);
     let triangleObjects = this.triangleMeshes.filter(obj => obj.part && obj.part.original.ghost);
     return [lineObjects,triangleObjects];
 }
+
+export { LDRLoader, LDRPartDescription, LDRStepRotation, LDRStep, LDRPartType, Line0, Line2, Line3, Line4, Line5, TexmapPlacement, TexmapPlacements, MeshCollectorIdx, MeshCollector }

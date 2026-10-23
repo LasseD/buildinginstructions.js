@@ -2,25 +2,30 @@
 <html>
  <head>
   <meta charset=utf-8>
-  <title>Sample Render</title>
+  <title>Simple Model Rendering</title>
   <meta name="viewport" content="width=device-width" />
  </head>
  <body>
-    <!-- Three.js core libraries. three.min.js is required for rendering, while OrbitControls.js is used for user input -->
-    <script src="js/three.min.js"></script><script src="js/OrbitControls.js"></script>
+    <!-- three.js is used for rendering -->
+    <script type="importmap">
+      {
+	  "imports": {
+              "three": "https://threejs.org/build/three.module.js",
+              "three/addons/": "https://threejs.org/examples/jsm/"
+	  }
+      }
+    </script>
 
-    <!-- Three.js libraries for supporting Outline Pass -->
-    <script src="js/CopyShader.js"></script><script src="js/Pass.js"></script><script src="js/OutlinePass.js"></script><script src="js/ShaderPass.js"></script><script src="js/RenderPass.js"></script><script src="js/MaskPass.js"></script><script src="js/EffectComposer.js"></script>
+    <script type="module">
+      'use strict';
 
-    <!-- buildinginstructions.js core libraries. All required. -->
-    <script src="js/colors.js"></script><script src="js/LDRShaders.js"></script><script src="js/LDRColorMaterials.js"></script><script src="js/LDRGeometries.js"></script><script src="js/LDRLoader.js"></script>
+      import * as THREE from 'three'
+      import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+      import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+      import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+      import { LDRLoader, MeshCollector } from './js/LDRLoader.js'
+      import { Studs } from './js/LDRStuds.js'
 
-    <!-- buildinginstructions.js optional libraries: Generator.js for quick creation of some primitives. Required for studs.js which can create customized studs. StudioTexmap.js allows for Studio 2.0-created files -->    
-    <script src="js/LDRGenerator.js"></script>
-    <script src="js/LDRStuds.js"></script>
-    <script src="js/StudioTexmap.js"></script>
-
-    <script>
       let startTime = new Date();
       
       let model = 'models/corvette_full.mpd'; // The model to be rendered:
@@ -33,9 +38,9 @@
       let scene = new THREE.Scene();
       scene.background = new THREE.Color(0xFFFFFF);
 
-      let baseObject = new THREE.Group(), opaqueObject = new THREE.Group(), sixteenObject = new THREE.Group(); transObject = new THREE.Group();
+      let baseObject = new THREE.Group(), opaqueObject = new THREE.Group(), sixteenObject = new THREE.Group(), transObject = new THREE.Group();
       baseObject.add(opaqueObject); baseObject.add(sixteenObject); baseObject.add(transObject); scene.add(baseObject); // Draw non-trans before trans.
-      let mc = new LDR.MeshCollector(opaqueObject, sixteenObject, transObject);
+      let mc = new MeshCollector(opaqueObject, sixteenObject, transObject);
 
       // Set up renderer:
       let composer = null, storage;
@@ -54,16 +59,16 @@
 
         renderer.setSize(w, h);
 
-        composer = new THREE.EffectComposer(renderer);
-        composer.addPass(new THREE.RenderPass(scene, camera));
+        composer = new EffectComposer(renderer);
+        composer.addPass(new RenderPass(scene, camera));
         if(!mc.attachGlowPasses(w, h, scene, camera, composer)) {
-          composer = null; // Nothing glows - just render directly.
+            composer = null; // Nothing glows - just render directly.
         }
         render();
       }
 
       // React to user input:
-      let controls = new THREE.OrbitControls(camera, renderer.domElement);
+      let controls = new OrbitControls(camera, renderer.domElement);
       controls.addEventListener('change', render);
       window.addEventListener('resize', onWindowResize, false);
 
@@ -90,8 +95,8 @@
         console.log("Model rendered in " + (new Date()-startTime) + "ms.");
       }
 
-      LDR.Studs.makeGenerators('', 0, 1);
-      ldrLoader = new THREE.LDRLoader(onLoad, null, {cleanUpPrimitivesAndSubParts:false});
+      Studs.makeGenerators('', 0, 1);
+      ldrLoader = new LDRLoader(onLoad, null, {cleanUpPrimitivesAndSubParts:false});
       ldrLoader.load(model);
  </script>
  </body>

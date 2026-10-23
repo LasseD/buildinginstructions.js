@@ -16,8 +16,14 @@
    <p id="loading_text">Loading...</p>
   </div>
   <script src="js/jquery.min.js"></script>
-  <script src="js/three.min.js"></script>
-  <script src="js/OrbitControls.js"></script>
+  <script type="importmap">
+      {
+	  "imports": {
+              "three": "https://threejs.org/build/three.module.js",
+              "three/addons/": "https://threejs.org/examples/jsm/"
+	  }
+      }
+  </script>
   <script src="js/dat.gui.min.js"></script>
   <script src="js/CopyShader.js"></script>
   <script src="js/Pass.js"></script>
@@ -26,16 +32,7 @@
   <script src="js/RenderPass.js"></script>
   <script src="js/MaskPass.js"></script>
   <script src="js/EffectComposer.js"></script>
-  <script src="js/colors.js"></script>
   <script src="js/Scene.js"></script>
-  <script src="js/LDROptions.js"></script>
-  <script src="js/LDRShaders.js"></script>
-  <script src="js/LDRColorMaterials.js"></script>
-  <script src="js/LDRGeometries.js"></script>
-  <script src="js/LDRLoader.js"></script>
-  <script src="js/LDRStuds.js"></script>
-  <script src="js/StudioTexmap.js"></script>
-  <script src="js/LDRGenerator.js"></script>
   <script>
       let startTime = new Date();
       let color = 16;

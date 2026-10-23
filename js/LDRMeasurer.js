@@ -1,7 +1,9 @@
 'use strict';
 
+import * as THREE from 'three'
+
 /*
-  The LDR.Measurer takes a camera (reusable) and a THREE.Box3 with a given matrixWorld.
+  The Measurer takes a camera (reusable) and a THREE.Box3 with a given matrixWorld.
   Using these components, the size of the projection of the THREE.Box3 onto the camera
   is measured.
 
@@ -13,7 +15,7 @@
   viewMatrix = camera.matrixWorldInverse
   modelMatrix = object.matrixWorld
  */
-LDR.Measurer = function(camera) {
+let Measurer = function(camera) {
     this.camera = camera;
 
     this.camera.updateProjectionMatrix();
@@ -25,7 +27,7 @@ LDR.Measurer = function(camera) {
     this.m.multiply(this.camera.matrixWorldInverse);
 }
 
-LDR.getScreenSize = function() {
+let getScreenSize = function() {
     const root = document.documentElement;
     if(!(root && root.clientWidth && root.clientHeight)) {
         return [window.outerWidth, window.outerHeight];
@@ -37,7 +39,7 @@ LDR.getScreenSize = function() {
    Measure the screen size of the object using the vertices of the bounding box.
    Useful for displaying full models on screen.
  */
-LDR.Measurer.prototype.measure = function(b, matrixWorld) {
+Measurer.prototype.measure = function(b, matrixWorld) {
     let m = new THREE.Matrix4();
     m.copy(this.m);
     m.multiply(matrixWorld); // modelMatrix
@@ -69,11 +71,11 @@ LDR.Measurer.prototype.measure = function(b, matrixWorld) {
     return [dx,dy];
 }
 
-LDR.EPS = 0.00001;
+let EPS = 0.00001;
 
-LDR.equals = function(a, b) {
+let equals = function(a, b) {
     let d = a-b;
-    return -LDR.EPS < d && d < LDR.EPS;
+    return -EPS < d && d < EPS;
 }
 
 /**
@@ -83,7 +85,7 @@ LDR.equals = function(a, b) {
    - p1.y = p1.x*a+y0, p2.y = p2.x*a+y0 => a = dy/dx
    - p1.y = p1.x*a+y0 => y0 = p1.y-p1.x*a
  */
-LDR.MeasuringLine = function(p1, p2) {
+let MeasuringLine = function(p1, p2) {
     if(!p1) {
         return;
     }
@@ -97,29 +99,29 @@ LDR.MeasuringLine = function(p1, p2) {
     this.y0 = p1.y - p1.x*this.a;
 }
 
-LDR.MeasuringLine.prototype.eval = function(x) {
+MeasuringLine.prototype.eval = function(x) {
     return this.y0 + this.a * x;
 }
 
-LDR.MeasuringLine.prototype.toString = function() {
+MeasuringLine.prototype.toString = function() {
     return 'f(x)=' + this.y0 + (this.a > 0 ? '+' : '') + this.a + '*x';
 }
 
 /**
    Origo (x,y): y2 = f(x)-y
  */
-LDR.MeasuringLine.prototype.setOrigoTo = function(x, y) {
+MeasuringLine.prototype.setOrigoTo = function(x, y) {
     this.y0 = this.eval(x) - y;
     return this;
 }
 
-LDR.MeasuringLine.prototype.scaleY = function(scale) {
+MeasuringLine.prototype.scaleY = function(scale) {
     this.y0 *= scale;
     return this;
 }
 
-LDR.MeasuringLine.prototype.clone = function() {
-    let ret = new LDR.MeasuringLine();
+MeasuringLine.prototype.clone = function() {
+    let ret = new MeasuringLine();
     ret.y0 = this.y0;
     ret.a = this.a;
     return ret;
@@ -130,7 +132,7 @@ LDR.MeasuringLine.prototype.clone = function() {
    Useful for packing part list images (PLI's)
    Returns: [width, height, linesBelow, linesAbove]
  */
-LDR.Measurer.prototype.measureConvexHull = function(b, matrixWorld) {
+Measurer.prototype.measureConvexHull = function(b, matrixWorld) {
     let m = new THREE.Matrix4();
     m.copy(this.m);
     m.multiply(matrixWorld); // modelMatrix
@@ -163,12 +165,14 @@ LDR.Measurer.prototype.measureConvexHull = function(b, matrixWorld) {
                  {p1:pts[4], p2:pts[6]},
                  {p1:pts[4], p2:pts[7]}];
 
-    edges = edges.filter(e => !LDR.equals(e.p1.x, e.p2.x));
-    let toLine = e => new LDR.MeasuringLine(e.p1, e.p2).setOrigoTo(minx, miny);
-    let linesBelow = edges.filter(e => LDR.equals(e.p1.y, miny) || LDR.equals(e.p2.y, miny)).map(toLine);
-    let linesAbove = edges.filter(e => LDR.equals(e.p1.y, maxy) || LDR.equals(e.p2.y, maxy)).map(toLine);
+    edges = edges.filter(e => !equals(e.p1.x, e.p2.x));
+    let toLine = e => new MeasuringLine(e.p1, e.p2).setOrigoTo(minx, miny);
+    let linesBelow = edges.filter(e => equals(e.p1.y, miny) || equals(e.p2.y, miny)).map(toLine);
+    let linesAbove = edges.filter(e => equals(e.p1.y, maxy) || equals(e.p2.y, maxy)).map(toLine);
     
     let width = maxx-minx;
     let height = maxy-miny;
     return [width,height,linesBelow,linesAbove];
 }
+
+export { Measurer }

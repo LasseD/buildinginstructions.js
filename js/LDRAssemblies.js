@@ -1,3 +1,5 @@
+'use strict';
+
 /*
   The assembly manager handles assemblies.
   An assemly is a part which is a collection of parts.
@@ -8,8 +10,10 @@
   - A part within an assembly whose color is not 16 has to be matched exactly.
   - All parts of color 16 within the assembly must have the same color.
   - If a part within an assembly is of color 16, then so should the first part.
- */
-LDR.AssemblyManager = function(loader) {
+*/
+let Assemblies = {};
+
+let AssemblyManager = function(loader) {
     this.loader = loader;
     let self = this;
 
@@ -26,11 +30,11 @@ LDR.AssemblyManager = function(loader) {
         self.map[mainPart].push(obj);
     }
 
-    for(ID in LDR.Assemblies) {
-        if(!LDR.Assemblies.hasOwnProperty(ID)) {
+    for(ID in Assemblies) {
+        if(!Assemblies.hasOwnProperty(ID)) {
             continue;
         }
-        let parts = LDR.Assemblies[ID];
+        let parts = Assemblies[ID];
         let mainPart = parts[0]+'.dat', mainColor = parts[1];
         parts = parts.slice(2);
 
@@ -121,7 +125,7 @@ LDR.AssemblyManager = function(loader) {
     }
 }
 
-LDR.AssemblyManager.prototype.handleStep = function(step) {
+AssemblyManager.prototype.handleStep = function(step) {
     let self = this;
     let ret = []; // Parts to be fetched.
 
@@ -197,7 +201,7 @@ LDR.AssemblyManager.prototype.handleStep = function(step) {
     return ret;
 }
 
-LDR.AssemblyManager.prototype.handlePartType = function(pt) {
+AssemblyManager.prototype.handlePartType = function(pt) {
     let self = this;
 
     if(!pt.isPart) {
@@ -208,3 +212,5 @@ LDR.AssemblyManager.prototype.handlePartType = function(pt) {
 	this.partTypeHandlers[pt.ID].handle(pt);
     }
 }
+
+export { AssemblyManager }

@@ -1,26 +1,31 @@
 'use strict';
 
-LDR.Colors.HIGH_CONTRAST_WHITE = new THREE.Vector4(1, 1, 1, 1);
-LDR.Colors.HIGH_CONTRAST_RED = new THREE.Vector4(1, 0, 0, 1);
-LDR.Colors.HIGH_CONTRAST_BLACK = new THREE.Vector4(0, 0, 0, 1);
-LDR.Colors.getHighContrastColor4 = function(colorID) {
+import * as THREE from 'three'
+import { Colors } from './colors.js'
+import { Options } from './LDROptions.js'
+import { Shader } from './LDRShaders.js'
+
+Colors.HIGH_CONTRAST_WHITE = new THREE.Vector4(1, 1, 1, 1);
+Colors.HIGH_CONTRAST_RED = new THREE.Vector4(1, 0, 0, 1);
+Colors.HIGH_CONTRAST_BLACK = new THREE.Vector4(0, 0, 0, 1);
+Colors.getHighContrastColor4 = function(colorID) {
     if(colorID < 0) {
         colorID = -1-colorID; // Only edge colors are of interest for high contrast.
     }
     if(colorID === 0 || colorID === 256 || colorID === 64 || colorID === 32 || colorID === 83) {
-	return LDR.Colors.HIGH_CONTRAST_WHITE;
+	return Colors.HIGH_CONTRAST_WHITE;
     }
     else if(colorID === 272 || colorID === 70) {
-        return LDR.Colors.HIGH_CONTRAST_RED;
+        return Colors.HIGH_CONTRAST_RED;
     } 
     else {
-        return LDR.Colors.HIGH_CONTRAST_BLACK;
+        return Colors.HIGH_CONTRAST_BLACK;
     }
 }
 
-LDR.Colors.getColor4 = function(colorID) {
+Colors.getColor4 = function(colorID) {
     const EDGE = colorID < 0;
-    let colorObject = LDR.Colors[EDGE ? -1-colorID : colorID];
+    let colorObject = Colors[EDGE ? -1-colorID : colorID];
     if(!colorObject) {
 	throw "Unknown color: " + colorID;
     }
@@ -38,15 +43,15 @@ LDR.Colors.getColor4 = function(colorID) {
     return ret;
 }
 
-LDR.Colors.getColorHex = function(colorID) {
-    let colorObject = LDR.Colors[colorID >= 0 ? colorID : -colorID - 1];
+Colors.getColorHex = function(colorID) {
+    let colorObject = Colors[colorID >= 0 ? colorID : -colorID - 1];
     if(!colorObject) {
 	throw "Unknown color: " + colorID;
     }
     return colorID >= 0 ? colorObject.value : (colorObject.edge ? colorObject.edge : 0x333333);
 }
 
-LDR.Colors.int2RGB = function(i) {
+Colors.int2RGB = function(i) {
     let b = (i & 0xff);
     i = i >> 8;
     let g = (i & 0xff);
@@ -55,8 +60,8 @@ LDR.Colors.int2RGB = function(i) {
     return [r, g, b];
 }
 
-LDR.Colors.int2Hex = function(i) {
-    let rgb = LDR.Colors.int2RGB(i);
+Colors.int2Hex = function(i) {
+    let rgb = Colors.int2RGB(i);
     let ret = '#';
     for(let j = 0; j < 3; j++) {
 	rgb[j] = Number(rgb[j]).toString(16);
@@ -68,23 +73,22 @@ LDR.Colors.int2Hex = function(i) {
     return ret;
 }
 
-LDR.Colors.isTrans = function(colorID) {
-    return LDR.Colors[colorID < 0 ? -colorID-1 : colorID].alpha > 0;
+Colors.isTrans = function(colorID) {
+    return Colors[colorID < 0 ? -colorID-1 : colorID].alpha > 0;
 }
 
-LDR.Colors.getLuminance = function(colorID) {
-    return LDR.Colors[colorID < 0 ? -colorID-1 : colorID].luminance;
+Colors.getLuminance = function(colorID) {
+    return Colors[colorID < 0 ? -colorID-1 : colorID].luminance;
 }
 
-LDR.Colors.canBeOld = false;
+Colors.canBeOld = false;
 
-LDR.ColorMaterialIdx = 0;
-LDR.Colors.buildLineMaterial = function(c, conditional) {
-    let color = (LDR.Options && LDR.Options.lineContrast === 0) ?
-        LDR.Colors.getHighContrastColor4(c) : LDR.Colors.getColor4(c);
+Colors.buildLineMaterial = function(c, conditional) {
+    let color = Options.lineContrast === 0 ?
+        Colors.getHighContrastColor4(c) : Colors.getColor4(c);
 
     let uniforms = {};
-    if(LDR.Colors.canBeOld) {
+    if(Colors.canBeOld) {
 	uniforms['old'] = {value: false};
     }
     uniforms['color'] = {type: 'v4', value: color};
@@ -92,11 +96,11 @@ LDR.Colors.buildLineMaterial = function(c, conditional) {
     let ret = new THREE.RawShaderMaterial( {
 	uniforms: uniforms,
 	vertexShader: (conditional ? 
-	    LDR.Shader.createConditionalVertexShader() : 
-            LDR.Shader.createSimpleVertexShader(true, false)),
+	    Shader.createConditionalVertexShader() : 
+            Shader.createSimpleVertexShader(true, false)),
 	fragmentShader: (conditional ? 
-	    LDR.Shader.AlphaTestFragmentShader :
-	    LDR.Shader.SimpleFragmentShader),
+	    Shader.AlphaTestFragmentShader :
+	    Shader.SimpleFragmentShader),
 	transparent: false,
 	visible: true
     });
@@ -104,35 +108,35 @@ LDR.Colors.buildLineMaterial = function(c, conditional) {
     return ret;
 }
 
-LDR.Colors.tempTexure = new THREE.Texture();
-LDR.Colors.buildTriangleMaterial = function(c, texmap) {
-    let color4 = LDR.Colors.getColor4(c);
+Colors.tempTexure = new THREE.Texture();
+Colors.buildTriangleMaterial = function(c, texmap) {
+    let color4 = Colors.getColor4(c);
 
     let uniforms = {};
-    if(LDR.Colors.canBeOld) {
+    if(Colors.canBeOld) {
 	uniforms['old'] = {value: false};
     }
     uniforms['color'] = {type: 'v4', value: color4};
     if(texmap) {
-        uniforms['map'] = {type: 't', value: texmap === true ? LDR.Colors.tempTexure : texmap};
+        uniforms['map'] = {type: 't', value: texmap === true ? Colors.tempTexure : texmap};
     }
 
-    const isTrans = LDR.Colors.isTrans(c);
+    const isTrans = Colors.isTrans(c);
 
     let ret = new THREE.RawShaderMaterial({
 	uniforms: uniforms,
-	vertexShader: LDR.Shader.createSimpleVertexShader(false, texmap),
-	fragmentShader: texmap ? LDR.Shader.TextureFragmentShader : LDR.Shader.SimpleFragmentShader,
+	vertexShader: Shader.createSimpleVertexShader(false, texmap),
+	fragmentShader: texmap ? Shader.TextureFragmentShader : Shader.SimpleFragmentShader,
 	transparent: isTrans,
         depthWrite: !isTrans,
 	polygonOffset: true,
-	polygonOffsetFactor: LDR.Colors.DEFAULT_POLYGON_OFFSET_FACTOR || 0.0,
-        polygonOffsetUnits: LDR.Colors.DEFAULT_POLYGON_OFFSET_UNITS || 0.01
+	polygonOffsetFactor: Colors.DEFAULT_POLYGON_OFFSET_FACTOR || 0.0,
+        polygonOffsetUnits: Colors.DEFAULT_POLYGON_OFFSET_UNITS || 0.01
     });
     return ret;
 }
 
-LDR.Colors.logoPositions = [[-2,-4,2,-5,2,-3.5] // L
+Colors.logoPositions = [[-2,-4,2,-5,2,-3.5] // L
                             ,
                             [0,-1,0,-2.5], // E (Divided due to middle line)
                             [-2,0,-2,-2,2,-3,2,-1],
@@ -145,12 +149,12 @@ LDR.Colors.logoPositions = [[-2,-4,2,-5,2,-3.5] // L
                              -2,4,-1.5,3,1.5,2.25,
                              2,3,1.5,4,-1.5,4.75] // O
                             ];
-LDR.Colors.logoCurves = [[-1.5, 0.5 , -2,1.5, -1.5,2.25],
+Colors.logoCurves = [[-1.5, 0.5 , -2,1.5, -1.5,2.25],
                          [ 1.5,-0.25,  2,0.5,  1.5,1.5 ], // G
                          [-1.5, 3   , -2,  4, -1.5,4.75],
                          [ 1.5, 2.25,  2,  3,  1.5,4   ]]; // O
 
-LDR.Colors.createRandomTexture = function(damage, waves, waveSize, speckle) {
+Colors.createRandomTexture = function(damage, waves, waveSize, speckle) {
     let size = 512;
     let canvas = document.createElement("canvas");
     canvas.width = canvas.height = size;
@@ -252,7 +256,7 @@ LDR.Colors.createRandomTexture = function(damage, waves, waveSize, speckle) {
     let toB = x => Math.round(128 + 127 * x / R);
     const SIZE4 = size/4;
 
-    LDR.Colors.logoPositions.forEach(letter => { // For each letter:
+    Colors.logoPositions.forEach(letter => { // For each letter:
             for(let i = 0; i < letter.length; i+=2) { // Apply dots:
                 let X0 = Math.round(SIZE4 + letter[i+1]*M);
                 let Y0 = Math.round(SIZE4 + letter[i]*M);
@@ -327,7 +331,7 @@ LDR.Colors.createRandomTexture = function(damage, waves, waveSize, speckle) {
                 } // All other lines:
                 } // Apply lines 
         });// For each letter
-    LDR.Colors.logoCurves.forEach(curve => {
+    Colors.logoCurves.forEach(curve => {
             let [y1, x1, y2, x2, y3, x3] = curve.map(x => SIZE4 + x*M);
 
             let [yMin,yMax] = y1 < y2 ? [y1,y2+R] : [y2-R,y1];
@@ -402,51 +406,51 @@ LDR.Colors.createRandomTexture = function(damage, waves, waveSize, speckle) {
     return texture;
 }
 
-LDR.Colors.envMapPrefix = 'textures/cube/';
-LDR.Colors.textureMaterialPrefix = 'textures/materials/';
-LDR.Colors.listeningMaterials = {trans:[], // Only one trans texture.
+Colors.envMapPrefix = 'textures/cube/';
+Colors.textureMaterialPrefix = 'textures/materials/';
+Colors.listeningMaterials = {trans:[], // Only one trans texture.
                                  opaque:[], // -||-
                                  pearl:[],
                                  rubber:[],
                                  metal:[],
                                  speckle:{} }; // Speckle materials ordered by colorID: colorID->[]
-LDR.Colors.speckleInfo = {};
+Colors.speckleInfo = {};
 
-LDR.Colors.loadEnvMapTextures = function(render) {    
+Colors.loadEnvMapTextures = function(render) {    
     function updateEnvMapsForList(reflectionCube, list) {
         list.forEach(material => {material.envMap = reflectionCube; material.needsUpdate = true;});
     }
     function updateEnvMaps(reflectionCube) {
-        updateEnvMapsForList(reflectionCube, LDR.Colors.listeningMaterials.trans);
-        updateEnvMapsForList(reflectionCube, LDR.Colors.listeningMaterials.opaque);
-        updateEnvMapsForList(reflectionCube, LDR.Colors.listeningMaterials.pearl);
-        updateEnvMapsForList(reflectionCube, LDR.Colors.listeningMaterials.rubber);
-        updateEnvMapsForList(reflectionCube, LDR.Colors.listeningMaterials.metal);
-        for(let colorID in LDR.Colors.listeningMaterials.speckle) {
-            if(LDR.Colors.listeningMaterials.speckle.hasOwnProperty(colorID)) {
-                updateEnvMapsForList(reflectionCube, LDR.Colors.listeningMaterials.speckle[colorID]);
+        updateEnvMapsForList(reflectionCube, Colors.listeningMaterials.trans);
+        updateEnvMapsForList(reflectionCube, Colors.listeningMaterials.opaque);
+        updateEnvMapsForList(reflectionCube, Colors.listeningMaterials.pearl);
+        updateEnvMapsForList(reflectionCube, Colors.listeningMaterials.rubber);
+        updateEnvMapsForList(reflectionCube, Colors.listeningMaterials.metal);
+        for(let colorID in Colors.listeningMaterials.speckle) {
+            if(Colors.listeningMaterials.speckle.hasOwnProperty(colorID)) {
+                updateEnvMapsForList(reflectionCube, Colors.listeningMaterials.speckle[colorID]);
             }
         }
-        LDR.Colors.reflectionCube = reflectionCube;
+        Colors.reflectionCube = reflectionCube;
         render();
     }
 
-    if(LDR.Colors.reflectionCube) {
-        updateEnvMaps(LDR.Colors.reflectionCube);
+    if(Colors.reflectionCube) {
+        updateEnvMaps(Colors.reflectionCube);
     }
     else {
         let sides = ['px', 'nx', 'py', 'ny', 'pz', 'nz'];
-        new THREE.CubeTextureLoader().load(sides.map(x => LDR.Colors.envMapPrefix + x + '.jpg'), updateEnvMaps);
+        new THREE.CubeTextureLoader().load(sides.map(x => Colors.envMapPrefix + x + '.jpg'), updateEnvMaps);
     }
 }
 
-LDR.Colors.loadTextures = function(render) {
+Colors.loadTextures = function(render) {
     // Environment map:
-    LDR.Colors.loadEnvMapTextures(render);
+    Colors.loadEnvMapTextures(render);
 
     // Normal maps:
     let textureLoader = new THREE.TextureLoader();
-    textureLoader.setPath(LDR.Colors.textureMaterialPrefix);
+    textureLoader.setPath(Colors.textureMaterialPrefix);
 
     function updateNormalMapsForList(t, list) {
         list.forEach(material => {material.normalMap = t; material.needsUpdate = true; render()});
@@ -463,22 +467,22 @@ LDR.Colors.loadTextures = function(render) {
 	}
     }
 
-    setNormalMapsForList(LDR.Colors.listeningMaterials.trans, 'abs.png');
-    setNormalMapsForList(LDR.Colors.listeningMaterials.opaque, 'abs.png');
-    setNormalMapsForList(LDR.Colors.listeningMaterials.pearl, 'pearl.png');
-    setNormalMapsForList(LDR.Colors.listeningMaterials.rubber, 'rubber.png');
-    setNormalMapsForList(LDR.Colors.listeningMaterials.metal, 'metal.png');
-    for(let colorID in LDR.Colors.listeningMaterials.speckle) {
-        if(LDR.Colors.listeningMaterials.speckle.hasOwnProperty(colorID)) {            
-            let s = LDR.Colors.speckleInfo[colorID];
-            setNormalMapsForList(LDR.Colors.listeningMaterials.speckle[colorID], 'speckle.png');
+    setNormalMapsForList(Colors.listeningMaterials.trans, 'abs.png');
+    setNormalMapsForList(Colors.listeningMaterials.opaque, 'abs.png');
+    setNormalMapsForList(Colors.listeningMaterials.pearl, 'pearl.png');
+    setNormalMapsForList(Colors.listeningMaterials.rubber, 'rubber.png');
+    setNormalMapsForList(Colors.listeningMaterials.metal, 'metal.png');
+    for(let colorID in Colors.listeningMaterials.speckle) {
+        if(Colors.listeningMaterials.speckle.hasOwnProperty(colorID)) {            
+            let s = Colors.speckleInfo[colorID];
+            setNormalMapsForList(Colors.listeningMaterials.speckle[colorID], 'speckle.png');
         }
     }
 }
 
-LDR.Colors.generateTextures = function(render) {
+Colors.generateTextures = function(render) {
     // Environment map:
-    LDR.Colors.loadEnvMapTextures(render);
+    Colors.loadEnvMapTextures(render);
 
     // Normal maps:
     function updateNormalMapsForList(t, list) {
@@ -493,29 +497,29 @@ LDR.Colors.generateTextures = function(render) {
         updateNormalMapsForList(t, l);        
     }
 
-    setNormalMapsForList(LDR.Colors.listeningMaterials.trans, 
-                         () => LDR.Colors.createRandomTexture(5, 1.4, 0.1));
-    setNormalMapsForList(LDR.Colors.listeningMaterials.opaque,
-                         () => LDR.Colors.createRandomTexture(10, 1, 0.2));
-    setNormalMapsForList(LDR.Colors.listeningMaterials.pearl,
-                         () => LDR.Colors.createRandomTexture(20, 2.5, 0.05));
-    setNormalMapsForList(LDR.Colors.listeningMaterials.rubber,
-                         () => LDR.Colors.createRandomTexture(10, 0.3, 0.1));
-    setNormalMapsForList(LDR.Colors.listeningMaterials.metal,
-                         () => LDR.Colors.createRandomTexture(100, 0.6, 1.6));
-    for(let colorID in LDR.Colors.listeningMaterials.speckle) {
-        if(LDR.Colors.listeningMaterials.speckle.hasOwnProperty(colorID)) {            
-            let s = LDR.Colors.speckleInfo[colorID];
-            setNormalMapsForList(LDR.Colors.listeningMaterials.speckle[colorID],
-                                 () => LDR.Colors.createRandomTexture(5, 1.4, 0.1, s));
+    setNormalMapsForList(Colors.listeningMaterials.trans, 
+                         () => Colors.createRandomTexture(5, 1.4, 0.1));
+    setNormalMapsForList(Colors.listeningMaterials.opaque,
+                         () => Colors.createRandomTexture(10, 1, 0.2));
+    setNormalMapsForList(Colors.listeningMaterials.pearl,
+                         () => Colors.createRandomTexture(20, 2.5, 0.05));
+    setNormalMapsForList(Colors.listeningMaterials.rubber,
+                         () => Colors.createRandomTexture(10, 0.3, 0.1));
+    setNormalMapsForList(Colors.listeningMaterials.metal,
+                         () => Colors.createRandomTexture(100, 0.6, 1.6));
+    for(let colorID in Colors.listeningMaterials.speckle) {
+        if(Colors.listeningMaterials.speckle.hasOwnProperty(colorID)) {            
+            let s = Colors.speckleInfo[colorID];
+            setNormalMapsForList(Colors.listeningMaterials.speckle[colorID],
+                                 () => Colors.createRandomTexture(5, 1.4, 0.1, s));
         }
     }
 
     render();
 }
 
-LDR.Colors.buildStandardMaterial = function(colorID, texmap) {
-    let color = LDR.Colors[colorID < 0 ? (-colorID-1) : colorID]; // Assume non-negative color.
+Colors.buildStandardMaterial = function(colorID, texmap) {
+    let color = Colors[colorID < 0 ? (-colorID-1) : colorID]; // Assume non-negative color.
     if(color.m && !texmap) {
         return color.m;
     }
@@ -543,15 +547,15 @@ LDR.Colors.buildStandardMaterial = function(colorID, texmap) {
         if(color.material === 'CHROME' || color.material === 'METAL') {
             params.metalness = 1.0;
             params.roughness = 0.25;
-            registerTextureListener = m => LDR.Colors.listeningMaterials.metal.push(m);
+            registerTextureListener = m => Colors.listeningMaterials.metal.push(m);
             params.envMapIntensity = 1.0;
         }
         else if(color.material === 'RUBBER') {
             params.roughness = 0.9;
-            registerTextureListener = m => LDR.Colors.listeningMaterials.rubber.push(m);
+            registerTextureListener = m => Colors.listeningMaterials.rubber.push(m);
         }
         else if(color.material === 'PEARLESCENT') {
-            registerTextureListener = m => LDR.Colors.listeningMaterials.pearl.push(m);
+            registerTextureListener = m => Colors.listeningMaterials.pearl.push(m);
             params.roughness = 0.01; // Smooth
         }
         else if(color.material.startsWith('MATERIAL ')) {
@@ -562,14 +566,14 @@ LDR.Colors.buildStandardMaterial = function(colorID, texmap) {
             if(m.startsWith('SPECKLE VALUE ')) {
                 m = m.substring('SPECKLE VALUE #XXXXXX FRACTION '.length).split(' '); // TODO: Incorporate color/value
                 if(m.length === 5) {
-                    if(!LDR.Colors.speckleInfo.hasOwnProperty(colorID)) {
+                    if(!Colors.speckleInfo.hasOwnProperty(colorID)) {
                         let fraction = parseFloat(m[0]);
                         let minSize = parseInt(m[2]);
                         let maxSize = parseInt(m[4]);
-                        LDR.Colors.speckleInfo[colorID] = {fraction:fraction, minSize:minSize, maxSize:maxSize};
-                        LDR.Colors.listeningMaterials.speckle[colorID] = [];
+                        Colors.speckleInfo[colorID] = {fraction:fraction, minSize:minSize, maxSize:maxSize};
+                        Colors.listeningMaterials.speckle[colorID] = [];
                     }
-                    registerTextureListener = m => LDR.Colors.listeningMaterials.speckle[colorID].push(m);
+                    registerTextureListener = m => Colors.listeningMaterials.speckle[colorID].push(m);
                 }
                 else {
                     console.warn('Failed to parse speckle definition for color ' + colorID + ': ' + m.join('/'));
@@ -578,25 +582,25 @@ LDR.Colors.buildStandardMaterial = function(colorID, texmap) {
             else if(m.startsWith('GLITTER VALUE ')) {
                 m = m.substring('GLITTER VALUE #XXXXXX FRACTION '.length).split(' '); // TODO: Incorporate color/value
                 if(m.length === 5) {
-                    if(!LDR.Colors.speckleInfo.hasOwnProperty(colorID)) {
+                    if(!Colors.speckleInfo.hasOwnProperty(colorID)) {
                         let fraction = parseFloat(m[0]);
                         //let vFraction = parseFloat(m[2]); // Volume fraction is ignored as the material only has an affect on the surface, not the interior.
                         let size = parseInt(m[4]);
-                        LDR.Colors.speckleInfo[colorID] = {fraction:fraction, minSize:size, maxSize:size};
-                        LDR.Colors.listeningMaterials.speckle[colorID] = [];
+                        Colors.speckleInfo[colorID] = {fraction:fraction, minSize:size, maxSize:size};
+                        Colors.listeningMaterials.speckle[colorID] = [];
                     }
-                    registerTextureListener = m => LDR.Colors.listeningMaterials.speckle[colorID].push(m);
+                    registerTextureListener = m => Colors.listeningMaterials.speckle[colorID].push(m);
                 }
                 else if(m.length === 7) {
-                    if(!LDR.Colors.speckleInfo.hasOwnProperty(colorID)) {
+                    if(!Colors.speckleInfo.hasOwnProperty(colorID)) {
                         let fraction = parseFloat(m[0]);
                         //let vFraction = parseFloat(m[2]); // Volume fraction is ignored as the material only has an affect on the surface, not the interior.
                         let minSize = parseInt(m[4]);
                         let maxSize = parseInt(m[6]);
-                        LDR.Colors.speckleInfo[colorID] = {fraction:fraction, minSize:minSize, maxSize:maxSize};
-                        LDR.Colors.listeningMaterials.speckle[colorID] = [];
+                        Colors.speckleInfo[colorID] = {fraction:fraction, minSize:minSize, maxSize:maxSize};
+                        Colors.listeningMaterials.speckle[colorID] = [];
                     }
-                    registerTextureListener = m => LDR.Colors.listeningMaterials.speckle[colorID].push(m);
+                    registerTextureListener = m => Colors.listeningMaterials.speckle[colorID].push(m);
                 }
                 else {
                     console.warn('Failed to parse glitter definition for color ' + colorID + ': ' + m.join('/'));
@@ -611,13 +615,13 @@ LDR.Colors.buildStandardMaterial = function(colorID, texmap) {
         }
     }
     else if(colorID === 0) {
-        registerTextureListener = m => LDR.Colors.listeningMaterials.opaque.push(m);
+        registerTextureListener = m => Colors.listeningMaterials.opaque.push(m);
         params.specular = 0xDFDFDF; // Increase glare
         params.shininess = 82;
         params.reflectivity = 0.9;
     }
     else if(color.alpha > 0) {
-        registerTextureListener = m => LDR.Colors.listeningMaterials.trans.push(m);
+        registerTextureListener = m => Colors.listeningMaterials.trans.push(m);
         if(color.luminance > 0) {
             createMaterial = p => new THREE.MeshStandardMaterial(p);
             params.metalness = 0.8; // Due to how standard material is implemented, this causes the elements to show when there is no light.
@@ -629,7 +633,7 @@ LDR.Colors.buildStandardMaterial = function(colorID, texmap) {
         }
     }
     else {
-        registerTextureListener = m => LDR.Colors.listeningMaterials.opaque.push(m);
+        registerTextureListener = m => Colors.listeningMaterials.opaque.push(m);
         params.shininess = 100;
         params.reflectivity = 0.1;
     }
@@ -658,3 +662,5 @@ LDR.Colors.buildStandardMaterial = function(colorID, texmap) {
     }
     return m;
 }
+
+export { Colors }

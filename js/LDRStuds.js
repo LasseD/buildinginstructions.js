@@ -1,8 +1,10 @@
 'use strict'
 
+import * as THREE from 'three'
+import { Generator } from './LDRGenerator.js'
+import { LDRLoader, LDRPartDescription, LDRStep } from './LDRLoader.js'
+
 /**
- * @author Lasse Deleuran | c-mt.dk and brickhub.org
- *
  * LDRStuds.js is used to generate studs with the desired "LEGO" logo.
  *
  * Stud parts can be modified by changing:
@@ -13,43 +15,43 @@
  *  - 2: Quick draw logos using textures (for physical renderings)
  * - force: Force low/high resolution primitives to be used in the stud
  */
-LDR.Studs = {}; // Studs namespace
+let Studs = {}; // Studs namespace
 
-LDR.Studs.all = [
-    (hc, logoType, force) => LDR.Studs.stud1(hc, logoType, force, true),
-    (hc, logoType, force) => LDR.Studs.stud1(hc, logoType, force, false),
-    (hc, logoType, force) => LDR.Studs.stud2(hc, logoType, force),
-    (hc, logoType, force) => LDR.Studs.stud2a(hc, force),
-    (hc, logoType, force) => LDR.Studs.stud6(hc, logoType, force, true),
-    (hc, logoType, force) => LDR.Studs.stud6(hc, logoType, force, false),
-    (hc, logoType, force) => LDR.Studs.stud10(hc, logoType, force),
-    (hc, logoType, force) => LDR.Studs.stud13(hc, logoType, force),
-    (hc, logoType, force) => LDR.Studs.stud15(hc, logoType, force),
-    (hc, logoType, force) => LDR.Studs.stud17(hc, logoType, force, true),
-    (hc, logoType, force) => LDR.Studs.stud17(hc, logoType, force, false),
-    (hc, logoType, force) => LDR.Studs.studP01(hc, logoType, force),
-    (hc, logoType, force) => LDR.Studs.studEl(hc, logoType, force),
+Studs.all = [
+    (hc, logoType, force) => Studs.stud1(hc, logoType, force, true),
+    (hc, logoType, force) => Studs.stud1(hc, logoType, force, false),
+    (hc, logoType, force) => Studs.stud2(hc, logoType, force),
+    (hc, logoType, force) => Studs.stud2a(hc, force),
+    (hc, logoType, force) => Studs.stud6(hc, logoType, force, true),
+    (hc, logoType, force) => Studs.stud6(hc, logoType, force, false),
+    (hc, logoType, force) => Studs.stud10(hc, logoType, force),
+    (hc, logoType, force) => Studs.stud13(hc, logoType, force),
+    (hc, logoType, force) => Studs.stud15(hc, logoType, force),
+    (hc, logoType, force) => Studs.stud17(hc, logoType, force, true),
+    (hc, logoType, force) => Studs.stud17(hc, logoType, force, false),
+    (hc, logoType, force) => Studs.studP01(hc, logoType, force),
+    (hc, logoType, force) => Studs.studEl(hc, logoType, force),
     ];
 
-LDR.Studs.makeGenerators = function(force, highContrast, logoType) {
-    if(!LDR.Generator) {
+Studs.makeGenerators = function(force, highContrast, logoType) {
+    if(!Generator) {
         console.warn('Generators not enabled - skipping stud generation.');
         return;
     }
-    LDR.Studs.all.forEach(f => {
+    Studs.all.forEach(f => {
         let [pt,id] = f(highContrast, logoType, force);
         pt.id = id + '.dat';
-        LDR.Generator.register(id, () => pt);
+        Generator.register(id, () => pt);
     });
 }
 
-LDR.Studs.setStuds = function(loader, highContrast, logoType, onDone) {
+Studs.setStuds = function(loader, highContrast, logoType, onDone) {
     let partTypes = loader.partTypes;
     let force = loader.options.force ? (loader.options.force+'/') : ''; // Either 8, 48 or undefined.
 
     let idb = []; // Primitives that we know are needed and would like to see fetched using ClientStorage:
     let seen = {};
-    LDR.Studs.all.forEach(f => {
+    Studs.all.forEach(f => {
 	let [pt,id] = f(highContrast, logoType, force);
         id = id + '.dat';
 	if(partTypes.hasOwnProperty(id)) { // Used, so replace and ensure sub models are present:
@@ -79,21 +81,21 @@ LDR.Studs.setStuds = function(loader, highContrast, logoType, onDone) {
 	    }
 	}
 	
-        let loader2 = new THREE.LDRLoader(onDone, loader.storage, options);
+        let loader2 = new LDRLoader(onDone, loader.storage, options);
         loader2.partTypes = partTypes; // Load to same data store.
         loader2.loadMultiple(idb);
     }
 }
 
-LDR.Studs.stud1 = function(highContrast, logoType, force, withoutBaseEdge) {
-    let [pt,step] = LDR.Generator.pT('Stud' + (withoutBaseEdge ? ' without Base Edges':''));
+Studs.stud1 = function(highContrast, logoType, force, withoutBaseEdge) {
+    let [pt,step] = Generator.pT('Stud' + (withoutBaseEdge ? ' without Base Edges':''));
 
     // Common positions and rotations:
     let p0 = new THREE.Vector3();
-    let r11 = LDR.Generator.R(1, 1);
-    let r61 = LDR.Generator.R(6, 1);
+    let r11 = Generator.R(1, 1);
+    let r61 = Generator.R(6, 1);
     let p4 = new THREE.Vector3(0, -4, 0);
-    let r64 = LDR.Generator.R(6, -4);
+    let r64 = Generator.R(6, -4);
     if(!withoutBaseEdge) {
 	step.asm(p0, r61, force+'4-4edge');
     }
@@ -101,7 +103,7 @@ LDR.Studs.stud1 = function(highContrast, logoType, force, withoutBaseEdge) {
     // Stud type one actually uses a 4-4cylc.dat, but then high contrast does not work!
     step.asm(p4, r61, force+'4-4edge');
 
-    let logoSM = new THREE.LDRPartDescription(16, p4, r61, force+'4-4disc.dat', true, false);
+    let logoSM = new LDRPartDescription(16, p4, r61, force+'4-4disc.dat', true, false);
     step.addSubModel(logoSM);
     if(logoType === 2) {
         logoSM.logoPosition = p4;
@@ -123,16 +125,16 @@ LDR.Studs.stud1 = function(highContrast, logoType, force, withoutBaseEdge) {
     return [pt, withoutBaseEdge ? 'studa' : 'stud'];
 }
 
-LDR.Studs.stud2a = function(highContrast, force) {
-    let [pt,step] = LDR.Generator.pT('Stud Open without Base Edges');
+Studs.stud2a = function(highContrast, force) {
+    let [pt,step] = Generator.pT('Stud Open without Base Edges');
     
     let p0 = new THREE.Vector3();
     let p4 = new THREE.Vector3(0, -4, 0);
-    let r41 = LDR.Generator.R(4, 1);
-    let r61 = LDR.Generator.R(6, 1);
-    let r44 = LDR.Generator.R(4, 4);
-    let r64 = LDR.Generator.R(6, 4);
-    let r21 = LDR.Generator.R(2, 1);
+    let r41 = Generator.R(4, 1);
+    let r61 = Generator.R(6, 1);
+    let r44 = Generator.R(4, 4);
+    let r64 = Generator.R(6, 4);
+    let r21 = Generator.R(2, 1);
 
     step.asm(p4, r41, force+'4-4edge');
     step.asm(p4, r61, force+'4-4edge');
@@ -148,16 +150,16 @@ LDR.Studs.stud2a = function(highContrast, force) {
     return [pt,'stud2a'];
 }
 
-LDR.Studs.stud2 = function(highContrast, logoType, force) {
-    let [pt,step] = LDR.Generator.pT('Stud Open');
+Studs.stud2 = function(highContrast, logoType, force) {
+    let [pt,step] = Generator.pT('Stud Open');
 
     let p0 = new THREE.Vector3();
     let p4 = new THREE.Vector3(0, -4, 0);
-    let r41 = LDR.Generator.R(4, 1);
-    let r61 = LDR.Generator.R(6, 1);
-    let r44 = LDR.Generator.R(4, 4);
-    let r64 = LDR.Generator.R(6, 4);
-    let r21 = LDR.Generator.R(2, 1);
+    let r41 = Generator.R(4, 1);
+    let r61 = Generator.R(6, 1);
+    let r44 = Generator.R(4, 4);
+    let r64 = Generator.R(6, 4);
+    let r21 = Generator.R(2, 1);
     
     step.asm(p0, r41, force+'4-4edge');
     step.asm(p4, r61, force+'4-4edge');
@@ -176,13 +178,13 @@ LDR.Studs.stud2 = function(highContrast, logoType, force) {
     // Logo:
     if(logoType === 1) {
         // 1 16 0 0 0 0.6 0 0 0 1 0 0 0 0.6 logo.dat:
-        let r061 = LDR.Generator.R(0.6, 1);
+        let r061 = Generator.R(0.6, 1);
         step.asm(p0, r061, 'logo');
     }
     else if(logoType === 2) {
         let p5 = new THREE.Vector3(0, -0.5, 0);
 
-        let logoSM = new THREE.LDRPartDescription(16, p5, r41, force+'4-4disc.dat', true, false);;
+        let logoSM = new LDRPartDescription(16, p5, r41, force+'4-4disc.dat', true, false);;
         step.addSubModel(logoSM);
         logoSM.logoPosition = p5;
     }
@@ -190,17 +192,17 @@ LDR.Studs.stud2 = function(highContrast, logoType, force) {
     return [pt, 'stud2'];
 }
 
-LDR.Studs.studP01 = function(highContrast, logoType, force) {
-    let [pt,step] = LDR.Generator.pT('Stud with Dot Pattern');
+Studs.studP01 = function(highContrast, logoType, force) {
+    let [pt,step] = Generator.pT('Stud with Dot Pattern');
 
     // Common positions and rotations:
     let p0 = new THREE.Vector3();
     let p4 = new THREE.Vector3(0, -4, 0);
 
-    let r61 = LDR.Generator.R(6, 1);
-    let r64 = LDR.Generator.R(6, -4);
-    let r21 = LDR.Generator.R(2, 1);
-    let r41 = LDR.Generator.R(4, 1);
+    let r61 = Generator.R(6, 1);
+    let r64 = Generator.R(6, -4);
+    let r21 = Generator.R(2, 1);
+    let r41 = Generator.R(4, 1);
 
     step.asm(p0, r61, force+'4-4edge');
     step.asm(p4, r61, force+'4-4edge');
@@ -212,7 +214,7 @@ LDR.Studs.studP01 = function(highContrast, logoType, force) {
     }
     step.asm(p4, r21, force+'4-4ring2');
 
-    let logoSM = new THREE.LDRPartDescription(16, p4, r41, force+'4-4disc.dat', true, false);
+    let logoSM = new LDRPartDescription(16, p4, r41, force+'4-4disc.dat', true, false);
     step.addSubModel(logoSM);
     if(logoType === 2) {
         logoSM.logoPosition = p4;
@@ -220,15 +222,15 @@ LDR.Studs.studP01 = function(highContrast, logoType, force) {
 
     // Logo:
     if(logoType === 1) {
-	let r11 = LDR.Generator.R(1, 1);
+	let r11 = Generator.R(1, 1);
         step.asm(p4, r11, 'logo');
     }
     
     return [pt, 'studp01.dat'];
 }
 
-LDR.Studs.studEl = function(highContrast, logoType, force) {
-    let [pt,step] = LDR.Generator.pT('Stud with Electric Contact');
+Studs.studEl = function(highContrast, logoType, force) {
+    let [pt,step] = Generator.pT('Stud with Electric Contact');
 
     // Common positions and rotations:
     let p0 = new THREE.Vector3();
@@ -237,7 +239,7 @@ LDR.Studs.studEl = function(highContrast, logoType, force) {
 
     let cc = highContrast ? 0 : 16;
 
-    let r61 = LDR.Generator.R(6, 1);
+    let r61 = Generator.R(6, 1);
     step.asm(p0, r61, force+'4-4edge');
 
     step.asm(p4, r61, force+'4-4edge');
@@ -248,17 +250,17 @@ LDR.Studs.studEl = function(highContrast, logoType, force) {
     let r061 = new THREE.Matrix3(); r061.set(0, 0, 6, 0, -1, 0, -6, 0, 0);
     step.asm(p3, r061, force+'4-4cyli', cc);
 
-    let r63 = LDR.Generator.R(-6, -3);
+    let r63 = Generator.R(-6, -3);
     step.asm(p0, r63, force+'1-4cyli', 494);
 
-    let rn61 = LDR.Generator.R(-6, 1);
+    let rn61 = Generator.R(-6, 1);
     step.asm(p3, rn61, force+'1-4edge');
 
     step.addLine(24, new THREE.Vector3(-6, 0, 0), new THREE.Vector3(-6, -3, 0));
 
     step.addLine(24, new THREE.Vector3(0, 0, -6), new THREE.Vector3(0, -3, -6));
 
-    let logoSM = new THREE.LDRPartDescription(16, p4, r61, force+'4-4disc.dat', true, false);;
+    let logoSM = new LDRPartDescription(16, p4, r61, force+'4-4disc.dat', true, false);;
     step.addSubModel(logoSM);
     if(logoType === 2) {
         logoSM.logoPosition = p4;
@@ -273,38 +275,8 @@ LDR.Studs.studEl = function(highContrast, logoType, force) {
     return [pt, 'studel.dat'];
 }
 
-THREE.LDRStep.prototype.acl = function(lines) {
-    for(let i = 0; i < lines.length; i+=12) {
-	this.addConditionalLine(24,
-				new THREE.Vector3(lines[i], lines[i+1], lines[i+2]),
-				new THREE.Vector3(lines[i+3], lines[i+4], lines[i+5]),
-				new THREE.Vector3(lines[i+6], lines[i+7], lines[i+8]),
-				new THREE.Vector3(lines[i+9], lines[i+10], lines[i+11]));
-    }
-}
-
-THREE.LDRStep.prototype.at = function(triangles, color = 16) {
-    for(let i = 0; i < triangles.length; i+=9) {
-	this.addTriangle(color,
-			 new THREE.Vector3(triangles[i], triangles[i+1], triangles[i+2], true),
-			 new THREE.Vector3(triangles[i+3], triangles[i+4], triangles[i+5], true),
-			 new THREE.Vector3(triangles[i+6], triangles[i+7], triangles[i+8]), true);
-    }
-}
-
-THREE.LDRStep.prototype.aq = function(quads, color = 16) {
-    for(let i = 0; i < quads.length; i+=12) {
-	this.addQuad(color,
-		     new THREE.Vector3(quads[i], quads[i+1], quads[i+2]),
-		     new THREE.Vector3(quads[i+3], quads[i+4], quads[i+5]),
-		     new THREE.Vector3(quads[i+6], quads[i+7], quads[i+8]),
-		     new THREE.Vector3(quads[i+9], quads[i+10], quads[i+11]),
-		     true);
-    }
-}
-
-LDR.Studs.stud10 = function(highContrast, logoType, force) {
-    let [pt,step] = LDR.Generator.pT('Stud For Round 2 x 2 Parts');
+Studs.stud10 = function(highContrast, logoType, force) {
+    let [pt,step] = Generator.pT('Stud For Round 2 x 2 Parts');
     let cc = highContrast ? 0 : 16;
 
     // Lines:
@@ -331,7 +303,7 @@ LDR.Studs.stud10 = function(highContrast, logoType, force) {
     step.asm(p0, r61, force+'3-4edge');
     step.asm(p4, r61, force+'3-4edge');
 
-    let logoSM = new THREE.LDRPartDescription(16, p4, r61, force+'3-4disc.dat', true, false);
+    let logoSM = new LDRPartDescription(16, p4, r61, force+'3-4disc.dat', true, false);
     step.addSubModel(logoSM);
     if(logoType === 2) {
         logoSM.logoPosition = p4;
@@ -358,8 +330,8 @@ LDR.Studs.stud10 = function(highContrast, logoType, force) {
     return [pt, 'stud10.dat'];
 }
 
-LDR.Studs.stud15 = function(highContrast, logoType, force) {
-    let [pt,step] = LDR.Generator.pT('Stud for Round 2 x 2 Parts, 1 Face, Complete Edges');
+Studs.stud15 = function(highContrast, logoType, force) {
+    let [pt,step] = Generator.pT('Stud for Round 2 x 2 Parts, 1 Face, Complete Edges');
     let cc = highContrast ? 0 : 16;
 
     // Common positions and rotations:
@@ -379,7 +351,7 @@ LDR.Studs.stud15 = function(highContrast, logoType, force) {
     step.asm(new THREE.Vector3(5.8072, -2, 0.9694), r2, force+'rect3', cc);
     step.asm(p4, r64, force+'3-4cyli', cc);
 
-    let logoSM = new THREE.LDRPartDescription(16, p4, r61, force+'3-4disc.dat', true, false);
+    let logoSM = new LDRPartDescription(16, p4, r61, force+'3-4disc.dat', true, false);
     step.addSubModel(logoSM);
     if(logoType === 2) {
         logoSM.logoPosition = p4;
@@ -398,15 +370,15 @@ LDR.Studs.stud15 = function(highContrast, logoType, force) {
     return [pt, 'stud15.dat'];
 }
 
-LDR.Studs.stud17 = function(highContrast, logoType, force, withoutBaseEdges) {
-    let [pt,step] = LDR.Generator.pT('Stud Open For Octagonal Parts' + (withoutBaseEdges ? ' without Base Edges' : ''));
+Studs.stud17 = function(highContrast, logoType, force, withoutBaseEdges) {
+    let [pt,step] = Generator.pT('Stud Open For Octagonal Parts' + (withoutBaseEdges ? ' without Base Edges' : ''));
     let cc = highContrast ? 0 : 16;
 
     // Common positions and rotations:
     let p0 = new THREE.Vector3();
     let p4 = new THREE.Vector3(0, -4, 0);
-    let r44 = LDR.Generator.R(4, 4);
-    let r41 = LDR.Generator.R(4, 1);
+    let r44 = Generator.R(4, 4);
+    let r41 = Generator.R(4, 1);
 
     // Sub parts:
     step.asm(p4, r44, force+'4-4cyli.dat', cc, true, true);
@@ -443,20 +415,20 @@ LDR.Studs.stud17 = function(highContrast, logoType, force, withoutBaseEdges) {
 	      2.296,-4,5.543,2.296,0,5.543,2.78,-4,5.22,0,-4,6,
 	      5.543,-4,2.296,5.543,0,2.296,5.22,-4,2.78,6,-4,0]);
     if(!withoutBaseEdges && logoType === 1) {
-        let r061 = LDR.Generator.R(0.6, 1);
+        let r061 = Generator.R(0.6, 1);
         step.asm(p0, r061, 'logo');
     }
     else if(logoType === 2) {
         let p5 = new THREE.Vector3(0, -0.5, 0);
-        let logoSM = new THREE.LDRPartDescription(16, p5, r41, force+'4-4disc.dat', true, false);
+        let logoSM = new LDRPartDescription(16, p5, r41, force+'4-4disc.dat', true, false);
         logoSM.logoPosition = p5;
         step.addSubModel(logoSM);
     }
     return [pt, (withoutBaseEdges ? 'stud17a.dat' : 'stud17.dat')];
 }
 
-LDR.Studs.stud13 = function(highContrast, logoType, force) {
-    let [pt,step] = LDR.Generator.pT('Stud for Electric Light & Sound Brick  2 x  2 x  1.333');
+Studs.stud13 = function(highContrast, logoType, force) {
+    let [pt,step] = Generator.pT('Stud for Electric Light & Sound Brick  2 x  2 x  1.333');
     let cc = highContrast ? 0 : 16;
 
     step.al([6,0,0,5.782,0,1.095,
@@ -487,7 +459,7 @@ LDR.Studs.stud13 = function(highContrast, logoType, force) {
     step.asm(p0, r61, force+'3-4edge');
     step.asm(p4, r61, force+'3-4edge');
 
-    let logoSM = new THREE.LDRPartDescription(16, p4, r61, force+'3-4disc.dat', true, false);
+    let logoSM = new LDRPartDescription(16, p4, r61, force+'3-4disc.dat', true, false);
     step.addSubModel(logoSM);
     if(logoType === 2) {
         logoSM.logoPosition = p4;
@@ -501,8 +473,8 @@ LDR.Studs.stud13 = function(highContrast, logoType, force) {
     return [pt, 'stud13.dat'];
 }
 
-LDR.Studs.stud6 = function(highContrast, logoType, force, withoutBaseEdges) {
-    let [pt,step] = LDR.Generator.pT('Stud Open For Round 2x2 Parts' + (withoutBaseEdges ? ' without Base Edges' : ''));
+Studs.stud6 = function(highContrast, logoType, force, withoutBaseEdges) {
+    let [pt,step] = Generator.pT('Stud Open For Round 2x2 Parts' + (withoutBaseEdges ? ' without Base Edges' : ''));
     let cc = highContrast ? 0 : 16;
 
     step.al([5.6145,-4,1.9397,5.6145,0,1.9397,
@@ -515,9 +487,9 @@ LDR.Studs.stud6 = function(highContrast, logoType, force, withoutBaseEdges) {
     // Common positions and rotations:
     let p0 = new THREE.Vector3(0, 0, 0);
     let p4 = new THREE.Vector3(0, -4, 0);
-    let r41 = LDR.Generator.R(4, 1);
-    let r21 = LDR.Generator.R(-2, 1);
-    let r44 = LDR.Generator.R(4, 4);
+    let r41 = Generator.R(4, 1);
+    let r21 = Generator.R(-2, 1);
+    let r44 = Generator.R(4, 4);
     let r61 = new THREE.Matrix3(); r61.set(0, 0, -6, 0, 1, 0, 6, 0, 0);
     let r64 = new THREE.Matrix3(); r64.set(0, 0, -6, 0, 4, 0, 6, 0, 0);
 
@@ -550,14 +522,16 @@ LDR.Studs.stud6 = function(highContrast, logoType, force, withoutBaseEdges) {
     step.acl([4.142,-4,4.142,4.142,0,4.142,2.2962,-4,5.5434,5.5434,-4,2.2962]);
 
     if(!withoutBaseEdges && logoType === 1) {
-        let r061 = LDR.Generator.R(0.6, 1);
+        let r061 = Generator.R(0.6, 1);
         step.asm(p0, r061, 'logo');
     }
     else if(logoType === 2) {
         let p5 = new THREE.Vector3(0, -0.5, 0);
-        let logoSM = new THREE.LDRPartDescription(16, p5, r41, force+'4-4disc.dat', true, false);
+        let logoSM = new LDRPartDescription(16, p5, r41, force+'4-4disc.dat', true, false);
         logoSM.logoPosition = p5;
         step.addSubModel(logoSM);
     }
     return [pt, withoutBaseEdges ? 'stud6a.dat' : 'stud6.dat'];
 }
+
+export { Studs }

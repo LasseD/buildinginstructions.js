@@ -1,6 +1,6 @@
 'use strict';
 
-LDR.STORAGE = function(onReady) {
+let STORAGE = function(onReady) {
     let self = this;
     this.req = indexedDB.open("ldraw", 10);
 
@@ -64,7 +64,7 @@ LDR.STORAGE = function(onReady) {
 /*
   Attempts to fetch all in array 'parts' and calls onDone(stillToBeBuilt) on completion.
  */
-LDR.STORAGE.prototype.retrievePartsFromStorage = function(loader, parts, onDone) {
+STORAGE.prototype.retrievePartsFromStorage = function(loader, parts, onDone) {
     if(parts.length === 0 || !this.db) { // Ensure onDone is called when nothing is fetched or can be fetched.
         onDone([]);
         return;
@@ -111,8 +111,8 @@ LDR.STORAGE.prototype.retrievePartsFromStorage = function(loader, parts, onDone)
         self.requestedParts[partID] = true;                
 
         // Try first to generate the parts as this is quicker:
-        if(LDR.Generator) {
-            let pt = LDR.Generator.make(partID);
+        if(Generator) {
+            let pt = Generator.make(partID);
             if(pt) {
                 loader.setPartType(pt);
                 onHandled(partID);
@@ -154,7 +154,7 @@ LDR.STORAGE.prototype.retrievePartsFromStorage = function(loader, parts, onDone)
     parts.forEach(fetch);
 }
 
-LDR.STORAGE.prototype.retrieveInstructionsFromStorage = function(loader, onDone) {
+STORAGE.prototype.retrieveInstructionsFromStorage = function(loader, onDone) {
     if(!loader.options.hasOwnProperty('key') || !loader.options.hasOwnProperty('timestamp') || !this.db) {
 	onDone(false);
 	return;
@@ -190,7 +190,7 @@ LDR.STORAGE.prototype.retrieveInstructionsFromStorage = function(loader, onDone)
     };
 }
 
-LDR.STORAGE.prototype.savePartsToStorage = function(parts, loader) {
+STORAGE.prototype.savePartsToStorage = function(parts, loader) {
     if(!this.db) {
 	return; // No db to save to.
     }
@@ -216,7 +216,7 @@ LDR.STORAGE.prototype.savePartsToStorage = function(parts, loader) {
     parts.forEach(savePartType);
 }
 
-LDR.STORAGE.prototype.saveInstructionsToStorage = function(loader, key, timestamp) {
+STORAGE.prototype.saveInstructionsToStorage = function(loader, key, timestamp) {
     if(loader.instructionsSaved || !this.db) {
 	return; // Already saved or no db.
     }
@@ -238,3 +238,5 @@ LDR.STORAGE.prototype.saveInstructionsToStorage = function(loader, key, timestam
     packed.timestamp = timestamp;
     objectStore.put(packed).onsuccess = () => console.log('Instructions saved to indexedDB.');
 }
+
+export { STORAGE }

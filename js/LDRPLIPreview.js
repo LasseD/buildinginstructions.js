@@ -1,7 +1,11 @@
+'use strict';
+
+import * as THREE from 'three'
+
 /*
   Icon: {x, y, width, height, mult, key, part, c, desc}
  */
-LDR.PliPreviewer = function(modelID, canvas, renderer) {
+let PliPreviewer = function(modelID, canvas, renderer) {
     if(!renderer) {
 	throw "Missing renderer";
     }
@@ -19,13 +23,13 @@ LDR.PliPreviewer = function(modelID, canvas, renderer) {
     this.controls;
 }
 
-LDR.PliPreviewer.prototype.enableControls = function() { 
+PliPreviewer.prototype.enableControls = function() { 
     let self = this;
     this.controls = new THREE.OrbitControls(this.camera, this.canvas);
     this.controls.addEventListener('change',()=>self.render());
 }
 
-LDR.PliPreviewer.prototype.render = function() {
+PliPreviewer.prototype.render = function() {
     if(this.composer !== null) {
         this.composer.render();
     }
@@ -34,11 +38,11 @@ LDR.PliPreviewer.prototype.render = function() {
     }
 }
 
-LDR.PliPreviewer.prototype.onResize = function() {
+PliPreviewer.prototype.onResize = function() {
     if(!this.renderer) {
         return; // Not shown yet.
     }
-    let [w, h] = LDR.getScreenSize();
+    let [w, h] = getScreenSize();
     w *= 0.80;
     h -= 180;
 
@@ -62,20 +66,20 @@ LDR.PliPreviewer.prototype.onResize = function() {
     this.render();
 }
 
-LDR.PliPreviewer.prototype.resetCameraZoom = function() {
+PliPreviewer.prototype.resetCameraZoom = function() {
     let sizeMin = Math.min(this.canvas.clientWidth, this.canvas.clientHeight);
     this.camera.zoom = sizeMin / this.subjectSize;
     this.camera.updateProjectionMatrix();
 }
 
-LDR.PliPreviewer.prototype.resetCameraPosition = function() {
+PliPreviewer.prototype.resetCameraPosition = function() {
     this.camera.position.set(10000, 7000, 10000);
     this.camera.lookAt(new THREE.Vector3());
     this.resetCameraZoom();
     this.render();
 }
 
-LDR.PliPreviewer.prototype.zoomIn = function() {
+PliPreviewer.prototype.zoomIn = function() {
     if(!this.controls) {
 	return;
     }
@@ -83,7 +87,7 @@ LDR.PliPreviewer.prototype.zoomIn = function() {
     this.render();
 }
 
-LDR.PliPreviewer.prototype.zoomOut = function() {
+PliPreviewer.prototype.zoomOut = function() {
     if(!this.controls) {
 	return;
     }
@@ -91,7 +95,7 @@ LDR.PliPreviewer.prototype.zoomOut = function() {
     this.render();    
 }
 
-LDR.PliPreviewer.prototype.setPart = function(pt, c) {
+PliPreviewer.prototype.setPart = function(pt, c) {
     this.clear();
 
     this.pliHighlighted = pt;
@@ -105,21 +109,21 @@ LDR.PliPreviewer.prototype.setPart = function(pt, c) {
     this.onResize();    
 }
  
-LDR.PliPreviewer.prototype.clear = function() {
+PliPreviewer.prototype.clear = function() {
     if(this.showsSomething()) {
         this.scene.remove(this.pliHighlighted.mesh);        
         this.pliHighlighted = null;
     }
 }
 
-LDR.PliPreviewer.prototype.showsSomething = function() {
+PliPreviewer.prototype.showsSomething = function() {
     return this.pliHighlighted !== null;
 }
  
-LDR.PliPreviewer.prototype.showPliPreview = function(icon) {
+PliPreviewer.prototype.showPliPreview = function(icon) {
     if(icon) {
         let c = icon.c;
-        let color = LDR.Colors[c];
+        let color = Colors[c];
 
         // Update description:
         let nameEle = document.getElementById('preview_info_name');
@@ -129,8 +133,8 @@ LDR.PliPreviewer.prototype.showPliPreview = function(icon) {
         }
         let partIdBricklink;
         let blVisibility = 'hidden';
-        if(LDR.BL && LDR.BL.hasOwnProperty(partIdNoDat)) {
-            partIdBricklink = LDR.BL[partIdNoDat];
+        if(BL && BL.hasOwnProperty(partIdNoDat)) {
+            partIdBricklink = BL[partIdNoDat];
             blVisibility = 'visible';
         }
         else {
@@ -171,12 +175,14 @@ LDR.PliPreviewer.prototype.showPliPreview = function(icon) {
     $('#preview_holder, #preview_background, #preview').fadeIn(fadeInTime);
 }
 
-LDR.PliPreviewer.prototype.hidePliPreview = function() {
+PliPreviewer.prototype.hidePliPreview = function() {
     // Hack to ensure it works on Android:
-    [w, h] = LDR.getScreenSize();
+    [w, h] = getScreenSize();
     this.renderer.setSize(w, h, true);
 
     this.clear();
     let fadeOutTime = 400;
     $('#preview_holder, #preview_background, #preview').fadeOut(fadeOutTime);
 }
+
+export { PliPreviewer }

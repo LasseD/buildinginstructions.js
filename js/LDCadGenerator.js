@@ -1,11 +1,13 @@
 'use strict';
 
+import { Line0 } from './LDRLoader.js'
+
 /**
 LDCad generated elements: http://www.melkert.net/LDCad/tech/meta
  */
-LDR.LDCAD = {};
+let LDCAD = {};
 
-LDR.LDCAD.handleCommentLine = function(pt, parts) {
+LDCAD.handleCommentLine = function(pt, parts) {
     if(parts.length < 3) {
         return false;
     }
@@ -22,11 +24,11 @@ LDR.LDCAD.handleCommentLine = function(pt, parts) {
     // TODO: Generate geometries.
     //console.log('Handling LDCad line', parts[2]);
     
-    pt.headerLines.push(new LDR.Line0(parts.slice(1).join(' ')));
+    pt.headerLines.push(new Line0(parts.slice(1).join(' ')));
     return true;
 }
 
-LDR.LDCAD.handlePart = function(loader, pt) {
+LDCAD.handlePart = function(loader, pt) {
     if(pt.ldCadGenerated && pt.steps.length > 0) {
         // Fix the description set Bricklink ID (LDR.BL[ID->BL]):
         // If sub models contain a shortcut, then use it:
@@ -45,17 +47,4 @@ LDR.LDCAD.handlePart = function(loader, pt) {
     // TODO
 }
 
-THREE.LDRPartType.prototype.encodeHeader = function() {
-    return (this.ldCadGenerated ? 4 : 0) + // Introducing bit for ldCadGenerated.
-           (this.CCW ? 2 : 0) + 
-           (this.certifiedBFC ? 1 : 0);
-}
-
-THREE.LDRPartType.prototype.decodeHeader = function(encoded) {
-    this.ldCadGenerated = Math.floor(encoded/4) % 2 === 1;
-    if(this.ldCadGenerated) {
-        this.computeIsPart = () => true;
-    }
-    this.certifiedBFC = encoded % 2 === 1;
-    this.CCW = Math.floor(encoded/2) % 2 === 1;
-}
+export { LDCAD }
